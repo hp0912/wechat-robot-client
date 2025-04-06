@@ -4,8 +4,12 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"math/rand"
+	"net/http"
 	"time"
+
+	"github.com/go-resty/resty/v2"
 )
 
 type Robot struct {
@@ -17,6 +21,16 @@ type Robot struct {
 
 func (r *Robot) Doman() string {
 	return fmt.Sprintf("http://%s:%d", r.ServerHost, r.ServerPort)
+}
+
+func (r *Robot) IsRunning() bool {
+	client := resty.New()
+	resp, err := client.R().Get(fmt.Sprintf("%s/IsRunning", r.Doman()))
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		log.Printf("Error checking if robot is running: %v, http code: %d", err, resp.StatusCode())
+		return false
+	}
+	return resp.String() == "OK"
 }
 
 func (r *Robot) CreateDeviceName() string {

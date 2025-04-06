@@ -2,24 +2,10 @@ package startup
 
 import (
 	"errors"
-	"fmt"
 	"log"
-	"net/http"
 	"time"
 	"wechat-robot-client/vars"
-
-	"github.com/go-resty/resty/v2"
 )
-
-func IsRunning() bool {
-	client := resty.New()
-	resp, err := client.R().Get(fmt.Sprintf("%s/IsRunning", vars.RobotRuntime.Doman()))
-	if err != nil || resp.StatusCode() != http.StatusOK {
-		log.Printf("Error checking if robot is running: %v, http code: %d", err, resp.StatusCode())
-		return false
-	}
-	return resp.String() == "OK"
-}
 
 func InitWechatRobot() error {
 	// 从机器人管理后台加载机器人配置
@@ -37,7 +23,7 @@ func InitWechatRobot() error {
 	for {
 		select {
 		case <-retryTicker.C:
-			if IsRunning() {
+			if vars.RobotRuntime.IsRunning() {
 				log.Println("微信机器人服务端已启动")
 				return nil
 			} else {
