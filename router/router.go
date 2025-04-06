@@ -2,6 +2,7 @@ package router
 
 import (
 	"wechat-robot-client/controller"
+	"wechat-robot-client/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,6 +14,8 @@ func initController() {
 }
 
 func RegisterRouter(r *gin.Engine) error {
+	r.Use(middleware.ErrorRecover)
+
 	initController()
 
 	// 设置信任的内网 IP 范围
