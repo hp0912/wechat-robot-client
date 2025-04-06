@@ -8,7 +8,16 @@ import (
 	"time"
 )
 
-type Robot struct{}
+type Robot struct {
+	DeviceID   string
+	DeviceName string
+	ServerHost string
+	ServerPort int
+}
+
+func (r *Robot) Doman() string {
+	return fmt.Sprintf("http://%s:%d", r.ServerHost, r.ServerPort)
+}
 
 func (r *Robot) CreateDeviceName() string {
 	firstNames := []string{
@@ -52,3 +61,5 @@ func (r *Robot) CreateDeviceID(s string) string {
 	hash := md5.Sum([]byte(s))
 	return "49" + hex.EncodeToString(hash[:])[2:]
 }
+
+var RobotRuntime = &Robot{}

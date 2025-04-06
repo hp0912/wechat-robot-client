@@ -19,6 +19,10 @@ func main() {
 	}
 	// 注册消息处理插件
 	startup.RegisterPlugin()
+	// 初始化微信机器人
+	if err := startup.InitWechatRobot(); err != nil {
+		log.Fatalf("启动微信机器人失败: %v", err)
+	}
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))
 	app := gin.Default()
