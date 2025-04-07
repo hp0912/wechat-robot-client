@@ -1,16 +1,23 @@
 package startup
 
 import (
+	"context"
 	"errors"
 	"log"
+	"os"
 	"time"
+	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
 )
 
 func InitWechatRobot() error {
 	// 从机器人管理后台加载机器人配置
 	// 这些配置需要先登陆机器人管理后台注册微信机器人才能获得
-	// TODO
+	robotId := os.Getenv("ROBOT_ID")
+	if robotId == "" {
+		return errors.New("ROBOT_ID 环境变量未设置")
+	}
+	_ = repository.NewRobotAdminRepo(context.Background(), vars.AdminDB)
 
 	// 检测微信机器人服务端是否启动
 	retryInterval := 10 * time.Second

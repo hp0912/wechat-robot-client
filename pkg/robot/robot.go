@@ -1,4 +1,4 @@
-package vars
+package robot
 
 import (
 	"crypto/md5"
@@ -13,6 +13,7 @@ import (
 )
 
 type Robot struct {
+	WxID       string
 	DeviceID   string
 	DeviceName string
 	ServerHost string
@@ -75,5 +76,3 @@ func (r *Robot) CreateDeviceID(s string) string {
 	hash := md5.Sum([]byte(s))
 	return "49" + hex.EncodeToString(hash[:])[2:]
 }
-
-var RobotRuntime = &Robot{}

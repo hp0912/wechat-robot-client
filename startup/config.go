@@ -32,7 +32,9 @@ func loadEnvConfig() {
 	vars.MysqlSettings.Port = os.Getenv("MYSQL_PORT")
 	vars.MysqlSettings.User = os.Getenv("MYSQL_USER")
 	vars.MysqlSettings.Password = os.Getenv("MYSQL_PASSWORD")
-	vars.MysqlSettings.Db = os.Getenv("MYSQL_DB")
+	// 机器人ID就是数据库名
+	vars.MysqlSettings.Db = os.Getenv("ROBOT_ID")
+	vars.MysqlSettings.AdminDb = os.Getenv("MYSQL_ADMIN_DB")
 	vars.MysqlSettings.Schema = os.Getenv("MYSQL_SCHEMA")
 
 	// rabbitmq

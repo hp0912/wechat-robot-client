@@ -7,6 +7,7 @@ type MysqlSettingS struct {
 	User     string
 	Password string
 	Db       string
+	AdminDb  string // 管理后台数据库
 	Schema   string // postgres 专用
 }
 
