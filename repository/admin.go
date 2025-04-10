@@ -18,3 +18,9 @@ func NewRobotAdminRepo(ctx context.Context, db *gorm.DB) *RobotAdmin {
 			DB:  db,
 		}}
 }
+
+func (r *RobotAdmin) GetByRobotID(robotID string, preloads ...string) *model.RobotAdmin {
+	return r.takeOne(preloads, func(g *gorm.DB) *gorm.DB {
+		return g.Where("robot_id = ?", robotID)
+	})
+}

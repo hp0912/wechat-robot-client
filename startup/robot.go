@@ -17,7 +17,17 @@ func InitWechatRobot() error {
 	if robotId == "" {
 		return errors.New("ROBOT_ID 环境变量未设置")
 	}
-	_ = repository.NewRobotAdminRepo(context.Background(), vars.AdminDB)
+	robotRespo := repository.NewRobotAdminRepo(context.Background(), vars.AdminDB)
+	robot := robotRespo.GetByRobotID(robotId)
+	if robot == nil {
+		return errors.New("未找到机器人配置")
+	}
+	vars.RobotRuntime.RobotID = robot.RobotID
+	vars.RobotRuntime.WxID = robot.WxID
+	vars.RobotRuntime.DeviceID = robot.DeviceID
+	vars.RobotRuntime.DeviceName = robot.DeviceName
+	vars.RobotRuntime.ServerHost = robot.ServerHost
+	vars.RobotRuntime.ServerPort = robot.ServerPort
 
 	// 检测微信机器人服务端是否启动
 	retryInterval := 10 * time.Second

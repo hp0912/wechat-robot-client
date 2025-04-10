@@ -13,6 +13,7 @@ import (
 )
 
 type Robot struct {
+	RobotID    string
 	WxID       string
 	DeviceID   string
 	DeviceName string
