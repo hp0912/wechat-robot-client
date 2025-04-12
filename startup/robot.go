@@ -3,9 +3,11 @@ package startup
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"time"
+	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
 )
@@ -18,16 +20,16 @@ func InitWechatRobot() error {
 		return errors.New("ROBOT_ID 环境变量未设置")
 	}
 	robotRespo := repository.NewRobotAdminRepo(context.Background(), vars.AdminDB)
-	robot := robotRespo.GetByRobotID(robotId)
-	if robot == nil {
+	robotAdmin := robotRespo.GetByRobotID(robotId)
+	if robotAdmin == nil {
 		return errors.New("未找到机器人配置")
 	}
-	vars.RobotRuntime.RobotID = robot.RobotID
-	vars.RobotRuntime.WxID = robot.WxID
-	vars.RobotRuntime.DeviceID = robot.DeviceID
-	vars.RobotRuntime.DeviceName = robot.DeviceName
-	vars.RobotRuntime.ServerHost = robot.ServerHost
-	vars.RobotRuntime.ServerPort = robot.ServerPort
+	vars.RobotRuntime.RobotID = robotAdmin.RobotID
+	vars.RobotRuntime.WxID = robotAdmin.WxID
+	vars.RobotRuntime.DeviceID = robotAdmin.DeviceID
+	vars.RobotRuntime.DeviceName = robotAdmin.DeviceName
+	client := robot.NewClient(robot.WechatDomain(fmt.Sprintf("%s:%d", robotAdmin.ServerHost, robotAdmin.ServerPort)))
+	vars.RobotRuntime.Client = client
 
 	// 检测微信机器人服务端是否启动
 	retryInterval := 10 * time.Second
