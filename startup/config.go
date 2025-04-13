@@ -33,7 +33,7 @@ func loadEnvConfig() {
 	vars.MysqlSettings.User = os.Getenv("MYSQL_USER")
 	vars.MysqlSettings.Password = os.Getenv("MYSQL_PASSWORD")
 	// 机器人ID就是数据库名
-	vars.MysqlSettings.Db = os.Getenv("ROBOT_ID")
+	vars.MysqlSettings.Db = os.Getenv("ROBOT_CODE")
 	vars.MysqlSettings.AdminDb = os.Getenv("MYSQL_ADMIN_DB")
 	vars.MysqlSettings.Schema = os.Getenv("MYSQL_SCHEMA")
 

@@ -15,12 +15,12 @@ import (
 func InitWechatRobot() error {
 	// 从机器人管理后台加载机器人配置
 	// 这些配置需要先登陆机器人管理后台注册微信机器人才能获得
-	robotId := os.Getenv("ROBOT_ID")
-	if robotId == "" {
-		return errors.New("ROBOT_ID 环境变量未设置")
+	robotCode := os.Getenv("ROBOT_CODE")
+	if robotCode == "" {
+		return errors.New("ROBOT_CODE 环境变量未设置")
 	}
 	robotRespo := repository.NewRobotAdminRepo(context.Background(), vars.AdminDB)
-	robotAdmin := robotRespo.GetByRobotID(robotId)
+	robotAdmin := robotRespo.GetByRobotID(robotCode)
 	if robotAdmin == nil {
 		return errors.New("未找到机器人配置")
 	}

@@ -29,7 +29,7 @@ func RegisterRouter(r *gin.Engine) error {
 	}
 
 	api := r.Group("/api/v1")
-	api.POST("/test", robotCtl.Test)
+	api.POST("/probe", robotCtl.Probe)
 
 	return nil
 }
