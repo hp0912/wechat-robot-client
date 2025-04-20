@@ -63,16 +63,13 @@ func (r *RobotService) LoginCheck() (loggedIn bool, err error) {
 	return
 }
 
-func (r *RobotService) Logout() error {
-	err := vars.RobotRuntime.Logout()
-	if err != nil {
-		return err
-	}
+func (r *RobotService) Logout() (err error) {
+	err = vars.RobotRuntime.Logout()
 	respo := repository.NewRobotAdminRepo(r.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
 		ID:     vars.RobotRuntime.RobotID,
 		Status: model.RobotStatusOffline,
 	}
 	respo.Update(&robot)
-	return nil
+	return
 }
