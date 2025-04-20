@@ -36,12 +36,15 @@ func (c ClientResponse[T]) IsSuccess() bool {
 	return c.Code == 0
 }
 
-func (c ClientResponse[T]) CheckError(err error) error {
+func (c ClientResponse[T]) CheckError(err error, resp *resty.Response) error {
 	if err != nil {
 		return err
 	}
 	if errMsg, ok := codeMap[c.Code]; ok {
 		return fmt.Errorf("[%d] %s - %s", c.Code, errMsg, c.Message)
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("http error: %d - %s", resp.StatusCode(), resp.String())
 	}
 	return nil
 }
@@ -73,14 +76,15 @@ type CommonRequest struct {
 
 func (c *Client) GetProfile(wxid string) (resp UserProfile, err error) {
 	var result ClientResponse[UserProfile]
-	_, err = c.client.R().
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(CommonRequest{
 			Wxid: wxid,
 		}).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), GetProfilePath))
-	if err = result.CheckError(err); err != nil {
+	if err = result.CheckError(err, httpResp); err != nil {
 		return
 	}
 	resp = result.Data
@@ -89,14 +93,15 @@ func (c *Client) GetProfile(wxid string) (resp UserProfile, err error) {
 
 func (c *Client) GetCachedInfo(wxid string) (resp CachedInfo, err error) {
 	var result ClientResponse[CachedInfo]
-	_, err = c.client.R().
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(CommonRequest{
 			Wxid: wxid,
 		}).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), GetCachedInfoPath))
-	if err = result.CheckError(err); err != nil {
+	if err = result.CheckError(err, httpResp); err != nil {
 		return
 	}
 	resp = result.Data
@@ -105,14 +110,15 @@ func (c *Client) GetCachedInfo(wxid string) (resp CachedInfo, err error) {
 
 func (c *Client) AwakenLogin(wxid string) (resp AwakenLogin, err error) {
 	var result ClientResponse[AwakenLogin]
-	_, err = c.client.R().
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(CommonRequest{
 			Wxid: wxid,
 		}).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AwakenLoginPath))
-	if err = result.CheckError(err); err != nil {
+	if err = result.CheckError(err, httpResp); err != nil {
 		return
 	}
 	resp = result.Data
@@ -121,7 +127,8 @@ func (c *Client) AwakenLogin(wxid string) (resp AwakenLogin, err error) {
 
 func (c *Client) GetQrCode(deviceId, deviceName string) (resp GetQRCode, err error) {
 	var result ClientResponse[GetQRCode]
-	_, err = c.client.R().
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(map[string]string{
 			"DeviceID":   deviceId,
@@ -129,7 +136,7 @@ func (c *Client) GetQrCode(deviceId, deviceName string) (resp GetQRCode, err err
 		}).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), GetQrCodePath))
-	if err = result.CheckError(err); err != nil {
+	if err = result.CheckError(err, httpResp); err != nil {
 		return
 	}
 	resp = result.Data
@@ -138,12 +145,13 @@ func (c *Client) GetQrCode(deviceId, deviceName string) (resp GetQRCode, err err
 
 func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
 	var result ClientResponse[CheckUuid]
-	_, err = c.client.R().
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().
 		SetResult(&result).
 		SetBody(map[string]string{
 			"Uuid": uuid,
 		}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), CheckUuidPath))
-	if err = result.CheckError(err); err != nil {
+	if err = result.CheckError(err, httpResp); err != nil {
 		return
 	}
 	resp = result.Data
@@ -152,9 +160,10 @@ func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
 
 func (c *Client) Logout(wxid string) (err error) {
 	var result ClientResponse[struct{}]
-	_, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
 		Wxid: wxid,
 	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), LogoutPath))
-	err = result.CheckError(err)
+	err = result.CheckError(err, httpResp)
 	return
 }

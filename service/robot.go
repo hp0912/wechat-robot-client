@@ -19,12 +19,12 @@ func NewRobotService(ctx context.Context) *RobotService {
 	}
 }
 
-func (r *RobotService) Login() (uuid, qrcode string, err error) {
-	_, uuid, qrcode, err = vars.RobotRuntime.Login()
+func (r *RobotService) Login() (uuid string, awken bool, err error) {
+	_, uuid, awken, err = vars.RobotRuntime.Login()
 	if err != nil {
 		return
 	}
-	if uuid != "" && qrcode != "" {
+	if uuid != "" {
 		// 如果二维码不为空，说明需要扫码登陆
 		return
 	}
@@ -39,22 +39,20 @@ func (r *RobotService) Login() (uuid, qrcode string, err error) {
 	return
 }
 
-func (r *RobotService) LoginCheck() (loggedIn bool, err error) {
-	var resp robot.CheckUuid
-	resp, err = vars.RobotRuntime.CheckLoginUuid()
+func (r *RobotService) LoginCheck(uuid string) (resp robot.CheckUuid, err error) {
+	resp, err = vars.RobotRuntime.CheckLoginUuid(uuid)
 	if err != nil {
 		return
 	}
+	respo := repository.NewRobotAdminRepo(r.ctx, vars.AdminDB)
 	if resp.AcctSectResp.Username != "" {
-		loggedIn = true
 		// 扫码登陆成功，更新登陆状态
-		respo := repository.NewRobotAdminRepo(r.ctx, vars.AdminDB)
 		robot := model.RobotAdmin{
 			ID:          vars.RobotRuntime.RobotID,
 			WeChatID:    resp.AcctSectResp.Username,
 			BindMobile:  resp.AcctSectResp.BindMobile,
 			Nickname:    resp.AcctSectResp.Nickname,
-			Avatar:      resp.HeadImgUrl,
+			Avatar:      resp.AcctSectResp.FsUrl,
 			Status:      model.RobotStatusOnline,
 			LastLoginAt: time.Now().Unix(),
 		}

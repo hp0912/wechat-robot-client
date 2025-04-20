@@ -22,7 +22,7 @@ func (r *Robot) IsLoggedIn() bool {
 	return err == nil
 }
 
-func (r *Robot) GetQrCode() (uuid, qrcode string, err error) {
+func (r *Robot) GetQrCode() (uuid string, err error) {
 	var resp GetQRCode
 	resp, err = r.Client.GetQrCode(r.DeviceID, r.DeviceName)
 	if err != nil {
@@ -30,14 +30,13 @@ func (r *Robot) GetQrCode() (uuid, qrcode string, err error) {
 	}
 	if resp.Uuid != "" && resp.QRCodeURL != "" {
 		uuid = resp.Uuid
-		qrcode = resp.QRCodeURL
 		return
 	}
 	err = errors.New("获取二维码失败")
 	return
 }
 
-func (r *Robot) Login() (profile UserProfile, uuid, qrcode string, err error) {
+func (r *Robot) Login() (profile UserProfile, uuid string, awken bool, err error) {
 	if r.IsLoggedIn() {
 		profile, err = r.Client.GetProfile(r.WxID)
 		return
@@ -51,25 +50,26 @@ func (r *Robot) Login() (profile UserProfile, uuid, qrcode string, err error) {
 		resp, err = r.Client.AwakenLogin(r.WxID)
 		if err != nil {
 			// 如果唤醒失败，尝试获取二维码
-			uuid, qrcode, err = r.GetQrCode()
+			uuid, err = r.GetQrCode()
 			return
 		}
 		if resp.QrCodeResponse.Uuid == "" {
 			// 如果唤醒失败，尝试获取二维码
-			uuid, qrcode, err = r.GetQrCode()
+			uuid, err = r.GetQrCode()
 			return
 		}
 		// 唤醒登陆成功
-		profile, err = r.Client.GetProfile(r.WxID)
+		uuid = resp.QrCodeResponse.Uuid
+		awken = true
 		return
 	}
 	// 二维码登陆
-	uuid, qrcode, err = r.GetQrCode()
+	uuid, err = r.GetQrCode()
 	return
 }
 
-func (r *Robot) CheckLoginUuid() (CheckUuid, error) {
-	return r.Client.CheckLoginUuid(r.WxID)
+func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {
+	return r.Client.CheckLoginUuid(uuid)
 }
 
 func (r *Robot) Logout() error {

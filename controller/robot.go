@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
@@ -34,27 +35,32 @@ func (d *Robot) IsLoggedIn(c *gin.Context) {
 
 func (d *Robot) Login(c *gin.Context) {
 	resp := appx.NewResponse(c)
-	uuid, qrcode, err := service.NewRobotService(c).Login()
+	uuid, awken, err := service.NewRobotService(c).Login()
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
 	resp.ToResponse(gin.H{
-		"qrcode": qrcode,
-		"uuid":   uuid,
+		"uuid":  uuid,
+		"awken": awken,
 	})
 }
 
 func (d *Robot) LoginCheck(c *gin.Context) {
+	var req struct {
+		Uuid string `json:"uuid" binding:"required"`
+	}
 	resp := appx.NewResponse(c)
-	loggedIn, err := service.NewRobotService(c).LoginCheck()
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewRobotService(c).LoginCheck(req.Uuid)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
-	resp.ToResponse(gin.H{
-		"logged_in": loggedIn,
-	})
+	resp.ToResponse(data)
 }
 
 func (d *Robot) Logout(c *gin.Context) {
