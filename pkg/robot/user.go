@@ -135,3 +135,9 @@ type GmailAcct struct {
 	GmailErrCode int    `json:"GmailErrCode"`
 	GmailSwitch  int    `json:"GmailSwitch"`
 }
+
+type UserProfile struct {
+	BaseResponse BaseResponse `json:"baseResponse"`
+	UserInfo     UserInfo     `json:"userInfo"`
+	UserInfoExt  UserInfoExt  `json:"userInfoExt"`
+}

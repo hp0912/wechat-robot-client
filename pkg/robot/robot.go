@@ -1,15 +1,9 @@
 package robot
 
-import (
-	"crypto/md5"
-	"encoding/hex"
-	"fmt"
-	"math/rand"
-	"time"
-)
+import "errors"
 
 type Robot struct {
-	RobotID    string
+	RobotID    int64
 	WxID       string
 	DeviceID   string
 	DeviceName string
@@ -24,52 +18,63 @@ func (r *Robot) IsLoggedIn() bool {
 	if r.WxID == "" {
 		return false
 	}
-	profile, err := r.Client.GetProfile(r.WxID)
-	if err != nil || profile == nil {
-		return false
-	}
-	return profile.Success
+	_, err := r.Client.GetProfile(r.WxID)
+	return err == nil
 }
 
-func (r *Robot) CreateDeviceName() string {
-	firstNames := []string{
-		"Oliver", "Emma", "Liam", "Ava", "Noah", "Sophia", "Elijah", "Isabella",
-		"James", "Mia", "William", "Amelia", "Benjamin", "Harper", "Lucas", "Evelyn",
-		"Henry", "Abigail", "Alexander", "Ella", "Jackson", "Scarlett", "Sebastian",
-		"Grace", "Aiden", "Chloe", "Matthew", "Zoey", "Samuel", "Lily", "David",
-		"Aria", "Joseph", "Riley", "Carter", "Nora", "Owen", "Luna", "Daniel",
-		"Sofia", "Gabriel", "Ellie", "Matthew", "Avery", "Isaac", "Mila", "Leo",
-		"Julian", "Layla",
+func (r *Robot) GetQrCode() (uuid, qrcode string, err error) {
+	var resp GetQRCode
+	resp, err = r.Client.GetQrCode(r.DeviceID, r.DeviceName)
+	if err != nil {
+		return
 	}
-
-	lastNames := []string{
-		"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
-		"Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
-		"Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson",
-		"White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker",
-		"Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill",
-		"Flores", "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell",
-		"Mitchell", "Carter", "Roberts", "Gomez", "Phillips", "Evans",
+	if resp.Uuid != "" && resp.QRCodeURL != "" {
+		uuid = resp.Uuid
+		qrcode = resp.QRCodeURL
+		return
 	}
-
-	source := rand.NewSource(time.Now().UnixNano())
-	rng := rand.New(source)
-	firstName := firstNames[rng.Intn(len(firstNames))]
-	lastName := lastNames[rng.Intn(len(lastNames))]
-
-	return fmt.Sprintf("%s %s's Pad", firstName, lastName)
+	err = errors.New("获取二维码失败")
+	return
 }
 
-func (r *Robot) CreateDeviceID(s string) string {
-	if s == "" || s == "string" {
-		var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-		b := make([]rune, 15)
-		for i := range b {
-			b[i] = letters[rand.Intn(len(letters))]
+func (r *Robot) Login() (profile UserProfile, uuid, qrcode string, err error) {
+	if r.IsLoggedIn() {
+		profile, err = r.Client.GetProfile(r.WxID)
+		return
+	}
+	// 尝试唤醒登陆
+	var cachedInfo CachedInfo
+	cachedInfo, err = r.Client.GetCachedInfo(r.WxID)
+	if err == nil && cachedInfo.Wxid != "" {
+		// 唤醒登陆
+		var resp AwakenLogin
+		resp, err = r.Client.AwakenLogin(r.WxID)
+		if err != nil {
+			// 如果唤醒失败，尝试获取二维码
+			uuid, qrcode, err = r.GetQrCode()
+			return
 		}
-		s = string(b)
+		if resp.QrCodeResponse.Uuid == "" {
+			// 如果唤醒失败，尝试获取二维码
+			uuid, qrcode, err = r.GetQrCode()
+			return
+		}
+		// 唤醒登陆成功
+		profile, err = r.Client.GetProfile(r.WxID)
+		return
 	}
+	// 二维码登陆
+	uuid, qrcode, err = r.GetQrCode()
+	return
+}
 
-	hash := md5.Sum([]byte(s))
-	return "49" + hex.EncodeToString(hash[:])[2:]
+func (r *Robot) CheckLoginUuid() (CheckUuid, error) {
+	return r.Client.CheckLoginUuid(r.WxID)
+}
+
+func (r *Robot) Logout() error {
+	if r.WxID == "" {
+		return errors.New("您还未登陆")
+	}
+	return r.Client.Logout(r.WxID)
 }
