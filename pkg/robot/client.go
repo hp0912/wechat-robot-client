@@ -167,3 +167,49 @@ func (c *Client) Logout(wxid string) (err error) {
 	err = result.CheckError(err, httpResp)
 	return
 }
+
+func (c *Client) AutoHeartbeatStart(wxid string) (err error) {
+	var result ClientResponse[struct{}]
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
+		Wxid: wxid,
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStart))
+	err = result.CheckError(err, httpResp)
+	return
+}
+
+func (c *Client) AutoHeartbeatStop(wxid string) (err error) {
+	var result ClientResponse[struct{}]
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
+		Wxid: wxid,
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStop))
+	err = result.CheckError(err, httpResp)
+	return
+}
+
+// Heartbeat 手动发起心跳
+func (c *Client) Heartbeat(wxid string) (err error) {
+	var result ClientResponse[struct{}]
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
+		Wxid: wxid,
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), Heartbeat))
+	err = result.CheckError(err, httpResp)
+	return
+}
+
+func (c *Client) AutoHeartbeatStatus(wxid string) (running bool, err error) {
+	var result AutoHeartbeatStatusResponse
+	_, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
+		Wxid: wxid,
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStatus))
+	if err == nil {
+		if !result.Success {
+			err = fmt.Errorf("[%d] %s", result.Code, result.Message)
+			return
+		}
+		running = result.Running
+	}
+	return
+}

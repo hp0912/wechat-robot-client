@@ -1,13 +1,17 @@
 package robot
 
 const (
-	IsRunningPath     = "/IsRunning"
-	GetProfilePath    = "/GetProfile"
-	GetCachedInfoPath = "/GetCachedInfo"
-	AwakenLoginPath   = "/AwakenLogin"
-	GetQrCodePath     = "/GetQRCode"
-	CheckUuidPath     = "/CheckUuid"
-	LogoutPath        = "/Logout"
+	IsRunningPath       = "/IsRunning"
+	GetProfilePath      = "/GetProfile"
+	GetCachedInfoPath   = "/GetCachedInfo"
+	AwakenLoginPath     = "/AwakenLogin"
+	GetQrCodePath       = "/GetQRCode"
+	CheckUuidPath       = "/CheckUuid"
+	LogoutPath          = "/Logout"
+	AutoHeartbeatStart  = "/AutoHeartbeatStart"
+	AutoHeartbeatStatus = "/AutoHeartbeatStatus"
+	AutoHeartbeatStop   = "/AutoHeartbeatStop"
+	Heartbeat           = "/Heartbeat"
 )
 
 type WechatDomain string

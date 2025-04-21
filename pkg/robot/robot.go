@@ -1,10 +1,14 @@
 package robot
 
-import "errors"
+import (
+	"errors"
+	"wechat-robot-client/model"
+)
 
 type Robot struct {
 	RobotID    int64
 	WxID       string
+	Status     model.RobotStatus
 	DeviceID   string
 	DeviceName string
 	Client     *Client
@@ -34,6 +38,10 @@ func (r *Robot) GetQrCode() (uuid string, err error) {
 	}
 	err = errors.New("获取二维码失败")
 	return
+}
+
+func (r *Robot) GetProfile(wxid string) (UserProfile, error) {
+	return r.Client.GetProfile(wxid)
 }
 
 func (r *Robot) Login() (profile UserProfile, uuid string, awken bool, err error) {
@@ -77,4 +85,20 @@ func (r *Robot) Logout() error {
 		return errors.New("您还未登陆")
 	}
 	return r.Client.Logout(r.WxID)
+}
+
+func (r *Robot) AutoHeartbeatStop() error {
+	return r.Client.AutoHeartbeatStop(r.WxID)
+}
+
+func (r *Robot) AutoHeartbeatStart() error {
+	return r.Client.AutoHeartbeatStart(r.WxID)
+}
+
+func (r *Robot) Heartbeat() error {
+	return r.Client.Heartbeat(r.WxID)
+}
+
+func (r *Robot) AutoHeartbeatStatus() (bool, error) {
+	return r.Client.AutoHeartbeatStatus(r.WxID)
 }

@@ -1,44 +1,44 @@
 package robot
 
 type UserInfo struct {
-	AlbumBgimgId   string            `json:"AlbumBgimgId"`
-	AlbumFlag      int               `json:"AlbumFlag"`
-	AlbumStyle     int               `json:"AlbumStyle"`
-	Alias          string            `json:"Alias"`
-	BindEmail      map[string]string `json:"BindEmail"`
-	BindMobile     map[string]string `json:"BindMobile"`
-	BindUin        int               `json:"BindUin"`
-	BitFlag        int               `json:"BitFlag"`
-	City           string            `json:"City"`
-	Country        string            `json:"Country"`
-	DisturbSetting DisturbSetting    `json:"DisturbSetting"`
-	Experience     int               `json:"Experience"`
-	FaceBookFlag   int               `json:"FaceBookFlag"`
-	Fbtoken        string            `json:"Fbtoken"`
-	FbuserId       int               `json:"FbuserId"`
-	FbuserName     string            `json:"FbuserName"`
-	GmailList      GmailList         `json:"GmailList"`
-	ImgBuf         []int             `json:"ImgBuf"`
-	ImgLen         int               `json:"ImgLen"`
-	Level          int               `json:"Level"`
-	LevelHighExp   int               `json:"LevelHighExp"`
-	LevelLowExp    int               `json:"LevelLowExp"`
-	NickName       map[string]string `json:"NickName"`
-	PersonalCard   int               `json:"PersonalCard"`
-	PluginFlag     int               `json:"PluginFlag"`
-	PluginSwitch   int               `json:"PluginSwitch"`
-	Point          int               `json:"Point"`
-	Province       string            `json:"Province"`
-	Sex            int               `json:"Sex"`
-	Signature      string            `json:"Signature"`
-	Status         int               `json:"Status"`
-	TxnewsCategory int               `json:"TxnewsCategory"`
-	UserName       map[string]string `json:"UserName"`
-	VerifyFlag     int               `json:"VerifyFlag"`
-	VerifyInfo     string            `json:"VerifyInfo"`
-	Weibo          string            `json:"Weibo"`
-	WeiboFlag      int               `json:"WeiboFlag"`
-	WeiboNickname  string            `json:"WeiboNickname"`
+	AlbumBgimgId   string         `json:"AlbumBgimgId"`
+	AlbumFlag      int            `json:"AlbumFlag"`
+	AlbumStyle     int            `json:"AlbumStyle"`
+	Alias          string         `json:"Alias"`
+	BindEmail      StringT        `json:"BindEmail"`
+	BindMobile     StringT        `json:"BindMobile"`
+	BindUin        int            `json:"BindUin"`
+	BitFlag        int            `json:"BitFlag"`
+	City           string         `json:"City"`
+	Country        string         `json:"Country"`
+	DisturbSetting DisturbSetting `json:"DisturbSetting"`
+	Experience     int            `json:"Experience"`
+	FaceBookFlag   int            `json:"FaceBookFlag"`
+	Fbtoken        string         `json:"Fbtoken"`
+	FbuserId       int            `json:"FbuserId"`
+	FbuserName     string         `json:"FbuserName"`
+	GmailList      GmailList      `json:"GmailList"`
+	ImgBuf         []int          `json:"ImgBuf"`
+	ImgLen         int            `json:"ImgLen"`
+	Level          int            `json:"Level"`
+	LevelHighExp   int            `json:"LevelHighExp"`
+	LevelLowExp    int            `json:"LevelLowExp"`
+	NickName       StringT        `json:"NickName"`
+	PersonalCard   int            `json:"PersonalCard"`
+	PluginFlag     int            `json:"PluginFlag"`
+	PluginSwitch   int            `json:"PluginSwitch"`
+	Point          int            `json:"Point"`
+	Province       string         `json:"Province"`
+	Sex            int            `json:"Sex"`
+	Signature      string         `json:"Signature"`
+	Status         int            `json:"Status"`
+	TxnewsCategory int            `json:"TxnewsCategory"`
+	UserName       StringT        `json:"UserName"`
+	VerifyFlag     int            `json:"VerifyFlag"`
+	VerifyInfo     string         `json:"VerifyInfo"`
+	Weibo          string         `json:"Weibo"`
+	WeiboFlag      int            `json:"WeiboFlag"`
+	WeiboNickname  string         `json:"WeiboNickname"`
 }
 
 type UserInfoExt struct {
@@ -50,7 +50,7 @@ type UserInfoExt struct {
 	BigChatRoomSize     int                 `json:"BigChatRoomSize"`
 	BigHeadImgUrl       string              `json:"BigHeadImgUrl"`
 	ExtStatus           int                 `json:"ExtStatus"`
-	ExtXml              map[string]string   `json:"ExtXml"`
+	ExtXml              StringT             `json:"ExtXml"`
 	F2FpushSound        string              `json:"F2FpushSound"`
 	GoogleContactName   string              `json:"GoogleContactName"`
 	GrayscaleFlag       int                 `json:"GrayscaleFlag"`

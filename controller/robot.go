@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
-	"wechat-robot-client/vars"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,12 +24,12 @@ func (d *Robot) Probe(c *gin.Context) {
 
 func (d *Robot) IsRunning(c *gin.Context) {
 	resp := appx.NewResponse(c)
-	resp.ToResponse(vars.RobotRuntime.IsRunning())
+	resp.ToResponse(service.NewRobotService(c).IsRunning())
 }
 
 func (d *Robot) IsLoggedIn(c *gin.Context) {
 	resp := appx.NewResponse(c)
-	resp.ToResponse(vars.RobotRuntime.IsLoggedIn())
+	resp.ToResponse(service.NewRobotService(c).IsLoggedIn())
 }
 
 func (d *Robot) Login(c *gin.Context) {
