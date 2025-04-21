@@ -7,7 +7,7 @@ const (
 	AwakenLoginPath     = "/AwakenLogin"
 	GetQrCodePath       = "/GetQRCode"
 	CheckUuidPath       = "/CheckUuid"
-	LogoutPath          = "/Logout"
+	LogoutPath          = "/LogOut"
 	AutoHeartbeatStart  = "/AutoHeartbeatStart"
 	AutoHeartbeatStatus = "/AutoHeartbeatStatus"
 	AutoHeartbeatStop   = "/AutoHeartbeatStop"

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
@@ -83,7 +84,9 @@ func (r *RobotService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 		// 开启心跳
 		err = vars.RobotRuntime.AutoHeartbeatStart()
 		if err != nil {
-			return
+			if !strings.Contains(err.Error(), "在运行") {
+				return
+			}
 		}
 		// 更新登陆状态
 		var profile robot.UserProfile
@@ -107,20 +110,7 @@ func (r *RobotService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 }
 
 func (r *RobotService) Logout() (err error) {
-	// 停止心跳
-	err = vars.RobotRuntime.AutoHeartbeatStop()
-	if err != nil {
-		return
-	}
+	r.Offline()
 	err = vars.RobotRuntime.Logout()
-	respo := repository.NewRobotAdminRepo(r.ctx, vars.AdminDB)
-	robot := model.RobotAdmin{
-		ID:     vars.RobotRuntime.RobotID,
-		Status: model.RobotStatusOffline,
-	}
-	respo.Update(&robot)
-
-	vars.RobotRuntime.Status = model.RobotStatusOffline
-
 	return
 }

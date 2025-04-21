@@ -5,8 +5,8 @@ type UserInfo struct {
 	AlbumFlag      int            `json:"AlbumFlag"`
 	AlbumStyle     int            `json:"AlbumStyle"`
 	Alias          string         `json:"Alias"`
-	BindEmail      StringT        `json:"BindEmail"`
-	BindMobile     StringT        `json:"BindMobile"`
+	BindEmail      BuiltinString  `json:"BindEmail"`
+	BindMobile     BuiltinString  `json:"BindMobile"`
 	BindUin        int            `json:"BindUin"`
 	BitFlag        int            `json:"BitFlag"`
 	City           string         `json:"City"`
@@ -23,7 +23,7 @@ type UserInfo struct {
 	Level          int            `json:"Level"`
 	LevelHighExp   int            `json:"LevelHighExp"`
 	LevelLowExp    int            `json:"LevelLowExp"`
-	NickName       StringT        `json:"NickName"`
+	NickName       BuiltinString  `json:"NickName"`
 	PersonalCard   int            `json:"PersonalCard"`
 	PluginFlag     int            `json:"PluginFlag"`
 	PluginSwitch   int            `json:"PluginSwitch"`
@@ -33,7 +33,7 @@ type UserInfo struct {
 	Signature      string         `json:"Signature"`
 	Status         int            `json:"Status"`
 	TxnewsCategory int            `json:"TxnewsCategory"`
-	UserName       StringT        `json:"UserName"`
+	UserName       BuiltinString  `json:"UserName"`
 	VerifyFlag     int            `json:"VerifyFlag"`
 	VerifyInfo     string         `json:"VerifyInfo"`
 	Weibo          string         `json:"Weibo"`
@@ -49,8 +49,8 @@ type UserInfoExt struct {
 	BigChatRoomQuota    int                 `json:"BigChatRoomQuota"`
 	BigChatRoomSize     int                 `json:"BigChatRoomSize"`
 	BigHeadImgUrl       string              `json:"BigHeadImgUrl"`
-	ExtStatus           int                 `json:"ExtStatus"`
-	ExtXml              StringT             `json:"ExtXml"`
+	ExtStatus           int64               `json:"ExtStatus"`
+	ExtXml              BuiltinString       `json:"ExtXml"`
 	F2FpushSound        string              `json:"F2FpushSound"`
 	GoogleContactName   string              `json:"GoogleContactName"`
 	GrayscaleFlag       int                 `json:"GrayscaleFlag"`
@@ -90,8 +90,8 @@ type PatternLockInfo struct {
 }
 
 type Sign struct {
-	Buffer []int `json:"buffer"`
-	ILen   int   `json:"iLen"`
+	Buffer string `json:"buffer"`
+	ILen   int    `json:"iLen"`
 }
 
 type SafeDeviceList struct {
@@ -108,7 +108,7 @@ type SafeDevice struct {
 
 type SnsUserInfo struct {
 	SnsBgimgId    string `json:"SnsBgimgId"`
-	SnsBgobjectId int    `json:"SnsBgobjectId"`
+	SnsBgobjectId uint64 `json:"SnsBgobjectId"`
 	SnsFlag       int    `json:"SnsFlag"`
 	SnsFlagEx     int    `json:"SnsFlagEx"`
 }
