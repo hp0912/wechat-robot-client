@@ -8,8 +8,10 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 )
 
@@ -33,6 +35,7 @@ func InitWechatRobot() error {
 	vars.RobotRuntime.WxID = robotAdmin.WeChatID
 	vars.RobotRuntime.DeviceID = robotAdmin.DeviceID
 	vars.RobotRuntime.DeviceName = robotAdmin.DeviceName
+	vars.RobotRuntime.Status = robotAdmin.Status
 	client := robot.NewClient(robot.WechatDomain(fmt.Sprintf("%s:%d", robotAdmin.RobotCode, 9003))) // TODO
 	vars.RobotRuntime.Client = client
 
@@ -49,6 +52,10 @@ func InitWechatRobot() error {
 		case <-retryTicker.C:
 			if vars.RobotRuntime.IsRunning() {
 				log.Println("微信机器人服务端已启动")
+				if vars.RobotRuntime.Status == model.RobotStatusOnline {
+					go service.NewRobotService(context.Background()).HeartbeatStart()
+					log.Println("微信机器人已经登陆，开始心跳检测...")
+				}
 				return nil
 			} else {
 				log.Println("等待微信机器人服务端启动...")

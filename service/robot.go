@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strings"
 	"time"
@@ -21,11 +22,20 @@ func NewRobotService(ctx context.Context) *RobotService {
 	}
 }
 
+func (r *RobotService) Online() {
+	vars.RobotRuntime.Status = model.RobotStatusOnline
+	respo := repository.NewRobotAdminRepo(r.ctx, vars.AdminDB)
+	robot := model.RobotAdmin{
+		ID:     vars.RobotRuntime.RobotID,
+		Status: model.RobotStatusOnline,
+	}
+	respo.Update(&robot)
+}
+
 func (r *RobotService) Offline() {
 	vars.RobotRuntime.Status = model.RobotStatusOffline
-	err := vars.RobotRuntime.AutoHeartbeatStop()
-	if err != nil {
-		log.Println("停止心跳失败:", err)
+	if vars.RobotRuntime.HeartbeatCancel != nil {
+		vars.RobotRuntime.HeartbeatCancel()
 	}
 	respo := repository.NewRobotAdminRepo(r.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
@@ -52,23 +62,41 @@ func (r *RobotService) IsLoggedIn() (result bool) {
 }
 
 func (r *RobotService) Login() (uuid string, awken bool, err error) {
-	_, uuid, awken, err = vars.RobotRuntime.Login()
-	if err != nil {
+	if vars.RobotRuntime.Status == model.RobotStatusOnline {
+		err = errors.New("您已经登陆，可以尝试刷新机器人状态")
 		return
 	}
-	if uuid != "" {
-		// 如果二维码不为空，说明需要扫码登陆
-		return
-	}
-	// 唤醒登陆成功，更新登陆状态
-	respo := repository.NewRobotAdminRepo(r.ctx, vars.AdminDB)
-	robot := model.RobotAdmin{
-		ID:          vars.RobotRuntime.RobotID,
-		Status:      model.RobotStatusOnline,
-		LastLoginAt: time.Now().Unix(),
-	}
-	respo.Update(&robot)
+	uuid, awken, err = vars.RobotRuntime.Login()
 	return
+}
+
+func (r *RobotService) HeartbeatStart() {
+	ctx := context.Background()
+	vars.RobotRuntime.HeartbeatContext, vars.RobotRuntime.HeartbeatCancel = context.WithCancel(ctx)
+	var errCount int
+	for {
+		select {
+		case <-vars.RobotRuntime.HeartbeatContext.Done():
+			return
+		case <-time.After(3 * time.Second):
+			err := vars.RobotRuntime.Heartbeat()
+			log.Println("心跳", err)
+			if err != nil {
+				if !strings.Contains(err.Error(), "在运行") {
+					errCount++
+					if errCount > 10 {
+						// 10次心跳失败，认为机器人离线
+						r.Offline()
+						return
+					}
+				} else {
+					errCount = 0
+				}
+			} else {
+				errCount = 0
+			}
+		}
+	}
 }
 
 func (r *RobotService) LoginCheck(uuid string) (resp robot.CheckUuid, err error) {
@@ -78,16 +106,11 @@ func (r *RobotService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 	}
 	respo := repository.NewRobotAdminRepo(r.ctx, vars.AdminDB)
 	if resp.AcctSectResp.Username != "" {
-		// 扫码登陆成功
+		// 登陆成功
 		vars.RobotRuntime.WxID = resp.AcctSectResp.Username
 		vars.RobotRuntime.Status = model.RobotStatusOnline
 		// 开启心跳
-		err = vars.RobotRuntime.AutoHeartbeatStart()
-		if err != nil {
-			if !strings.Contains(err.Error(), "在运行") {
-				return
-			}
-		}
+		go r.HeartbeatStart()
 		// 更新登陆状态
 		var profile robot.UserProfile
 		profile, err = vars.RobotRuntime.GetProfile(resp.AcctSectResp.Username)

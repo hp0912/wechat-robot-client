@@ -1,17 +1,20 @@
 package robot
 
 import (
+	"context"
 	"errors"
 	"wechat-robot-client/model"
 )
 
 type Robot struct {
-	RobotID    int64
-	WxID       string
-	Status     model.RobotStatus
-	DeviceID   string
-	DeviceName string
-	Client     *Client
+	RobotID          int64
+	WxID             string
+	Status           model.RobotStatus
+	DeviceID         string
+	DeviceName       string
+	Client           *Client
+	HeartbeatContext context.Context
+	HeartbeatCancel  func()
 }
 
 func (r *Robot) IsRunning() bool {
@@ -44,11 +47,7 @@ func (r *Robot) GetProfile(wxid string) (UserProfile, error) {
 	return r.Client.GetProfile(wxid)
 }
 
-func (r *Robot) Login() (profile UserProfile, uuid string, awken bool, err error) {
-	if r.IsLoggedIn() {
-		profile, err = r.Client.GetProfile(r.WxID)
-		return
-	}
+func (r *Robot) Login() (uuid string, awken bool, err error) {
 	// 尝试唤醒登陆
 	var cachedInfo CachedInfo
 	cachedInfo, err = r.Client.GetCachedInfo(r.WxID)
