@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"strings"
@@ -117,6 +118,8 @@ func (r *RobotService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 		if err != nil {
 			return
 		}
+		bytes, _ := json.Marshal(profile.UserInfo)
+		bytesExt, _ := json.Marshal(profile.UserInfoExt)
 		robot := model.RobotAdmin{
 			ID:          vars.RobotRuntime.RobotID,
 			WeChatID:    profile.UserInfo.UserName.String,
@@ -125,6 +128,8 @@ func (r *RobotService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 			Nickname:    profile.UserInfo.NickName.String,
 			Avatar:      profile.UserInfoExt.BigHeadImgUrl, // 从 resp.AcctSectResp.FsUrl 获取的不太靠谱
 			Status:      model.RobotStatusOnline,
+			Profile:     bytes,
+			ProfileExt:  bytesExt,
 			LastLoginAt: time.Now().Unix(),
 		}
 		respo.Update(&robot)

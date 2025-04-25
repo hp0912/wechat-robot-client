@@ -1,6 +1,7 @@
 package model
 
 import (
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -28,6 +29,8 @@ type RobotAdmin struct {
 	Status       RobotStatus    `gorm:"column:status;default:'offline'" json:"status"`              // 当前机器人登陆的状态
 	RedisDB      uint           `gorm:"column:redis_db;default:1" json:"redis_db"`                  // 当前机器人登陆的Redis数据库
 	ErrorMessage string         `gorm:"column:error_message" json:"error_message"`
+	Profile      datatypes.JSON `gorm:"column:profile" json:"profile"`         // 当前机器人登陆的微信个人资料
+	ProfileExt   datatypes.JSON `gorm:"column:profile_ext" json:"profile_ext"` // 当前机器人登陆的微信扩展资料
 	LastLoginAt  int64          `gorm:"column:last_login_at" json:"last_login_at"`
 	CreatedAt    int64          `json:"created_at"`
 	UpdatedAt    int64          `json:"updated_at"`
