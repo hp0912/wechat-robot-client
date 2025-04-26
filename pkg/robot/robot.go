@@ -131,3 +131,11 @@ func (r *Robot) Heartbeat() error {
 func (r *Robot) AutoHeartbeatStatus() (bool, error) {
 	return r.Client.AutoHeartbeatStatus(r.WxID)
 }
+
+func (r *Robot) GetContactList() (wxids []string, err error) {
+	return r.Client.GetContactList(r.WxID)
+}
+
+func (r *Robot) GetContactDetail(requestWxids []string) (contactList []Contact, err error) {
+	return r.Client.GetContactDetail(r.WxID, requestWxids)
+}

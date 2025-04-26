@@ -1,9 +1,12 @@
 package robot
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -173,7 +176,7 @@ func (c *Client) AutoHeartbeatStart(wxid string) (err error) {
 	var httpResp *resty.Response
 	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
 		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStart))
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStartPath))
 	err = result.CheckError(err, httpResp)
 	return
 }
@@ -183,7 +186,7 @@ func (c *Client) AutoHeartbeatStop(wxid string) (err error) {
 	var httpResp *resty.Response
 	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
 		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStop))
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStopPath))
 	err = result.CheckError(err, httpResp)
 	return
 }
@@ -194,7 +197,7 @@ func (c *Client) Heartbeat(wxid string) (err error) {
 	var httpResp *resty.Response
 	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
 		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), Heartbeat))
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), HeartbeatPath))
 	err = result.CheckError(err, httpResp)
 	return
 }
@@ -203,7 +206,7 @@ func (c *Client) AutoHeartbeatStatus(wxid string) (running bool, err error) {
 	var result AutoHeartbeatStatusResponse
 	_, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
 		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStatus))
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStatusPath))
 	if err == nil {
 		if !result.Success {
 			err = fmt.Errorf("[%d] %s", result.Code, result.Message)
@@ -229,10 +232,68 @@ func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err erro
 			Wxid:    wxid,
 			Scene:   0,
 			Synckey: "",
-		}).Post("/Sync")
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), SyncPath))
 	if err = result.CheckError(err, httpResp); err != nil {
 		return
 	}
 	messageResponse = result.Data
+	return
+}
+
+type GetContactListRequest struct {
+	Wxid                      string `json:"Wxid"`
+	CurrentChatroomContactSeq int    `json:"CurrentChatroomContactSeq"`
+	CurrentWxcontactSeq       int    `json:"CurrentWxcontactSeq"`
+}
+
+func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
+	var result ClientResponse[GetContactListResponse]
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().
+		SetResult(&result).
+		SetBody(GetContactListRequest{
+			Wxid:                      wxid,
+			CurrentChatroomContactSeq: 0,
+			CurrentWxcontactSeq:       0,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), GetContactListPath))
+	if err = result.CheckError(err, httpResp); err != nil {
+		return
+	}
+	wxids = result.Data.ContactUsernameList
+	// 过滤掉系统微信Id
+	var specialId = []string{"filehelper", "newsapp", "fmessage", "weibo", "qqmail", "tmessage", "qmessage", "qqsync",
+		"floatbottle", "lbsapp", "shakeapp", "medianote", "qqfriend", "readerapp", "blogapp", "facebookapp", "masssendapp",
+		"meishiapp", "feedsapp", "voip", "blogappweixin", "weixin", "brandsessionholder", "weixinreminder", "officialaccounts",
+		"notification_messages", "wxitil", "userexperience_alarm", "notification_messages", "exmail_tool", "mphelper"}
+	wxids = slices.DeleteFunc(wxids, func(id string) bool {
+		return slices.Contains(specialId, id) || strings.HasPrefix(id, "gh_") || strings.TrimSpace(id) == ""
+	})
+	return
+}
+
+type GetContactDetailRequest struct {
+	Wxid         string `json:"Wxid"`
+	RequestWxids string `json:"RequestWxids"`
+	Chatroom     string `json:"Chatroom"`
+}
+
+func (c *Client) GetContactDetail(wxid string, requestWxids []string) (contactList []Contact, err error) {
+	if len(requestWxids) > 20 {
+		err = errors.New("一次最多查询20个联系人")
+		return
+	}
+	var result ClientResponse[GetContactResponse]
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().
+		SetResult(&result).
+		SetBody(GetContactDetailRequest{
+			Wxid:         wxid,
+			RequestWxids: strings.Join(requestWxids, ","),
+			Chatroom:     "",
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), GetContactDetailPath))
+	if err = result.CheckError(err, httpResp); err != nil {
+		return
+	}
+	contactList = result.Data.ContactList
 	return
 }

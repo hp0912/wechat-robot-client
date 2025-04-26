@@ -5,6 +5,7 @@ import (
 	"os"
 	"wechat-robot-client/router"
 	"wechat-robot-client/startup"
+	"wechat-robot-client/task"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,6 +24,8 @@ func main() {
 	if err := startup.InitWechatRobot(); err != nil {
 		log.Fatalf("启动微信机器人失败: %v", err)
 	}
+	// 初始化定时任务
+	task.InitTasks()
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))
 	app := gin.Default()

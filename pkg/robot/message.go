@@ -18,6 +18,7 @@ const (
 	MsgTypeLocation       MessageType = 48    // 地理位置消息
 	MsgTypeApp            MessageType = 49    // APP消息
 	MsgTypeVoip           MessageType = 50    // VOIP消息
+	MsgTypeInit           MessageType = 51    // 微信初始化消息
 	MsgTypeVoipNotify     MessageType = 52    // VOIP结束消息
 	MsgTypeVoipInvite     MessageType = 53    // VOIP邀请
 	MsgTypeMicroVideo     MessageType = 62    // 小视频消息
