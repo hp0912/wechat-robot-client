@@ -2,19 +2,23 @@ package robot
 
 import (
 	"context"
+	"encoding/xml"
 	"errors"
-	"wechat-robot-client/model"
+	"io"
+	"strings"
 )
 
 type Robot struct {
-	RobotID          int64
-	WxID             string
-	Status           model.RobotStatus
-	DeviceID         string
-	DeviceName       string
-	Client           *Client
-	HeartbeatContext context.Context
-	HeartbeatCancel  func()
+	RobotID            int64
+	WxID               string
+	Status             RobotStatus
+	DeviceID           string
+	DeviceName         string
+	Client             *Client
+	HeartbeatContext   context.Context
+	HeartbeatCancel    func()
+	SyncMessageContext context.Context
+	SyncMessageCancel  func()
 }
 
 func (r *Robot) IsRunning() bool {
@@ -73,6 +77,32 @@ func (r *Robot) Login() (uuid string, awken bool, err error) {
 	// 二维码登陆
 	uuid, err = r.GetQrCode()
 	return
+}
+
+func (r *Robot) AtListDecoder(xmlStr string) string {
+	decoder := xml.NewDecoder(strings.NewReader(xmlStr))
+	for {
+		tok, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return ""
+		}
+		switch el := tok.(type) {
+		case xml.StartElement:
+			if el.Name.Local == "atuserlist" {
+				var content string
+				decoder.DecodeElement(&content, &el)
+				return content
+			}
+		}
+	}
+	return ""
+}
+
+func (r *Robot) SyncMessage() (SyncMessage, error) {
+	return r.Client.SyncMessage(r.WxID)
 }
 
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {

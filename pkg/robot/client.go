@@ -213,3 +213,26 @@ func (c *Client) AutoHeartbeatStatus(wxid string) (running bool, err error) {
 	}
 	return
 }
+
+type SyncMessageRequest struct {
+	Wxid    string `json:"Wxid"`
+	Scene   int    `json:"Scene"`
+	Synckey string `json:"Synckey"`
+}
+
+func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err error) {
+	var result ClientResponse[SyncMessage]
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().
+		SetResult(&result).
+		SetBody(SyncMessageRequest{
+			Wxid:    wxid,
+			Scene:   0,
+			Synckey: "",
+		}).Post("/Sync")
+	if err = result.CheckError(err, httpResp); err != nil {
+		return
+	}
+	messageResponse = result.Data
+	return
+}

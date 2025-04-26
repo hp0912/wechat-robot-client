@@ -77,12 +77,6 @@ type UserInfoExt struct {
 	WeiDianInfo         string              `json:"WeiDianInfo"`
 }
 
-type LinkedinContactItem struct {
-	LinkedinMemberId  string `json:"LinkedinMemberId"`
-	LinkedinName      string `json:"LinkedinName"`
-	LinkedinPublicUrl string `json:"LinkedinPublicUrl"`
-}
-
 type PatternLockInfo struct {
 	LockStatus     int  `json:"LockStatus"`
 	PatternVersion int  `json:"PatternVersion"`
@@ -140,4 +134,13 @@ type UserProfile struct {
 	BaseResponse BaseResponse `json:"baseResponse"`
 	UserInfo     UserInfo     `json:"userInfo"`
 	UserInfoExt  UserInfoExt  `json:"userInfoExt"`
+}
+
+type UserImg struct {
+	BigHeadImgUrl   string  `json:"BigHeadImgUrl"`
+	ImgBuf          []int64 `json:"ImgBuf"`
+	ImgLen          int64   `json:"ImgLen"`
+	ImgMd5          string  `json:"ImgMd5"`
+	ImgType         int     `json:"ImgType"`
+	SmallHeadImgUrl string  `json:"SmallHeadImgUrl"`
 }
