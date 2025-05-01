@@ -47,26 +47,26 @@ const (
 )
 
 type SyncMessage struct {
-	ModUserInfos    []UserInfo       `json:"ModUserInfos"`
-	ModContacts     []Contact        `json:"ModContacts"`
-	DelContacts     []DelContact     `json:"DelContacts"`
-	ModUserImgs     []UserImg        `json:"ModUserImgs"`
-	FunctionSwitchs []FunctionSwitch `json:"FunctionSwitchs"`
-	UserInfoExts    []UserInfoExt    `json:"UserInfoExts"`
-	AddMsgs         []Message        `json:"AddMsgs"`
-	ContinueFlag    int              `json:"ContinueFlag"`
-	KeyBuf          BuiltinBuffer    `json:"KeyBuf"`
-	Status          int              `json:"Status"`
-	Continue        int              `json:"Continue"`
-	Time            int              `json:"Time"`
-	UnknownCmdId    string           `json:"UnknownCmdId"`
-	Remarks         string           `json:"Remarks"`
+	ModUserInfos    []*UserInfo       `json:"ModUserInfos"`
+	ModContacts     []*Contact        `json:"ModContacts"`
+	DelContacts     []*DelContact     `json:"DelContacts"`
+	ModUserImgs     []*UserImg        `json:"ModUserImgs"`
+	FunctionSwitchs []*FunctionSwitch `json:"FunctionSwitchs"`
+	UserInfoExts    []*UserInfoExt    `json:"UserInfoExts"`
+	AddMsgs         []Message         `json:"AddMsgs"`
+	ContinueFlag    int               `json:"ContinueFlag"`
+	KeyBuf          BuiltinBuffer     `json:"KeyBuf"`
+	Status          int               `json:"Status"`
+	Continue        int               `json:"Continue"`
+	Time            int               `json:"Time"`
+	UnknownCmdId    string            `json:"UnknownCmdId"`
+	Remarks         string            `json:"Remarks"`
 }
 
 type Message struct {
 	MsgId        int64         `json:"MsgId"`
 	FromUserName BuiltinString `json:"FromUserName"`
-	ToWxid       BuiltinString `json:"ToWxid"`
+	ToUserName   BuiltinString `json:"ToUserName"`
 	Content      BuiltinString `json:"Content"`
 	CreateTime   int           `json:"CreateTime"`
 	MsgType      MessageType   `json:"MsgType"`

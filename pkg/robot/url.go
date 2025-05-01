@@ -1,18 +1,20 @@
 package robot
 
+import "fmt"
+
 const (
-	IsRunningPath           = "/IsRunning"
-	GetProfilePath          = "/GetProfile"
-	GetCachedInfoPath       = "/GetCachedInfo"
-	AwakenLoginPath         = "/AwakenLogin"
-	GetQrCodePath           = "/GetQRCode"
-	CheckUuidPath           = "/CheckUuid"
-	LogoutPath              = "/LogOut"
+	LoginGetCacheInfo       = "/Login/GetCacheInfo"
+	LoginTwiceAutoAuth      = "/Login/TwiceAutoAuth"
+	LoginAwaken             = "/Login/Awaken"
+	LoginGetQR              = "/Login/GetQRx"
+	LoginCheckQR            = "/Login/CheckQR"
+	LoginHeartBeat          = "/Login/HeartBeat"
+	UserGetContractProfile  = "/User/GetContractProfile"
+	LoginLogout             = "/Login/LogOut"
 	AutoHeartbeatStartPath  = "/AutoHeartbeatStart"
 	AutoHeartbeatStatusPath = "/AutoHeartbeatStatus"
 	AutoHeartbeatStopPath   = "/AutoHeartbeatStop"
-	HeartbeatPath           = "/Heartbeat"
-	SyncPath                = "/Sync"
+	MsgSyncPath             = "/Msg/Sync"
 	GetContactListPath      = "/GetContractList"
 	GetContactDetailPath    = "/GetContractDetail"
 )
@@ -21,4 +23,8 @@ type WechatDomain string
 
 func (w WechatDomain) BaseHost() string {
 	return "http://" + string(w)
+}
+
+func (w WechatDomain) BasePath() string {
+	return fmt.Sprintf("%s%s", w.BaseHost(), "/api")
 }

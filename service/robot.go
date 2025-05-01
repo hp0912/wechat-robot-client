@@ -66,12 +66,12 @@ func (r *RobotService) IsLoggedIn() (result bool) {
 	return
 }
 
-func (r *RobotService) Login() (uuid string, awken bool, err error) {
+func (r *RobotService) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 	if vars.RobotRuntime.Status == robot.RobotStatusOnline {
 		err = errors.New("您已经登陆，可以尝试刷新机器人状态")
 		return
 	}
-	uuid, awken, err = vars.RobotRuntime.Login()
+	uuid, awkenLogin, autoLogin, err = vars.RobotRuntime.Login()
 	return
 }
 
@@ -133,7 +133,7 @@ func (r *RobotService) SyncMessage() {
 			DisplayFullContent: message.PushContent,
 			MessageSource:      message.MsgSource,
 			FromWxID:           message.FromUserName.String,
-			ToWxID:             message.ToWxid.String,
+			ToWxID:             message.ToUserName.String,
 			CreatedAt:          time.Now().Unix(),
 			UpdatedAt:          time.Now().Unix(),
 		}

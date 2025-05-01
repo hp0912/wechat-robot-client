@@ -70,7 +70,7 @@ type Contact struct {
 	DeleteFlag            int                   `json:"DeleteFlag"`
 	DeleteContactScene    int                   `json:"DeleteContactScene"`
 	Description           string                `json:"Description"`
-	DomainList            BuiltinString         `json:"DomainList"`
+	DomainList            any                   `json:"DomainList"`
 	EncryptUserName       string                `json:"EncryptUserName"`
 	ExtInfo               string                `json:"ExtInfo"`
 	ExtFlag               int                   `json:"ExtFlag"`

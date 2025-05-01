@@ -35,7 +35,7 @@ func InitWechatRobot() error {
 	vars.RobotRuntime.DeviceID = robotAdmin.DeviceID
 	vars.RobotRuntime.DeviceName = robotAdmin.DeviceName
 	vars.RobotRuntime.Status = robotAdmin.Status
-	client := robot.NewClient(robot.WechatDomain(fmt.Sprintf("%s:%d", robotAdmin.RobotCode, 9003))) // TODO
+	client := robot.NewClient(robot.WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
 	vars.RobotRuntime.Client = client
 
 	// 检测微信机器人服务端是否启动

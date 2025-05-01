@@ -39,7 +39,7 @@ func (r *Robot) GetQrCode() (uuid string, err error) {
 	if err != nil {
 		return
 	}
-	if resp.Uuid != "" && resp.QRCodeURL != "" {
+	if resp.Uuid != "" {
 		uuid = resp.Uuid
 		return
 	}
@@ -51,27 +51,32 @@ func (r *Robot) GetProfile(wxid string) (UserProfile, error) {
 	return r.Client.GetProfile(wxid)
 }
 
-func (r *Robot) Login() (uuid string, awken bool, err error) {
+func (r *Robot) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 	// 尝试唤醒登陆
 	var cachedInfo CachedInfo
 	cachedInfo, err = r.Client.GetCachedInfo(r.WxID)
 	if err == nil && cachedInfo.Wxid != "" {
+		_, err = r.Client.LoginTwiceAutoAuth(r.WxID)
+		if err == nil {
+			autoLogin = true
+			return
+		}
 		// 唤醒登陆
-		var resp AwakenLogin
-		resp, err = r.Client.AwakenLogin(r.WxID)
+		var resp QrCode
+		resp, err = r.Client.AwakenLogin(r.WxID, r.DeviceName)
 		if err != nil {
 			// 如果唤醒失败，尝试获取二维码
 			uuid, err = r.GetQrCode()
 			return
 		}
-		if resp.QrCodeResponse.Uuid == "" {
+		if resp.Uuid == "" {
 			// 如果唤醒失败，尝试获取二维码
 			uuid, err = r.GetQrCode()
 			return
 		}
 		// 唤醒登陆成功
-		uuid = resp.QrCodeResponse.Uuid
-		awken = true
+		uuid = resp.Uuid
+		awkenLogin = true
 		return
 	}
 	// 二维码登陆

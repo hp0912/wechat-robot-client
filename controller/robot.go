@@ -39,14 +39,15 @@ func (d *Robot) SyncContact(c *gin.Context) {
 
 func (d *Robot) Login(c *gin.Context) {
 	resp := appx.NewResponse(c)
-	uuid, awken, err := service.NewRobotService(c).Login()
+	uuid, awkenLogin, autoLogin, err := service.NewRobotService(c).Login()
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
 	resp.ToResponse(gin.H{
-		"uuid":  uuid,
-		"awken": awken,
+		"uuid":        uuid,
+		"awken_login": awkenLogin,
+		"auto_login":  autoLogin,
 	})
 }
 

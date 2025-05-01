@@ -3,10 +3,10 @@ package robot
 import (
 	"errors"
 	"fmt"
-	"log"
-	"net/http"
+	"net"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -39,15 +39,20 @@ func (c ClientResponse[T]) IsSuccess() bool {
 	return c.Code == 0
 }
 
-func (c ClientResponse[T]) CheckError(err error, resp *resty.Response) error {
+func (c ClientResponse[T]) CheckError(err error) error {
 	if err != nil {
 		return err
 	}
-	if errMsg, ok := codeMap[c.Code]; ok {
-		return fmt.Errorf("[%d] %s - %s", c.Code, errMsg, c.Message)
+	if c.Success {
+		return nil
 	}
-	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("http error: %d - %s", resp.StatusCode(), resp.String())
+	switch c.Code {
+	case 0:
+		return nil
+	case -7:
+		return errors.New("已退出登录")
+	case -1, -2, -3, -4, -5, -6, -8, -9, -10, -11, -12, -13:
+		return errors.New(c.Message)
 	}
 	return nil
 }
@@ -65,29 +70,27 @@ func NewClient(domain WechatDomain) *Client {
 }
 
 func (c *Client) IsRunning() bool {
-	resp, err := c.client.R().Get(fmt.Sprintf("%s%s", c.Domain.BaseHost(), IsRunningPath))
-	if err != nil || resp.StatusCode() != http.StatusOK {
-		log.Printf("Error checking if robot is running: %v, http code: %d", err, resp.StatusCode())
+	timeout := time.Second * 1
+	conn, err := net.DialTimeout("tcp", string(c.Domain), timeout)
+	if err != nil {
 		return false
 	}
-	return resp.String() == "OK"
+	defer conn.Close()
+	return true
 }
 
 type CommonRequest struct {
-	Wxid string `json:"Wxid"`
+	Wxid string `json:"wxid"`
 }
 
 func (c *Client) GetProfile(wxid string) (resp UserProfile, err error) {
 	var result ClientResponse[UserProfile]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().
+	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(CommonRequest{
-			Wxid: wxid,
-		}).
+		SetQueryParam("wxid", wxid).
 		SetResult(&result).
-		Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), GetProfilePath))
-	if err = result.CheckError(err, httpResp); err != nil {
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), UserGetContractProfile))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	resp = result.Data
@@ -96,32 +99,45 @@ func (c *Client) GetProfile(wxid string) (resp UserProfile, err error) {
 
 func (c *Client) GetCachedInfo(wxid string) (resp CachedInfo, err error) {
 	var result ClientResponse[CachedInfo]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().
+	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(CommonRequest{
-			Wxid: wxid,
-		}).
+		SetQueryParam("wxid", wxid).
 		SetResult(&result).
-		Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), GetCachedInfoPath))
-	if err = result.CheckError(err, httpResp); err != nil {
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginGetCacheInfo))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	resp = result.Data
 	return
 }
 
-func (c *Client) AwakenLogin(wxid string) (resp AwakenLogin, err error) {
-	var result ClientResponse[AwakenLogin]
+func (c *Client) LoginTwiceAutoAuth(wxid string) (resp QrCode, err error) {
+	var result ClientResponse[QrCode]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetQueryParam("wxid", wxid).
+		SetResult(&result).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginTwiceAutoAuth))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+func (c *Client) AwakenLogin(wxid string, deviceName string) (resp QrCode, err error) {
+	var result ClientResponse[QrCode]
 	var httpResp *resty.Response
 	httpResp, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(CommonRequest{
-			Wxid: wxid,
-		}).
+		SetQueryParam("wxid", wxid).
 		SetResult(&result).
-		Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AwakenLoginPath))
-	if err = result.CheckError(err, httpResp); err != nil {
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginAwaken))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	if httpResp.StatusCode() != 200 {
+		err = fmt.Errorf("请求失败，状态码：%d", httpResp.StatusCode())
 		return
 	}
 	resp = result.Data
@@ -130,16 +146,15 @@ func (c *Client) AwakenLogin(wxid string) (resp AwakenLogin, err error) {
 
 func (c *Client) GetQrCode(deviceId, deviceName string) (resp GetQRCode, err error) {
 	var result ClientResponse[GetQRCode]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().
+	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(map[string]string{
 			"DeviceID":   deviceId,
 			"DeviceName": deviceName,
 		}).
 		SetResult(&result).
-		Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), GetQrCodePath))
-	if err = result.CheckError(err, httpResp); err != nil {
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginGetQR))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	resp = result.Data
@@ -148,13 +163,11 @@ func (c *Client) GetQrCode(deviceId, deviceName string) (resp GetQRCode, err err
 
 func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
 	var result ClientResponse[CheckUuid]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().
+	_, err = c.client.R().
 		SetResult(&result).
-		SetBody(map[string]string{
-			"Uuid": uuid,
-		}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), CheckUuidPath))
-	if err = result.CheckError(err, httpResp); err != nil {
+		SetQueryParam("uuid", uuid).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginCheckQR))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	resp = result.Data
@@ -163,42 +176,40 @@ func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
 
 func (c *Client) Logout(wxid string) (err error) {
 	var result ClientResponse[struct{}]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
-		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), LogoutPath))
-	err = result.CheckError(err, httpResp)
+	_, err = c.client.R().
+		SetResult(&result).
+		SetQueryParam("wxid", wxid).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginLogout))
+	err = result.CheckError(err)
 	return
 }
 
 func (c *Client) AutoHeartbeatStart(wxid string) (err error) {
 	var result ClientResponse[struct{}]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
+	_, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
 		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStartPath))
-	err = result.CheckError(err, httpResp)
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), AutoHeartbeatStartPath))
+	err = result.CheckError(err)
 	return
 }
 
 func (c *Client) AutoHeartbeatStop(wxid string) (err error) {
 	var result ClientResponse[struct{}]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
+	_, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
 		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStopPath))
-	err = result.CheckError(err, httpResp)
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), AutoHeartbeatStopPath))
+	err = result.CheckError(err)
 	return
 }
 
 // Heartbeat 手动发起心跳
 func (c *Client) Heartbeat(wxid string) (err error) {
 	var result ClientResponse[struct{}]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
-		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), HeartbeatPath))
-	err = result.CheckError(err, httpResp)
+	_, err = c.client.R().
+		SetResult(&result).
+		SetQueryParam("wxid", wxid).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginHeartBeat))
+	err = result.CheckError(err)
 	return
 }
 
@@ -206,7 +217,7 @@ func (c *Client) AutoHeartbeatStatus(wxid string) (running bool, err error) {
 	var result AutoHeartbeatStatusResponse
 	_, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
 		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), AutoHeartbeatStatusPath))
+	}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), AutoHeartbeatStatusPath))
 	if err == nil {
 		if !result.Success {
 			err = fmt.Errorf("[%d] %s", result.Code, result.Message)
@@ -225,15 +236,14 @@ type SyncMessageRequest struct {
 
 func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err error) {
 	var result ClientResponse[SyncMessage]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().
+	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(SyncMessageRequest{
 			Wxid:    wxid,
 			Scene:   0,
 			Synckey: "",
-		}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), SyncPath))
-	if err = result.CheckError(err, httpResp); err != nil {
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSyncPath))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	messageResponse = result.Data
@@ -248,15 +258,14 @@ type GetContactListRequest struct {
 
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	var result ClientResponse[GetContactListResponse]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().
+	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(GetContactListRequest{
 			Wxid:                      wxid,
 			CurrentChatroomContactSeq: 0,
 			CurrentWxcontactSeq:       0,
-		}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), GetContactListPath))
-	if err = result.CheckError(err, httpResp); err != nil {
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GetContactListPath))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	wxids = result.Data.ContactUsernameList
@@ -283,15 +292,14 @@ func (c *Client) GetContactDetail(wxid string, requestWxids []string) (contactLi
 		return
 	}
 	var result ClientResponse[GetContactResponse]
-	var httpResp *resty.Response
-	httpResp, err = c.client.R().
+	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(GetContactDetailRequest{
 			Wxid:         wxid,
 			RequestWxids: strings.Join(requestWxids, ","),
 			Chatroom:     "",
-		}).Post(fmt.Sprintf("%s%s", c.Domain.BaseHost(), GetContactDetailPath))
-	if err = result.CheckError(err, httpResp); err != nil {
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GetContactDetailPath))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	contactList = result.Data.ContactList
