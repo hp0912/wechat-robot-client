@@ -89,7 +89,7 @@ func (c *Client) GetProfile(wxid string) (resp UserProfile, err error) {
 		SetHeader("Content-Type", "application/json").
 		SetQueryParam("wxid", wxid).
 		SetResult(&result).
-		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), UserGetContractProfile))
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), UserGetContactProfile))
 	if err = result.CheckError(err); err != nil {
 		return
 	}
@@ -184,24 +184,6 @@ func (c *Client) Logout(wxid string) (err error) {
 	return
 }
 
-func (c *Client) AutoHeartbeatStart(wxid string) (err error) {
-	var result ClientResponse[struct{}]
-	_, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
-		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), AutoHeartbeatStartPath))
-	err = result.CheckError(err)
-	return
-}
-
-func (c *Client) AutoHeartbeatStop(wxid string) (err error) {
-	var result ClientResponse[struct{}]
-	_, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
-		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), AutoHeartbeatStopPath))
-	err = result.CheckError(err)
-	return
-}
-
 // Heartbeat 手动发起心跳
 func (c *Client) Heartbeat(wxid string) (err error) {
 	var result ClientResponse[struct{}]
@@ -210,21 +192,6 @@ func (c *Client) Heartbeat(wxid string) (err error) {
 		SetQueryParam("wxid", wxid).
 		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginHeartBeat))
 	err = result.CheckError(err)
-	return
-}
-
-func (c *Client) AutoHeartbeatStatus(wxid string) (running bool, err error) {
-	var result AutoHeartbeatStatusResponse
-	_, err = c.client.R().SetResult(&result).SetBody(CommonRequest{
-		Wxid: wxid,
-	}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), AutoHeartbeatStatusPath))
-	if err == nil {
-		if !result.Success {
-			err = fmt.Errorf("[%d] %s", result.Code, result.Message)
-			return
-		}
-		running = result.Running
-	}
 	return
 }
 
@@ -252,7 +219,7 @@ func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err erro
 
 type GetContactListRequest struct {
 	Wxid                      string `json:"Wxid"`
-	CurrentChatroomContactSeq int    `json:"CurrentChatroomContactSeq"`
+	CurrentChatRoomContactSeq int    `json:"CurrentChatRoomContactSeq"`
 	CurrentWxcontactSeq       int    `json:"CurrentWxcontactSeq"`
 }
 
@@ -262,9 +229,9 @@ func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 		SetResult(&result).
 		SetBody(GetContactListRequest{
 			Wxid:                      wxid,
-			CurrentChatroomContactSeq: 0,
+			CurrentChatRoomContactSeq: 0,
 			CurrentWxcontactSeq:       0,
-		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GetContactListPath))
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendGetContactList))
 	if err = result.CheckError(err); err != nil {
 		return
 	}
@@ -281,13 +248,13 @@ func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 }
 
 type GetContactDetailRequest struct {
-	Wxid         string `json:"Wxid"`
-	RequestWxids string `json:"RequestWxids"`
-	Chatroom     string `json:"Chatroom"`
+	Wxid     string `json:"Wxid"`
+	Towxids  string `json:"Towxids"`
+	ChatRoom string `json:"ChatRoom"`
 }
 
-func (c *Client) GetContactDetail(wxid string, requestWxids []string) (contactList []Contact, err error) {
-	if len(requestWxids) > 20 {
+func (c *Client) GetContactDetail(wxid string, towxids []string) (contactList []Contact, err error) {
+	if len(towxids) > 20 {
 		err = errors.New("一次最多查询20个联系人")
 		return
 	}
@@ -295,10 +262,10 @@ func (c *Client) GetContactDetail(wxid string, requestWxids []string) (contactLi
 	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(GetContactDetailRequest{
-			Wxid:         wxid,
-			RequestWxids: strings.Join(requestWxids, ","),
-			Chatroom:     "",
-		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GetContactDetailPath))
+			Wxid:     wxid,
+			Towxids:  strings.Join(towxids, ","),
+			ChatRoom: "",
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendGetContactDetail))
 	if err = result.CheckError(err); err != nil {
 		return
 	}

@@ -121,20 +121,8 @@ func (r *Robot) Logout() error {
 	return r.Client.Logout(r.WxID)
 }
 
-func (r *Robot) AutoHeartbeatStop() error {
-	return r.Client.AutoHeartbeatStop(r.WxID)
-}
-
-func (r *Robot) AutoHeartbeatStart() error {
-	return r.Client.AutoHeartbeatStart(r.WxID)
-}
-
 func (r *Robot) Heartbeat() error {
 	return r.Client.Heartbeat(r.WxID)
-}
-
-func (r *Robot) AutoHeartbeatStatus() (bool, error) {
-	return r.Client.AutoHeartbeatStatus(r.WxID)
 }
 
 func (r *Robot) GetContactList() (wxids []string, err error) {

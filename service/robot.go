@@ -85,6 +85,7 @@ func (r *RobotService) HeartbeatStart() {
 			return
 		case <-time.After(3 * time.Second):
 			err := vars.RobotRuntime.Heartbeat()
+			log.Println("心跳: ", err)
 			if err != nil {
 				if !strings.Contains(err.Error(), "在运行") {
 					errCount++
@@ -175,6 +176,30 @@ func (r *RobotService) SyncMessage() {
 			}
 		}
 		respo.Create(&m)
+		// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+		if strings.HasSuffix(m.FromWxID, "@chatroom") {
+			contactRespo := repository.NewContactRepo(r.ctx, vars.DB)
+			isExist := contactRespo.ExistsByWeChatID(m.FromWxID)
+			if !isExist {
+				contactGroup := model.Contact{
+					WechatID:  m.FromWxID,
+					Owner:     vars.RobotRuntime.WxID,
+					Type:      model.ContactTypeGroup,
+					CreatedAt: time.Now().Unix(),
+					UpdatedAt: time.Now().Unix(),
+				}
+				contactRespo.Create(&contactGroup)
+			} else {
+				// 存在，更新一下活跃时间
+				contactGroup := model.Contact{
+					Owner:     vars.RobotRuntime.WxID,
+					UpdatedAt: time.Now().Unix(),
+				}
+				contactRespo.UpdateColumnsByWhere(&contactGroup, map[string]any{
+					"wechat_id": m.FromWxID,
+				})
+			}
+		}
 	}
 }
 
@@ -246,6 +271,18 @@ func (r *RobotService) SyncContact() (err error) {
 	if err != nil {
 		return
 	}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("同步联系人出错了: %v", err)
+		}
+	}()
+	respo := repository.NewContactRepo(r.ctx, vars.DB)
+	recentGroupContacts := respo.FindRecentGroupContacts()
+	for _, groupContact := range recentGroupContacts {
+		if !slices.Contains(contactIds, groupContact.WechatID) {
+			contactIds = append(contactIds, groupContact.WechatID)
+		}
+	}
 	// 将ids拆分成二十个一个的数组之后再获取详情
 	var contacts = make([]robot.Contact, 0)
 	chunker := slices.Chunk(contactIds, 20)
@@ -263,7 +300,6 @@ func (r *RobotService) SyncContact() (err error) {
 	}
 	chunker(processChunk)
 	validContactIds := make([]string, 0)
-	respo := repository.NewContactRepo(r.ctx, vars.DB)
 	for _, contact := range contacts {
 		if strings.TrimSpace(contact.UserName.String) == "" {
 			continue
@@ -274,6 +310,7 @@ func (r *RobotService) SyncContact() (err error) {
 		if isExist {
 			// 存在，修改
 			contactPerson := model.Contact{
+				Owner:         vars.RobotRuntime.WxID,
 				Alias:         contact.Alias,
 				Nickname:      contact.NickName.String,
 				Avatar:        contact.BigHeadImgUrl,
@@ -295,6 +332,7 @@ func (r *RobotService) SyncContact() (err error) {
 		} else {
 			contactPerson := model.Contact{
 				WechatID:      contact.UserName.String,
+				Owner:         vars.RobotRuntime.WxID,
 				Alias:         contact.Alias,
 				Nickname:      contact.NickName.String,
 				Avatar:        contact.BigHeadImgUrl,
@@ -319,7 +357,11 @@ func (r *RobotService) SyncContact() (err error) {
 			respo.Create(&contactPerson)
 		}
 	}
-	// 清理掉不存在的联系人
-	respo.DeleteByWeChatIDNotIn(validContactIds)
+	return
+}
+
+func (r *RobotService) GetContacts() (contacts []*model.Contact) {
+	respo := repository.NewContactRepo(r.ctx, vars.DB)
+	contacts = respo.FindByOwner(vars.RobotRuntime.WxID)
 	return
 }

@@ -3,20 +3,17 @@ package robot
 import "fmt"
 
 const (
-	LoginGetCacheInfo       = "/Login/GetCacheInfo"
-	LoginTwiceAutoAuth      = "/Login/TwiceAutoAuth"
-	LoginAwaken             = "/Login/Awaken"
-	LoginGetQR              = "/Login/GetQRx"
-	LoginCheckQR            = "/Login/CheckQR"
-	LoginHeartBeat          = "/Login/HeartBeat"
-	UserGetContractProfile  = "/User/GetContractProfile"
-	LoginLogout             = "/Login/LogOut"
-	AutoHeartbeatStartPath  = "/AutoHeartbeatStart"
-	AutoHeartbeatStatusPath = "/AutoHeartbeatStatus"
-	AutoHeartbeatStopPath   = "/AutoHeartbeatStop"
-	MsgSyncPath             = "/Msg/Sync"
-	GetContactListPath      = "/GetContractList"
-	GetContactDetailPath    = "/GetContractDetail"
+	LoginGetCacheInfo      = "/Login/GetCacheInfo"
+	LoginTwiceAutoAuth     = "/Login/TwiceAutoAuth"
+	LoginAwaken            = "/Login/Awaken"
+	LoginGetQR             = "/Login/GetQRx"
+	LoginCheckQR           = "/Login/CheckQR"
+	LoginHeartBeat         = "/Login/HeartBeat"
+	LoginLogout            = "/Login/LogOut"
+	UserGetContactProfile  = "/User/GetContractProfile"
+	MsgSyncPath            = "/Msg/Sync"
+	FriendGetContactList   = "/Friend/GetContractList"
+	FriendGetContactDetail = "/Friend/GetContractDetail"
 )
 
 type WechatDomain string

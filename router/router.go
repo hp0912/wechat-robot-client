@@ -35,6 +35,7 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/is-loggedin", robotCtl.IsLoggedIn)
 	api.POST("/robot/login", robotCtl.Login)
 	api.POST("/robot/login-check", robotCtl.LoginCheck)
+	api.GET("/robot/contacts", robotCtl.GetContacts)
 	api.POST("/robot/sync-contact", robotCtl.SyncContact)
 	api.DELETE("/robot/logout", robotCtl.Logout)
 

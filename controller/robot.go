@@ -37,6 +37,11 @@ func (d *Robot) SyncContact(c *gin.Context) {
 	resp.ToResponse(service.NewRobotService(c).SyncContact())
 }
 
+func (d *Robot) GetContacts(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	resp.ToResponse(service.NewRobotService(c).GetContacts())
+}
+
 func (d *Robot) Login(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	uuid, awkenLogin, autoLogin, err := service.NewRobotService(c).Login()

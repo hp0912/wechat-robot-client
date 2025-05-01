@@ -14,6 +14,7 @@ const (
 type Contact struct {
 	ID            int64          `gorm:"primarykey" json:"id"`
 	WechatID      string         `gorm:"column:wechat_id;index:deleted,unique" json:"wechat_id"` // 添加索引长度
+	Owner         string         `gorm:"column:owner;" json:"owner"`                             // 联系人所有者
 	Alias         string         `gorm:"column:alias" json:"alias"`                              // 微信号
 	Nickname      string         `gorm:"column:nickname" json:"nickname"`
 	Avatar        string         `gorm:"column:avatar" json:"avatar"`

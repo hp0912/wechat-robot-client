@@ -18,7 +18,7 @@ type UserInfo struct {
 	FbuserId       int            `json:"FbuserId"`
 	FbuserName     string         `json:"FbuserName"`
 	GmailList      GmailList      `json:"GmailList"`
-	ImgBuf         []int          `json:"ImgBuf"`
+	ImgBuf         BuiltinBuffer  `json:"ImgBuf"`
 	ImgLen         int            `json:"ImgLen"`
 	Level          int            `json:"Level"`
 	LevelHighExp   int            `json:"LevelHighExp"`
@@ -137,10 +137,10 @@ type UserProfile struct {
 }
 
 type UserImg struct {
-	BigHeadImgUrl   string  `json:"BigHeadImgUrl"`
-	ImgBuf          []int64 `json:"ImgBuf"`
-	ImgLen          int64   `json:"ImgLen"`
-	ImgMd5          string  `json:"ImgMd5"`
-	ImgType         int     `json:"ImgType"`
-	SmallHeadImgUrl string  `json:"SmallHeadImgUrl"`
+	BigHeadImgUrl   string `json:"BigHeadImgUrl"`
+	ImgBuf          any    `json:"ImgBuf"`
+	ImgLen          int64  `json:"ImgLen"`
+	ImgMd5          string `json:"ImgMd5"`
+	ImgType         int    `json:"ImgType"`
+	SmallHeadImgUrl string `json:"SmallHeadImgUrl"`
 }
