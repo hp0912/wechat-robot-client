@@ -272,3 +272,23 @@ func (c *Client) GetContactDetail(wxid string, towxids []string) (contactList []
 	contactList = result.Data.ContactList
 	return
 }
+
+type GetChatRoomMemberDetailRequest struct {
+	Wxid string `json:"Wxid"`
+	QID  string `json:"QID"`
+}
+
+func (c *Client) GetChatRoomMemberDetail(wxid, QID string) (chatRoomMember []ChatRoomMember, err error) {
+	var result ClientResponse[ChatRoomMemberDetail]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(GetChatRoomMemberDetailRequest{
+			Wxid: wxid,
+			QID:  QID,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupGetChatRoomMemberDetail))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	chatRoomMember = result.Data.NewChatroomData.ChatRoomMember
+	return
+}

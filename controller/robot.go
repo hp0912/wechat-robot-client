@@ -35,7 +35,7 @@ func (d *Robot) IsLoggedIn(c *gin.Context) {
 
 func (d *Robot) SyncContact(c *gin.Context) {
 	resp := appx.NewResponse(c)
-	resp.ToResponse(service.NewRobotService(c).SyncContact())
+	resp.ToResponse(service.NewRobotService(c).SyncContact(false))
 }
 
 func (d *Robot) GetContacts(c *gin.Context) {

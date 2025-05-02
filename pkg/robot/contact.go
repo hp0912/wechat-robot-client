@@ -17,22 +17,6 @@ type CustomizedInfo struct {
 	ExternalInfo string `json:"ExternalInfo"`
 }
 
-type ChatRoomMember struct {
-	BigHeadImgUrl      string `json:"BigHeadImgUrl"`
-	ChatroomMemberFlag int    `json:"ChatroomMemberFlag"`
-	DisplayName        string `json:"DisplayName"`
-	InviterUserName    string `json:"InviterUserName"`
-	NickName           string `json:"NickName"`
-	SmallHeadImgUrl    string `json:"SmallHeadImgUrl"`
-	UserName           string `json:"UserName"`
-}
-
-type NewChatroomData struct {
-	ChatRoomMember []ChatRoomMember `json:"ChatRoomMember"`
-	InfoMask       int              `json:"InfoMask"`
-	MemberCount    int              `json:"MemberCount"`
-}
-
 type PhoneNumListInfo struct {
 	Count        int      `json:"Count"`
 	PhoneNumList []string `json:"PhoneNumList"`

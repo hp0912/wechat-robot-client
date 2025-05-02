@@ -125,10 +125,14 @@ func (r *Robot) Heartbeat() error {
 	return r.Client.Heartbeat(r.WxID)
 }
 
-func (r *Robot) GetContactList() (wxids []string, err error) {
+func (r *Robot) GetContactList() ([]string, error) {
 	return r.Client.GetContactList(r.WxID)
 }
 
-func (r *Robot) GetContactDetail(requestWxids []string) (contactList []Contact, err error) {
+func (r *Robot) GetContactDetail(requestWxids []string) ([]Contact, error) {
 	return r.Client.GetContactDetail(r.WxID, requestWxids)
+}
+
+func (r *Robot) GetChatRoomMemberDetail(QID string) ([]ChatRoomMember, error) {
+	return r.Client.GetChatRoomMemberDetail(r.WxID, QID)
 }

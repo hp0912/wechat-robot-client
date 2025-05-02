@@ -22,6 +22,7 @@ const (
 	MsgTypeVoipNotify     MessageType = 52    // VOIP结束消息
 	MsgTypeVoipInvite     MessageType = 53    // VOIP邀请
 	MsgTypeMicroVideo     MessageType = 62    // 小视频消息
+	MsgTypeUnknow         MessageType = 9999  // 未知消息
 	MsgTypeSys            MessageType = 10000 // 系统消息
 	MsgTypeRecalled       MessageType = 10002 // 消息撤回
 )

@@ -125,9 +125,6 @@ func (r *RobotService) SyncMessage() {
 	}()
 	respo := repository.NewMessageRepo(r.ctx, vars.DB)
 	for _, message := range syncResp.AddMsgs {
-		if message.MsgType == robot.MsgTypeInit {
-			continue
-		}
 		m := model.Message{
 			MsgId:              message.NewMsgId,
 			ClientMsgId:        message.MsgId,
@@ -165,6 +162,12 @@ func (r *RobotService) SyncMessage() {
 			m.IsGroup = false
 			m.SenderWxID = m.FromWxID
 			m.FromWxID = m.ToWxID
+		}
+		if m.Type == robot.MsgTypeInit || m.Type == robot.MsgTypeUnknow {
+			continue
+		}
+		if m.Type == robot.MsgTypeRecalled && m.SenderWxID == "weixin" {
+			continue
 		}
 		// 是否艾特我的消息
 		ats := vars.RobotRuntime.AtListDecoder(message.MsgSource)
@@ -263,7 +266,60 @@ func (r *RobotService) Logout() (err error) {
 	return
 }
 
-func (r *RobotService) SyncContact() (err error) {
+func (r *RobotService) SyncChatRoomMember(chatRoomID string) {
+	var chatRoomMembers []robot.ChatRoomMember
+	var err error
+	chatRoomMembers, err = vars.RobotRuntime.GetChatRoomMemberDetail(chatRoomID)
+	if err != nil {
+		log.Printf("获取群[%s]成员失败: %v", chatRoomID, err)
+		return
+	}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("获取群[%s]成员失败: %v", chatRoomID, err)
+		}
+	}()
+	// 遍历获取到的群成员列表，如果数据库存在，则更新，数据库不存在则新增
+	if len(chatRoomMembers) > 0 {
+		memberRepo := repository.NewChatRoomMemberRepo(r.ctx, vars.DB)
+		now := time.Now().Unix()
+
+		for _, member := range chatRoomMembers {
+			// 检查成员是否已存在
+			exists := memberRepo.ExistsByWhere(map[string]any{
+				"chat_room_id": chatRoomID,
+				"wechat_id":    member.UserName,
+			})
+			if exists {
+				// 更新现有成员
+				updateMember := model.ChatRoomMember{
+					Nickname: member.NickName,
+					Avatar:   member.SmallHeadImgUrl,
+				}
+				// 更新数据库中已有的记录
+				memberRepo.UpdateColumnsByWhere(&updateMember, map[string]any{
+					"chat_room_id": chatRoomID,
+					"wechat_id":    member.UserName,
+				})
+			} else {
+				// 创建新成员
+				newMember := model.ChatRoomMember{
+					ChatRoomID:      chatRoomID,
+					WechatID:        member.UserName,
+					Nickname:        member.NickName,
+					Avatar:          member.SmallHeadImgUrl,
+					InviterWechatID: member.InviterUserName,
+					IsLeaved:        false,
+					JoinedAt:        now,
+					LastActiveAt:    now,
+				}
+				memberRepo.Create(&newMember)
+			}
+		}
+	}
+}
+
+func (r *RobotService) SyncContact(syncChatRoomMember bool) (err error) {
 	if vars.RobotRuntime.Status == robot.RobotStatusOffline {
 		return
 	}
@@ -285,6 +341,13 @@ func (r *RobotService) SyncContact() (err error) {
 			contactIds = append(contactIds, groupContact.WechatID)
 		}
 	}
+	// 同步群成员
+	if syncChatRoomMember {
+		for _, groupContact := range recentGroupContacts {
+			r.SyncChatRoomMember(groupContact.WechatID)
+		}
+	}
+
 	// 将ids拆分成二十个一个的数组之后再获取详情
 	var contacts = make([]robot.Contact, 0)
 	chunker := slices.Chunk(contactIds, 20)
