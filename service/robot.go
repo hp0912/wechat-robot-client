@@ -8,7 +8,9 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
@@ -360,8 +362,8 @@ func (r *RobotService) SyncContact() (err error) {
 	return
 }
 
-func (r *RobotService) GetContacts() (contacts []*model.Contact) {
+func (r *RobotService) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
+	req.Owner = vars.RobotRuntime.WxID
 	respo := repository.NewContactRepo(r.ctx, vars.DB)
-	contacts = respo.FindByOwner(vars.RobotRuntime.WxID)
-	return
+	return respo.FindByOwner(req, pager)
 }

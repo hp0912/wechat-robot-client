@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"net/http"
+	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
 
@@ -38,8 +39,19 @@ func (d *Robot) SyncContact(c *gin.Context) {
 }
 
 func (d *Robot) GetContacts(c *gin.Context) {
+	var req dto.ContactListRequest
 	resp := appx.NewResponse(c)
-	resp.ToResponse(service.NewRobotService(c).GetContacts())
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	pager := appx.InitPager(c)
+	list, total, err := service.NewRobotService(c).GetContacts(req, pager)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponseList(list, total)
 }
 
 func (d *Robot) Login(c *gin.Context) {

@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"time"
+	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/appx"
 
 	"gorm.io/gorm"
 )
@@ -41,12 +43,26 @@ func (c *Contact) FindRecentGroupContacts(preloads ...string) []*model.Contact {
 	return contacts
 }
 
-func (c *Contact) FindByOwner(owner string, preloads ...string) []*model.Contact {
-	var contacts []*model.Contact
-	query := c.DB.Where("owner = ?", owner).Order("updated_at DESC")
+func (c *Contact) FindByOwner(req dto.ContactListRequest, pager appx.Pager, preloads ...string) ([]*model.Contact, int64, error) {
+	query := c.DB.Model(&model.Contact{})
 	for _, preload := range preloads {
 		query = query.Preload(preload)
 	}
-	c.panicError(query.Find(&contacts).Error)
-	return contacts
+	if req.Type != "" {
+		query = query.Where("type = ?", req.Type)
+	}
+	if req.Keyword != "" {
+		query = query.Where("nickname LIKE ?", req.Keyword+"%").
+			Or("alias LIKE ?", req.Keyword+"%").
+			Or("wechat_id LIKE ?", req.Keyword+"%")
+	}
+	var contacts []*model.Contact
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Offset(pager.OffSet).Limit(pager.PageSize).Find(&contacts).Error; err != nil {
+		return nil, 0, err
+	}
+	return contacts, total, nil
 }
