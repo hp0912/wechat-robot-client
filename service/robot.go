@@ -284,6 +284,12 @@ func (r *RobotService) SyncChatRoomMember(chatRoomID string) {
 		memberRepo := repository.NewChatRoomMemberRepo(r.ctx, vars.DB)
 		now := time.Now().Unix()
 
+		// 获取当前成员的微信ID列表，用于后续比对
+		currentMemberIDs := make([]string, 0, len(chatRoomMembers))
+		for _, member := range chatRoomMembers {
+			currentMemberIDs = append(currentMemberIDs, member.UserName)
+		}
+
 		for _, member := range chatRoomMembers {
 			// 检查成员是否已存在
 			exists := memberRepo.ExistsByWhere(map[string]any{
@@ -292,9 +298,11 @@ func (r *RobotService) SyncChatRoomMember(chatRoomID string) {
 			})
 			if exists {
 				// 更新现有成员
-				updateMember := model.ChatRoomMember{
-					Nickname: member.NickName,
-					Avatar:   member.SmallHeadImgUrl,
+				updateMember := map[string]any{
+					"nickname":  member.NickName,
+					"avatar":    member.SmallHeadImgUrl,
+					"is_leaved": false, // 确保标记为未离开
+					"leaved_at": nil,   // 清除离开时间
 				}
 				// 更新数据库中已有的记录
 				memberRepo.UpdateColumnsByWhere(&updateMember, map[string]any{
@@ -314,6 +322,26 @@ func (r *RobotService) SyncChatRoomMember(chatRoomID string) {
 					LastActiveAt:    now,
 				}
 				memberRepo.Create(&newMember)
+			}
+		}
+		// 查询数据库中该群的所有成员
+		dbMembers := memberRepo.ListByWhere(nil, map[string]any{
+			"chat_room_id": chatRoomID,
+			"is_leaved":    false, // 只处理未离开的成员
+		})
+		// 标记已离开的成员
+		for _, dbMember := range dbMembers {
+			if !slices.Contains(currentMemberIDs, dbMember.WechatID) {
+				// 数据库有记录但当前群成员列表中不存在，标记为已离开
+				leaveTime := now
+				updateMember := model.ChatRoomMember{
+					IsLeaved: true,
+					LeavedAt: &leaveTime,
+				}
+				memberRepo.UpdateColumnsByWhere(&updateMember, map[string]any{
+					"chat_room_id": chatRoomID,
+					"wechat_id":    dbMember.WechatID,
+				})
 			}
 		}
 	}
@@ -429,4 +457,9 @@ func (r *RobotService) GetContacts(req dto.ContactListRequest, pager appx.Pager)
 	req.Owner = vars.RobotRuntime.WxID
 	respo := repository.NewContactRepo(r.ctx, vars.DB)
 	return respo.FindByOwner(req, pager)
+}
+
+func (r *RobotService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
+	respo := repository.NewChatRoomMemberRepo(r.ctx, vars.DB)
+	return respo.FindByChatRoomID(req, pager)
 }

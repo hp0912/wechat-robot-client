@@ -35,7 +35,12 @@ func (d *Robot) IsLoggedIn(c *gin.Context) {
 
 func (d *Robot) SyncContact(c *gin.Context) {
 	resp := appx.NewResponse(c)
-	resp.ToResponse(service.NewRobotService(c).SyncContact(false))
+	err := service.NewRobotService(c).SyncContact(false)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
 }
 
 func (d *Robot) GetContacts(c *gin.Context) {
@@ -47,6 +52,33 @@ func (d *Robot) GetContacts(c *gin.Context) {
 	}
 	pager := appx.InitPager(c)
 	list, total, err := service.NewRobotService(c).GetContacts(req, pager)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponseList(list, total)
+}
+
+func (d *Robot) SyncChatRoomMember(c *gin.Context) {
+	var req dto.SyncChatRoomMemberRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	service.NewRobotService(c).SyncChatRoomMember(req.ChatRoomID)
+	resp.ToResponse(nil)
+}
+
+func (d *Robot) GetChatRoomMembers(c *gin.Context) {
+	var req dto.ChatRoomMemberRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	pager := appx.InitPager(c)
+	list, total, err := service.NewRobotService(c).GetChatRoomMembers(req, pager)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

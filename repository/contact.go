@@ -56,7 +56,7 @@ func (c *Contact) FindByOwner(req dto.ContactListRequest, pager appx.Pager, prel
 			Or("alias LIKE ?", req.Keyword+"%").
 			Or("wechat_id LIKE ?", req.Keyword+"%")
 	}
-	query = query.Order("updated_at DESC")
+	query = query.Order("updated_at DESC").Order("id DESC")
 	var contacts []*model.Contact
 	var total int64
 	if err := query.Count(&total).Error; err != nil {

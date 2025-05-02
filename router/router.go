@@ -37,6 +37,8 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/login-check", robotCtl.LoginCheck)
 	api.GET("/robot/contacts", robotCtl.GetContacts)
 	api.POST("/robot/sync-contact", robotCtl.SyncContact)
+	api.GET("/robot/chat-room-members", robotCtl.GetChatRoomMembers)
+	api.POST("/robot/sync-chat-room-member", robotCtl.SyncChatRoomMember)
 	api.DELETE("/robot/logout", robotCtl.Logout)
 
 	return nil
