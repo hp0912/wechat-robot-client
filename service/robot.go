@@ -161,7 +161,10 @@ func (r *RobotService) SyncMessage() {
 		} else {
 			m.IsGroup = false
 			m.SenderWxID = m.FromWxID
-			m.FromWxID = m.ToWxID
+			if m.FromWxID == self {
+				m.FromWxID = m.ToWxID
+				m.ToWxID = self
+			}
 		}
 		if m.Type == robot.MsgTypeInit || m.Type == robot.MsgTypeUnknow {
 			continue
