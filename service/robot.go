@@ -463,3 +463,9 @@ func (r *RobotService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, pager a
 	respo := repository.NewChatRoomMemberRepo(r.ctx, vars.DB)
 	return respo.FindByChatRoomID(req, pager)
 }
+
+func (r *RobotService) GetChatHistory(req dto.ChatHistoryRequest, pager appx.Pager) ([]*model.Message, int64, error) {
+	req.Owner = vars.RobotRuntime.WxID
+	respo := repository.NewMessageRepo(r.ctx, vars.DB)
+	return respo.FindByContactID(req, pager)
+}

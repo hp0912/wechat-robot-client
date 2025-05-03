@@ -44,6 +44,9 @@ func (c *Contact) FindRecentGroupContacts(preloads ...string) []*model.Contact {
 }
 
 func (c *Contact) FindByOwner(req dto.ContactListRequest, pager appx.Pager, preloads ...string) ([]*model.Contact, int64, error) {
+	var contacts []*model.Contact
+	var total int64
+
 	query := c.DB.Model(&model.Contact{})
 	for _, preload := range preloads {
 		query = query.Preload(preload)
@@ -52,18 +55,19 @@ func (c *Contact) FindByOwner(req dto.ContactListRequest, pager appx.Pager, prel
 		query = query.Where("type = ?", req.Type)
 	}
 	if req.Keyword != "" {
-		query = query.Where("nickname LIKE ?", req.Keyword+"%").
-			Or("alias LIKE ?", req.Keyword+"%").
-			Or("wechat_id LIKE ?", req.Keyword+"%")
+		query = query.Where("nickname LIKE ?", "%"+req.Keyword+"%").
+			Or("alias LIKE ?", "%"+req.Keyword+"%").
+			Or("wechat_id LIKE ?", "%"+req.Keyword+"%")
 	}
-	query = query.Order("updated_at DESC").Order("id DESC")
-	var contacts []*model.Contact
-	var total int64
+
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
+
+	query = query.Order("updated_at DESC").Order("id DESC")
 	if err := query.Offset(pager.OffSet).Limit(pager.PageSize).Find(&contacts).Error; err != nil {
 		return nil, 0, err
 	}
+
 	return contacts, total, nil
 }

@@ -34,11 +34,16 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/is-running", robotCtl.IsRunning)
 	api.GET("/robot/is-loggedin", robotCtl.IsLoggedIn)
 	api.POST("/robot/login", robotCtl.Login)
-	api.POST("/robot/login-check", robotCtl.LoginCheck)
+	api.POST("/robot/login/check", robotCtl.LoginCheck)
+
 	api.GET("/robot/contacts", robotCtl.GetContacts)
-	api.POST("/robot/sync-contact", robotCtl.SyncContact)
-	api.GET("/robot/chat-room-members", robotCtl.GetChatRoomMembers)
-	api.POST("/robot/sync-chat-room-member", robotCtl.SyncChatRoomMember)
+	api.POST("/robot/contacts/sync", robotCtl.SyncContact)
+
+	api.GET("/robot/chat-room/members", robotCtl.GetChatRoomMembers)
+	api.POST("/robot/chat-room/members/sync", robotCtl.SyncChatRoomMember)
+
+	api.GET("/robot/chat/history", robotCtl.GetChatHistory)
+
 	api.DELETE("/robot/logout", robotCtl.Logout)
 
 	return nil

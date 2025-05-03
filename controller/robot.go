@@ -86,6 +86,22 @@ func (d *Robot) GetChatRoomMembers(c *gin.Context) {
 	resp.ToResponseList(list, total)
 }
 
+func (d *Robot) GetChatHistory(c *gin.Context) {
+	var req dto.ChatHistoryRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	pager := appx.InitPager(c)
+	list, total, err := service.NewRobotService(c).GetChatHistory(req, pager)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponseList(list, total)
+}
+
 func (d *Robot) Login(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	uuid, awkenLogin, autoLogin, err := service.NewRobotService(c).Login()
