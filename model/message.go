@@ -24,6 +24,9 @@ type Message struct {
 	CreatedAt          int64             `json:"created_at"`
 	UpdatedAt          int64             `json:"updated_at"`
 	DeletedAt          gorm.DeletedAt    `json:"-" gorm:"index"`
+	// 额外字段，通过联表查询填充，不参与建表
+	SenderNickname string `gorm:"column:sender_nickname;-:migration" json:"sender_nickname"`
+	SenderAvatar   string `gorm:"column:sender_avatar;-:migration" json:"sender_avatar"`
 }
 
 // TableName 指定表名
