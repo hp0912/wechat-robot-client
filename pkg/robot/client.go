@@ -33,6 +33,8 @@ type ClientResponse[T any] struct {
 	Code    int    `json:"Code"`
 	Message string `json:"Message"`
 	Data    T      `json:"Data"`
+	Data62  string `json:"Data62"`
+	Debug   string `json:"Debug"`
 }
 
 func (c ClientResponse[T]) IsSuccess() bool {
@@ -289,5 +291,95 @@ func (c *Client) GetChatRoomMemberDetail(wxid, QID string) (chatRoomMember []Cha
 		return
 	}
 	chatRoomMember = result.Data.NewChatroomData.ChatRoomMember
+	return
+}
+
+type CdnDownloadImgRequest struct {
+	Wxid       string `json:"Wxid"`
+	FileNo     string `json:"FileNo"`
+	FileAesKey string `json:"FileAesKey"`
+}
+
+func (c *Client) CdnDownloadImg(wxid, aeskey, cdnmidimgurl string) (imgbase64 string, err error) {
+	var result ClientResponse[string]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(CdnDownloadImgRequest{
+			Wxid:       wxid,
+			FileAesKey: aeskey,
+			FileNo:     cdnmidimgurl,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsCdnDownloadImage))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	imgbase64 = result.Data
+	return
+}
+
+type DownloadVideoRequest struct {
+	Wxid         string `json:"Wxid"`
+	MsgId        int64  `json:"MsgId"`
+	CompressType int    `json:"CompressType"`
+	DataLen      int64  `json:"DataLen"`
+	Section      struct {
+		DataLen  int64 `json:"DataLen"`
+		StartPos int64 `json:"StartPos"`
+	} `json:"Section"`
+	ToWxid string `json:"ToWxid"`
+}
+
+func (c *Client) DownloadVideo(req DownloadVideoRequest) (videobase64 string, err error) {
+	var result ClientResponse[DownloadVideoDetail]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsDownloadVideo))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	videobase64 = result.Data.Data.Buffer
+	return
+}
+
+type DownloadVoiceRequest struct {
+	Wxid         string `json:"Wxid"`
+	MsgId        int64  `json:"MsgId"`
+	Length       int64  `json:"Length"`
+	FromUserName string `json:"FromUserName"`
+	Bufid        string `json:"Bufid"`
+}
+
+func (c *Client) DownloadVoice(req DownloadVoiceRequest) (voicebase64 string, err error) {
+	var result ClientResponse[DownloadVoiceDetail]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsDownloadVoice))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	voicebase64 = result.Data.Data.Buffer
+	return
+}
+
+type DownloadFileRequest struct {
+	Wxid     string `json:"Wxid"`
+	AttachId string `json:"AttachId"`
+	AppID    string `json:"AppID"`
+	UserName string `json:"UserName"`
+	DataLen  int64  `json:"DataLen"`
+	Section  struct {
+		DataLen  int64 `json:"DataLen"`
+		StartPos int64 `json:"StartPos"`
+	} `json:"Section"`
+}
+
+func (c *Client) DownloadFile(req DownloadFileRequest) (filebase64 string, err error) {
+	var result ClientResponse[DownloadFileDetail]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsDownloadFile))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	filebase64 = result.Data.Data.Buffer
 	return
 }

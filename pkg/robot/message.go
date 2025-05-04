@@ -39,14 +39,3 @@ type FunctionSwitch struct {
 	FunctionId  int64 `json:"FunctionId"`
 	SwitchValue int64 `json:"SwitchValue"`
 }
-
-type MessageCommonXml struct {
-	AesKey       string `xml:"aeskey,attr"`
-	CdnMidImgUrl string `xml:"cdnmidimgurl,attr"`
-	Length       int64  `xml:"length,attr"`
-	Md5          string `xml:"md5,attr"`
-}
-
-type ImageMessageXml struct {
-	Img MessageCommonXml `xml:"img"`
-}

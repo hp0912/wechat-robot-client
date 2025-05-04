@@ -119,8 +119,50 @@ func (r *Robot) XmlDecoder(xmlStr string, result any) error {
 	return nil
 }
 
-func (r *Robot) DownloadImage(message Message) (string, error) {
-	return "", nil
+func (r *Robot) DownloadImage(message model.Message) (string, error) {
+	var imgXml ImageMessageXml
+	err := r.XmlDecoder(message.Content, &imgXml)
+	if err != nil {
+		return "", err
+	}
+	return r.Client.CdnDownloadImg(r.WxID, imgXml.Img.AesKey, imgXml.Img.CdnMidImgUrl)
+}
+
+func (r *Robot) DownloadVideo(message model.Message) (string, error) {
+	return r.Client.DownloadVideo(DownloadVideoRequest{
+		Wxid:  r.WxID,
+		MsgId: message.ClientMsgId,
+	})
+}
+
+func (r *Robot) DownloadVoice(message model.Message) (string, error) {
+	var voiceXml VoiceMessageXml
+	err := r.XmlDecoder(message.Content, &voiceXml)
+	if err != nil {
+		return "", err
+	}
+	return r.Client.DownloadVoice(DownloadVoiceRequest{
+		Wxid:         r.WxID,
+		MsgId:        message.ClientMsgId,
+		Bufid:        voiceXml.Voicemsg.BufID,
+		FromUserName: voiceXml.Voicemsg.FromUsername,
+		Length:       voiceXml.Voicemsg.Length,
+	})
+}
+
+func (r *Robot) DownloadFile(message model.Message) (string, error) {
+	var fileXml FileMessageXml
+	err := r.XmlDecoder(message.Content, &fileXml)
+	if err != nil {
+		return "", err
+	}
+	return r.Client.DownloadFile(DownloadFileRequest{
+		Wxid:     r.WxID,
+		AttachId: fileXml.Appmsg.Attach.AttachID,
+		AppID:    fileXml.Appmsg.AppID,
+		UserName: fileXml.FromUsername,
+		DataLen:  fileXml.Appmsg.Attach.TotalLen,
+	})
 }
 
 func (r *Robot) LoginTwiceAutoAuth() error {

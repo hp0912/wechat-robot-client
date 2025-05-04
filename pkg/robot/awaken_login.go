@@ -1,7 +1,7 @@
 package robot
 
 type QrCode struct {
-	BaseResponse              any           `json:"BaseResponse"`
+	BaseResponse              BaseResponse  `json:"BaseResponse"`
 	BlueToothBroadCastContent BuiltinBuffer `json:"BlueToothBroadCastContent"`
 	BlueToothBroadCastUuid    string        `json:"BlueToothBroadCastUuid"`
 	CheckTime                 int           `json:"CheckTime"`

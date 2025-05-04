@@ -131,7 +131,7 @@ type GmailAcct struct {
 }
 
 type UserProfile struct {
-	BaseResponse BaseResponse `json:"baseResponse"`
+	BaseResponse BaseResponse `json:"BaseResponse"`
 	UserInfo     UserInfo     `json:"userInfo"`
 	UserInfoExt  UserInfoExt  `json:"userInfoExt"`
 }

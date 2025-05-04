@@ -103,24 +103,18 @@ type DelContact struct {
 }
 
 type GetContactListResponse struct {
-	BaseResponse struct {
-		Ret    int           `json:"ret"`
-		ErrMsg BuiltinString `json:"errMsg"`
-	} `json:"BaseResponse"`
-	CurrentWxcontactSeq       int      `json:"CurrentWxcontactSeq"`
-	CurrentChatRoomContactSeq int      `json:"CurrentChatRoomContactSeq"`
-	CountinueFlag             int      `json:"CountinueFlag"`
-	ContactUsernameList       []string `json:"ContactUsernameList"` // 联系人微信Id列表
+	BaseResponse              BaseResponse `json:"BaseResponse"`
+	CurrentWxcontactSeq       int          `json:"CurrentWxcontactSeq"`
+	CurrentChatRoomContactSeq int          `json:"CurrentChatRoomContactSeq"`
+	CountinueFlag             int          `json:"CountinueFlag"`
+	ContactUsernameList       []string     `json:"ContactUsernameList"` // 联系人微信Id列表
 }
 
 type GetContactResponse struct {
-	BaseResponse struct {
-		ErrMsg BuiltinString `json:"errMsg"`
-		Ret    int           `json:"ret"`
-	} `json:"BaseResponse"`
-	ContactCount int       `json:"ContactCount"`
-	ContactList  []Contact `json:"ContactList"`
-	Ret          []int     `json:"Ret"`
+	BaseResponse BaseResponse `json:"BaseResponse"`
+	ContactCount int          `json:"ContactCount"`
+	ContactList  []Contact    `json:"ContactList"`
+	Ret          []int        `json:"Ret"`
 	Ticket       []struct {
 		AntispamTicket string `json:"Antispamticket"`
 		Username       string `json:"Username"`
