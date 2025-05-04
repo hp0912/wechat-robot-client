@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"wechat-robot-client/dto"
@@ -20,14 +19,17 @@ func NewAttachDownloadController() *AttachDownload {
 
 func (a *AttachDownload) DownloadImage(c *gin.Context) {
 	var req dto.AttachDownloadRequest
-	resp := appx.NewResponse(c)
 	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
-		resp.ToErrorResponse(errors.New("参数错误"))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "参数错误",
+		})
 		return
 	}
 	imageData, contentType, extension, err := service.NewAttachDownloadService(c).DownloadImage(req)
 	if err != nil {
-		resp.ToErrorResponse(err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
 		return
 	}
 
@@ -42,5 +44,35 @@ func (a *AttachDownload) DownloadImage(c *gin.Context) {
 	if err != nil {
 		// 这里已经开始写入响应，无法再更改状态码，只能记录错误
 		fmt.Printf("返回图片数据失败: %v\n", err)
+	}
+}
+
+func (a *AttachDownload) DownloadVoice(c *gin.Context) {
+	var req dto.AttachDownloadRequest
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "参数错误",
+		})
+		return
+	}
+	voiceData, contentType, extension, err := service.NewAttachDownloadService(c).DownloadVoice(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	// 设置响应头
+	c.Header("Content-Type", contentType)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%d%s\"", req.MessageID, extension))
+	c.Header("Content-Length", fmt.Sprintf("%d", len(voiceData)))
+
+	// 将语音数据写入响应
+	c.Writer.WriteHeader(http.StatusOK)
+	_, err = c.Writer.Write(voiceData)
+	if err != nil {
+		// 这里已经开始写入响应，无法再更改状态码，只能记录错误
+		fmt.Printf("返回语音数据失败: %v\n", err)
 	}
 }

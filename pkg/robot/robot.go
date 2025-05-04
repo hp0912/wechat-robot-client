@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"wechat-robot-client/model"
@@ -174,19 +175,83 @@ func (r *Robot) DownloadVideo(message model.Message) (string, error) {
 	})
 }
 
-func (r *Robot) DownloadVoice(message model.Message) (string, error) {
+// 检测音频格式并返回适当的文件扩展名
+func (r *Robot) DetectAudioFormat(data []byte) string {
+	// 检查文件头部特征来识别格式
+	if len(data) < 12 {
+		return ".bin" // 默认二进制
+	}
+	// WAV 文件头: RIFF....WAVE
+	if bytes.HasPrefix(data, []byte("RIFF")) && bytes.Equal(data[8:12], []byte("WAVE")) {
+		return ".wav"
+	}
+	// MP3 文件头: ID3 或 0xFF 0xFB
+	if bytes.HasPrefix(data, []byte("ID3")) || (len(data) > 1 && data[0] == 0xFF && (data[1] == 0xFB || data[1] == 0xFA)) {
+		return ".mp3"
+	}
+	// FLAC 文件头: fLaC
+	if bytes.HasPrefix(data, []byte("fLaC")) {
+		return ".flac"
+	}
+	// AAC 文件头检测 (ADIF): ADIF
+	if bytes.HasPrefix(data, []byte("ADIF")) {
+		return ".aac"
+	}
+	// OGG 文件头: OggS
+	if bytes.HasPrefix(data, []byte("OggS")) {
+		return ".ogg"
+	}
+	// AMR 文件头: #!AMR
+	if bytes.HasPrefix(data, []byte("#!AMR")) {
+		return ".amr"
+	}
+	// 无法识别时使用通用扩展名
+	return ".audio"
+}
+
+func (r *Robot) GetContentTypeForExtension(extension string) string {
+	switch extension {
+	case ".wav":
+		return "audio/wav"
+	case ".mp3":
+		return "audio/mpeg"
+	case ".flac":
+		return "audio/flac"
+	case ".aac":
+		return "audio/aac"
+	case ".ogg":
+		return "audio/ogg"
+	case ".amr":
+		return "audio/amr"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+func (r *Robot) DownloadVoice(message model.Message) ([]byte, string, string, error) {
 	var voiceXml VoiceMessageXml
 	err := r.XmlDecoder(message.Content, &voiceXml)
 	if err != nil {
-		return "", err
+		return nil, "", "", err
 	}
-	return r.Client.DownloadVoice(DownloadVoiceRequest{
+	var base64Data string
+	base64Data, err = r.Client.DownloadVoice(DownloadVoiceRequest{
 		Wxid:         r.WxID,
 		MsgId:        message.ClientMsgId,
 		Bufid:        voiceXml.Voicemsg.BufID,
 		FromUserName: voiceXml.Voicemsg.FromUsername,
 		Length:       voiceXml.Voicemsg.Length,
 	})
+	if err != nil {
+		return nil, "", "", err
+	}
+	voiceData, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("解码base64失败: %w", err)
+	}
+	extension := r.DetectAudioFormat(voiceData)
+	contentType := r.GetContentTypeForExtension(extension)
+	return voiceData, contentType, extension, nil
 }
 
 func (r *Robot) DownloadFile(message model.Message) (string, error) {

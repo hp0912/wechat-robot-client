@@ -22,7 +22,13 @@ func NewMessageRepo(ctx context.Context, db *gorm.DB) *Message {
 		}}
 }
 
-func (m *Message) GetByMsgId(msgId int64, preloads ...string) *model.Message {
+func (m *Message) GetByID(id int64, preloads ...string) *model.Message {
+	return m.takeOne(preloads, func(g *gorm.DB) *gorm.DB {
+		return g.Where("id = ?", id)
+	})
+}
+
+func (m *Message) GetByMsgID(msgId int64, preloads ...string) *model.Message {
 	return m.takeOne(preloads, func(g *gorm.DB) *gorm.DB {
 		return g.Where("msg_id = ?", msgId)
 	})

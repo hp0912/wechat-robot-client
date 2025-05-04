@@ -179,7 +179,7 @@ func (r *RobotService) SyncMessage() {
 		}
 		// 正常撤回的消息
 		if m.Type == model.MsgTypeRecalled {
-			oldMsg := respo.GetByMsgId(m.MsgId)
+			oldMsg := respo.GetByMsgID(m.MsgId)
 			if oldMsg != nil {
 				oldMsg.IsRecalled = true
 				respo.Update(oldMsg)

@@ -8,9 +8,11 @@ import (
 )
 
 var robotCtl *controller.Robot
+var attachDownloadCtl *controller.AttachDownload
 
 func initController() {
 	robotCtl = controller.NewRobotController()
+	attachDownloadCtl = controller.NewAttachDownloadController()
 }
 
 func RegisterRouter(r *gin.Engine) error {
@@ -43,7 +45,8 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/chat-room/members/sync", robotCtl.SyncChatRoomMember)
 
 	api.GET("/robot/chat/history", robotCtl.GetChatHistory)
-	api.GET("/robot/chat/image/download", robotCtl.GetChatHistory)
+	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
+	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
 
 	api.DELETE("/robot/logout", robotCtl.Logout)
 
