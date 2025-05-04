@@ -301,7 +301,7 @@ type CdnDownloadImgRequest struct {
 }
 
 func (c *Client) CdnDownloadImg(wxid, aeskey, cdnmidimgurl string) (imgbase64 string, err error) {
-	var result ClientResponse[string]
+	var result ClientResponse[DownloadImageDetail]
 	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(CdnDownloadImgRequest{
@@ -312,7 +312,7 @@ func (c *Client) CdnDownloadImg(wxid, aeskey, cdnmidimgurl string) (imgbase64 st
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	imgbase64 = result.Data
+	imgbase64 = result.Data.Image
 	return
 }
 

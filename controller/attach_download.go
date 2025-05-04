@@ -1,0 +1,46 @@
+package controller
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"wechat-robot-client/dto"
+	"wechat-robot-client/pkg/appx"
+	"wechat-robot-client/service"
+
+	"github.com/gin-gonic/gin"
+)
+
+type AttachDownload struct {
+}
+
+func NewAttachDownloadController() *AttachDownload {
+	return &AttachDownload{}
+}
+
+func (a *AttachDownload) DownloadImage(c *gin.Context) {
+	var req dto.AttachDownloadRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	imageData, contentType, extension, err := service.NewAttachDownloadService(c).DownloadImage(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+
+	// 设置响应头
+	c.Header("Content-Type", contentType)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%d%s\"", req.MessageID, extension))
+	c.Header("Content-Length", fmt.Sprintf("%d", len(imageData)))
+
+	// 将图片数据写入响应
+	c.Writer.WriteHeader(http.StatusOK)
+	_, err = c.Writer.Write(imageData)
+	if err != nil {
+		// 这里已经开始写入响应，无法再更改状态码，只能记录错误
+		fmt.Printf("返回图片数据失败: %v\n", err)
+	}
+}

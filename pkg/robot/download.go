@@ -11,6 +11,10 @@ type ImageMessageXml struct {
 	Img ImageSecretXml `xml:"img"`
 }
 
+type DownloadImageDetail struct {
+	Image string `json:"Image"`
+}
+
 type DataBuffer struct {
 	Buffer string `json:"buffer,omitempty"`
 	ILen   int64  `json:"iLen,omitempty"`

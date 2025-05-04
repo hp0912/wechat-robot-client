@@ -1,7 +1,9 @@
 package robot
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/xml"
 	"errors"
 	"io"
@@ -119,13 +121,50 @@ func (r *Robot) XmlDecoder(xmlStr string, result any) error {
 	return nil
 }
 
-func (r *Robot) DownloadImage(message model.Message) (string, error) {
+func (r *Robot) DetectImageType(data []byte) (string, string) {
+	if len(data) < 8 {
+		return "application/octet-stream", ""
+	}
+	// 检查常见图片格式的magic bytes
+	switch {
+	case bytes.HasPrefix(data, []byte{0xFF, 0xD8, 0xFF}):
+		return "image/jpeg", ".jpg"
+	case bytes.HasPrefix(data, []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}):
+		return "image/png", ".png"
+	case bytes.HasPrefix(data, []byte{0x47, 0x49, 0x46, 0x38}):
+		return "image/gif", ".gif"
+	case bytes.HasPrefix(data, []byte{0x52, 0x49, 0x46, 0x46}) && bytes.Equal(data[8:12], []byte{0x57, 0x45, 0x42, 0x50}):
+		return "image/webp", ".webp"
+	case bytes.HasPrefix(data, []byte{0x42, 0x4D}):
+		return "image/bmp", ".bmp"
+	default:
+		return "application/octet-stream", ""
+	}
+}
+
+func (r *Robot) ProcessBase64Image(base64Data string) ([]byte, string, string, error) {
+	imageData, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	// 使用图片数据的magic bytes检测格式
+	contentType, extension := r.DetectImageType(imageData)
+	return imageData, contentType, extension, nil
+}
+
+func (r *Robot) DownloadImage(message model.Message) ([]byte, string, string, error) {
 	var imgXml ImageMessageXml
 	err := r.XmlDecoder(message.Content, &imgXml)
 	if err != nil {
-		return "", err
+		return nil, "", "", err
 	}
-	return r.Client.CdnDownloadImg(r.WxID, imgXml.Img.AesKey, imgXml.Img.CdnMidImgUrl)
+	var base64Data string
+	base64Data, err = r.Client.CdnDownloadImg(r.WxID, imgXml.Img.AesKey, imgXml.Img.CdnMidImgUrl)
+	if err != nil {
+		return nil, "", "", err
+	}
+	return r.ProcessBase64Image(base64Data)
 }
 
 func (r *Robot) DownloadVideo(message model.Message) (string, error) {

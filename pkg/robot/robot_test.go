@@ -47,11 +47,11 @@ func TestDownloadImage(t *testing.T) {
 </msg>
 `,
 	}
-	imgbase64, err := robot.DownloadImage(message)
+	imageData, contentType, extension, err := robot.DownloadImage(message)
 	if err != nil {
 		t.Errorf("下载图片失败: %v", err)
 	}
-	fmt.Printf("imgbase64 length: %d", len(imgbase64))
+	fmt.Printf(string(imageData), contentType, extension)
 }
 
 func TestDownloadVideo(t *testing.T) {

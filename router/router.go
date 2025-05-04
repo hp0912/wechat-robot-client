@@ -43,6 +43,7 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/chat-room/members/sync", robotCtl.SyncChatRoomMember)
 
 	api.GET("/robot/chat/history", robotCtl.GetChatHistory)
+	api.GET("/robot/chat/image/download", robotCtl.GetChatHistory)
 
 	api.DELETE("/robot/logout", robotCtl.Logout)
 
