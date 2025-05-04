@@ -22,7 +22,13 @@ func NewMessageRepo(ctx context.Context, db *gorm.DB) *Message {
 		}}
 }
 
-func (m *Message) FindByContactID(req dto.ChatHistoryRequest, pager appx.Pager) ([]*model.Message, int64, error) {
+func (m *Message) GetByMsgId(msgId int64, preloads ...string) *model.Message {
+	return m.takeOne(preloads, func(g *gorm.DB) *gorm.DB {
+		return g.Where("msg_id = ?", msgId)
+	})
+}
+
+func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) ([]*model.Message, int64, error) {
 	var messages []*model.Message
 	var total int64
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -27,17 +28,17 @@ func NewRobotService(ctx context.Context) *RobotService {
 }
 
 func (r *RobotService) Online() {
-	vars.RobotRuntime.Status = robot.RobotStatusOnline
+	vars.RobotRuntime.Status = model.RobotStatusOnline
 	respo := repository.NewRobotAdminRepo(r.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
 		ID:     vars.RobotRuntime.RobotID,
-		Status: robot.RobotStatusOnline,
+		Status: model.RobotStatusOnline,
 	}
 	respo.Update(&robot)
 }
 
 func (r *RobotService) Offline() {
-	vars.RobotRuntime.Status = robot.RobotStatusOffline
+	vars.RobotRuntime.Status = model.RobotStatusOffline
 	if vars.RobotRuntime.HeartbeatCancel != nil {
 		vars.RobotRuntime.HeartbeatCancel()
 	}
@@ -47,14 +48,14 @@ func (r *RobotService) Offline() {
 	respo := repository.NewRobotAdminRepo(r.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
 		ID:     vars.RobotRuntime.RobotID,
-		Status: robot.RobotStatusOffline,
+		Status: model.RobotStatusOffline,
 	}
 	respo.Update(&robot)
 }
 
 func (r *RobotService) IsRunning() (result bool) {
 	result = vars.RobotRuntime.IsRunning()
-	if !result && vars.RobotRuntime.Status != robot.RobotStatusOffline {
+	if !result && vars.RobotRuntime.Status != model.RobotStatusOffline {
 		r.Offline()
 	}
 	return
@@ -62,14 +63,14 @@ func (r *RobotService) IsRunning() (result bool) {
 
 func (r *RobotService) IsLoggedIn() (result bool) {
 	result = vars.RobotRuntime.IsLoggedIn()
-	if !result && vars.RobotRuntime.Status != robot.RobotStatusOffline {
+	if !result && vars.RobotRuntime.Status != model.RobotStatusOffline {
 		r.Offline()
 	}
 	return
 }
 
 func (r *RobotService) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
-	if vars.RobotRuntime.Status == robot.RobotStatusOnline {
+	if vars.RobotRuntime.Status == model.RobotStatusOnline {
 		err = errors.New("您已经登陆，可以尝试刷新机器人状态")
 		return
 	}
@@ -86,18 +87,22 @@ func (r *RobotService) HeartbeatStart() {
 		case <-vars.RobotRuntime.HeartbeatContext.Done():
 			return
 		case <-time.After(3 * time.Second):
+			mode := os.Getenv("GIN_MODE")
 			err := vars.RobotRuntime.Heartbeat()
-			log.Println("心跳: ", err)
+			log.Println(mode, " 心跳: ", err)
 			if err != nil {
-				if !strings.Contains(err.Error(), "在运行") {
-					errCount++
-					if errCount > 10 {
-						// 10次心跳失败，认为机器人离线
-						r.Offline()
-						return
+				errCount++
+				if mode == "release" && errCount%3 == 0 {
+					log.Println("检测到机器人掉线，尝试重新登陆...")
+					err := vars.RobotRuntime.LoginTwiceAutoAuth()
+					if err != nil {
+						log.Println("尝试重新登陆失败: ", err)
 					}
-				} else {
-					errCount = 0
+				}
+				if errCount > 10 {
+					// 10次心跳失败，认为机器人离线
+					r.Offline()
+					return
 				}
 			} else {
 				errCount = 0
@@ -166,14 +171,23 @@ func (r *RobotService) SyncMessage() {
 				m.ToWxID = self
 			}
 		}
-		if m.Type == robot.MsgTypeInit || m.Type == robot.MsgTypeUnknow {
+		if m.Type == model.MsgTypeInit || m.Type == model.MsgTypeUnknow {
 			continue
 		}
-		if m.Type == robot.MsgTypeRecalled && m.SenderWxID == "weixin" {
+		if m.Type == model.MsgTypeRecalled && m.SenderWxID == "weixin" {
 			continue
+		}
+		// 正常撤回的消息
+		if m.Type == model.MsgTypeRecalled {
+			oldMsg := respo.GetByMsgId(m.MsgId)
+			if oldMsg != nil {
+				oldMsg.IsRecalled = true
+				respo.Update(oldMsg)
+				continue
+			}
 		}
 		// 是否艾特我的消息
-		ats := vars.RobotRuntime.AtListDecoder(message.MsgSource)
+		ats := vars.RobotRuntime.AtListFastDecoder(message.MsgSource)
 		if ats != "" {
 			atMembers := strings.Split(ats, ",")
 			for _, at := range atMembers {
@@ -233,7 +247,7 @@ func (r *RobotService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 	if resp.AcctSectResp.Username != "" {
 		// 登陆成功
 		vars.RobotRuntime.WxID = resp.AcctSectResp.Username
-		vars.RobotRuntime.Status = robot.RobotStatusOnline
+		vars.RobotRuntime.Status = model.RobotStatusOnline
 		// 开启心跳
 		go r.HeartbeatStart()
 		// 开启消息同步
@@ -253,7 +267,7 @@ func (r *RobotService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 			BindMobile:  profile.UserInfo.BindMobile.String,
 			Nickname:    profile.UserInfo.NickName.String,
 			Avatar:      profile.UserInfoExt.BigHeadImgUrl, // 从 resp.AcctSectResp.FsUrl 获取的不太靠谱
-			Status:      robot.RobotStatusOnline,
+			Status:      model.RobotStatusOnline,
 			Profile:     bytes,
 			ProfileExt:  bytesExt,
 			LastLoginAt: time.Now().Unix(),
@@ -351,7 +365,7 @@ func (r *RobotService) SyncChatRoomMember(chatRoomID string) {
 }
 
 func (r *RobotService) SyncContact(syncChatRoomMember bool) (err error) {
-	if vars.RobotRuntime.Status == robot.RobotStatusOffline {
+	if vars.RobotRuntime.Status == model.RobotStatusOffline {
 		return
 	}
 	// 先获取全部id
@@ -459,16 +473,16 @@ func (r *RobotService) SyncContact(syncChatRoomMember bool) (err error) {
 func (r *RobotService) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
 	req.Owner = vars.RobotRuntime.WxID
 	respo := repository.NewContactRepo(r.ctx, vars.DB)
-	return respo.FindByOwner(req, pager)
+	return respo.GetByOwner(req, pager)
 }
 
 func (r *RobotService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
 	respo := repository.NewChatRoomMemberRepo(r.ctx, vars.DB)
-	return respo.FindByChatRoomID(req, pager)
+	return respo.GetByChatRoomID(req, pager)
 }
 
 func (r *RobotService) GetChatHistory(req dto.ChatHistoryRequest, pager appx.Pager) ([]*model.Message, int64, error) {
 	req.Owner = vars.RobotRuntime.WxID
 	respo := repository.NewMessageRepo(r.ctx, vars.DB)
-	return respo.FindByContactID(req, pager)
+	return respo.GetByContactID(req, pager)
 }

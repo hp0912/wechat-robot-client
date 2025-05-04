@@ -111,8 +111,8 @@ func (c *Client) GetCachedInfo(wxid string) (resp CachedInfo, err error) {
 	return
 }
 
-func (c *Client) LoginTwiceAutoAuth(wxid string) (resp QrCode, err error) {
-	var result ClientResponse[QrCode]
+func (c *Client) LoginTwiceAutoAuth(wxid string) (err error) {
+	var result ClientResponse[struct{}]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetQueryParam("wxid", wxid).
@@ -121,7 +121,6 @@ func (c *Client) LoginTwiceAutoAuth(wxid string) (resp QrCode, err error) {
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	resp = result.Data
 	return
 }
 

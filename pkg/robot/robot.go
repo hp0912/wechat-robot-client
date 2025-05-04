@@ -6,12 +6,13 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"wechat-robot-client/model"
 )
 
 type Robot struct {
 	RobotID            int64
 	WxID               string
-	Status             RobotStatus
+	Status             model.RobotStatus
 	DeviceID           string
 	DeviceName         string
 	Client             *Client
@@ -56,7 +57,7 @@ func (r *Robot) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 	var cachedInfo CachedInfo
 	cachedInfo, err = r.Client.GetCachedInfo(r.WxID)
 	if err == nil && cachedInfo.Wxid != "" {
-		_, err = r.Client.LoginTwiceAutoAuth(r.WxID)
+		err = r.LoginTwiceAutoAuth()
 		if err == nil {
 			autoLogin = true
 			return
@@ -84,7 +85,7 @@ func (r *Robot) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 	return
 }
 
-func (r *Robot) AtListDecoder(xmlStr string) string {
+func (r *Robot) AtListFastDecoder(xmlStr string) string {
 	decoder := xml.NewDecoder(strings.NewReader(xmlStr))
 	for {
 		tok, err := decoder.Token()
@@ -104,6 +105,26 @@ func (r *Robot) AtListDecoder(xmlStr string) string {
 		}
 	}
 	return ""
+}
+
+func (r *Robot) XmlDecoder(xmlStr string, result any) error {
+	decoder := xml.NewDecoder(strings.NewReader(xmlStr))
+	err := decoder.Decode(result)
+	if err != nil {
+		return err
+	}
+	if result == nil {
+		return errors.New("解析失败")
+	}
+	return nil
+}
+
+func (r *Robot) DownloadImage(message Message) (string, error) {
+	return "", nil
+}
+
+func (r *Robot) LoginTwiceAutoAuth() error {
+	return r.Client.LoginTwiceAutoAuth(r.WxID)
 }
 
 func (r *Robot) SyncMessage() (SyncMessage, error) {

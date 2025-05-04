@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/service"
@@ -51,7 +52,7 @@ func InitWechatRobot() error {
 		case <-retryTicker.C:
 			if vars.RobotRuntime.IsRunning() {
 				log.Println("微信机器人服务端已启动")
-				if vars.RobotRuntime.Status == robot.RobotStatusOnline {
+				if vars.RobotRuntime.Status == model.RobotStatusOnline {
 					go service.NewRobotService(context.Background()).HeartbeatStart()
 					log.Println("微信机器人已经登陆，开始心跳检测...")
 					go service.NewRobotService(context.Background()).SyncMessageStart()

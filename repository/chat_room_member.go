@@ -21,7 +21,7 @@ func NewChatRoomMemberRepo(ctx context.Context, db *gorm.DB) *ChatRoomMember {
 		}}
 }
 
-func (c *ChatRoomMember) FindByChatRoomID(req dto.ChatRoomMemberRequest, pager appx.Pager, preloads ...string) ([]*model.ChatRoomMember, int64, error) {
+func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager appx.Pager, preloads ...string) ([]*model.ChatRoomMember, int64, error) {
 	var chatRoomMembers []*model.ChatRoomMember
 	var total int64
 

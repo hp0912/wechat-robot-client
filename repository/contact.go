@@ -43,7 +43,7 @@ func (c *Contact) FindRecentGroupContacts(preloads ...string) []*model.Contact {
 	return contacts
 }
 
-func (c *Contact) FindByOwner(req dto.ContactListRequest, pager appx.Pager, preloads ...string) ([]*model.Contact, int64, error) {
+func (c *Contact) GetByOwner(req dto.ContactListRequest, pager appx.Pager, preloads ...string) ([]*model.Contact, int64, error) {
 	var contacts []*model.Contact
 	var total int64
 
