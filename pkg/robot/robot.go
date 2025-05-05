@@ -230,7 +230,7 @@ func (r *Robot) DownloadFile(message model.Message) (io.ReadCloser, string, erro
 	}
 
 	// 客户端期望的文件名（带扩展名）
-	filename := fileXml.Appmsg.Title
+	filename := fmt.Sprintf("%d.%s", message.ID, fileXml.Appmsg.Attach.FileExt)
 	// 分片信息
 	totalLen := fileXml.Appmsg.Attach.TotalLen
 	const chunkSize = int64(60 * 1024) // 60 KB
