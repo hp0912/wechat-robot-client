@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"wechat-robot-client/dto"
@@ -177,6 +178,19 @@ func (r *RobotService) SyncMessage() {
 		if m.Type == model.MsgTypeRecalled && m.SenderWxID == "weixin" {
 			continue
 		}
+		if m.Type == model.MsgTypeApp {
+			subTypeStr := vars.RobotRuntime.XmlFastDecoder(m.Content, "type")
+			if subTypeStr != "" {
+				subType, err := strconv.Atoi(subTypeStr)
+				if err != nil {
+					continue
+				}
+				m.AppMsgType = model.AppMessageType(subType)
+				if m.AppMsgType == model.AppMsgTypeAttachUploading {
+					continue
+				}
+			}
+		}
 		// 正常撤回的消息
 		if m.Type == model.MsgTypeRecalled {
 			oldMsg := respo.GetByMsgID(m.MsgId)
@@ -187,7 +201,7 @@ func (r *RobotService) SyncMessage() {
 			}
 		}
 		// 是否艾特我的消息
-		ats := vars.RobotRuntime.AtListFastDecoder(message.MsgSource)
+		ats := vars.RobotRuntime.XmlFastDecoder(message.MsgSource, "atuserlist")
 		if ats != "" {
 			atMembers := strings.Split(ats, ",")
 			for _, at := range atMembers {

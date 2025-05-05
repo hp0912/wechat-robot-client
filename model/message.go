@@ -46,6 +46,8 @@ const (
 	AppMsgTypeEmotion               AppMessageType = 15     // Emotion
 	AppMsgTypeCardTicket            AppMessageType = 16     // 名片消息
 	AppMsgTypeRealtimeShareLocation AppMessageType = 17     // 地理位置消息
+	AppMsgTypequote                 AppMessageType = 57     // 引用消息
+	AppMsgTypeAttachUploading       AppMessageType = 74     // 附件上传中
 	AppMsgTypeTransfers             AppMessageType = 2000   // 转账消息
 	AppMsgTypeRedEnvelopes          AppMessageType = 2001   // 红包消息
 	AppMsgTypeReaderType            AppMessageType = 100001 //自定义的消息
@@ -59,6 +61,7 @@ type Message struct {
 	IsAtMe             bool           `gorm:"column:is_atme;default:false;comment:'消息是否艾特我'" json:"is_atme"` // @所有人 好的
 	IsRecalled         bool           `gorm:"column:is_recalled;default:false;comment:'消息是否已经撤回'" json:"is_recalled"`
 	Type               MessageType    `gorm:"column:type" json:"type"`                                 // 消息类型
+	AppMsgType         AppMessageType `gorm:"column:app_msg_type" json:"app_msg_type"`                 // 消息子类型
 	Content            string         `gorm:"column:content" json:"content"`                           // 内容
 	DisplayFullContent string         `gorm:"column:display_full_content" json:"display_full_content"` // 显示的完整内容
 	MessageSource      string         `gorm:"column:message_source" json:"message_source"`

@@ -2,6 +2,8 @@ package controller
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/appx"
@@ -74,5 +76,33 @@ func (a *AttachDownload) DownloadVoice(c *gin.Context) {
 	if err != nil {
 		// 这里已经开始写入响应，无法再更改状态码，只能记录错误
 		fmt.Printf("返回语音数据失败: %v\n", err)
+	}
+}
+
+func (a *AttachDownload) DownloadFile(c *gin.Context) {
+	var req dto.AttachDownloadRequest
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "参数错误",
+		})
+		return
+	}
+
+	reader, filename, err := service.NewAttachDownloadService(c).DownloadFile(req)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError,
+			gin.H{"message": err.Error()})
+		return
+	}
+	defer reader.Close()
+
+	// 写响应头，采用 chunked-encoding；无需提前知道 Content-Length
+	c.Header("Content-Disposition",
+		fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	c.Header("Content-Type", "application/octet-stream")
+	c.Status(http.StatusOK)
+
+	if _, err = io.Copy(c.Writer, reader); err != nil {
+		log.Printf("stream copy error: %v", err)
 	}
 }

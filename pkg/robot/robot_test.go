@@ -132,9 +132,60 @@ func TestDownloadFile(t *testing.T) {
 </msg>
 `,
 	}
-	voicebase64, err := robot.DownloadFile(message)
+	_, filename, err := robot.DownloadFile(message)
 	if err != nil {
 		t.Errorf("下载语音失败: %v", err)
 	}
-	fmt.Printf("voicebase64 length: %d", len(voicebase64))
+	fmt.Printf(filename)
+}
+
+func TestXmlFastDecoder(t *testing.T) {
+	var robot = &Robot{}
+	result := robot.XmlFastDecoder(`<msg>
+        <appmsg appid="" sdkver="0">
+                <title>848.wav</title>
+                <des />
+                <action />
+                <type>6</type>
+                <showtype>0</showtype>
+                <soundtype>0</soundtype>
+                <mediatagname />
+                <messageext />
+                <messageaction />
+                <content />
+                <contentattr>0</contentattr>
+                <url />
+                <lowurl />
+                <dataurl />
+                <lowdataurl />
+                <songalbumurl />
+                <songlyric />
+                <appattach>
+                        <totallen>1520718</totallen>
+                        <attachid>@cdn_3057020100044b30490201000204df99987302032f80290204d7f73db70204681860b5042432393636303264372d353233392d343137362d383433382d6230623836356565653635320204051400050201000405004c4dfd00_adffe87a0ca3a0e8157a54c95532f90b_1</attachid>
+                        <emoticonmd5 />
+                        <fileext>wav</fileext>
+                        <cdnattachurl>3057020100044b30490201000204df99987302032f80290204d7f73db70204681860b5042432393636303264372d353233392d343137362d383433382d6230623836356565653635320204051400050201000405004c4dfd00</cdnattachurl>
+                        <aeskey>adffe87a0ca3a0e8157a54c95532f90b</aeskey>
+                        <encryver>0</encryver>
+                        <overwrite_newmsgid>304720037527631091</overwrite_newmsgid>
+                        <fileuploadtoken>v1_mhNyfxuzsGtIS4p0ZAmABNYzXFkTWzYP9RcAwIpx/52YHNXefjaCcTzZVm74t/YnpF87UeKYWDJI5Su6icTwBCn7Aog6akTx46gMGR9LHoWXQHgS8/SFS6b1UaUKfVYyhWkdhZoGqj16HmrTrhOe/HqjJDuhMbj4O49iTJFWj12DM7TBEDrizGKbzaWHuUFEvujiuvs1</fileuploadtoken>
+                </appattach>
+                <extinfo />
+                <sourceusername />
+                <sourcedisplayname />
+                <thumburl />
+                <md5>3197294cb85fc839897e317db0a61bde</md5>
+                <statextstr />
+        </appmsg>
+        <fromusername>wxid_7bpstqonj92212</fromusername>
+        <scene>0</scene>
+        <appinfo>
+                <version>1</version>
+                <appname></appname>
+        </appinfo>
+        <commenturl></commenturl>
+</msg>`, "type")
+
+	fmt.Println(result)
 }

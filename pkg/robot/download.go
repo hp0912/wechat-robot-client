@@ -1,5 +1,10 @@
 package robot
 
+type Section struct {
+	DataLen  int64 `json:"DataLen"`
+	StartPos int64 `json:"StartPos"`
+}
+
 type ImageSecretXml struct {
 	AesKey       string `xml:"aeskey,attr"`
 	CdnMidImgUrl string `xml:"cdnmidimgurl,attr"`

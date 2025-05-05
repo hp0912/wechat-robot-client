@@ -90,7 +90,7 @@ func (r *Robot) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 	return
 }
 
-func (r *Robot) AtListFastDecoder(xmlStr string) string {
+func (r *Robot) XmlFastDecoder(xmlStr, target string) string {
 	decoder := xml.NewDecoder(strings.NewReader(xmlStr))
 	for {
 		tok, err := decoder.Token()
@@ -102,7 +102,7 @@ func (r *Robot) AtListFastDecoder(xmlStr string) string {
 		}
 		switch el := tok.(type) {
 		case xml.StartElement:
-			if el.Name.Local == "atuserlist" {
+			if el.Name.Local == target {
 				var content string
 				decoder.DecodeElement(&content, &el)
 				return content
@@ -222,19 +222,65 @@ func (r *Robot) DownloadVoice(ctx context.Context, message model.Message) ([]byt
 	return wavData, "audio/wav", ".wav", nil
 }
 
-func (r *Robot) DownloadFile(message model.Message) (string, error) {
+func (r *Robot) DownloadFile(message model.Message) (io.ReadCloser, string, error) {
+	// 解析消息中的文件信息
 	var fileXml FileMessageXml
-	err := r.XmlDecoder(message.Content, &fileXml)
-	if err != nil {
-		return "", err
+	if err := r.XmlDecoder(message.Content, &fileXml); err != nil {
+		return nil, "", err
 	}
-	return r.Client.DownloadFile(DownloadFileRequest{
-		Wxid:     r.WxID,
-		AttachId: fileXml.Appmsg.Attach.AttachID,
-		AppID:    fileXml.Appmsg.AppID,
-		UserName: fileXml.FromUsername,
-		DataLen:  fileXml.Appmsg.Attach.TotalLen,
-	})
+
+	// 客户端期望的文件名（带扩展名）
+	filename := fileXml.Appmsg.Title
+	// 分片信息
+	totalLen := fileXml.Appmsg.Attach.TotalLen
+	const chunkSize = int64(60 * 1024) // 60 KB
+	// 使用 io.Pipe 将分片数据实时写入响应流
+	pr, pw := io.Pipe()
+
+	go func() {
+		defer pw.Close()
+
+		for startPos := int64(0); startPos < totalLen; startPos += chunkSize {
+			currentChunkSize := chunkSize
+			if startPos+currentChunkSize > totalLen {
+				currentChunkSize = totalLen - startPos
+			}
+
+			// 调用底层接口获取单个分片（base64 编码）
+			base64Data, err := r.Client.DownloadFile(DownloadFileRequest{
+				Wxid:     r.WxID,
+				AttachId: fileXml.Appmsg.Attach.AttachID,
+				AppID:    fileXml.Appmsg.AppID,
+				UserName: fileXml.FromUsername,
+				DataLen:  totalLen,
+				Section: Section{
+					StartPos: startPos,
+					DataLen:  currentChunkSize,
+				},
+			})
+			if err != nil {
+				// 将错误传递给读取端
+				_ = pw.CloseWithError(fmt.Errorf("下载文件分片错误: %w (start=%d size=%d)", err, startPos, currentChunkSize))
+				return
+			}
+
+			// base64 解码
+			raw, err := base64.StdEncoding.DecodeString(base64Data)
+			if err != nil {
+				_ = pw.CloseWithError(fmt.Errorf("base64 解码失败: %w", err))
+				return
+			}
+
+			// 写入到 PipeWriter，让外层按需读取（流式传输）
+			if _, err := pw.Write(raw); err != nil {
+				_ = pw.CloseWithError(err)
+				return
+			}
+		}
+	}()
+
+	// 返回可读取的流和文件名，调用者自行决定如何处理（例如直接写入 HTTP 响应）
+	return pr, filename, nil
 }
 
 func (r *Robot) LoginTwiceAutoAuth() error {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"io"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
@@ -41,4 +42,16 @@ func (a *AttachDownloadService) DownloadVoice(req dto.AttachDownloadRequest) ([]
 		return nil, "", "", errors.New("消息类型错误")
 	}
 	return vars.RobotRuntime.DownloadVoice(a.ctx, *message)
+}
+
+func (a *AttachDownloadService) DownloadFile(req dto.AttachDownloadRequest) (io.ReadCloser, string, error) {
+	respo := repository.NewMessageRepo(a.ctx, vars.DB)
+	message := respo.GetByID(req.MessageID)
+	if message == nil {
+		return nil, "", errors.New("消息不存在")
+	}
+	if message.Type != model.MsgTypeApp || message.AppMsgType != model.AppMsgTypeAttach {
+		return nil, "", errors.New("消息类型错误")
+	}
+	return vars.RobotRuntime.DownloadFile(*message)
 }

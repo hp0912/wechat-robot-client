@@ -317,15 +317,12 @@ func (c *Client) CdnDownloadImg(wxid, aeskey, cdnmidimgurl string) (imgbase64 st
 }
 
 type DownloadVideoRequest struct {
-	Wxid         string `json:"Wxid"`
-	MsgId        int64  `json:"MsgId"`
-	CompressType int    `json:"CompressType"`
-	DataLen      int64  `json:"DataLen"`
-	Section      struct {
-		DataLen  int64 `json:"DataLen"`
-		StartPos int64 `json:"StartPos"`
-	} `json:"Section"`
-	ToWxid string `json:"ToWxid"`
+	Wxid         string  `json:"Wxid"`
+	MsgId        int64   `json:"MsgId"`
+	CompressType int     `json:"CompressType"`
+	DataLen      int64   `json:"DataLen"`
+	Section      Section `json:"Section"`
+	ToWxid       string  `json:"ToWxid"`
 }
 
 func (c *Client) DownloadVideo(req DownloadVideoRequest) (videobase64 string, err error) {
@@ -361,15 +358,12 @@ func (c *Client) DownloadVoice(req DownloadVoiceRequest) (voicebase64 string, er
 }
 
 type DownloadFileRequest struct {
-	Wxid     string `json:"Wxid"`
-	AttachId string `json:"AttachId"`
-	AppID    string `json:"AppID"`
-	UserName string `json:"UserName"`
-	DataLen  int64  `json:"DataLen"`
-	Section  struct {
-		DataLen  int64 `json:"DataLen"`
-		StartPos int64 `json:"StartPos"`
-	} `json:"Section"`
+	Wxid     string  `json:"Wxid"`
+	AttachId string  `json:"AttachId"`
+	AppID    string  `json:"AppID"`
+	UserName string  `json:"UserName"`
+	DataLen  int64   `json:"DataLen"`
+	Section  Section `json:"Section"`
 }
 
 func (c *Client) DownloadFile(req DownloadFileRequest) (filebase64 string, err error) {
