@@ -170,11 +170,65 @@ func (r *Robot) DownloadImage(message model.Message) ([]byte, string, string, er
 	return r.ProcessBase64Image(base64Data)
 }
 
-func (r *Robot) DownloadVideo(message model.Message) (string, error) {
-	return r.Client.DownloadVideo(DownloadVideoRequest{
-		Wxid:  r.WxID,
-		MsgId: message.ClientMsgId,
-	})
+func (r *Robot) DownloadVideo(message model.Message) (io.ReadCloser, string, error) {
+	// 解析消息中的文件信息
+	var videoXml VideoMessageXml
+	if err := r.XmlDecoder(message.Content, &videoXml); err != nil {
+		return nil, "", err
+	}
+
+	// 客户端期望的文件名（带扩展名）
+	filename := fmt.Sprintf("%d.%s", message.ID, ".mp4")
+	// 分片信息
+	totalLen := videoXml.VideoMsg.Length
+	const chunkSize = int64(60 * 1024) // 60 KB
+	// 使用 io.Pipe 将分片数据实时写入响应流
+	pr, pw := io.Pipe()
+
+	go func() {
+		defer pw.Close()
+
+		for startPos := int64(0); startPos < totalLen; startPos += chunkSize {
+			currentChunkSize := chunkSize
+			if startPos+currentChunkSize > totalLen {
+				currentChunkSize = totalLen - startPos
+			}
+
+			// 调用底层接口获取单个分片（base64 编码）
+			base64Data, err := r.Client.DownloadVideo(DownloadVideoRequest{
+				Wxid:    r.WxID,
+				ToWxid:  videoXml.VideoMsg.FromUserName,
+				DataLen: totalLen,
+				MsgId:   message.ClientMsgId,
+				Section: Section{
+					StartPos: startPos,
+					DataLen:  currentChunkSize,
+				},
+				CompressType: 0,
+			})
+			if err != nil {
+				// 将错误传递给读取端
+				_ = pw.CloseWithError(fmt.Errorf("下载文件分片错误: %w (start=%d size=%d)", err, startPos, currentChunkSize))
+				return
+			}
+
+			// base64 解码
+			raw, err := base64.StdEncoding.DecodeString(base64Data)
+			if err != nil {
+				_ = pw.CloseWithError(fmt.Errorf("base64 解码失败: %w", err))
+				return
+			}
+
+			// 写入到 PipeWriter，让外层按需读取（流式传输）
+			if _, err := pw.Write(raw); err != nil {
+				_ = pw.CloseWithError(err)
+				return
+			}
+		}
+	}()
+
+	// 返回可读取的流和文件名，调用者自行决定如何处理（例如直接写入 HTTP 响应）
+	return pr, filename, nil
 }
 
 func (r *Robot) DownloadVoice(ctx context.Context, message model.Message) ([]byte, string, string, error) {

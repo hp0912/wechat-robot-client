@@ -55,3 +55,15 @@ func (a *AttachDownloadService) DownloadFile(req dto.AttachDownloadRequest) (io.
 	}
 	return vars.RobotRuntime.DownloadFile(*message)
 }
+
+func (a *AttachDownloadService) DownloadVideo(req dto.AttachDownloadRequest) (io.ReadCloser, string, error) {
+	respo := repository.NewMessageRepo(a.ctx, vars.DB)
+	message := respo.GetByID(req.MessageID)
+	if message == nil {
+		return nil, "", errors.New("消息不存在")
+	}
+	if message.Type != model.MsgTypeVideo {
+		return nil, "", errors.New("消息类型错误")
+	}
+	return vars.RobotRuntime.DownloadVideo(*message)
+}

@@ -69,11 +69,11 @@ func TestDownloadVideo(t *testing.T) {
 </msg>
 `,
 	}
-	videobase64, err := robot.DownloadVideo(message)
+	_, filename, err := robot.DownloadVideo(message)
 	if err != nil {
 		t.Errorf("下载视频失败: %v", err)
 	}
-	fmt.Printf("videobase64 length: %d", len(videobase64))
+	fmt.Printf(filename)
 }
 
 func TestDownloadVoice(t *testing.T) {

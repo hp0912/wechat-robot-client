@@ -106,3 +106,31 @@ func (a *AttachDownload) DownloadFile(c *gin.Context) {
 		log.Printf("stream copy error: %v", err)
 	}
 }
+
+func (a *AttachDownload) DownloadVideo(c *gin.Context) {
+	var req dto.AttachDownloadRequest
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "参数错误",
+		})
+		return
+	}
+
+	reader, filename, err := service.NewAttachDownloadService(c).DownloadVideo(req)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError,
+			gin.H{"message": err.Error()})
+		return
+	}
+	defer reader.Close()
+
+	// 写响应头，采用 chunked-encoding；无需提前知道 Content-Length
+	c.Header("Content-Disposition",
+		fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	c.Header("Content-Type", "application/octet-stream")
+	c.Status(http.StatusOK)
+
+	if _, err = io.Copy(c.Writer, reader); err != nil {
+		log.Printf("stream copy error: %v", err)
+	}
+}

@@ -1,5 +1,7 @@
 package robot
 
+import "encoding/xml"
+
 type Section struct {
 	DataLen  int64 `json:"DataLen"`
 	StartPos int64 `json:"StartPos"`
@@ -46,6 +48,34 @@ type VoiceSecretXml struct {
 
 type VoiceMessageXml struct {
 	Voicemsg VoiceSecretXml `xml:"voicemsg"`
+}
+
+type VideoSecretXml struct {
+	AesKey            string `xml:"aeskey,attr"`
+	CdnVideoUrl       string `xml:"cdnvideourl,attr"`
+	CdnThumbAesKey    string `xml:"cdnthumbaeskey,attr"`
+	CdnThumbUrl       string `xml:"cdnthumburl,attr"`
+	Length            int64  `xml:"length,attr"`
+	PlayLength        int64  `xml:"playlength,attr"`
+	CdnThumbLength    int64  `xml:"cdnthumblength,attr"`
+	CdnThumbWidth     int64  `xml:"cdnthumbwidth,attr"`
+	CdnThumbHeight    int64  `xml:"cdnthumbheight,attr"`
+	FromUserName      string `xml:"fromusername,attr"`
+	Md5               string `xml:"md5,attr"`
+	NewMd5            string `xml:"newmd5,attr"`
+	IsPlaceholder     string `xml:"isplaceholder,attr"`
+	RawMd5            string `xml:"rawmd5,attr"`
+	RawLength         int64  `xml:"rawlength,attr"`
+	CdnRawVideoUrl    string `xml:"cdnrawvideourl,attr"`
+	CdnRawVideoAesKey string `xml:"cdnrawvideoaeskey,attr"`
+	OverwriteNewMsgId int64  `xml:"overwritenewmsgid,attr"`
+	OriginSourceMd5   string `xml:"originsourcemd5,attr"`
+	IsAd              string `xml:"isad,attr"`
+}
+
+type VideoMessageXml struct {
+	XMLName  xml.Name       `xml:"msg"`
+	VideoMsg VideoSecretXml `xml:"videomsg"`
 }
 
 type DownloadVoiceDetail struct {
