@@ -1,6 +1,7 @@
 package robot
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"wechat-robot-client/model"
@@ -85,7 +86,7 @@ func TestDownloadVoice(t *testing.T) {
 		ClientMsgId: 1454615540,
 		Content:     `<msg><voicemsg endflag="1" cancelflag="0" forwardflag="0" voiceformat="4" voicelength="58960" length="111467" bufid="0" aeskey="db002686782e902620af0380f5726707" voiceurl="3052020100044b304902010002040132014402032f5919020463a26971020468171183042437333261663636382d323662662d343965322d393533362d64373738643731396162383702040528000f0201000400b5e41e26" voicemd5="" clientmsgid="49bf5b19d96cf6da3d1df8fa00350aaa34948034760@chatroom_451_1746342217" fromusername="wxid_b28npmhznnwl12" /></msg>`,
 	}
-	voiceData, contentType, extension, err := robot.DownloadVoice(message)
+	voiceData, contentType, extension, err := robot.DownloadVoice(context.Background(), message)
 	if err != nil {
 		t.Errorf("下载语音失败: %v", err)
 	}

@@ -40,5 +40,5 @@ func (a *AttachDownloadService) DownloadVoice(req dto.AttachDownloadRequest) ([]
 	if message.Type != model.MsgTypeVoice {
 		return nil, "", "", errors.New("消息类型错误")
 	}
-	return vars.RobotRuntime.DownloadVoice(*message)
+	return vars.RobotRuntime.DownloadVoice(a.ctx, *message)
 }
