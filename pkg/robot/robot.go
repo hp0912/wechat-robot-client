@@ -198,34 +198,28 @@ func (r *Robot) DownloadVoice(ctx context.Context, message model.Message) ([]byt
 	if err != nil {
 		return nil, "", "", fmt.Errorf("将silk base64编码转成字节数组错误: %w", err)
 	}
-	inFile, err := os.CreateTemp("/Users/zuihoudeqingyu/Git/wechat/wechat-robot-client", "silk_*.silk")
+	inFile, err := os.CreateTemp("", "silk_*.silk")
 	if err != nil {
 		return nil, "", "", fmt.Errorf("创建silk临时文件错误: %w", err)
 	}
-	// defer os.Remove(inFile.Name())
+	defer os.Remove(inFile.Name())
 	if _, err = inFile.Write(silkData); err != nil {
 		inFile.Close()
 		return nil, "", "", fmt.Errorf("写入silk临时文件错误: %w", err)
 	}
 	inFile.Close()
 
-	// outFile, err := os.CreateTemp("/Users/zuihoudeqingyu/Git/wechat/wechat-robot-client", "silk_out_*.wav")
-	// if err != nil {
-	// 	return nil, "", "", fmt.Errorf("创建wav临时文件错误: %w", err)
-	// }
-	// outFile.Close()
-	// defer os.Remove(outFile.Name())
-
 	cmd := exec.CommandContext(ctx, "silk-convert", inFile.Name(), "wav")
 	if err = cmd.Run(); err != nil {
 		return nil, "", "", fmt.Errorf("silk-convert执行转换错误: %w", err)
 	}
-	// wavData, err := os.ReadFile(outFile.Name())
-	// if err != nil {
-	// 	return nil, "", "", fmt.Errorf("read wav: %w", err)
-	// }
-
-	return nil, "audio/wav", "filepath.Base(outFile.Name())", nil
+	wavFile := strings.Replace(inFile.Name(), ".silk", ".wav", 1)
+	wavData, err := os.ReadFile(wavFile)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("读取wav文件错误: %w", err)
+	}
+	defer os.Remove(wavFile)
+	return wavData, "audio/wav", ".wav", nil
 }
 
 func (r *Robot) DownloadFile(message model.Message) (string, error) {
