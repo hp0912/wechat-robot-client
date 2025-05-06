@@ -178,7 +178,7 @@ func (r *Robot) DownloadVideo(message model.Message) (io.ReadCloser, string, err
 	}
 
 	// 客户端期望的文件名（带扩展名）
-	filename := fmt.Sprintf("%d.%s", message.ID, ".mp4")
+	filename := fmt.Sprintf("%d.%s", message.ID, "mp4")
 	// 分片信息
 	totalLen := videoXml.VideoMsg.Length
 	const chunkSize = int64(60 * 1024) // 60 KB
