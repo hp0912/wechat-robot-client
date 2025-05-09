@@ -12,6 +12,7 @@ var attachDownloadCtl *controller.AttachDownload
 var chatRoomCtl *controller.ChatRoom
 var contactCtl *controller.Contact
 var loginCtl *controller.Login
+var messageCtl *controller.Message
 var probeCtl *controller.Probe
 
 func initController() {
@@ -20,6 +21,7 @@ func initController() {
 	chatRoomCtl = controller.NewChatRoomController()
 	contactCtl = controller.NewContactController()
 	loginCtl = controller.NewLoginController()
+	messageCtl = controller.NewMessageController()
 	probeCtl = controller.NewProbeController()
 }
 
@@ -54,6 +56,8 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/chat-room/members/sync", chatRoomCtl.SyncChatRoomMember)
 
 	api.GET("/robot/chat/history", chatHistoryCtl.GetChatHistory)
+
+	api.POST("/robot/message/revoke", messageCtl.MessageRevoke)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)

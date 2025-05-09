@@ -191,6 +191,17 @@ func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err erro
 	return
 }
 
+func (c *Client) MessageRevoke(req MessageRevokeRequest) (err error) {
+	var result ClientResponse[any]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgRevoke))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	return
+}
+
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	var result ClientResponse[GetContactListResponse]
 	_, err = c.client.R().
@@ -301,3 +312,5 @@ func (c *Client) DownloadFile(req DownloadFileRequest) (filebase64 string, err e
 	filebase64 = result.Data.Data.Buffer
 	return
 }
+
+// TODO 通过好友请求

@@ -1,6 +1,9 @@
 package robot
 
-import "wechat-robot-client/model"
+import (
+	"encoding/xml"
+	"wechat-robot-client/model"
+)
 
 type SyncMessage struct {
 	ModUserInfos    []*UserInfo       `json:"ModUserInfos"`
@@ -24,7 +27,7 @@ type Message struct {
 	FromUserName BuiltinString     `json:"FromUserName"`
 	ToUserName   BuiltinString     `json:"ToUserName"`
 	Content      BuiltinString     `json:"Content"`
-	CreateTime   int               `json:"CreateTime"`
+	CreateTime   int64             `json:"CreateTime"`
 	MsgType      model.MessageType `json:"MsgType"`
 	Status       int               `json:"Status"`
 	ImgStatus    int               `json:"ImgStatus"`
@@ -44,4 +47,26 @@ type SyncMessageRequest struct {
 	Wxid    string `json:"Wxid"`
 	Scene   int    `json:"Scene"`
 	Synckey string `json:"Synckey"`
+}
+
+type SystemMessage struct {
+	XMLName   xml.Name  `xml:"sysmsg"`
+	Type      string    `xml:"type,attr"`
+	RevokeMsg RevokeMsg `xml:"revokemsg"`
+}
+
+type RevokeMsg struct {
+	XMLName    xml.Name `xml:"revokemsg"`
+	Session    string   `xml:"session"`
+	MsgID      int64    `xml:"msgid"`
+	NewMsgID   int64    `xml:"newmsgid"`
+	ReplaceMsg string   `xml:"replacemsg"`
+}
+
+type MessageRevokeRequest struct {
+	Wxid        string `json:"Wxid"`
+	ClientMsgId int64  `json:"ClientMsgId"`
+	NewMsgId    int64  `json:"NewMsgId"`
+	ToUserName  string `json:"ToUserName"`
+	CreateTime  int64  `json:"CreateTime"`
 }

@@ -345,6 +345,16 @@ func (r *Robot) SyncMessage() (SyncMessage, error) {
 	return r.Client.SyncMessage(r.WxID)
 }
 
+func (r *Robot) MessageRevoke(message model.Message) error {
+	return r.Client.MessageRevoke(MessageRevokeRequest{
+		Wxid:        r.WxID,
+		NewMsgId:    message.MsgId,
+		ClientMsgId: message.ClientMsgId,
+		ToUserName:  message.FromWxID,
+		CreateTime:  message.CreatedAt,
+	})
+}
+
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {
 	return r.Client.CheckLoginUuid(uuid)
 }

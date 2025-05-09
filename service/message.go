@@ -2,11 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strconv"
 	"strings"
 	"time"
+	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
 )
@@ -49,7 +52,7 @@ func (s *MessageService) SyncMessage() {
 			MessageSource:      message.MsgSource,
 			FromWxID:           message.FromUserName.String,
 			ToWxID:             message.ToUserName.String,
-			CreatedAt:          time.Now().Unix(),
+			CreatedAt:          message.CreateTime,
 			UpdatedAt:          time.Now().Unix(),
 		}
 		self := vars.RobotRuntime.WxID
@@ -102,11 +105,15 @@ func (s *MessageService) SyncMessage() {
 		}
 		// 正常撤回的消息
 		if m.Type == model.MsgTypeRecalled {
-			oldMsg := respo.GetByMsgID(m.MsgId)
-			if oldMsg != nil {
-				oldMsg.IsRecalled = true
-				respo.Update(oldMsg)
-				continue
+			var msgXml robot.SystemMessage
+			err := vars.RobotRuntime.XmlDecoder(m.Content, &msgXml)
+			if err == nil {
+				oldMsg := respo.GetByMsgID(msgXml.RevokeMsg.NewMsgID)
+				if oldMsg != nil {
+					oldMsg.IsRecalled = true
+					respo.Update(oldMsg)
+					continue
+				}
 			}
 		}
 		// 是否艾特我的消息
@@ -159,4 +166,17 @@ func (s *MessageService) SyncMessageStart() {
 			s.SyncMessage()
 		}
 	}
+}
+
+func (s *MessageService) MessageRevoke(req dto.MessageCommonRequest) error {
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	message := respo.GetByID(req.MessageID)
+	if message == nil {
+		return errors.New("消息不存在")
+	}
+	// 两分钟前
+	if message.CreatedAt+120 < time.Now().Unix() {
+		return errors.New("消息已过期")
+	}
+	return vars.RobotRuntime.MessageRevoke(*message)
 }

@@ -11,8 +11,11 @@ const (
 	LoginHeartBeat     = "/Login/HeartBeat"
 	LoginLogout        = "/Login/LogOut"
 
-	UserGetContactProfile        = "/User/GetContractProfile"
-	MsgSyncPath                  = "/Msg/Sync"
+	UserGetContactProfile = "/User/GetContractProfile"
+
+	MsgSyncPath = "/Msg/Sync"
+	MsgRevoke   = "/Msg/Revoke"
+
 	FriendGetContactList         = "/Friend/GetContractList"
 	FriendGetContactDetail       = "/Friend/GetContractDetail"
 	GroupGetChatRoomMemberDetail = "/Group/GetChatRoomMemberDetail"
