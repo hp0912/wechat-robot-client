@@ -22,3 +22,8 @@ type ChatRoomMemberDetail struct {
 	ServerVersion    int64           `json:"ServerVersion"`
 	NewChatroomData  NewChatroomData `json:"NewChatroomData"`
 }
+
+type GetChatRoomMemberDetailRequest struct {
+	Wxid string `json:"Wxid"`
+	QID  string `json:"QID"`
+}

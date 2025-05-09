@@ -136,3 +136,35 @@ type DownloadFileDetail struct {
 	DataLen  int64      `json:"dataLen"`
 	Data     DataBuffer `json:"data"`
 }
+
+type CdnDownloadImgRequest struct {
+	Wxid       string `json:"Wxid"`
+	FileNo     string `json:"FileNo"`
+	FileAesKey string `json:"FileAesKey"`
+}
+
+type DownloadVideoRequest struct {
+	Wxid         string  `json:"Wxid"`
+	MsgId        int64   `json:"MsgId"`
+	CompressType int     `json:"CompressType"`
+	DataLen      int64   `json:"DataLen"`
+	Section      Section `json:"Section"`
+	ToWxid       string  `json:"ToWxid"`
+}
+
+type DownloadVoiceRequest struct {
+	Wxid         string `json:"Wxid"`
+	MsgId        int64  `json:"MsgId"`
+	Length       int64  `json:"Length"`
+	FromUserName string `json:"FromUserName"`
+	Bufid        string `json:"Bufid"`
+}
+
+type DownloadFileRequest struct {
+	Wxid     string  `json:"Wxid"`
+	AttachId string  `json:"AttachId"`
+	AppID    string  `json:"AppID"`
+	UserName string  `json:"UserName"`
+	DataLen  int64   `json:"DataLen"`
+	Section  Section `json:"Section"`
+}

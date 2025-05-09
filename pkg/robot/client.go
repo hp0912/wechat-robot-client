@@ -11,23 +11,6 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-// 错误码对应的含义，0表示正常
-var codeMap = map[int]string{
-	-1:  "参数错误",
-	-2:  "其他错误",
-	-3:  "序列化错误",
-	-4:  "反序列化错误",
-	-5:  "MMTLS初始化错误",
-	-6:  "收到的数据包长度错误",
-	-7:  "已退出登录",
-	-8:  "链接过期",
-	-9:  "解析数据包错误",
-	-10: "数据库错误",
-	-11: "登陆异常",
-	-12: "操作过于频繁",
-	-13: "上传失败",
-}
-
 type ClientResponse[T any] struct {
 	Success bool   `json:"Success"`
 	Code    int    `json:"Code"`
@@ -79,10 +62,6 @@ func (c *Client) IsRunning() bool {
 	}
 	defer conn.Close()
 	return true
-}
-
-type CommonRequest struct {
-	Wxid string `json:"wxid"`
 }
 
 func (c *Client) GetProfile(wxid string) (resp UserProfile, err error) {
@@ -196,12 +175,6 @@ func (c *Client) Heartbeat(wxid string) (err error) {
 	return
 }
 
-type SyncMessageRequest struct {
-	Wxid    string `json:"Wxid"`
-	Scene   int    `json:"Scene"`
-	Synckey string `json:"Synckey"`
-}
-
 func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err error) {
 	var result ClientResponse[SyncMessage]
 	_, err = c.client.R().
@@ -216,12 +189,6 @@ func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err erro
 	}
 	messageResponse = result.Data
 	return
-}
-
-type GetContactListRequest struct {
-	Wxid                      string `json:"Wxid"`
-	CurrentChatRoomContactSeq int    `json:"CurrentChatRoomContactSeq"`
-	CurrentWxcontactSeq       int    `json:"CurrentWxcontactSeq"`
 }
 
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
@@ -248,12 +215,6 @@ func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	return
 }
 
-type GetContactDetailRequest struct {
-	Wxid     string `json:"Wxid"`
-	Towxids  string `json:"Towxids"`
-	ChatRoom string `json:"ChatRoom"`
-}
-
 func (c *Client) GetContactDetail(wxid string, towxids []string) (contactList []Contact, err error) {
 	if len(towxids) > 20 {
 		err = errors.New("一次最多查询20个联系人")
@@ -274,11 +235,6 @@ func (c *Client) GetContactDetail(wxid string, towxids []string) (contactList []
 	return
 }
 
-type GetChatRoomMemberDetailRequest struct {
-	Wxid string `json:"Wxid"`
-	QID  string `json:"QID"`
-}
-
 func (c *Client) GetChatRoomMemberDetail(wxid, QID string) (chatRoomMember []ChatRoomMember, err error) {
 	var result ClientResponse[ChatRoomMemberDetail]
 	_, err = c.client.R().
@@ -292,12 +248,6 @@ func (c *Client) GetChatRoomMemberDetail(wxid, QID string) (chatRoomMember []Cha
 	}
 	chatRoomMember = result.Data.NewChatroomData.ChatRoomMember
 	return
-}
-
-type CdnDownloadImgRequest struct {
-	Wxid       string `json:"Wxid"`
-	FileNo     string `json:"FileNo"`
-	FileAesKey string `json:"FileAesKey"`
 }
 
 func (c *Client) CdnDownloadImg(wxid, aeskey, cdnmidimgurl string) (imgbase64 string, err error) {
@@ -316,15 +266,6 @@ func (c *Client) CdnDownloadImg(wxid, aeskey, cdnmidimgurl string) (imgbase64 st
 	return
 }
 
-type DownloadVideoRequest struct {
-	Wxid         string  `json:"Wxid"`
-	MsgId        int64   `json:"MsgId"`
-	CompressType int     `json:"CompressType"`
-	DataLen      int64   `json:"DataLen"`
-	Section      Section `json:"Section"`
-	ToWxid       string  `json:"ToWxid"`
-}
-
 func (c *Client) DownloadVideo(req DownloadVideoRequest) (videobase64 string, err error) {
 	var result ClientResponse[DownloadVideoDetail]
 	_, err = c.client.R().
@@ -337,14 +278,6 @@ func (c *Client) DownloadVideo(req DownloadVideoRequest) (videobase64 string, er
 	return
 }
 
-type DownloadVoiceRequest struct {
-	Wxid         string `json:"Wxid"`
-	MsgId        int64  `json:"MsgId"`
-	Length       int64  `json:"Length"`
-	FromUserName string `json:"FromUserName"`
-	Bufid        string `json:"Bufid"`
-}
-
 func (c *Client) DownloadVoice(req DownloadVoiceRequest) (voicebase64 string, err error) {
 	var result ClientResponse[DownloadVoiceDetail]
 	_, err = c.client.R().
@@ -355,15 +288,6 @@ func (c *Client) DownloadVoice(req DownloadVoiceRequest) (voicebase64 string, er
 	}
 	voicebase64 = result.Data.Data.Buffer
 	return
-}
-
-type DownloadFileRequest struct {
-	Wxid     string  `json:"Wxid"`
-	AttachId string  `json:"AttachId"`
-	AppID    string  `json:"AppID"`
-	UserName string  `json:"UserName"`
-	DataLen  int64   `json:"DataLen"`
-	Section  Section `json:"Section"`
 }
 
 func (c *Client) DownloadFile(req DownloadFileRequest) (filebase64 string, err error) {

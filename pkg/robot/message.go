@@ -39,3 +39,9 @@ type FunctionSwitch struct {
 	FunctionId  int64 `json:"FunctionId"`
 	SwitchValue int64 `json:"SwitchValue"`
 }
+
+type SyncMessageRequest struct {
+	Wxid    string `json:"Wxid"`
+	Scene   int    `json:"Scene"`
+	Synckey string `json:"Synckey"`
+}

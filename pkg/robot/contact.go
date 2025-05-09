@@ -121,3 +121,15 @@ type GetContactResponse struct {
 	} `json:"Ticket"`
 	SendMsgTicketList [][]int `json:"sendMsgTicketList"`
 }
+
+type GetContactListRequest struct {
+	Wxid                      string `json:"Wxid"`
+	CurrentChatRoomContactSeq int    `json:"CurrentChatRoomContactSeq"`
+	CurrentWxcontactSeq       int    `json:"CurrentWxcontactSeq"`
+}
+
+type GetContactDetailRequest struct {
+	Wxid     string `json:"Wxid"`
+	Towxids  string `json:"Towxids"`
+	ChatRoom string `json:"ChatRoom"`
+}
