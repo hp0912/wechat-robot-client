@@ -7,12 +7,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var robotCtl *controller.Robot
+var chatHistoryCtl *controller.ChatHistory
 var attachDownloadCtl *controller.AttachDownload
+var chatRoomCtl *controller.ChatRoom
+var contactCtl *controller.Contact
+var loginCtl *controller.Login
+var probeCtl *controller.Probe
 
 func initController() {
-	robotCtl = controller.NewRobotController()
+	chatHistoryCtl = controller.NewChatHistoryController()
 	attachDownloadCtl = controller.NewAttachDownloadController()
+	chatRoomCtl = controller.NewChatRoomController()
+	contactCtl = controller.NewContactController()
+	loginCtl = controller.NewLoginController()
+	probeCtl = controller.NewProbeController()
 }
 
 func RegisterRouter(r *gin.Engine) error {
@@ -31,26 +39,26 @@ func RegisterRouter(r *gin.Engine) error {
 	}
 
 	api := r.Group("/api/v1")
-	api.POST("/probe", robotCtl.Probe)
+	api.POST("/probe", probeCtl.Probe)
 
-	api.GET("/robot/is-running", robotCtl.IsRunning)
-	api.GET("/robot/is-loggedin", robotCtl.IsLoggedIn)
-	api.POST("/robot/login", robotCtl.Login)
-	api.POST("/robot/login/check", robotCtl.LoginCheck)
+	api.GET("/robot/is-running", loginCtl.IsRunning)
+	api.GET("/robot/is-loggedin", loginCtl.IsLoggedIn)
+	api.POST("/robot/login", loginCtl.Login)
+	api.POST("/robot/login/check", loginCtl.LoginCheck)
+	api.DELETE("/robot/logout", loginCtl.Logout)
 
-	api.GET("/robot/contacts", robotCtl.GetContacts)
-	api.POST("/robot/contacts/sync", robotCtl.SyncContact)
+	api.GET("/robot/contacts", contactCtl.GetContacts)
+	api.POST("/robot/contacts/sync", contactCtl.SyncContact)
 
-	api.GET("/robot/chat-room/members", robotCtl.GetChatRoomMembers)
-	api.POST("/robot/chat-room/members/sync", robotCtl.SyncChatRoomMember)
+	api.GET("/robot/chat-room/members", chatRoomCtl.GetChatRoomMembers)
+	api.POST("/robot/chat-room/members/sync", chatRoomCtl.SyncChatRoomMember)
 
-	api.GET("/robot/chat/history", robotCtl.GetChatHistory)
+	api.GET("/robot/chat/history", chatHistoryCtl.GetChatHistory)
+
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
 	api.GET("/robot/chat/file/download", attachDownloadCtl.DownloadFile)
 	api.GET("/robot/chat/video/download", attachDownloadCtl.DownloadVideo)
-
-	api.DELETE("/robot/logout", robotCtl.Logout)
 
 	return nil
 }

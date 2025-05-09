@@ -53,9 +53,9 @@ func InitWechatRobot() error {
 			if vars.RobotRuntime.IsRunning() {
 				log.Println("微信机器人服务端已启动")
 				if vars.RobotRuntime.Status == model.RobotStatusOnline {
-					go service.NewRobotService(context.Background()).HeartbeatStart()
+					go service.NewLoginService(context.Background()).HeartbeatStart()
 					log.Println("微信机器人已经登陆，开始心跳检测...")
-					go service.NewRobotService(context.Background()).SyncMessageStart()
+					go service.NewMessageService(context.Background()).SyncMessageStart()
 					log.Println("开始同步消息...")
 				}
 				return nil

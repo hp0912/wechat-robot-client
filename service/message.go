@@ -1,0 +1,162 @@
+package service
+
+import (
+	"context"
+	"log"
+	"strconv"
+	"strings"
+	"time"
+	"wechat-robot-client/model"
+	"wechat-robot-client/repository"
+	"wechat-robot-client/vars"
+)
+
+type MessageService struct {
+	ctx context.Context
+}
+
+func NewMessageService(ctx context.Context) *MessageService {
+	return &MessageService{
+		ctx: ctx,
+	}
+}
+
+func (s *MessageService) SyncMessage() {
+	// 获取新消息
+	syncResp, err := vars.RobotRuntime.SyncMessage()
+	if err != nil {
+		// 有可能是用户退出了，或者掉线了，这里不处理，由心跳机制处理机器人在线/离线状态
+		log.Println("获取新消息失败: ", err)
+		return
+	}
+	if len(syncResp.AddMsgs) == 0 {
+		// 没有消息，直接返回
+		return
+	}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("消息入库出错了: %v", err)
+		}
+	}()
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	for _, message := range syncResp.AddMsgs {
+		m := model.Message{
+			MsgId:              message.NewMsgId,
+			ClientMsgId:        message.MsgId,
+			Type:               message.MsgType,
+			Content:            message.Content.String,
+			DisplayFullContent: message.PushContent,
+			MessageSource:      message.MsgSource,
+			FromWxID:           message.FromUserName.String,
+			ToWxID:             message.ToUserName.String,
+			CreatedAt:          time.Now().Unix(),
+			UpdatedAt:          time.Now().Unix(),
+		}
+		self := vars.RobotRuntime.WxID
+		// 处理一下自己发的消息
+		// 自己发发到群聊
+		if m.FromWxID == self && strings.HasSuffix(m.ToWxID, "@chatroom") {
+			from := m.FromWxID
+			to := m.ToWxID
+			m.FromWxID = to
+			m.ToWxID = from
+		}
+		// 群聊消息
+		if strings.HasSuffix(m.FromWxID, "@chatroom") {
+			m.IsGroup = true
+			splitContents := strings.SplitN(m.Content, ":\n", 2)
+			if len(splitContents) > 1 {
+				m.Content = splitContents[1]
+				m.SenderWxID = splitContents[0]
+			} else {
+				// 绝对是自己发的消息! qwq
+				m.Content = splitContents[0]
+				m.SenderWxID = self
+			}
+		} else {
+			m.IsGroup = false
+			m.SenderWxID = m.FromWxID
+			if m.FromWxID == self {
+				m.FromWxID = m.ToWxID
+				m.ToWxID = self
+			}
+		}
+		if m.Type == model.MsgTypeInit || m.Type == model.MsgTypeUnknow {
+			continue
+		}
+		if m.Type == model.MsgTypeRecalled && m.SenderWxID == "weixin" {
+			continue
+		}
+		if m.Type == model.MsgTypeApp {
+			subTypeStr := vars.RobotRuntime.XmlFastDecoder(m.Content, "type")
+			if subTypeStr != "" {
+				subType, err := strconv.Atoi(subTypeStr)
+				if err != nil {
+					continue
+				}
+				m.AppMsgType = model.AppMessageType(subType)
+				if m.AppMsgType == model.AppMsgTypeAttachUploading {
+					continue
+				}
+			}
+		}
+		// 正常撤回的消息
+		if m.Type == model.MsgTypeRecalled {
+			oldMsg := respo.GetByMsgID(m.MsgId)
+			if oldMsg != nil {
+				oldMsg.IsRecalled = true
+				respo.Update(oldMsg)
+				continue
+			}
+		}
+		// 是否艾特我的消息
+		ats := vars.RobotRuntime.XmlFastDecoder(message.MsgSource, "atuserlist")
+		if ats != "" {
+			atMembers := strings.Split(ats, ",")
+			for _, at := range atMembers {
+				if strings.Trim(at, " ") == self {
+					m.IsAtMe = true
+					break
+				}
+			}
+		}
+		respo.Create(&m)
+		// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+		if strings.HasSuffix(m.FromWxID, "@chatroom") {
+			contactRespo := repository.NewContactRepo(s.ctx, vars.DB)
+			isExist := contactRespo.ExistsByWeChatID(m.FromWxID)
+			if !isExist {
+				contactGroup := model.Contact{
+					WechatID:  m.FromWxID,
+					Owner:     vars.RobotRuntime.WxID,
+					Type:      model.ContactTypeGroup,
+					CreatedAt: time.Now().Unix(),
+					UpdatedAt: time.Now().Unix(),
+				}
+				contactRespo.Create(&contactGroup)
+			} else {
+				// 存在，更新一下活跃时间
+				contactGroup := model.Contact{
+					Owner:     vars.RobotRuntime.WxID,
+					UpdatedAt: time.Now().Unix(),
+				}
+				contactRespo.UpdateColumnsByWhere(&contactGroup, map[string]any{
+					"wechat_id": m.FromWxID,
+				})
+			}
+		}
+	}
+}
+
+func (s *MessageService) SyncMessageStart() {
+	ctx := context.Background()
+	vars.RobotRuntime.SyncMessageContext, vars.RobotRuntime.SyncMessageCancel = context.WithCancel(ctx)
+	for {
+		select {
+		case <-vars.RobotRuntime.SyncMessageContext.Done():
+			return
+		case <-time.After(1 * time.Second):
+			s.SyncMessage()
+		}
+	}
+}
