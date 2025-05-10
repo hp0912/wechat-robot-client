@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -129,29 +130,7 @@ func (s *MessageService) SyncMessage() {
 		}
 		respo.Create(&m)
 		// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
-		if strings.HasSuffix(m.FromWxID, "@chatroom") {
-			contactRespo := repository.NewContactRepo(s.ctx, vars.DB)
-			isExist := contactRespo.ExistsByWeChatID(m.FromWxID)
-			if !isExist {
-				contactGroup := model.Contact{
-					WechatID:  m.FromWxID,
-					Owner:     vars.RobotRuntime.WxID,
-					Type:      model.ContactTypeGroup,
-					CreatedAt: time.Now().Unix(),
-					UpdatedAt: time.Now().Unix(),
-				}
-				contactRespo.Create(&contactGroup)
-			} else {
-				// 存在，更新一下活跃时间
-				contactGroup := model.Contact{
-					Owner:     vars.RobotRuntime.WxID,
-					UpdatedAt: time.Now().Unix(),
-				}
-				contactRespo.UpdateColumnsByWhere(&contactGroup, map[string]any{
-					"wechat_id": m.FromWxID,
-				})
-			}
-		}
+		NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 	}
 }
 
@@ -179,4 +158,59 @@ func (s *MessageService) MessageRevoke(req dto.MessageCommonRequest) error {
 		return errors.New("消息已过期")
 	}
 	return vars.RobotRuntime.MessageRevoke(*message)
+}
+
+func (s *MessageService) SendTextMessage(req dto.SendTextMessageRequest) error {
+	// 如果消息内容超过2000字，直接截断
+	if len(req.Content) > 2000 {
+		req.Content = req.Content[:2000]
+	}
+
+	atMsg := ""
+	if len(req.At) > 0 {
+		for _, at := range req.At {
+			contacts, err := vars.RobotRuntime.GetContactDetail([]string{at})
+			if err != nil || len(contacts) == 0 {
+				continue
+			}
+			atMsg += fmt.Sprintf("@%s%s", contacts[0].NickName.String, "\u2005")
+		}
+	}
+
+	newMessages, err := vars.RobotRuntime.SendTextMessage(robot.SendTextMessageRequest{
+		ToWxid:  req.ToWxid,
+		Content: atMsg + req.Content,
+		At:      strings.Join(req.At, ","),
+	})
+	if err != nil {
+		return err
+	}
+
+	// 通过机器人发送的消息，消息同步接口获取不到，所以这里需要手动入库
+	if len(newMessages.List) > 0 {
+		respo := repository.NewMessageRepo(s.ctx, vars.DB)
+		for _, message := range newMessages.List {
+			if message.Ret == 0 {
+				m := model.Message{
+					MsgId:              message.NewMsgId,
+					ClientMsgId:        message.ClientMsgid,
+					Type:               model.MessageType(message.Type),
+					Content:            atMsg + req.Content,
+					DisplayFullContent: "",
+					MessageSource:      "",
+					FromWxID:           req.ToWxid,
+					ToWxID:             vars.RobotRuntime.WxID,
+					SenderWxID:         vars.RobotRuntime.WxID,
+					IsGroup:            strings.HasSuffix(req.ToWxid, "@chatroom"),
+					CreatedAt:          message.Createtime,
+					UpdatedAt:          time.Now().Unix(),
+				}
+				respo.Create(&m)
+				// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+				NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+			}
+		}
+	}
+
+	return nil
 }

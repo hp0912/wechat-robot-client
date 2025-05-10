@@ -175,6 +175,7 @@ func (c *Client) Heartbeat(wxid string) (err error) {
 	return
 }
 
+// SyncMessage 同步消息
 func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err error) {
 	var result ClientResponse[SyncMessage]
 	_, err = c.client.R().
@@ -191,14 +192,28 @@ func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err erro
 	return
 }
 
+// MessageRevoke 撤回消息
 func (c *Client) MessageRevoke(req MessageRevokeRequest) (err error) {
-	var result ClientResponse[any]
+	var result ClientResponse[MessageRevokeResponse]
 	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgRevoke))
 	if err = result.CheckError(err); err != nil {
 		return
 	}
+	return
+}
+
+// SendTextMessage 发送文本消息
+func (c *Client) SendTextMessage(req SendTextMessageRequest) (newMessages SendTextMessageResponse, err error) {
+	var result ClientResponse[SendTextMessageResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendTxt))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	newMessages = result.Data
 	return
 }
 

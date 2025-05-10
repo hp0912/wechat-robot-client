@@ -136,3 +136,38 @@ func (s *ContactService) GetContacts(req dto.ContactListRequest, pager appx.Page
 	respo := repository.NewContactRepo(s.ctx, vars.DB)
 	return respo.GetByOwner(req, pager)
 }
+
+func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
+	contactRespo := repository.NewContactRepo(s.ctx, vars.DB)
+	if strings.HasSuffix(contactID, "@chatroom") {
+		isExist := contactRespo.ExistsByWeChatID(contactID)
+		if !isExist {
+			contactGroup := model.Contact{
+				WechatID:  contactID,
+				Owner:     vars.RobotRuntime.WxID,
+				Type:      model.ContactTypeGroup,
+				CreatedAt: time.Now().Unix(),
+				UpdatedAt: time.Now().Unix(),
+			}
+			contactRespo.Create(&contactGroup)
+		} else {
+			// 存在，更新一下活跃时间
+			contactGroup := model.Contact{
+				Owner:     vars.RobotRuntime.WxID,
+				UpdatedAt: time.Now().Unix(),
+			}
+			contactRespo.UpdateColumnsByWhere(&contactGroup, map[string]any{
+				"wechat_id": contactID,
+			})
+		}
+	} else {
+		// 普通联系人肯定存在，更新一下活跃时间就好了
+		contactGroup := model.Contact{
+			Owner:     vars.RobotRuntime.WxID,
+			UpdatedAt: time.Now().Unix(),
+		}
+		contactRespo.UpdateColumnsByWhere(&contactGroup, map[string]any{
+			"wechat_id": contactID,
+		})
+	}
+}

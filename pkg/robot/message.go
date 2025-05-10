@@ -70,3 +70,34 @@ type MessageRevokeRequest struct {
 	ToUserName  string `json:"ToUserName"`
 	CreateTime  int64  `json:"CreateTime"`
 }
+
+type MessageRevokeResponse struct {
+	BaseResponse
+	IsysWording string `json:"isysWording"`
+}
+
+type SendTextMessageRequest struct {
+	Wxid    string `json:"Wxid"`
+	Type    int    `json:"Type"`
+	ToWxid  string `json:"ToWxid"`
+	Content string `json:"Content"`
+	At      string `json:"At"`
+}
+
+type TextMessageResponse struct {
+	Ret         int           `json:"Ret"`
+	ToUsetName  BuiltinString `json:"ToUsetName"`
+	MsgId       int64         `json:"MsgId"`
+	ClientMsgid int64         `json:"ClientMsgid"`
+	Createtime  int64         `json:"Createtime"`
+	Servertime  int64         `json:"servertime"`
+	Type        int           `json:"Type"`
+	NewMsgId    int64         `json:"NewMsgId"`
+}
+
+type SendTextMessageResponse struct {
+	BaseResponse
+	List   []TextMessageResponse `json:"List"`
+	Count  int                   `json:"Count"`
+	NoKnow int                   `json:"NoKnow"`
+}

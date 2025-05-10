@@ -58,6 +58,7 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/chat/history", chatHistoryCtl.GetChatHistory)
 
 	api.POST("/robot/message/revoke", messageCtl.MessageRevoke)
+	api.POST("/robot/message/send/text", messageCtl.SendTextMessage)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)

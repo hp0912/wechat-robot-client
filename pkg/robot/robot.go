@@ -355,6 +355,12 @@ func (r *Robot) MessageRevoke(message model.Message) error {
 	})
 }
 
+func (r *Robot) SendTextMessage(req SendTextMessageRequest) (SendTextMessageResponse, error) {
+	req.Wxid = r.WxID
+	req.Type = 1
+	return r.Client.SendTextMessage(req)
+}
+
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {
 	return r.Client.CheckLoginUuid(uuid)
 }

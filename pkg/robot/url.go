@@ -15,6 +15,7 @@ const (
 
 	MsgSyncPath = "/Msg/Sync"
 	MsgRevoke   = "/Msg/Revoke"
+	MsgSendTxt  = "/Msg/SendTxt"
 
 	FriendGetContactList         = "/Friend/GetContractList"
 	FriendGetContactDetail       = "/Friend/GetContractDetail"
