@@ -29,6 +29,15 @@ func main() {
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))
 	app := gin.Default()
+
+	// 创建上传目录
+	if err := os.MkdirAll("./uploads/images", 0755); err != nil {
+		log.Fatalf("创建上传目录失败: %v", err)
+	}
+
+	// 配置静态文件服务
+	app.Static("/uploads", "./uploads")
+
 	// 注册路由
 	if err := router.RegisterRouter(app); err != nil {
 		log.Fatalf("注册路由失败: %v", err)

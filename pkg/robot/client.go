@@ -217,6 +217,23 @@ func (c *Client) SendTextMessage(req SendTextMessageRequest) (newMessages SendTe
 	return
 }
 
+// MsgUploadImg 发送图片消息
+func (c *Client) MsgUploadImg(wxid, toWxid, base64 string) (imgbase64 string, err error) {
+	var result ClientResponse[any]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(MsgUploadImgRequest{
+			Wxid:   wxid,
+			ToWxid: toWxid,
+			Base64: base64,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsCdnDownloadImage))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	imgbase64 = ""
+	return
+}
+
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	var result ClientResponse[GetContactListResponse]
 	_, err = c.client.R().

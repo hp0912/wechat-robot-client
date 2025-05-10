@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"mime/multipart"
 	"strconv"
 	"strings"
 	"time"
@@ -166,22 +168,7 @@ func (s *MessageService) SendTextMessage(req dto.SendTextMessageRequest) error {
 		req.Content = req.Content[:2000]
 	}
 
-	atMsg := ""
-	if len(req.At) > 0 {
-		for _, at := range req.At {
-			contacts, err := vars.RobotRuntime.GetContactDetail([]string{at})
-			if err != nil || len(contacts) == 0 {
-				continue
-			}
-			atMsg += fmt.Sprintf("@%s%s", contacts[0].NickName.String, "\u2005")
-		}
-	}
-
-	newMessages, err := vars.RobotRuntime.SendTextMessage(robot.SendTextMessageRequest{
-		ToWxid:  req.ToWxid,
-		Content: atMsg + req.Content,
-		At:      strings.Join(req.At, ","),
-	})
+	newMessages, newMessageContent, err := vars.RobotRuntime.SendTextMessage(req.ToWxid, req.Content, req.At...)
 	if err != nil {
 		return err
 	}
@@ -195,7 +182,7 @@ func (s *MessageService) SendTextMessage(req dto.SendTextMessageRequest) error {
 					MsgId:              message.NewMsgId,
 					ClientMsgId:        message.ClientMsgid,
 					Type:               model.MessageType(message.Type),
-					Content:            atMsg + req.Content,
+					Content:            newMessageContent,
 					DisplayFullContent: "",
 					MessageSource:      "",
 					FromWxID:           req.ToWxid,
@@ -213,4 +200,12 @@ func (s *MessageService) SendTextMessage(req dto.SendTextMessageRequest) error {
 	}
 
 	return nil
+}
+
+func (s *MessageService) MsgUploadImg(toWxID string, image multipart.File) error {
+	imageBytes, err := io.ReadAll(image)
+	if err != nil {
+		return fmt.Errorf("读取文件内容失败: %w", err)
+	}
+	return vars.RobotRuntime.MsgUploadImg(toWxID, imageBytes)
 }

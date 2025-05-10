@@ -355,10 +355,38 @@ func (r *Robot) MessageRevoke(message model.Message) error {
 	})
 }
 
-func (r *Robot) SendTextMessage(req SendTextMessageRequest) (SendTextMessageResponse, error) {
-	req.Wxid = r.WxID
-	req.Type = 1
-	return r.Client.SendTextMessage(req)
+func (r *Robot) SendTextMessage(toWxID, content string, at ...string) (SendTextMessageResponse, string, error) {
+	atMsg := ""
+	if len(at) > 0 {
+		for _, wxid := range at {
+			contacts, err := r.GetContactDetail([]string{wxid})
+			if err != nil || len(contacts) == 0 {
+				continue
+			}
+			atMsg += fmt.Sprintf("@%s%s", contacts[0].NickName.String, "\u2005")
+		}
+	}
+	newMessageContent := atMsg + content
+	newMessages, err := r.Client.SendTextMessage(SendTextMessageRequest{
+		Wxid:    r.WxID,
+		Type:    1,
+		ToWxid:  toWxID,
+		Content: newMessageContent,
+		At:      strings.Join(at, ","),
+	})
+	if err != nil {
+		return SendTextMessageResponse{}, "", err
+	}
+	return newMessages, newMessageContent, nil
+}
+
+func (r *Robot) MsgUploadImg(toWxID string, image []byte) error {
+	base64Str := base64.StdEncoding.EncodeToString(image)
+	_, err := r.Client.MsgUploadImg(r.WxID, toWxID, base64Str)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {

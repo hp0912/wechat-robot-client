@@ -101,3 +101,9 @@ type SendTextMessageResponse struct {
 	Count  int                   `json:"Count"`
 	NoKnow int                   `json:"NoKnow"`
 }
+
+type MsgUploadImgRequest struct {
+	Wxid   string `json:"Wxid"`
+	ToWxid string `json:"ToWxid"`
+	Base64 string `json:"Base64"`
+}
