@@ -69,7 +69,7 @@ func TestDownloadVideo(t *testing.T) {
 </msg>
 `,
 	}
-	_, filename, err := robot.DownloadVideo(message)
+	_, filename, err := robot.DownloadVideo(context.Background(), message)
 	if err != nil {
 		t.Errorf("下载视频失败: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestDownloadFile(t *testing.T) {
 </msg>
 `,
 	}
-	_, filename, err := robot.DownloadFile(message)
+	_, filename, err := robot.DownloadFile(context.Background(), message)
 	if err != nil {
 		t.Errorf("下载语音失败: %v", err)
 	}

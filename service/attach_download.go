@@ -53,7 +53,7 @@ func (a *AttachDownloadService) DownloadFile(req dto.AttachDownloadRequest) (io.
 	if message.Type != model.MsgTypeApp || message.AppMsgType != model.AppMsgTypeAttach {
 		return nil, "", errors.New("消息类型错误")
 	}
-	return vars.RobotRuntime.DownloadFile(*message)
+	return vars.RobotRuntime.DownloadFile(a.ctx, *message)
 }
 
 func (a *AttachDownloadService) DownloadVideo(req dto.AttachDownloadRequest) (io.ReadCloser, string, error) {
@@ -65,5 +65,5 @@ func (a *AttachDownloadService) DownloadVideo(req dto.AttachDownloadRequest) (io
 	if message.Type != model.MsgTypeVideo {
 		return nil, "", errors.New("消息类型错误")
 	}
-	return vars.RobotRuntime.DownloadVideo(*message)
+	return vars.RobotRuntime.DownloadVideo(a.ctx, *message)
 }

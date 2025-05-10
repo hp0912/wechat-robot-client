@@ -170,7 +170,7 @@ func (r *Robot) DownloadImage(message model.Message) ([]byte, string, string, er
 	return r.ProcessBase64Image(base64Data)
 }
 
-func (r *Robot) DownloadVideo(message model.Message) (io.ReadCloser, string, error) {
+func (r *Robot) DownloadVideo(ctx context.Context, message model.Message) (io.ReadCloser, string, error) {
 	// 解析消息中的文件信息
 	var videoXml VideoMessageXml
 	if err := r.XmlDecoder(message.Content, &videoXml); err != nil {
@@ -189,6 +189,15 @@ func (r *Robot) DownloadVideo(message model.Message) (io.ReadCloser, string, err
 		defer pw.Close()
 
 		for startPos := int64(0); startPos < totalLen; startPos += chunkSize {
+			// 检查上下文是否已取消
+			select {
+			case <-ctx.Done():
+				_ = pw.CloseWithError(ctx.Err())
+				return
+			default:
+				// 继续执行
+			}
+
 			currentChunkSize := chunkSize
 			if startPos+currentChunkSize > totalLen {
 				currentChunkSize = totalLen - startPos
@@ -237,6 +246,12 @@ func (r *Robot) DownloadVoice(ctx context.Context, message model.Message) ([]byt
 	if err != nil {
 		return nil, "", "", err
 	}
+
+	// 检查上下文是否已取消
+	if ctx.Err() != nil {
+		return nil, "", "", ctx.Err()
+	}
+
 	var base64Data string
 	base64Data, err = r.Client.DownloadVoice(DownloadVoiceRequest{
 		Wxid:         r.WxID,
@@ -263,6 +278,11 @@ func (r *Robot) DownloadVoice(ctx context.Context, message model.Message) ([]byt
 	}
 	inFile.Close()
 
+	// 检查上下文是否已取消
+	if ctx.Err() != nil {
+		return nil, "", "", ctx.Err()
+	}
+
 	cmd := exec.CommandContext(ctx, "silk-convert", inFile.Name(), "wav")
 	if err = cmd.Run(); err != nil {
 		return nil, "", "", fmt.Errorf("silk-convert执行转换错误: %w", err)
@@ -276,7 +296,7 @@ func (r *Robot) DownloadVoice(ctx context.Context, message model.Message) ([]byt
 	return wavData, "audio/wav", ".wav", nil
 }
 
-func (r *Robot) DownloadFile(message model.Message) (io.ReadCloser, string, error) {
+func (r *Robot) DownloadFile(ctx context.Context, message model.Message) (io.ReadCloser, string, error) {
 	// 解析消息中的文件信息
 	var fileXml FileMessageXml
 	if err := r.XmlDecoder(message.Content, &fileXml); err != nil {
@@ -295,6 +315,15 @@ func (r *Robot) DownloadFile(message model.Message) (io.ReadCloser, string, erro
 		defer pw.Close()
 
 		for startPos := int64(0); startPos < totalLen; startPos += chunkSize {
+			// 检查上下文是否已取消
+			select {
+			case <-ctx.Done():
+				_ = pw.CloseWithError(ctx.Err())
+				return
+			default:
+				// 继续执行
+			}
+
 			currentChunkSize := chunkSize
 			if startPos+currentChunkSize > totalLen {
 				currentChunkSize = totalLen - startPos
