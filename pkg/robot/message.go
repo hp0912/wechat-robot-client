@@ -107,3 +107,17 @@ type MsgUploadImgRequest struct {
 	ToWxid string `json:"ToWxid"`
 	Base64 string `json:"Base64"`
 }
+
+type MsgUploadImgResponse struct {
+	BaseResponse
+	Msgid        int64         `json:"Msgid"`
+	ClientImgId  BuiltinString `json:"ClientImgId"`
+	FromUserName BuiltinString `json:"FromUserName"`
+	ToUserName   BuiltinString `json:"ToUserName"`
+	TotalLen     int64         `json:"TotalLen"`
+	StartPos     int64         `json:"StartPos"`
+	DataLen      int64         `json:"DataLen"`
+	CreateTime   int64         `json:"CreateTime"`
+	Newmsgid     int64         `json:"Newmsgid"`
+	MsgSource    string        `json:"MsgSource"`
+}

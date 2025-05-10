@@ -380,13 +380,13 @@ func (r *Robot) SendTextMessage(toWxID, content string, at ...string) (SendTextM
 	return newMessages, newMessageContent, nil
 }
 
-func (r *Robot) MsgUploadImg(toWxID string, image []byte) error {
+func (r *Robot) MsgUploadImg(toWxID string, image []byte) (MsgUploadImgResponse, error) {
 	base64Str := base64.StdEncoding.EncodeToString(image)
-	_, err := r.Client.MsgUploadImg(r.WxID, toWxID, base64Str)
+	imageMessage, err := r.Client.MsgUploadImg(r.WxID, toWxID, base64Str)
 	if err != nil {
-		return err
+		return MsgUploadImgResponse{}, err
 	}
-	return nil
+	return imageMessage, nil
 }
 
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {
