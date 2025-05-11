@@ -523,12 +523,9 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 	var base64Str string
 
 	voiceTypeMap := map[string]int{
-		".amr":   0,
-		".speex": 1,
-		".mp3":   2,
-		".wav":   3,
-		".wave":  3,
-		".silk":  4,
+		".amr": 0,
+		".mp3": 4,
+		".wav": 4,
 	}
 
 	tempVoice, err := os.CreateTemp("", "voice_*"+voiceExt)

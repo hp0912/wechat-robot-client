@@ -156,12 +156,9 @@ func (m *Message) SendVoiceMessage(c *gin.Context) {
 	// 检查文件类型
 	ext := filepath.Ext(fileHeader.Filename)
 	allowedExts := map[string]bool{
-		".amr":   true,
-		".mp3":   true,
-		".silk":  true,
-		".speex": true,
-		".wav":   true,
-		".wave":  true,
+		".amr": true,
+		".mp3": true,
+		".wav": true,
 	}
 	if !allowedExts[ext] {
 		resp.ToErrorResponse(errors.New("不支持的音频格式"))
