@@ -239,15 +239,16 @@ func (s *MessageService) MsgSendVideo(toWxID string, video multipart.File, video
 	if err != nil {
 		return fmt.Errorf("读取文件内容失败: %w", err)
 	}
-	message, err := vars.RobotRuntime.MsgSendVideo(toWxID, videoBytes, videoExt)
+	_, err = vars.RobotRuntime.MsgSendVideo(toWxID, videoBytes, videoExt)
 	if err != nil {
 		return err
 	}
 
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	msgid := time.Now().UnixNano()
 	m := model.Message{
-		MsgId:              int64(time.Now().Nanosecond()),
-		ClientMsgId:        message.Msgid,
+		MsgId:              msgid,
+		ClientMsgId:        msgid,
 		Type:               model.MsgTypeVideo,
 		Content:            "", // 获取不到视频的 xml 内容
 		DisplayFullContent: "",
