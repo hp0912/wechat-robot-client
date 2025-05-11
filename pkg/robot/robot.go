@@ -479,7 +479,7 @@ func (r *Robot) MsgSendVideo(toWxID string, video []byte, videoExt string) (vide
 		err = fmt.Errorf("解析视频时长失败: %w", err)
 		return
 	}
-	playLength := int64(duration * 1000)
+	playLength := int64(duration)
 
 	cmd = exec.Command("ffmpeg", "-i", videoPath, "-ss", "00:00:01", "-vframes", "1", thumbFile.Name(), "-y")
 	if err = cmd.Run(); err != nil {
@@ -543,7 +543,6 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 		".wav": 4,
 	}
 
-	// Create temporary input file
 	inFile, err := os.CreateTemp("", "voice_input_*"+voiceExt)
 	if err != nil {
 		err = fmt.Errorf("创建临时输入文件失败: %w", err)
@@ -557,7 +556,6 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 	}
 	inFile.Close()
 
-	// Create temporary output file
 	outFile, err := os.CreateTemp("", "voice_output_*"+voiceExt)
 	if err != nil {
 		err = fmt.Errorf("创建临时输出文件失败: %w", err)
@@ -566,7 +564,6 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 	defer os.Remove(outFile.Name())
 	outFile.Close()
 
-	// Get audio duration
 	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", inFile.Name())
 	output, err := cmd.Output()
 	if err != nil {
@@ -580,19 +577,15 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 		return
 	}
 
-	// Set voice time in milliseconds
 	voiceTime := int(duration * 1000)
 
-	// If duration > 59 seconds, truncate it
 	truncateOption := []string{}
 	if duration > 59 {
 		truncateOption = append(truncateOption, "-t", "59")
 		voiceTime = 59000
 	}
 
-	// For mp3 and wav, convert to mono and resample
 	if strings.ToLower(voiceExt) == ".mp3" || strings.ToLower(voiceExt) == ".wav" {
-		// Get current sample rate
 		cmd = exec.Command("ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=sample_rate", "-of", "default=noprint_wrappers=1:nokey=1", inFile.Name())
 		output, err = cmd.Output()
 		if err != nil {
@@ -609,11 +602,10 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 
 		targetRate := r.GetClosestSampleRate(sampleRate)
 
-		// Convert to mono and resample
 		args := []string{
 			"-i", inFile.Name(),
-			"-ac", "1", // Convert to mono
-			"-ar", strconv.Itoa(targetRate), // Resample
+			"-ac", "1",
+			"-ar", strconv.Itoa(targetRate),
 		}
 		args = append(args, truncateOption...)
 		args = append(args, outFile.Name(), "-y")
@@ -624,7 +616,6 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 			return
 		}
 	} else if len(truncateOption) > 0 {
-		// Only truncate AMR files if needed
 		args := []string{
 			"-i", inFile.Name(),
 		}
@@ -637,14 +628,12 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 			return
 		}
 	} else {
-		// No processing needed, use original file
 		if _, err = os.Stat(inFile.Name()); err != nil {
 			err = fmt.Errorf("临时音频文件不存在: %w", err)
 			return
 		}
 	}
 
-	// Read processed audio file
 	var processedVoice []byte
 	if len(truncateOption) > 0 || (strings.ToLower(voiceExt) == ".mp3" || strings.ToLower(voiceExt) == ".wav") {
 		processedVoice, err = os.ReadFile(outFile.Name())
@@ -656,10 +645,7 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 		processedVoice = voice
 	}
 
-	// Convert to base64
 	base64Str := base64.StdEncoding.EncodeToString(processedVoice)
-
-	// Send voice message
 	voiceMessage, err = r.Client.MsgSendVoice(MsgSendVoiceRequest{
 		Wxid:      r.WxID,
 		ToWxid:    toWxID,
