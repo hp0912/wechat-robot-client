@@ -585,6 +585,7 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 		voiceTime = 59000
 	}
 
+	var targetRate int
 	if strings.ToLower(voiceExt) == ".mp3" || strings.ToLower(voiceExt) == ".wav" {
 		cmd = exec.Command("ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=sample_rate", "-of", "default=noprint_wrappers=1:nokey=1", inFile.Name())
 		output, err = cmd.Output()
@@ -600,7 +601,7 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 			return
 		}
 
-		targetRate := r.GetClosestSampleRate(sampleRate)
+		targetRate = r.GetClosestSampleRate(sampleRate)
 
 		args := []string{
 			"-i", inFile.Name(),
@@ -636,13 +637,59 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 
 	var processedVoice []byte
 	if len(truncateOption) > 0 || (strings.ToLower(voiceExt) == ".mp3" || strings.ToLower(voiceExt) == ".wav") {
-		processedVoice, err = os.ReadFile(outFile.Name())
+		// 需要转换成 silk 格式
+		var pcmFile *os.File
+		pcmFile, err = os.CreateTemp("", "voice_pcm_*.pcm")
 		if err != nil {
-			err = fmt.Errorf("读取处理后的音频文件失败: %w", err)
+			err = fmt.Errorf("创建临时pcm文件失败: %w", err)
 			return
 		}
+		defer os.Remove(pcmFile.Name())
+		pcmFile.Close()
+
+		cmd := exec.Command("ffmpeg",
+			"-i", outFile.Name(),
+			"-f", "s16le",
+			"-ar", strconv.Itoa(targetRate),
+			"-ac", "1",
+			"-acodec", "pcm_s16le",
+			pcmFile.Name(),
+			"-y",
+		)
+		if err = cmd.Run(); err != nil {
+			err = fmt.Errorf("转pcm文件失败: %w", err)
+			return
+		}
+
+		var silkFile *os.File
+		silkFile, err = os.CreateTemp("", "voice_silk_*.silk")
+		if err != nil {
+			err = fmt.Errorf("创建临时pcm文件失败: %w", err)
+			return
+		}
+		defer os.Remove(silkFile.Name())
+		silkFile.Close()
+
+		cmd = exec.Command("silk-decoder", pcmFile.Name(), silkFile.Name(), "-tencent")
+		if err = cmd.Run(); err != nil {
+			err = fmt.Errorf("decoder转换pcm文件到silk文件错误: %w", err)
+			return
+		}
+		var silkData []byte
+		silkData, err = os.ReadFile(silkFile.Name())
+		if err != nil {
+			err = fmt.Errorf("读取silk文件错误: %w", err)
+			return
+		}
+		processedVoice = silkData
 	} else {
 		processedVoice = voice
+	}
+
+	if voiceExt == ".mp3" {
+		// 临时阻断，不让它跑后面的逻辑
+		err = fmt.Errorf("mp3格式不支持发送")
+		return
 	}
 
 	base64Str := base64.StdEncoding.EncodeToString(processedVoice)
