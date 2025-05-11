@@ -90,3 +90,49 @@ func (m *Message) SendImageMessage(c *gin.Context) {
 	}
 	resp.ToResponse(nil)
 }
+
+func (m *Message) SendVideoMessage(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	// 获取表单文件
+	file, fileHeader, err := c.Request.FormFile("video")
+	if err != nil {
+		resp.ToErrorResponse(errors.New("获取上传文件失败"))
+		return
+	}
+	defer file.Close()
+
+	// 检查文件大小
+	if fileHeader.Size > 50*1024*1024 { // 限制为50MB
+		resp.ToErrorResponse(errors.New("文件大小不能超过50MB"))
+		return
+	}
+
+	// 检查文件类型
+	ext := filepath.Ext(fileHeader.Filename)
+	allowedExts := map[string]bool{
+		".mp4":  true,
+		".avi":  true,
+		".mov":  true,
+		".mkv":  true,
+		".flv":  true,
+		".webm": true,
+	}
+	if !allowedExts[ext] {
+		resp.ToErrorResponse(errors.New("不支持的视频格式"))
+		return
+	}
+
+	// 解析表单参数
+	var req dto.SendMessageCommonRequest
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+
+	err = service.NewMessageService(c).MsgSendVideo(req.ToWxid, file, fileHeader)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}

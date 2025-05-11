@@ -234,6 +234,19 @@ func (c *Client) MsgUploadImg(wxid, toWxid, base64 string) (imageMessage MsgUplo
 	return
 }
 
+// MsgSendVideo 发送视频消息
+func (c *Client) MsgSendVideo(req MsgSendVideoRequest) (videoMessage any, err error) {
+	var result ClientResponse[any]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendVideo))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	videoMessage = ""
+	return
+}
+
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	var result ClientResponse[GetContactListResponse]
 	_, err = c.client.R().

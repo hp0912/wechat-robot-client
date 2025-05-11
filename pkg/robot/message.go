@@ -121,3 +121,11 @@ type MsgUploadImgResponse struct {
 	Newmsgid     int64         `json:"Newmsgid"`
 	MsgSource    string        `json:"MsgSource"`
 }
+
+type MsgSendVideoRequest struct {
+	Wxid        string `json:"Wxid"`
+	ToWxid      string `json:"ToWxid"`
+	Base64      string `json:"Base64"`
+	ImageBase64 string `json:"ImageBase64"`
+	PlayLength  int64  `json:"PlayLength"`
+}

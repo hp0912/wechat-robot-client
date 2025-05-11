@@ -418,6 +418,21 @@ func (r *Robot) MsgUploadImg(toWxID string, image []byte) (MsgUploadImgResponse,
 	return imageMessage, nil
 }
 
+func (r *Robot) MsgSendVideo(toWxID string, video []byte, videoExt string) (any, error) {
+	base64Str := base64.StdEncoding.EncodeToString(video)
+	videoMessage, err := r.Client.MsgSendVideo(MsgSendVideoRequest{
+		Wxid:        r.WxID,
+		ToWxid:      toWxID,
+		Base64:      base64Str,
+		ImageBase64: "",
+		PlayLength:  0,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return videoMessage, nil
+}
+
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {
 	return r.Client.CheckLoginUuid(uuid)
 }
