@@ -278,9 +278,10 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice multipart.File, voice
 	}
 
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	clientMsgId, _ := strconv.ParseInt(message.ClientMsgId, 10, 64)
 	m := model.Message{
 		MsgId:              message.NewMsgId,
-		ClientMsgId:        message.ClientMsgId,
+		ClientMsgId:        clientMsgId,
 		Type:               model.MsgTypeVoice,
 		Content:            "", // 获取不到音频的 xml 内容
 		DisplayFullContent: "",
@@ -289,7 +290,7 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice multipart.File, voice
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
 		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
-		CreatedAt:          time.Now().Unix(),
+		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
 	respo.Create(&m)

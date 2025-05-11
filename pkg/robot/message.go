@@ -152,7 +152,7 @@ type MsgSendVoiceResponse struct {
 	BaseResponse
 	NewMsgId     int64  `json:"NewMsgId"`
 	MsgId        int64  `json:"MsgId"`
-	ClientMsgId  int64  `json:"ClientMsgId"`
+	ClientMsgId  string `json:"ClientMsgId"`
 	FromUserName string `json:"FromUserName"`
 	ToUserName   string `json:"ToUserName"`
 	Offset       int    `json:"Offset"`
