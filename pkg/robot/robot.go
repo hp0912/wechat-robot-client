@@ -661,35 +661,25 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 			return
 		}
 
-		var silkFile *os.File
-		silkFile, err = os.CreateTemp("", "voice_silk_*.silk")
-		if err != nil {
-			err = fmt.Errorf("创建临时pcm文件失败: %w", err)
-			return
-		}
-		defer os.Remove(silkFile.Name())
-		silkFile.Close()
+		silkFilename := strings.Replace(pcmFile.Name(), ".pcm", ".silk", 1)
+		defer os.Remove(silkFilename)
 
-		cmd = exec.Command("silk-decoder", pcmFile.Name(), silkFile.Name(), "-tencent")
+		cmd = exec.Command("silk-encoder", pcmFile.Name(), silkFilename, "-tencent")
 		if err = cmd.Run(); err != nil {
 			err = fmt.Errorf("decoder转换pcm文件到silk文件错误: %w", err)
 			return
 		}
+
 		var silkData []byte
-		silkData, err = os.ReadFile(silkFile.Name())
+		silkData, err = os.ReadFile(silkFilename)
 		if err != nil {
 			err = fmt.Errorf("读取silk文件错误: %w", err)
 			return
 		}
+
 		processedVoice = silkData
 	} else {
 		processedVoice = voice
-	}
-
-	if voiceExt == ".mp3" {
-		// 临时阻断，不让它跑后面的逻辑
-		err = fmt.Errorf("mp3格式不支持发送")
-		return
 	}
 
 	base64Str := base64.StdEncoding.EncodeToString(processedVoice)
