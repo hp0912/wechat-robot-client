@@ -451,9 +451,16 @@ func (r *Robot) MsgSendVideo(toWxID string, video []byte, videoExt string) (vide
 
 	videoPath := inFile.Name()
 	if strings.ToLower(videoExt) != ".mp4" {
-		cmd := exec.Command("ffmpeg", "-i", inFile.Name(), "-c:v", "libx264", "-c:a", "aac", "-strict", "experimental", outFile.Name())
+		// avi mov mkv flv webm 格式转换成mp4
+		cmd := exec.Command("ffmpeg",
+			"-i", videoPath,
+			"-c:v", "libx264",
+			"-c:a", "aac",
+			outFile.Name(),
+			"-y",
+		)
 		if err = cmd.Run(); err != nil {
-			err = fmt.Errorf("转换视频为MP4失败: %w", err)
+			err = fmt.Errorf("视频格式转换失败: %w", err)
 			return
 		}
 		videoPath = outFile.Name()
