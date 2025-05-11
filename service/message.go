@@ -234,29 +234,29 @@ func (s *MessageService) MsgUploadImg(toWxID string, image multipart.File) error
 	return nil
 }
 
-func (s *MessageService) MsgSendVideo(toWxID string, video multipart.File, fileHeader *multipart.FileHeader) error {
+func (s *MessageService) MsgSendVideo(toWxID string, video multipart.File, videoExt string) error {
 	videoBytes, err := io.ReadAll(video)
 	if err != nil {
 		return fmt.Errorf("读取文件内容失败: %w", err)
 	}
-	message, err := vars.RobotRuntime.MsgUploadImg(toWxID, videoBytes)
+	message, err := vars.RobotRuntime.MsgSendVideo(toWxID, videoBytes, videoExt)
 	if err != nil {
 		return err
 	}
 
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	m := model.Message{
-		MsgId:              message.Newmsgid,
+		MsgId:              int64(time.Now().Nanosecond()),
 		ClientMsgId:        message.Msgid,
 		Type:               model.MsgTypeVideo,
-		Content:            "", // 获取不到图片的 xml 内容
+		Content:            "", // 获取不到视频的 xml 内容
 		DisplayFullContent: "",
-		MessageSource:      message.MsgSource,
+		MessageSource:      "",
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
 		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
-		CreatedAt:          message.CreateTime,
+		CreatedAt:          time.Now().Unix(),
 		UpdatedAt:          time.Now().Unix(),
 	}
 	respo.Create(&m)

@@ -129,7 +129,7 @@ func (m *Message) SendVideoMessage(c *gin.Context) {
 		return
 	}
 
-	err = service.NewMessageService(c).MsgSendVideo(req.ToWxid, file, fileHeader)
+	err = service.NewMessageService(c).MsgSendVideo(req.ToWxid, file, ext)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

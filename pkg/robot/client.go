@@ -235,15 +235,17 @@ func (c *Client) MsgUploadImg(wxid, toWxid, base64 string) (imageMessage MsgUplo
 }
 
 // MsgSendVideo 发送视频消息
-func (c *Client) MsgSendVideo(req MsgSendVideoRequest) (videoMessage any, err error) {
-	var result ClientResponse[any]
+func (c *Client) MsgSendVideo(req MsgSendVideoRequest) (videoMessage MsgSendVideoResponse, err error) {
+	var result ClientResponse[MsgSendVideoResponse]
+	req.Base64 = "data:video/mp4;base64," + req.Base64
+	req.ImageBase64 = "data:image/jpeg;base64," + req.ImageBase64
 	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendVideo))
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	videoMessage = ""
+	videoMessage = result.Data
 	return
 }
 

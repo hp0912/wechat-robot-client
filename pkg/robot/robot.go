@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"wechat-robot-client/model"
 )
@@ -418,19 +419,97 @@ func (r *Robot) MsgUploadImg(toWxID string, image []byte) (MsgUploadImgResponse,
 	return imageMessage, nil
 }
 
-func (r *Robot) MsgSendVideo(toWxID string, video []byte, videoExt string) (any, error) {
-	base64Str := base64.StdEncoding.EncodeToString(video)
-	videoMessage, err := r.Client.MsgSendVideo(MsgSendVideoRequest{
+func (r *Robot) MsgSendVideo(toWxID string, video []byte, videoExt string) (videoMessage MsgSendVideoResponse, err error) {
+	inFile, err := os.CreateTemp("", "video_input_*"+videoExt)
+	if err != nil {
+		err = fmt.Errorf("创建临时输入文件失败: %w", err)
+		return
+	}
+	defer os.Remove(inFile.Name())
+
+	if _, err = inFile.Write(video); err != nil {
+		err = fmt.Errorf("写入临时输入文件失败: %w", err)
+		return
+	}
+	inFile.Close()
+
+	outFile, err := os.CreateTemp("", "video_output_*.mp4")
+	if err != nil {
+		err = fmt.Errorf("创建临时输出文件失败: %w", err)
+		return
+	}
+	defer os.Remove(outFile.Name())
+	outFile.Close()
+
+	thumbFile, err := os.CreateTemp("", "video_thumb_*.jpg")
+	if err != nil {
+		err = fmt.Errorf("创建临时缩略图文件失败: %w", err)
+		return
+	}
+	defer os.Remove(thumbFile.Name())
+	thumbFile.Close()
+
+	videoPath := inFile.Name()
+	if strings.ToLower(videoExt) != ".mp4" {
+		cmd := exec.Command("ffmpeg", "-i", inFile.Name(), "-c:v", "libx264", "-c:a", "aac", "-strict", "experimental", outFile.Name())
+		if err = cmd.Run(); err != nil {
+			err = fmt.Errorf("转换视频为MP4失败: %w", err)
+			return
+		}
+		videoPath = outFile.Name()
+	}
+
+	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", videoPath)
+	output, err := cmd.Output()
+	if err != nil {
+		err = fmt.Errorf("获取视频时长失败: %w", err)
+		return
+	}
+
+	duration, err := strconv.ParseFloat(strings.TrimSpace(string(output)), 64)
+	if err != nil {
+		err = fmt.Errorf("解析视频时长失败: %w", err)
+		return
+	}
+	playLength := int64(duration * 1000)
+
+	cmd = exec.Command("ffmpeg", "-i", videoPath, "-ss", "00:00:01", "-vframes", "1", thumbFile.Name(), "-y")
+	if err = cmd.Run(); err != nil {
+		err = fmt.Errorf("提取缩略图失败: %w", err)
+		return
+	}
+
+	videoData, err := os.ReadFile(videoPath)
+	if err != nil {
+		err = fmt.Errorf("读取视频文件失败: %w", err)
+		return
+	}
+
+	thumbData, err := os.ReadFile(thumbFile.Name())
+	if err != nil {
+		err = fmt.Errorf("读取缩略图文件失败: %w", err)
+		return
+	}
+	if len(thumbData) == 0 {
+		err = fmt.Errorf("缩略图文件为空")
+		return
+	}
+
+	videoBase64 := base64.StdEncoding.EncodeToString(videoData)
+	thumbBase64 := base64.StdEncoding.EncodeToString(thumbData)
+
+	videoMessage, err = r.Client.MsgSendVideo(MsgSendVideoRequest{
 		Wxid:        r.WxID,
 		ToWxid:      toWxID,
-		Base64:      base64Str,
-		ImageBase64: "",
-		PlayLength:  0,
+		Base64:      videoBase64,
+		ImageBase64: thumbBase64,
+		PlayLength:  playLength,
 	})
 	if err != nil {
-		return nil, err
+		return
 	}
-	return videoMessage, nil
+
+	return
 }
 
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {

@@ -129,3 +129,13 @@ type MsgSendVideoRequest struct {
 	ImageBase64 string `json:"ImageBase64"`
 	PlayLength  int64  `json:"PlayLength"`
 }
+
+type MsgSendVideoResponse struct {
+	BaseResponse
+	Msgid         int64  `json:"msgId"`
+	ClientMsgId   string `json:"clientMsgId"`
+	ThumbStartPos int64  `json:"thumbStartPos"`
+	VideoStartPos int64  `json:"videoStartPos"`
+	NewMsgId      int64  `json:"newMsgId"`
+	ActionFlag    int    `json:"actionFlag"`
+}
