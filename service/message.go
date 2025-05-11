@@ -266,3 +266,36 @@ func (s *MessageService) MsgSendVideo(toWxID string, video multipart.File, video
 
 	return nil
 }
+
+func (s *MessageService) MsgSendVoice(toWxID string, voice multipart.File, voiceExt string) error {
+	videoBytes, err := io.ReadAll(voice)
+	if err != nil {
+		return fmt.Errorf("读取文件内容失败: %w", err)
+	}
+	_, err = vars.RobotRuntime.MsgSendVoice(toWxID, videoBytes, voiceExt)
+	if err != nil {
+		return err
+	}
+
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	msgid := time.Now().UnixNano()
+	m := model.Message{
+		MsgId:              msgid,
+		ClientMsgId:        msgid,
+		Type:               model.MsgTypeVideo,
+		Content:            "", // 获取不到音频的 xml 内容
+		DisplayFullContent: "",
+		MessageSource:      "",
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          time.Now().Unix(),
+		UpdatedAt:          time.Now().Unix(),
+	}
+	respo.Create(&m)
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}

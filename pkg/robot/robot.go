@@ -519,6 +519,30 @@ func (r *Robot) MsgSendVideo(toWxID string, video []byte, videoExt string) (vide
 	return
 }
 
+func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (any, error) {
+	voiceTypeMap := map[string]int{
+		".amr":   0,
+		".speex": 1,
+		".mp3":   2,
+		".wav":   3,
+		".wave":  3,
+		".silk":  4,
+	}
+	voiceBase64 := base64.StdEncoding.EncodeToString(voice)
+	_, err := r.Client.MsgSendVoice(MsgSendVoiceRequest{
+		Wxid:      r.WxID,
+		ToWxid:    toWxID,
+		Base64:    voiceBase64,
+		Type:      voiceTypeMap[voiceExt],
+		VoiceTime: 0,
+	})
+	if err != nil {
+		return nil, nil
+	}
+
+	return nil, nil
+}
+
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {
 	return r.Client.CheckLoginUuid(uuid)
 }

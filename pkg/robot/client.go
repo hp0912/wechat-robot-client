@@ -249,6 +249,19 @@ func (c *Client) MsgSendVideo(req MsgSendVideoRequest) (videoMessage MsgSendVide
 	return
 }
 
+// MsgSendVoice 发送音频消息
+func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage any, err error) {
+	var result ClientResponse[any]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendVoice))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	voiceMessage = result.Data
+	return
+}
+
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	var result ClientResponse[GetContactListResponse]
 	_, err = c.client.R().

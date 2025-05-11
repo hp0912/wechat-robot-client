@@ -18,6 +18,7 @@ const (
 	MsgSendTxt   = "/Msg/SendTxt"
 	MsgUploadImg = "/Msg/UploadImg"
 	MsgSendVideo = "/Msg/SendVideo"
+	MsgSendVoice = "/Msg/SendVoice"
 
 	FriendGetContactList         = "/Friend/GetContractList"
 	FriendGetContactDetail       = "/Friend/GetContractDetail"

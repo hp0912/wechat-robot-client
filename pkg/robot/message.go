@@ -139,3 +139,11 @@ type MsgSendVideoResponse struct {
 	NewMsgId      int64  `json:"newMsgId"`
 	ActionFlag    int    `json:"actionFlag"`
 }
+
+type MsgSendVoiceRequest struct {
+	Wxid      string `json:"Wxid"`
+	ToWxid    string `json:"ToWxid"`
+	Type      int    `json:"Type"`
+	Base64    string `json:"Base64"`
+	VoiceTime int    `json:"VoiceTime"`
+}
