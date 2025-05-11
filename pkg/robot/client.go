@@ -250,8 +250,8 @@ func (c *Client) MsgSendVideo(req MsgSendVideoRequest) (videoMessage MsgSendVide
 }
 
 // MsgSendVoice 发送音频消息
-func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage any, err error) {
-	var result ClientResponse[any]
+func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage MsgSendVoiceResponse, err error) {
+	var result ClientResponse[MsgSendVoiceResponse]
 	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendVoice))

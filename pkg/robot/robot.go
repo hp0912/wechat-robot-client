@@ -519,7 +519,9 @@ func (r *Robot) MsgSendVideo(toWxID string, video []byte, videoExt string) (vide
 	return
 }
 
-func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (any, error) {
+func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voiceMessage MsgSendVoiceResponse, err error) {
+	var base64Str string
+
 	voiceTypeMap := map[string]int{
 		".amr":   0,
 		".speex": 1,
@@ -528,19 +530,69 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (any,
 		".wave":  3,
 		".silk":  4,
 	}
-	voiceBase64 := base64.StdEncoding.EncodeToString(voice)
-	_, err := r.Client.MsgSendVoice(MsgSendVoiceRequest{
-		Wxid:      r.WxID,
-		ToWxid:    toWxID,
-		Base64:    voiceBase64,
-		Type:      voiceTypeMap[voiceExt],
-		VoiceTime: 0,
-	})
+
+	tempVoice, err := os.CreateTemp("", "voice_*"+voiceExt)
 	if err != nil {
-		return nil, nil
+		err = fmt.Errorf("创建临时语音文件失败: %w", err)
+		return
+	}
+	defer os.Remove(tempVoice.Name())
+
+	if _, err = tempVoice.Write(voice); err != nil {
+		err = fmt.Errorf("写入临时语音文件失败: %w", err)
+		return
+	}
+	tempVoice.Close()
+
+	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", tempVoice.Name())
+	output, err := cmd.Output()
+	if err != nil {
+		err = fmt.Errorf("获取语音时长失败: %w", err)
+		return
 	}
 
-	return nil, nil
+	duration, err := strconv.ParseFloat(strings.TrimSpace(string(output)), 64)
+	if err != nil {
+		err = fmt.Errorf("解析语音时长失败: %w", err)
+		return
+	}
+
+	if duration > 59 {
+		cmd = exec.Command("ffmpeg",
+			"-i", tempVoice.Name(),
+			"-t", "59",
+			"-c:a", "copy",
+			"-y", tempVoice.Name()+".tmp")
+		if err = cmd.Run(); err != nil {
+			err = fmt.Errorf("截断语音文件失败: %w", err)
+			return
+		}
+		if err = os.Rename(tempVoice.Name()+".tmp", tempVoice.Name()); err != nil {
+			err = fmt.Errorf("替换截断后的语音文件失败: %w", err)
+			return
+		}
+		duration = 59
+		voice, err = os.ReadFile(tempVoice.Name())
+		if err != nil {
+			err = fmt.Errorf("读取截断后的语音文件失败: %w", err)
+			return
+		}
+	}
+
+	base64Str = base64.StdEncoding.EncodeToString(voice)
+	voiceMessage, err = r.Client.MsgSendVoice(MsgSendVoiceRequest{
+		Wxid:      r.WxID,
+		ToWxid:    toWxID,
+		Base64:    base64Str,
+		Type:      voiceTypeMap[voiceExt],
+		VoiceTime: int(duration * 1000),
+	})
+	if err != nil {
+		err = fmt.Errorf("发送语音消息失败: %w", err)
+		return
+	}
+
+	return
 }
 
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {

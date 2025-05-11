@@ -272,17 +272,16 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice multipart.File, voice
 	if err != nil {
 		return fmt.Errorf("读取文件内容失败: %w", err)
 	}
-	_, err = vars.RobotRuntime.MsgSendVoice(toWxID, videoBytes, voiceExt)
+	message, err := vars.RobotRuntime.MsgSendVoice(toWxID, videoBytes, voiceExt)
 	if err != nil {
 		return err
 	}
 
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	msgid := time.Now().UnixNano()
 	m := model.Message{
-		MsgId:              msgid,
-		ClientMsgId:        msgid,
-		Type:               model.MsgTypeVideo,
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.ClientMsgId,
+		Type:               model.MsgTypeVoice,
 		Content:            "", // 获取不到音频的 xml 内容
 		DisplayFullContent: "",
 		MessageSource:      "",

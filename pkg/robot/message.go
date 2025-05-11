@@ -147,3 +147,18 @@ type MsgSendVoiceRequest struct {
 	Base64    string `json:"Base64"`
 	VoiceTime int    `json:"VoiceTime"`
 }
+
+type MsgSendVoiceResponse struct {
+	BaseResponse
+	NewMsgId     int64  `json:"NewMsgId"`
+	MsgId        int64  `json:"MsgId"`
+	ClientMsgId  int64  `json:"ClientMsgId"`
+	FromUserName string `json:"FromUserName"`
+	ToUserName   string `json:"ToUserName"`
+	Offset       int    `json:"Offset"`
+	Length       int    `json:"Length"`
+	VoiceLength  int    `json:"VoiceLength"`
+	EndFlag      int    `json:"EndFlag"`
+	CancelFlag   int    `json:"CancelFlag"`
+	CreateTime   int64  `json:"CreateTime"`
+}
