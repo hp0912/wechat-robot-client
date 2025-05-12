@@ -162,3 +162,48 @@ type MsgSendVoiceResponse struct {
 	CancelFlag   int    `json:"CancelFlag"`
 	CreateTime   int64  `json:"CreateTime"`
 }
+
+type AppMessageCommon struct {
+	FromUsername string `json:"FromUsername"`
+}
+
+type SendAppRequest struct {
+	Wxid   string `json:"Wxid"`
+	ToWxid string `json:"ToWxid"`
+	Type   int    `json:"Type"`
+	Xml    string `json:"Xml"`
+}
+
+type SendAppResponse struct {
+	FromUserName string `json:"fromUserName"`
+	Type         int    `json:"type"`
+	ActionFlag   int    `json:"actionFlag"`
+	ToUserName   string `json:"toUserName"`
+	MsgId        int64  `json:"msgId"`
+	ClientMsgId  string `json:"clientMsgId"`
+	CreateTime   int64  `json:"createTime"`
+	NewMsgId     int64  `json:"newMsgId"`
+	MsgSource    string `json:"msgSource"`
+}
+
+type SongInfo struct {
+	AppMessageCommon
+	AppID    string `json:"AppID"`
+	Title    string `json:"Title"`
+	Singer   string `json:"Singer"`
+	Url      string `json:"Url"`
+	MusicUrl string `json:"MusicUrl"`
+	CoverUrl string `json:"CoverUrl"`
+	Lyric    string `json:"Lyric"`
+}
+
+type MusicSearchResponse struct {
+	Code     int     `json:"code"`
+	Title    *string `json:"title"`
+	Singer   string  `json:"singer"`
+	ID       string  `json:"id"`
+	Cover    *string `json:"cover"`
+	Link     string  `json:"link"`
+	MusicUrl string  `json:"music_url"`
+	Lrc      *string `json:"lrc"`
+}

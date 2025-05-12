@@ -11,8 +11,11 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"text/template"
 	"wechat-robot-client/model"
 )
 
@@ -696,6 +699,59 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 	}
 
 	return
+}
+
+func (r *Robot) SendMusicMessage(toWxID string, songInfo SongInfo) (appMessage SendAppResponse, xmlStr string, err error) {
+	var projectRoot string
+	projectRoot, err = r.GetProjectRoot()
+	if err != nil {
+		return
+	}
+
+	musicXmlPath := filepath.Join(projectRoot, "xml", "music.xml")
+	xmlTemplate, err := os.ReadFile(musicXmlPath)
+	if err != nil {
+		err = fmt.Errorf("读取音乐XML模板失败: %w", err)
+		return
+	}
+
+	// 使用模板引擎渲染XML
+	tmpl, err := template.New("musicXml").Parse(string(xmlTemplate))
+	if err != nil {
+		err = fmt.Errorf("解析XML模板失败: %w", err)
+		return
+	}
+
+	var renderedXml bytes.Buffer
+	err = tmpl.Execute(&renderedXml, songInfo)
+	if err != nil {
+		err = fmt.Errorf("渲染XML模板失败: %w", err)
+		return
+	}
+
+	// 发送音乐分享消息
+	xmlStr = renderedXml.String()
+	appMessage, err = r.Client.SendApp(SendAppRequest{
+		Wxid:   r.WxID,
+		ToWxid: toWxID,
+		Xml:    xmlStr,
+		Type:   3,
+	})
+	if err != nil {
+		err = fmt.Errorf("发送音乐消息失败: %w", err)
+		return
+	}
+
+	return
+}
+
+func (r *Robot) GetProjectRoot() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("无法获取运行时信息")
+	}
+	projectRoot := filepath.Join(filepath.Dir(filename), "../..") // 上一级为项目根目录
+	return projectRoot, nil
 }
 
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {

@@ -15,6 +15,8 @@ import (
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
+
+	"github.com/go-resty/resty/v2"
 )
 
 type MessageService struct {
@@ -286,6 +288,61 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice multipart.File, voice
 		Content:            "", // 获取不到音频的 xml 内容
 		DisplayFullContent: "",
 		MessageSource:      "",
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	respo.Create(&m)
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
+func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error {
+	var result robot.MusicSearchResponse
+	_, err := resty.New().R().
+		SetHeader("Content-Type", "application/json").
+		SetQueryParam("gm", songTitle).
+		SetQueryParam("type", "json").
+		SetQueryParam("n", "1").
+		SetResult(&result).
+		Get(vars.MusicSearchApi)
+	if err != nil {
+		return fmt.Errorf("获取歌曲信息失败: %w", err)
+	}
+	if result.Title == nil {
+		return errors.New(fmt.Sprintf("没有搜索到歌曲 %s", songTitle))
+	}
+	songInfo := robot.SongInfo{}
+	songInfo.FromUsername = vars.RobotRuntime.WxID
+	songInfo.AppID = "wx8dd6ecd81906fd84"
+	songInfo.Title = *result.Title
+	songInfo.Singer = result.Singer
+	songInfo.Url = result.Link
+	songInfo.MusicUrl = result.MusicUrl
+	if result.Cover != nil {
+		songInfo.CoverUrl = *result.Cover
+	}
+	if result.Lrc != nil {
+		songInfo.Lyric = *result.Lrc
+	}
+	message, xmlStr, err := vars.RobotRuntime.SendMusicMessage(toWxID, songInfo)
+	if err != nil {
+		return err
+	}
+
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.MsgId,
+		Type:               model.MsgTypeApp,
+		Content:            xmlStr,
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,

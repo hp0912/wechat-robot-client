@@ -13,3 +13,8 @@ type SendTextMessageRequest struct {
 	Content string   `form:"content" json:"content" binding:"required"`
 	At      []string `form:"at" json:"at"`
 }
+
+type SendMusicMessageRequest struct {
+	SendMessageCommonRequest
+	Song string `form:"song" json:"song" binding:"required"`
+}

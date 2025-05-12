@@ -262,6 +262,19 @@ func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage MsgSendVoic
 	return
 }
 
+// SendApp 发送App消息
+func (c *Client) SendApp(req SendAppRequest) (appMessage SendAppResponse, err error) {
+	var result ClientResponse[SendAppResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendApp))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	appMessage = result.Data
+	return
+}
+
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	var result ClientResponse[GetContactListResponse]
 	_, err = c.client.R().

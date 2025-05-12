@@ -179,3 +179,18 @@ func (m *Message) SendVoiceMessage(c *gin.Context) {
 	}
 	resp.ToResponse(nil)
 }
+
+func (m *Message) SendMusicMessage(c *gin.Context) {
+	var req dto.SendMusicMessageRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	err := service.NewMessageService(c).SendMusicMessage(req.ToWxid, req.Song)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
