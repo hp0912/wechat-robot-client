@@ -207,3 +207,46 @@ type MusicSearchResponse struct {
 	MusicUrl string  `json:"music_url"`
 	Lrc      *string `json:"lrc"`
 }
+
+type SendEmojiRequest struct {
+	Wxid     string `json:"Wxid"`
+	ToWxid   string `json:"ToWxid"`
+	Md5      string `json:"Md5"`
+	TotalLen int32  `json:"TotalLen"`
+}
+
+type EmojiItem struct {
+	Ret      int   `json:"ret"`
+	StartPos int   `json:"startPos"`
+	TotalLen int   `json:"totalLen"`
+	Md5      int   `json:"md5"`
+	MsgId    int64 `json:"msgId"`
+	NewMsgId int64 `json:"newMsgId"`
+}
+
+type SendEmojiResponse struct {
+	BaseResponse
+	EmojiItemCount int         `json:"emojiItemCount"`
+	ActionFlag     int64       `json:"actionFlag"`
+	EmojiItem      []EmojiItem `json:"emojiItem"`
+}
+
+type ShareLinkRequest struct {
+	Wxid   string `json:"Wxid"`
+	ToWxid string `json:"ToWxid"`
+	Type   int32  `json:"Type"`
+	Xml    string `json:"Xml"`
+}
+
+type ShareLinkResponse struct {
+	BaseResponse
+	FromUserName string `json:"fromUserName"`
+	Type         int    `json:"type"`
+	ActionFlag   int    `json:"actionFlag"`
+	ToUserName   string `json:"toUserName"`
+	MsgId        int64  `json:"msgId"`
+	ClientMsgId  string `json:"clientMsgId"`
+	CreateTime   int64  `json:"createTime"`
+	NewMsgId     int64  `json:"newMsgId"`
+	MsgSource    string `json:"msgSource"`
+}

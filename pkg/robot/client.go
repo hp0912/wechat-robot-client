@@ -275,6 +275,32 @@ func (c *Client) SendApp(req SendAppRequest) (appMessage SendAppResponse, err er
 	return
 }
 
+// SendEmoji 发送表情消息
+func (c *Client) SendEmoji(req SendEmojiRequest) (emojiMessage SendEmojiResponse, err error) {
+	var result ClientResponse[SendEmojiResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendEmoji))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	emojiMessage = result.Data
+	return
+}
+
+// ShareLink 发送分享链接消息
+func (c *Client) ShareLink(req ShareLinkRequest) (shareLinkMessage ShareLinkResponse, err error) {
+	var result ClientResponse[ShareLinkResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgShareLink))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	shareLinkMessage = result.Data
+	return
+}
+
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	var result ClientResponse[GetContactListResponse]
 	_, err = c.client.R().
