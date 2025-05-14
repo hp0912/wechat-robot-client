@@ -250,3 +250,51 @@ type ShareLinkResponse struct {
 	NewMsgId     int64  `json:"newMsgId"`
 	MsgSource    string `json:"msgSource"`
 }
+
+type SendCDNAttachmentRequest struct {
+	Wxid    string `json:"Wxid"`
+	ToWxid  string `json:"ToWxid"`
+	Content string `json:"Content"`
+}
+
+type SendCDNFileResponse struct {
+	BaseResponse
+	ToUserName   string `json:"toUserName"`
+	ClientMsgId  string `json:"clientMsgId"`
+	Type         int    `json:"type"`
+	NewMsgId     int64  `json:"newMsgId"`
+	MsgSource    string `json:"msgSource"`
+	ActionFlag   int    `json:"actionFlag"`
+	FromUserName string `json:"fromUserName"`
+	MsgId        int64  `json:"msgId"`
+	CreateTime   int64  `json:"createTime"`
+	Aeskey       string `json:"aeskey"`
+}
+
+type SendCDNImgResponse struct {
+	BaseResponse
+	FromUserName string        `json:"FromUserName"`
+	DataLen      int64         `json:"DataLen"`
+	CreateTime   int64         `json:"CreateTime"`
+	Newmsgid     int64         `json:"Newmsgid"`
+	Fileid       string        `json:"Fileid"`
+	MsgSource    string        `json:"MsgSource"`
+	Msgid        int64         `json:"Msgid"`
+	ClientImgId  BuiltinString `json:"ClientImgId"`
+	ToUserName   BuiltinString `json:"ToUserName"`
+	TotalLen     int64         `json:"TotalLen"`
+	StartPos     int64         `json:"StartPos"`
+	Aeskey       string        `json:"Aeskey"`
+}
+
+type SendCDNVideoResponse struct {
+	BaseResponse
+	ClientMsgId   string `json:"clientMsgId"`
+	MsgId         int64  `json:"msgId"`
+	VideoStartPos int64  `json:"videoStartPos"`
+	NewMsgId      int64  `json:"newMsgId"`
+	Aeskey        string `json:"aeskey"`
+	MsgSource     string `json:"msgSource"`
+	ActionFlag    int    `json:"actionFlag"`
+	ThumbStartPos int64  `json:"thumbStartPos"`
+}

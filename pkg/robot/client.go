@@ -301,6 +301,45 @@ func (c *Client) ShareLink(req ShareLinkRequest) (shareLinkMessage ShareLinkResp
 	return
 }
 
+// SendCDNFile 转发文件消息（转发，并非上传）
+func (c *Client) SendCDNFile(req SendCDNAttachmentRequest) (cdnFileMessage SendCDNFileResponse, err error) {
+	var result ClientResponse[SendCDNFileResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendCDNFile))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	cdnFileMessage = result.Data
+	return
+}
+
+// SendCDNImg 转发图片消息（转发，并非上传）
+func (c *Client) SendCDNImg(req SendCDNAttachmentRequest) (cdnImageMessage SendCDNImgResponse, err error) {
+	var result ClientResponse[SendCDNImgResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendCDNImg))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	cdnImageMessage = result.Data
+	return
+}
+
+// SendCDNVideo 转发视频消息（转发，并非上传）
+func (c *Client) SendCDNVideo(req SendCDNAttachmentRequest) (cdnVideoMessage SendCDNVideoResponse, err error) {
+	var result ClientResponse[SendCDNVideoResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendCDNVideo))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	cdnVideoMessage = result.Data
+	return
+}
+
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	var result ClientResponse[GetContactListResponse]
 	_, err = c.client.R().

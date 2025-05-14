@@ -120,3 +120,96 @@ func TestSendApp(t *testing.T) {
 </appmsg>`,
 	})
 }
+
+func TestSendCDNFile(t *testing.T) {
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+
+	content := `<appmsg appid="" sdkver="0">
+		<title>MacNetPlayerN5-0912.zip</title>
+		<des />
+		<action />
+		<type>6</type>
+		<showtype>0</showtype>
+		<soundtype>0</soundtype>
+		<mediatagname />
+		<messageext />
+		<messageaction />
+		<content />
+		<contentattr>0</contentattr>
+		<url />
+		<lowurl />
+		<dataurl />
+		<lowdataurl />
+		<songalbumurl />
+		<songlyric />
+		<appattach>
+			<totallen>16379019</totallen>
+			<attachid>@cdn_3057020100044b30490201000204df99987302032f841102040eba587d020468248c41042435333061303833302d646561382d346565362d383937622d3136313036653961356266660204051400050201000405004c543d00_4bb42e3c90c320283bd9e27c4a90cb05_1</attachid>
+			<emoticonmd5 />
+			<fileext>zip</fileext>
+			<cdnattachurl>3057020100044b30490201000204df99987302032f841102040eba587d020468248c41042435333061303833302d646561382d346565362d383937622d3136313036653961356266660204051400050201000405004c543d00</cdnattachurl>
+			<aeskey>4bb42e3c90c320283bd9e27c4a90cb05</aeskey>
+			<encryver>0</encryver>
+			<overwrite_newmsgid>2975920982181509334</overwrite_newmsgid>
+			<fileuploadtoken>v1_cDx+86G97mW5IISJTg6lJKMlHbe0ZB6Iv3mVPUbcucF/RwISle25P6j/vS+TLhypqYKq1C3sbcW2F8p54O7Hl44YTmeG5gosBGDfbSj1Og6vWl01jbgGRyeoBDWdmDf6VoBtLygGuH7biqJCXudlnheBiKqWxKXoB49BEA9xCKx8jZU2o09c6DfMSuVi4M7AZ3tAmfQjZlC/1q4cOOs2uxBpLx4A3js=</fileuploadtoken>
+		</appattach>
+		<extinfo />
+		<sourceusername />
+		<sourcedisplayname />
+		<thumburl />
+		<md5>384c3638d566541be31247fde118cc05</md5>
+		<statextstr />
+	</appmsg>`
+
+	client.SendCDNFile(SendCDNAttachmentRequest{
+		Wxid:    "wxid_7bpstqonj92212",
+		ToWxid:  "34948034760@chatroom",
+		Content: content,
+	})
+}
+
+func TestSendCDNImg(t *testing.T) {
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+
+	content := `<msg>
+	<img aeskey="c30c80eb54a79de7fdf299264e47896b" encryver="1" cdnthumbaeskey="c30c80eb54a79de7fdf299264e47896b" cdnthumburl="3057020100044b30490201000204df99987302032f841102040eba587d020468248d08042433313636613961352d643864322d346430612d623232302d3163336133353064316134300204051418020201000405004c556900" cdnthumblength="13513" cdnthumbheight="85" cdnthumbwidth="120" cdnmidheight="0" cdnmidwidth="0" cdnhdheight="0" cdnhdwidth="0" cdnmidimgurl="3057020100044b30490201000204df99987302032f841102040eba587d020468248d08042433313636613961352d643864322d346430612d623232302d3163336133353064316134300204051418020201000405004c556900" length="204896" md5="479ac74112ae3f1a09722fbd2b5b1b47">
+		<secHashInfoBase64 />
+		<live>
+			<duration>0</duration>
+			<size>0</size>
+			<md5 />
+			<fileid />
+			<hdsize>0</hdsize>
+			<hdmd5 />
+			<hdfileid />
+			<stillimagetimems>0</stillimagetimems>
+		</live>
+	</img>
+	<platform_signature />
+	<imgdatahash />
+	<ImgSourceInfo>
+		<ImgSourceUrl />
+		<BizType>0</BizType>
+	</ImgSourceInfo>
+</msg>`
+
+	client.SendCDNImg(SendCDNAttachmentRequest{
+		Wxid:    "wxid_7bpstqonj92212",
+		ToWxid:  "34948034760@chatroom",
+		Content: content,
+	})
+}
+
+func TestSendCDNVideo(t *testing.T) {
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+
+	content := `<msg>
+	<videomsg aeskey="729b88a6b0fab41917604d24e0898078" cdnvideourl="3057020100044b30490201000204df99987302032f5c9d020493a93db7020468249069042432303263353136382d656133382d343839352d383136612d3530643133313232336336610204051808040201000405004c4d3500" cdnthumbaeskey="729b88a6b0fab41917604d24e0898078" cdnthumburl="3057020100044b30490201000204df99987302032f5c9d020493a93db7020468249069042432303263353136382d656133382d343839352d383136612d3530643133313232336336610204051808040201000405004c4d3500" length="144353" playlength="6" cdnthumblength="15280" cdnthumbwidth="240" cdnthumbheight="155" fromusername="wxid_7bpstqonj92212" md5="e49a94b0e05b07875055f97b3a9ccb92" newmd5="94e8fb926624d66db5f42c853b363bfb" isplaceholder="0" rawmd5="" rawlength="0" cdnrawvideourl="" cdnrawvideoaeskey="" overwritenewmsgid="0" originsourcemd5="" isad="0" />
+</msg>`
+
+	client.SendCDNVideo(SendCDNAttachmentRequest{
+		Wxid:    "wxid_7bpstqonj92212",
+		ToWxid:  "34948034760@chatroom",
+		Content: content,
+	})
+}
