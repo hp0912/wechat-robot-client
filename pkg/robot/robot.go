@@ -745,6 +745,31 @@ func (r *Robot) SendMusicMessage(toWxID string, songInfo SongInfo) (appMessage S
 	return
 }
 
+func (r *Robot) SendEmoji(req SendEmojiRequest) (emojiMessage SendEmojiResponse, err error) {
+	req.Wxid = r.WxID
+	return r.Client.SendEmoji(req)
+}
+
+func (r *Robot) ShareLink(req ShareLinkRequest) (shareLinkMessage ShareLinkResponse, err error) {
+	req.Wxid = r.WxID
+	return r.Client.ShareLink(req)
+}
+
+func (r *Robot) SendCDNFile(req SendCDNAttachmentRequest) (cdnFileMessage SendCDNFileResponse, err error) {
+	req.Wxid = r.WxID
+	return r.Client.SendCDNFile(req)
+}
+
+func (r *Robot) SendCDNImg(req SendCDNAttachmentRequest) (cdnImageMessage SendCDNImgResponse, err error) {
+	req.Wxid = r.WxID
+	return r.Client.SendCDNImg(req)
+}
+
+func (r *Robot) SendCDNVideo(req SendCDNAttachmentRequest) (cdnVideoMessage SendCDNVideoResponse, err error) {
+	req.Wxid = r.WxID
+	return r.Client.SendCDNVideo(req)
+}
+
 func (r *Robot) GetProjectRoot() (string, error) {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {

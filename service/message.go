@@ -317,6 +317,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 	if result.Title == nil {
 		return errors.New(fmt.Sprintf("没有搜索到歌曲 %s", songTitle))
 	}
+
 	songInfo := robot.SongInfo{}
 	songInfo.FromUsername = vars.RobotRuntime.WxID
 	songInfo.AppID = "wx8dd6ecd81906fd84"
@@ -330,6 +331,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 	if result.Lrc != nil {
 		songInfo.Lyric = *result.Lrc
 	}
+
 	message, xmlStr, err := vars.RobotRuntime.SendMusicMessage(toWxID, songInfo)
 	if err != nil {
 		return err
@@ -348,6 +350,168 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 		SenderWxID:         vars.RobotRuntime.WxID,
 		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
 		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	respo.Create(&m)
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
+func (s *MessageService) SendEmoji(toWxID string, md5 string, totalLen int32) error {
+	message, err := vars.RobotRuntime.SendEmoji(robot.SendEmojiRequest{
+		ToWxid:   toWxID,
+		Md5:      md5,
+		TotalLen: totalLen,
+	})
+	if err != nil {
+		return err
+	}
+
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	for _, emojiItem := range message.EmojiItem {
+		if emojiItem.Ret != 0 {
+			continue
+		}
+		m := model.Message{
+			MsgId:              emojiItem.NewMsgId,
+			ClientMsgId:        emojiItem.MsgId,
+			Type:               model.MsgTypeEmoticon,
+			Content:            "",
+			DisplayFullContent: "",
+			MessageSource:      "",
+			FromWxID:           toWxID,
+			ToWxID:             vars.RobotRuntime.WxID,
+			SenderWxID:         vars.RobotRuntime.WxID,
+			IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+			CreatedAt:          time.Now().Unix(),
+			UpdatedAt:          time.Now().Unix(),
+		}
+		respo.Create(&m)
+		// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+		NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+	}
+
+	return nil
+}
+
+func (s *MessageService) ShareLink(toWxID string, linkXml string) error {
+	message, err := vars.RobotRuntime.ShareLink(robot.ShareLinkRequest{
+		ToWxid: toWxID,
+		Type:   5,
+		Xml:    linkXml,
+	})
+	if err != nil {
+		return err
+	}
+
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.MsgId,
+		Type:               model.MsgTypeApp,
+		Content:            "",
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	respo.Create(&m)
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
+func (s *MessageService) SendCDNFile(toWxID string, content string) error {
+	message, err := vars.RobotRuntime.SendCDNFile(robot.SendCDNAttachmentRequest{
+		ToWxid:  toWxID,
+		Content: content,
+	})
+	if err != nil {
+		return err
+	}
+
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.MsgId,
+		Type:               model.MsgTypeApp,
+		Content:            "",
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	respo.Create(&m)
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
+func (s *MessageService) SendCDNImg(toWxID string, content string) error {
+	message, err := vars.RobotRuntime.SendCDNImg(robot.SendCDNAttachmentRequest{
+		ToWxid:  toWxID,
+		Content: content,
+	})
+	if err != nil {
+		return err
+	}
+
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	m := model.Message{
+		MsgId:              message.Newmsgid,
+		ClientMsgId:        message.Msgid,
+		Type:               model.MsgTypeImage,
+		Content:            "",
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	respo.Create(&m)
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
+func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
+	message, err := vars.RobotRuntime.SendCDNVideo(robot.SendCDNAttachmentRequest{
+		ToWxid:  toWxID,
+		Content: content,
+	})
+	if err != nil {
+		return err
+	}
+
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.MsgId,
+		Type:               model.MsgTypeVideo,
+		Content:            "",
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          time.Now().Unix(),
 		UpdatedAt:          time.Now().Unix(),
 	}
 	respo.Create(&m)

@@ -216,12 +216,12 @@ type SendEmojiRequest struct {
 }
 
 type EmojiItem struct {
-	Ret      int   `json:"ret"`
-	StartPos int   `json:"startPos"`
-	TotalLen int   `json:"totalLen"`
-	Md5      int   `json:"md5"`
-	MsgId    int64 `json:"msgId"`
-	NewMsgId int64 `json:"newMsgId"`
+	Ret      int    `json:"ret"`
+	StartPos int    `json:"startPos"`
+	TotalLen int    `json:"totalLen"`
+	Md5      string `json:"md5"`
+	MsgId    int64  `json:"msgId"`
+	NewMsgId int64  `json:"newMsgId"`
 }
 
 type SendEmojiResponse struct {
@@ -273,7 +273,7 @@ type SendCDNFileResponse struct {
 
 type SendCDNImgResponse struct {
 	BaseResponse
-	FromUserName string        `json:"FromUserName"`
+	FromUserName BuiltinString `json:"FromUserName"`
 	DataLen      int64         `json:"DataLen"`
 	CreateTime   int64         `json:"CreateTime"`
 	Newmsgid     int64         `json:"Newmsgid"`
