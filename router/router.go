@@ -13,6 +13,7 @@ var chatRoomCtl *controller.ChatRoom
 var contactCtl *controller.Contact
 var loginCtl *controller.Login
 var messageCtl *controller.Message
+var globalSettingsCtl *controller.GlobalSettings
 var probeCtl *controller.Probe
 
 func initController() {
@@ -22,6 +23,7 @@ func initController() {
 	contactCtl = controller.NewContactController()
 	loginCtl = controller.NewLoginController()
 	messageCtl = controller.NewMessageController()
+	globalSettingsCtl = controller.NewGlobalSettingsController()
 	probeCtl = controller.NewProbeController()
 }
 
@@ -68,6 +70,9 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
 	api.GET("/robot/chat/file/download", attachDownloadCtl.DownloadFile)
 	api.GET("/robot/chat/video/download", attachDownloadCtl.DownloadVideo)
+
+	api.GET("/robot/global-settings", globalSettingsCtl.GetGlobalSettings)
+	api.POST("/robot/global-settings", globalSettingsCtl.SaveGlobalSettings)
 
 	return nil
 }
