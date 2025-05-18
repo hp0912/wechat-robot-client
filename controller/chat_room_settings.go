@@ -39,18 +39,6 @@ func (ct *ChatRoomSettings) SaveChatRoomSettings(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	if req.ChatAIEnabled != nil && *req.ChatAIEnabled {
-		if req.ChatAPIKey == "" || req.ChatBaseURL == "" || req.ChatModel == "" || req.ChatPrompt == "" {
-			resp.ToErrorResponse(errors.New("参数错误"))
-			return
-		}
-	}
-	if req.ImageAIEnabled != nil && *req.ImageAIEnabled {
-		if req.ImageModel == "" || req.ImageAISettings == nil {
-			resp.ToErrorResponse(errors.New("参数错误"))
-			return
-		}
-	}
 	if req.WelcomeEnabled != nil && *req.WelcomeEnabled {
 		if req.WelcomeType == "" {
 			resp.ToErrorResponse(errors.New("参数错误"))
