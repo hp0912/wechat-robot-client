@@ -14,6 +14,8 @@ var contactCtl *controller.Contact
 var loginCtl *controller.Login
 var messageCtl *controller.Message
 var globalSettingsCtl *controller.GlobalSettings
+var friendSettingsCtl *controller.FriendSettings
+var chatRoomSettingsCtl *controller.ChatRoomSettings
 var probeCtl *controller.Probe
 
 func initController() {
@@ -24,6 +26,8 @@ func initController() {
 	loginCtl = controller.NewLoginController()
 	messageCtl = controller.NewMessageController()
 	globalSettingsCtl = controller.NewGlobalSettingsController()
+	friendSettingsCtl = controller.NewFriendSettingsController()
+	chatRoomSettingsCtl = controller.NewChatRoomSettingsController()
 	probeCtl = controller.NewProbeController()
 }
 
@@ -73,6 +77,12 @@ func RegisterRouter(r *gin.Engine) error {
 
 	api.GET("/robot/global-settings", globalSettingsCtl.GetGlobalSettings)
 	api.POST("/robot/global-settings", globalSettingsCtl.SaveGlobalSettings)
+
+	api.GET("/robot/friend-settings", friendSettingsCtl.GetFriendSettings)
+	api.POST("/robot/friend-settings", friendSettingsCtl.SaveFriendSettings)
+
+	api.GET("/robot/chat-room-settings", chatRoomSettingsCtl.GetChatRoomSettings)
+	api.POST("/robot/chat-room-settings", chatRoomSettingsCtl.SaveChatRoomSettings)
 
 	return nil
 }

@@ -320,7 +320,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 
 	songInfo := robot.SongInfo{}
 	songInfo.FromUsername = vars.RobotRuntime.WxID
-	songInfo.AppID = "wx8dd6ecd81906fd84"
+	songInfo.AppID = "wx79f2c4418704b4f8"
 	songInfo.Title = *result.Title
 	songInfo.Singer = result.Singer
 	songInfo.Url = result.Link

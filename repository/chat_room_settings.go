@@ -1,0 +1,26 @@
+package repository
+
+import (
+	"context"
+	"wechat-robot-client/model"
+
+	"gorm.io/gorm"
+)
+
+type ChatRoomSettings struct {
+	Base[model.ChatRoomSettings]
+}
+
+func NewChatRoomSettingsRepo(ctx context.Context, db *gorm.DB) *ChatRoomSettings {
+	return &ChatRoomSettings{
+		Base[model.ChatRoomSettings]{
+			Ctx: ctx,
+			DB:  db,
+		}}
+}
+
+func (respo *ChatRoomSettings) GetByOwner(owner, chatRoomID string, preloads ...string) *model.ChatRoomSettings {
+	return respo.takeOne(preloads, func(g *gorm.DB) *gorm.DB {
+		return g.Where("owner = ?", owner).Where("chat_room_id = ?", chatRoomID)
+	})
+}
