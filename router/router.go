@@ -16,6 +16,7 @@ var messageCtl *controller.Message
 var globalSettingsCtl *controller.GlobalSettings
 var friendSettingsCtl *controller.FriendSettings
 var chatRoomSettingsCtl *controller.ChatRoomSettings
+var wechatServerCallbackCtl *controller.WechatServerCallback
 var probeCtl *controller.Probe
 
 func initController() {
@@ -28,6 +29,7 @@ func initController() {
 	globalSettingsCtl = controller.NewGlobalSettingsController()
 	friendSettingsCtl = controller.NewFriendSettingsController()
 	chatRoomSettingsCtl = controller.NewChatRoomSettingsController()
+	wechatServerCallbackCtl = controller.NewWechatServerCallbackController()
 	probeCtl = controller.NewProbeController()
 }
 
@@ -83,6 +85,9 @@ func RegisterRouter(r *gin.Engine) error {
 
 	api.GET("/robot/chat-room-settings", chatRoomSettingsCtl.GetChatRoomSettings)
 	api.POST("/robot/chat-room-settings", chatRoomSettingsCtl.SaveChatRoomSettings)
+
+	api.POST("/wechat-client/:wechatID/sync-message/callback", wechatServerCallbackCtl.SyncMessageCallback)
+	api.POST("/wechat-client/:wechatID/logout/callback", wechatServerCallbackCtl.LogoutCallback)
 
 	return nil
 }
