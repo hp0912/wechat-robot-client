@@ -12,7 +12,7 @@ COPY . .
 RUN go build -ldflags="-s -w" -o wechat-robot-client
 
 
-FROM alpine:latest
+FROM registry.cn-shenzhen.aliyuncs.com/houhou/silk-base:latest
 
 ENV GIN_MODE=release \
   TZ=Asia/Shanghai
