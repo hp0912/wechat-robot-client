@@ -23,4 +23,5 @@ COPY --from=builder /app/wechat-robot-client ./
 
 EXPOSE 9000
 
+ENTRYPOINT []
 CMD ["/app/wechat-robot-client"]
