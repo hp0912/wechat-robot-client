@@ -74,7 +74,7 @@ func (r *Robot) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 		}
 		// 唤醒登陆
 		var resp QrCode
-		resp, err = r.Client.AwakenLogin(r.WxID, r.DeviceName)
+		resp, err = r.Client.AwakenLogin(r.WxID)
 		if err != nil {
 			// 如果唤醒失败，尝试获取二维码
 			uuid, err = r.GetQrCode()

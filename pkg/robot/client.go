@@ -105,12 +105,14 @@ func (c *Client) LoginTwiceAutoAuth(wxid string) (err error) {
 	return
 }
 
-func (c *Client) AwakenLogin(wxid string, deviceName string) (resp QrCode, err error) {
+func (c *Client) AwakenLogin(wxid string) (resp QrCode, err error) {
 	var result ClientResponse[QrCode]
 	var httpResp *resty.Response
 	httpResp, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetQueryParam("wxid", wxid).
+		SetBody(AwakenLoginRequest{
+			Wxid: wxid,
+		}).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginAwaken))
 	if err = result.CheckError(err); err != nil {
@@ -128,9 +130,10 @@ func (c *Client) GetQrCode(deviceId, deviceName string) (resp GetQRCode, err err
 	var result ClientResponse[GetQRCode]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(map[string]string{
-			"DeviceID":   deviceId,
-			"DeviceName": deviceName,
+		SetBody(LoginGetQRRequest{
+			DeviceID:   deviceId,
+			DeviceName: deviceName,
+			LoginType:  "",
 		}).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginGetQR))

@@ -4,10 +4,10 @@ import "fmt"
 
 const (
 	LoginGetCacheInfo  = "/Login/GetCacheInfo"
-	LoginTwiceAutoAuth = "/Login/TwiceAutoAuth"
-	LoginAwaken        = "/Login/Awaken"
-	LoginGetQR         = "/Login/GetQRx"
-	LoginCheckQR       = "/Login/CheckQR"
+	LoginTwiceAutoAuth = "/Login/LoginTwiceAutoAuth"
+	LoginAwaken        = "/Login/LoginAwaken"
+	LoginGetQR         = "/Login/LoginGetQRx"
+	LoginCheckQR       = "/Login/LoginCheckQR"
 	LoginHeartBeat     = "/Login/HeartBeat"
 	LoginLogout        = "/Login/LogOut"
 

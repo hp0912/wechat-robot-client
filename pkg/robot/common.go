@@ -13,6 +13,12 @@ type CommonRequest struct {
 	Wxid string `json:"wxid"`
 }
 
+type Proxy struct {
+	ProxyIp       string `json:"ProxyIp"`
+	ProxyUser     string `json:"ProxyUser"`
+	ProxyPassword string `json:"ProxyPassword"`
+}
+
 // BaseResponse 大部分返回对象都携带该信息
 type BaseResponse struct {
 	Ret    int `json:"ret"`

@@ -73,7 +73,7 @@ func (s *LoginService) HeartbeatStart() {
 		select {
 		case <-vars.RobotRuntime.HeartbeatContext.Done():
 			return
-		case <-time.After(3 * time.Second):
+		case <-time.After(25 * time.Second):
 			mode := os.Getenv("GIN_MODE")
 			err := vars.RobotRuntime.Heartbeat()
 			log.Println(mode, " 心跳: ", err)
