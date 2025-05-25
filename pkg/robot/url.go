@@ -13,7 +13,7 @@ const (
 
 	UserGetContactProfile = "/User/GetContractProfile"
 
-	MsgSyncPath     = "/Msg/Sync"
+	MsgSync         = "/Msg/Sync"
 	MsgRevoke       = "/Msg/Revoke"
 	MsgSendTxt      = "/Msg/SendTxt"
 	MsgUploadImg    = "/Msg/UploadImg"

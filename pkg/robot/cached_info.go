@@ -1,107 +1,161 @@
 package robot
 
-type CachedInfo struct {
-	Uin                        int    `json:"Uin"`
-	Wxid                       string `json:"Wxid"`
-	Pwd                        string `json:"Pwd"`
-	Uuid                       string `json:"Uuid"`
-	Aeskey                     string `json:"Aeskey"`
-	NotifyKey                  string `json:"NotifyKey"`
-	DeviceidStr                string `json:"Deviceid_str"`
-	DeviceidByte               string `json:"Deviceid_byte"`
-	DeviceType                 string `json:"DeviceType"`
-	ClientVersion              int    `json:"ClientVersion"`
-	DeviceName                 string `json:"DeviceName"`
-	NickName                   string `json:"NickName"`
-	HeadUrl                    string `json:"HeadUrl"`
-	Email                      string `json:"Email"`
-	Alais                      string `json:"Alais"`
-	Mobile                     string `json:"Mobile"`
-	Mmtlsip                    string `json:"Mmtlsip"`
-	MmtlsHost                  string `json:"MmtlsHost"`
-	Sessionkey                 string `json:"Sessionkey"`
-	Sessionkey2                string `json:"Sessionkey_2"`
-	Autoauthkey                string `json:"Autoauthkey"`
-	Autoauthkeylen             int    `json:"Autoauthkeylen"`
-	Clientsessionkey           string `json:"Clientsessionkey"`
-	Serversessionkey           string `json:"Serversessionkey"`
-	HybridEcdhPrivkey          any    `json:"HybridEcdhPrivkey"`
-	HybridEcdhPubkey           any    `json:"HybridEcdhPubkey"`
-	HybridEcdhInitServerPubKey any    `json:"HybridEcdhInitServerPubKey"`
-	Loginecdhkey               string `json:"Loginecdhkey"`
-	Cooike                     string `json:"Cooike"`
-	LoginMode                  string `json:"LoginMode"`
-	MarsHost                   string `json:"MarsHost"`
-	Proxy                      any    `json:"Proxy"`
-	MmtlsKey                   struct {
-		GVEJHIROBh   string `json:"GVEJHIROBh"`
-		W6D1LM       int    `json:"W6d1lM"`
-		Wpdpiuv      string `json:"Wpdpiuv"`
-		U650A0QuwEG  int    `json:"U650a0QuwEG"`
-		IHqUrE2EE    string `json:"IHqUrE2EE"`
-		Xx67J0       int    `json:"Xx67j0"`
-		IH2WafCq     string `json:"IH__2wafCq"`
-		K8Lw7W       int    `json:"K8lw7w"`
-		FpcOaCmsNO   any    `json:"FpcOaCmsNO"`
-		PPWpADdGuFHB int    `json:"PPWpADdGuFHB"`
-		SlTxYh       int    `json:"SlTxYh"`
-		X3MmtMlzSlW  string `json:"X3MmtMlzSlW"`
-		SZp5UQ21PD   int    `json:"SZp5_UQ21pD"`
-		A21H7H       string `json:"A21H_7h"`
-		Ir6Noa       string `json:"Ir6noa"`
-		QVfIdfw      string `json:"QVfIdfw"`
-		Mmaz0LSj     string `json:"Mmaz0lSj"`
-		ZDV2Xzn      any    `json:"ZDV2Xzn"`
-		WxuKtZneSb   any    `json:"WxuKtZneSb"`
-		Bg0ChqSWSv   string `json:"Bg0chqSWSv"`
-		C0X2GS       string `json:"C0_X2GS"`
-		RK1TWT58     string `json:"RK1TWT58"`
-		OOS0VQVfB    string `json:"OOS0vQVfB"`
-		Ps63XxlibW   string `json:"Ps63xxlibW"`
-		ChmlEwbaQ    string `json:"ChmlEwbaQ"`
-		VayI1HTA     any    `json:"VayI1HTA"`
-		HT7BBEEl     any    `json:"HT7bBEEl"`
-		CEZe6HtueZ   any    `json:"CEZe6htueZ"`
-		KjDdoOh9     any    `json:"KjDdoOh9"`
-		ReoRMAvMyd   any    `json:"ReoRMAvMyd"`
-		UjErK5I8     any    `json:"UjErK5i8"`
-		CDGFzW90     any    `json:"CDGFzW90"`
-		INRS2QIq     string `json:"INRS2qIq"`
-		K3JRPJn      string `json:"K3JRPJn"`
-		AxUp7F       string `json:"AxUp7F"`
-		BfBhafa      string `json:"BfBhafa"`
-		A37CFpHR     string `json:"A37CFpHR"`
-		P7XEdt       string `json:"P7XEdt_"`
-		KrIqx71L     string `json:"KrIqx7_1L"`
-		GcEv06       string `json:"GcEv06"`
-		VsbjOPtj     int    `json:"VsbjOPtj"`
-	} `json:"MmtlsKey"`
-	DeviceToken struct {
-	} `json:"DeviceToken"`
-	SyncKey       string `json:"SyncKey"`
-	Data62        string `json:"Data62"`
-	RomModel      string `json:"RomModel"`
-	Imei          string `json:"Imei"`
-	SoftType      string `json:"SoftType"`
-	OsVersion     string `json:"OsVersion"`
-	RsaPublicKey  string `json:"RsaPublicKey"`
-	RsaPrivateKey string `json:"RsaPrivateKey"`
-	Dns           any    `json:"Dns"`
-	LoginRsaVer   int    `json:"LoginRsaVer"`
-	EnableService bool   `json:"EnableService"`
-	Ecpukey       any    `json:"ecpukey"`
-	Ecprkey       any    `json:"ecprkey"`
-	Ticket        string `json:"Ticket"`
-	LoginDataInfo struct {
-		Type        int    `json:"Type"`
-		UserName    string `json:"UserName"`
-		PassWord    string `json:"PassWord"`
-		NewPassWord string `json:"NewPassWord"`
-		LoginData   string `json:"LoginData"`
-		Ticket      string `json:"Ticket"`
-		NewType     int    `json:"NewType"`
-		Language    string `json:"Language"`
-	} `json:"LoginDataInfo"`
-	DeviceInfo any `json:"DeviceInfo"`
-	LoginDate  int `json:"LoginDate"`
+type TrustSoftData struct {
+	SoftConfig *string `json:"softConfig,omitempty"`
+	SoftData   []byte  `json:"softData,omitempty"`
+}
+
+type TrustResponseData struct {
+	SoftData    *TrustSoftData `json:"softData,omitempty"`
+	DeviceToken *string        `json:"deviceToken,omitempty"`
+	TimeStamp   *uint32        `json:"timeStamp,omitempty"`
+}
+
+type TrustResponse struct {
+	BaseResponse      *BaseResponse      `json:"BaseResponse,omitempty"`
+	TrustResponseData *TrustResponseData `json:"TrustResponseData,omitempty"`
+}
+
+type LoginDataInfo struct {
+	Type     byte
+	UserName string
+	PassWord string
+	//伪密码
+	NewPassWord string
+	//登录数据 62/A16
+	LoginData string
+	Ticket    string
+	NewType   int
+	Language  string
+}
+
+type DeviceInfo struct {
+	UUIDOne            string `json:"uuidone"`
+	UUIDTwo            string `json:"uuidtwo"`
+	Imei               string `json:"imei"`
+	DeviceID           string `json:"deviceid"`
+	DeviceName         string `json:"devicename"`
+	DeviceMac          string `json:"Devicemac"`
+	TimeZone           string `json:"timezone"`
+	Language           string `json:"language"`
+	DeviceBrand        string `json:"devicebrand"`
+	RealCountry        string `json:"realcountry"`
+	IphoneVer          string `json:"iphonever"`
+	BundleID           string `json:"boudleid"`
+	OsType             string `json:"ostype"`
+	AdSource           string `json:"adsource"`
+	OsTypeNumber       string `json:"ostypenumber"`
+	CoreCount          uint32 `json:"corecount"`
+	CarrierName        string `json:"carriername"`
+	SoftTypeXML        string `json:"softtypexml"`
+	ClientCheckDataXML string `json:"clientcheckdataxml"`
+	// extInfo
+	GUID1 string `json:"guid1"` //data   path  uuid
+	GUID2 string `json:"guid2"` //bundle path  uuid
+	Sdi   string `json:"sdi"`   //md5(uuid)
+
+	InstallTime  uint64 `json:"installtime"`  //random
+	KernBootTime uint64 `json:"kernboottime"` //random
+
+	Sysverplist *Stat `json:"sysverplist"` ////System/Library/CoreServices/SystemVersion.plist
+	Dyldcache   *Stat `json:"dyldcache"`   ///System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64
+	Var         *Stat `json:"var"`         ///private/var
+	Etcgroup    *Stat `json:"etcgroup"`    ///private/etc/group
+	Etchosts    *Stat `json:"etchosts"`    ///private/etc/hosts
+
+	Apfs *Statfs `json:"apfs"` //apfs
+
+	DeviceToken TrustResponse
+}
+
+type AndroidDeviceInfo struct {
+	Imei                string
+	AndriodId           string
+	PhoneSerial         string
+	WidevineDeviceID    string
+	WidevineProvisionID string
+	AndriodFsId         string
+	AndriodBssId        string
+	AndriodSsId         string
+	WLanAddress         string
+	PackageSign         string
+	Androidversion      string
+	RadioVersion        string
+	Manufacturer        string
+	BuildID             string
+	BuildFP             string
+	BuildBoard          string
+	PhoneModel          string
+	Hardware            string
+	Features            string
+	WifiName            string
+	WifiFullName        string
+	KernelReleaseNumber string
+	Arch                string
+	SfMD5               string
+	SfArmMD5            string
+	SfArm64MD5          string
+	SbMD5               string
+}
+
+type LoginData struct {
+	Uin                        uint32
+	Wxid                       string
+	Pwd                        string
+	Uuid                       string
+	Aeskey                     []byte
+	NotifyKey                  []byte
+	Deviceid_str               string
+	Deviceid_byte              []byte
+	DeviceType                 string
+	ClientVersion              int32
+	DeviceName                 string
+	NickName                   string
+	HeadUrl                    string
+	Email                      string
+	Alais                      string
+	Mobile                     string
+	Mmtlsip                    string
+	ShortHost                  string
+	LongHost                   string
+	Sessionkey                 []byte
+	Sessionkey_2               []byte
+	Autoauthkey                []byte
+	Autoauthkeylen             int32
+	Clientsessionkey           []byte
+	Serversessionkey           []byte
+	HybridEcdhPrivkey          []byte
+	HybridEcdhPubkey           []byte
+	HybridEcdhInitServerPubKey []byte
+	Loginecdhkey               []byte
+	Cooike                     []byte
+	LoginMode                  string
+	Proxy                      ProxyInfo
+	MmtlsKey                   MmtlsClient
+	DeviceToken                TrustResponse
+	SyncKey                    []byte
+	Data62                     string
+	RomModel                   string
+	Imei                       string
+	SoftType                   string
+	OsVersion                  string
+	RsaPublicKey               []byte
+	RsaPrivateKey              []byte
+	Dns                        []Dns
+	// 登录的Rsa 密钥版本
+	LoginRsaVer uint32
+	// 是否开启服务
+	EnableService bool
+	EcPublicKey   []byte `json:"ecpukey"`
+	EcPrivateKey  []byte `json:"ecprkey"`
+	Ticket        string
+	LoginDataInfo LoginDataInfo
+	// 设备信息62
+	DeviceInfo *DeviceInfo
+	//A16信息
+	DeviceInfoA16 *AndroidDeviceInfo
+	// 登录时间
+	LoginDate int64
+	// 刷新 tonken 时间
+	RefreshTokenDate int64
 }

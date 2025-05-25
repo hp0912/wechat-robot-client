@@ -123,16 +123,20 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 		msgService := NewMessageService(context.Background())
 		go msgService.SyncMessageStart()
 		// 更新登陆状态
-		var profile robot.UserProfile
+		var profile robot.GetProfileResponse
 		profile, err = vars.RobotRuntime.GetProfile(resp.AcctSectResp.Username)
 		if err != nil {
+			return
+		}
+		if profile.UserInfo.UserName.String == nil {
+			err = errors.New("获取用户信息失败")
 			return
 		}
 		bytes, _ := json.Marshal(profile.UserInfo)
 		bytesExt, _ := json.Marshal(profile.UserInfoExt)
 		robot := model.RobotAdmin{
 			ID:          vars.RobotRuntime.RobotID,
-			WeChatID:    profile.UserInfo.UserName.String,
+			WeChatID:    *profile.UserInfo.UserName.String,
 			Alias:       profile.UserInfo.Alias,
 			BindMobile:  profile.UserInfo.BindMobile.String,
 			Nickname:    profile.UserInfo.NickName.String,

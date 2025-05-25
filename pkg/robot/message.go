@@ -14,7 +14,7 @@ type SyncMessage struct {
 	UserInfoExts    []*UserInfoExt    `json:"UserInfoExts"`
 	AddMsgs         []Message         `json:"AddMsgs"`
 	ContinueFlag    int               `json:"ContinueFlag"`
-	KeyBuf          BuiltinBuffer     `json:"KeyBuf"`
+	KeyBuf          SKBuiltinBufferT  `json:"KeyBuf"`
 	Status          int               `json:"Status"`
 	Continue        int               `json:"Continue"`
 	Time            int               `json:"Time"`
@@ -24,14 +24,14 @@ type SyncMessage struct {
 
 type Message struct {
 	MsgId        int64             `json:"MsgId"`
-	FromUserName BuiltinString     `json:"FromUserName"`
-	ToUserName   BuiltinString     `json:"ToUserName"`
-	Content      BuiltinString     `json:"Content"`
+	FromUserName SKBuiltinStringT  `json:"FromUserName"`
+	ToUserName   SKBuiltinStringT  `json:"ToUserName"`
+	Content      SKBuiltinStringT  `json:"Content"`
 	CreateTime   int64             `json:"CreateTime"`
 	MsgType      model.MessageType `json:"MsgType"`
 	Status       int               `json:"Status"`
 	ImgStatus    int               `json:"ImgStatus"`
-	ImgBuf       BuiltinBuffer     `json:"ImgBuf"`
+	ImgBuf       SKBuiltinBufferT  `json:"ImgBuf"`
 	MsgSource    string            `json:"MsgSource"`
 	NewMsgId     int64             `json:"NewMsgId"`
 	MsgSeq       int               `json:"MsgSeq"`
@@ -85,14 +85,14 @@ type SendTextMessageRequest struct {
 }
 
 type TextMessageResponse struct {
-	Ret         int           `json:"Ret"`
-	ToUsetName  BuiltinString `json:"ToUsetName"`
-	MsgId       int64         `json:"MsgId"`
-	ClientMsgid int64         `json:"ClientMsgid"`
-	Createtime  int64         `json:"Createtime"`
-	Servertime  int64         `json:"servertime"`
-	Type        int           `json:"Type"`
-	NewMsgId    int64         `json:"NewMsgId"`
+	Ret         int              `json:"Ret"`
+	ToUsetName  SKBuiltinStringT `json:"ToUsetName"`
+	MsgId       int64            `json:"MsgId"`
+	ClientMsgid int64            `json:"ClientMsgid"`
+	Createtime  int64            `json:"Createtime"`
+	Servertime  int64            `json:"servertime"`
+	Type        int              `json:"Type"`
+	NewMsgId    int64            `json:"NewMsgId"`
 }
 
 type SendTextMessageResponse struct {
@@ -110,16 +110,16 @@ type MsgUploadImgRequest struct {
 
 type MsgUploadImgResponse struct {
 	BaseResponse
-	Msgid        int64         `json:"Msgid"`
-	ClientImgId  BuiltinString `json:"ClientImgId"`
-	FromUserName BuiltinString `json:"FromUserName"`
-	ToUserName   BuiltinString `json:"ToUserName"`
-	TotalLen     int64         `json:"TotalLen"`
-	StartPos     int64         `json:"StartPos"`
-	DataLen      int64         `json:"DataLen"`
-	CreateTime   int64         `json:"CreateTime"`
-	Newmsgid     int64         `json:"Newmsgid"`
-	MsgSource    string        `json:"MsgSource"`
+	Msgid        int64            `json:"Msgid"`
+	ClientImgId  SKBuiltinStringT `json:"ClientImgId"`
+	FromUserName SKBuiltinStringT `json:"FromUserName"`
+	ToUserName   SKBuiltinStringT `json:"ToUserName"`
+	TotalLen     int64            `json:"TotalLen"`
+	StartPos     int64            `json:"StartPos"`
+	DataLen      int64            `json:"DataLen"`
+	CreateTime   int64            `json:"CreateTime"`
+	Newmsgid     int64            `json:"Newmsgid"`
+	MsgSource    string           `json:"MsgSource"`
 }
 
 type MsgSendVideoRequest struct {
@@ -273,18 +273,18 @@ type SendCDNFileResponse struct {
 
 type SendCDNImgResponse struct {
 	BaseResponse
-	FromUserName BuiltinString `json:"FromUserName"`
-	DataLen      int64         `json:"DataLen"`
-	CreateTime   int64         `json:"CreateTime"`
-	Newmsgid     int64         `json:"Newmsgid"`
-	Fileid       string        `json:"Fileid"`
-	MsgSource    string        `json:"MsgSource"`
-	Msgid        int64         `json:"Msgid"`
-	ClientImgId  BuiltinString `json:"ClientImgId"`
-	ToUserName   BuiltinString `json:"ToUserName"`
-	TotalLen     int64         `json:"TotalLen"`
-	StartPos     int64         `json:"StartPos"`
-	Aeskey       string        `json:"Aeskey"`
+	FromUserName SKBuiltinStringT `json:"FromUserName"`
+	DataLen      int64            `json:"DataLen"`
+	CreateTime   int64            `json:"CreateTime"`
+	Newmsgid     int64            `json:"Newmsgid"`
+	Fileid       string           `json:"Fileid"`
+	MsgSource    string           `json:"MsgSource"`
+	Msgid        int64            `json:"Msgid"`
+	ClientImgId  SKBuiltinStringT `json:"ClientImgId"`
+	ToUserName   SKBuiltinStringT `json:"ToUserName"`
+	TotalLen     int64            `json:"TotalLen"`
+	StartPos     int64            `json:"StartPos"`
+	Aeskey       string           `json:"Aeskey"`
 }
 
 type SendCDNVideoResponse struct {

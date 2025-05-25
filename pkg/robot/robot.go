@@ -58,13 +58,13 @@ func (r *Robot) GetQrCode() (uuid string, err error) {
 	return
 }
 
-func (r *Robot) GetProfile(wxid string) (UserProfile, error) {
+func (r *Robot) GetProfile(wxid string) (GetProfileResponse, error) {
 	return r.Client.GetProfile(wxid)
 }
 
 func (r *Robot) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 	// 尝试唤醒登陆
-	var cachedInfo CachedInfo
+	var cachedInfo LoginData
 	cachedInfo, err = r.Client.GetCachedInfo(r.WxID)
 	if err == nil && cachedInfo.Wxid != "" {
 		err = r.LoginTwiceAutoAuth()

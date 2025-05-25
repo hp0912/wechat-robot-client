@@ -72,12 +72,15 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) (err error) {
 	chunker(processChunk)
 	validContactIds := make([]string, 0)
 	for _, contact := range contacts {
-		if strings.TrimSpace(contact.UserName.String) == "" {
+		if contact.UserName.String == nil {
 			continue
 		}
-		validContactIds = append(validContactIds, contact.UserName.String)
+		if strings.TrimSpace(*contact.UserName.String) == "" {
+			continue
+		}
+		validContactIds = append(validContactIds, *contact.UserName.String)
 		// 判断数据库是否存在当前数据，不存在就新建，存在就更新
-		isExist := respo.ExistsByWeChatID(contact.UserName.String)
+		isExist := respo.ExistsByWeChatID(*contact.UserName.String)
 		if isExist {
 			// 存在，修改
 			contactPerson := model.Contact{
@@ -98,11 +101,11 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) (err error) {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
 			}
 			respo.UpdateColumnsByWhere(&contactPerson, map[string]any{
-				"wechat_id": contact.UserName.String,
+				"wechat_id": *contact.UserName.String,
 			})
 		} else {
 			contactPerson := model.Contact{
-				WechatID:      contact.UserName.String,
+				WechatID:      *contact.UserName.String,
 				Owner:         vars.RobotRuntime.WxID,
 				Alias:         contact.Alias,
 				Nickname:      contact.NickName.String,
@@ -122,7 +125,7 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) (err error) {
 			if contact.BigHeadImgUrl == "" {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
 			}
-			if strings.HasSuffix(contact.UserName.String, "@chatroom") {
+			if strings.HasSuffix(*contact.UserName.String, "@chatroom") {
 				contactPerson.Type = model.ContactTypeGroup
 			}
 			respo.Create(&contactPerson)

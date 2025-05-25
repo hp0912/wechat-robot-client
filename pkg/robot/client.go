@@ -64,8 +64,8 @@ func (c *Client) IsRunning() bool {
 	return true
 }
 
-func (c *Client) GetProfile(wxid string) (resp UserProfile, err error) {
-	var result ClientResponse[UserProfile]
+func (c *Client) GetProfile(wxid string) (resp GetProfileResponse, err error) {
+	var result ClientResponse[GetProfileResponse]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetQueryParam("wxid", wxid).
@@ -78,8 +78,8 @@ func (c *Client) GetProfile(wxid string) (resp UserProfile, err error) {
 	return
 }
 
-func (c *Client) GetCachedInfo(wxid string) (resp CachedInfo, err error) {
-	var result ClientResponse[CachedInfo]
+func (c *Client) GetCachedInfo(wxid string) (resp LoginData, err error) {
+	var result ClientResponse[LoginData]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetQueryParam("wxid", wxid).
@@ -93,7 +93,7 @@ func (c *Client) GetCachedInfo(wxid string) (resp CachedInfo, err error) {
 }
 
 func (c *Client) LoginTwiceAutoAuth(wxid string) (err error) {
-	var result ClientResponse[struct{}]
+	var result ClientResponse[UnifyAuthResponse]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetQueryParam("wxid", wxid).
@@ -187,7 +187,7 @@ func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err erro
 			Wxid:    wxid,
 			Scene:   0,
 			Synckey: "",
-		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSyncPath))
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSync))
 	if err = result.CheckError(err); err != nil {
 		return
 	}
