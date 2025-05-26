@@ -117,6 +117,9 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 		// 登陆成功
 		vars.RobotRuntime.WxID = resp.AcctSectResp.Username
 		vars.RobotRuntime.Status = model.RobotStatusOnline
+		// 更新下全局配置的所有人, 全局配置在创建机器人实例的时候创建，这个时候的所有人是空，因为获取不到微信ID
+		globalSettingsSvc := NewGlobalSettingsService(s.ctx)
+		globalSettingsSvc.UpdateGlobalSettings(resp.AcctSectResp.Username)
 		// 开启心跳
 		go s.HeartbeatStart()
 		// 开启消息同步

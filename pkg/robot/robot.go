@@ -32,6 +32,34 @@ type Robot struct {
 	SyncMessageCancel  func()
 }
 
+// 实现优雅退出接口
+func (r *Robot) Name() string {
+	return "微信机器人"
+}
+
+func (r *Robot) Shutdown(ctx context.Context) error {
+	if r.WxID == "" {
+		return nil
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if r.HeartbeatCancel != nil {
+			r.HeartbeatCancel()
+		}
+		if r.SyncMessageCancel != nil {
+			r.SyncMessageCancel()
+		}
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 func (r *Robot) IsRunning() bool {
 	return r.Client.IsRunning()
 }
@@ -397,7 +425,10 @@ func (r *Robot) SendTextMessage(toWxID, content string, at ...string) (SendTextM
 			if err != nil || len(contacts) == 0 {
 				continue
 			}
-			atMsg += fmt.Sprintf("@%s%s", contacts[0].NickName.String, "\u2005")
+			if contacts[0].NickName.String == nil {
+				continue
+			}
+			atMsg += fmt.Sprintf("@%s%s", *contacts[0].NickName.String, "\u2005")
 		}
 	}
 	newMessageContent := atMsg + content

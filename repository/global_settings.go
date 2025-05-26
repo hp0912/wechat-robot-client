@@ -24,3 +24,7 @@ func (respo *GlobalSettings) GetByOwner(owner string, preloads ...string) *model
 		return g.Where("owner = ?", owner)
 	})
 }
+
+func (respo *GlobalSettings) GetRandomOne(preloads ...string) *model.GlobalSettings {
+	return respo.takeOne(preloads)
+}
