@@ -29,8 +29,8 @@ func main() {
 		log.Fatalf("启动微信机器人失败: %v", err)
 	}
 	// 初始化定时任务
-	gcm := global_cron.NewCronManager()
-	gcm.Start()
+	vars.CronManager = global_cron.NewCronManager()
+	vars.CronManager.Start()
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))
 	app := gin.Default()
@@ -45,7 +45,7 @@ func main() {
 	}
 	shutdownManager.Register(dbConn)
 	shutdownManager.Register(vars.RobotRuntime)
-	shutdownManager.Register(gcm)
+	shutdownManager.Register(vars.CronManager)
 	// 开始监听停止信号
 	shutdownManager.Start()
 	// 启动服务

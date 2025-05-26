@@ -7,34 +7,21 @@ import (
 	"sync"
 	"time"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 
 	"github.com/go-co-op/gocron"
 )
 
-type GlobalCron string
-
-const (
-	ChatRoomRankingDailyCron  GlobalCron = "chat_room_ranking_daily_cron"
-	ChatRoomRankingWeeklyCron GlobalCron = "chat_room_ranking_weekly_cron"
-	ChatRoomRankingMonthCron  GlobalCron = "chat_room_ranking_month_cron"
-	ChatRoomSummaryCron       GlobalCron = "chat_room_summary_cron"
-	NewsCron                  GlobalCron = "news_cron"
-	MorningCron               GlobalCron = "morning_cron"
-	FriendSyncCron            GlobalCron = "friend_sync_cron"
-)
-
-type TaskHandler func(params ...any) error
-
 type CronManager struct {
 	scheduler *gocron.Scheduler
-	jobs      map[GlobalCron]*gocron.Job
+	jobs      map[vars.GlobalCron]*gocron.Job
 	mu        sync.RWMutex
 	ctx       context.Context
 	cancel    context.CancelFunc
 }
 
-func NewCronManager() *CronManager {
+func NewCronManager() vars.CronManagerInterface {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &CronManager{
 		scheduler: gocron.NewScheduler(time.Local),
@@ -70,18 +57,65 @@ func (m *CronManager) Start() {
 		globalSettings := respo.GetByOwner(vars.RobotRuntime.WxID)
 		// 为 nil 的时候，是从未扫码登陆的时候
 		if globalSettings != nil {
+			// 同步联系人
+			m.AddJob(vars.FriendSyncCron, globalSettings.FriendSyncCron, func(params ...any) error {
+				log.Println("开始同步联系人")
+				return service.NewContactService(context.Background()).SyncContact(true)
+			})
+			log.Println("同步联系人任务初始化成功")
 
+			if globalSettings.MorningEnabled != nil && *globalSettings.MorningEnabled {
+				m.AddJob(vars.MorningCron, globalSettings.MorningCron, func(params ...any) error {
+					log.Println("开始执行每日早安任务")
+					return nil
+				})
+				log.Println("每日早安任务初始化成功")
+			}
+
+			if globalSettings.NewsEnabled != nil && *globalSettings.NewsEnabled {
+				m.AddJob(vars.NewsCron, globalSettings.NewsCron, func(params ...any) error {
+					log.Println("开始执行每日早报任务")
+					return nil
+				})
+				log.Println("每日早报任务初始化成功")
+			}
+
+			if globalSettings.ChatRoomSummaryEnabled != nil && *globalSettings.ChatRoomSummaryEnabled {
+				m.AddJob(vars.ChatRoomSummaryCron, globalSettings.ChatRoomSummaryCron, func(params ...any) error {
+					log.Println("开始执行每日群聊总结任务")
+					return nil
+				})
+				log.Println("每日群聊总结任务初始化成功")
+			}
+
+			if globalSettings.ChatRoomRankingEnabled != nil && *globalSettings.ChatRoomRankingEnabled {
+				m.AddJob(vars.ChatRoomRankingDailyCron, globalSettings.ChatRoomRankingDailyCron, func(params ...any) error {
+					log.Println("开始执行每日群聊排行榜任务")
+					return nil
+				})
+				log.Println("每日群聊排行榜任务初始化成功")
+
+				if globalSettings.ChatRoomRankingWeeklyCron != nil && *globalSettings.ChatRoomRankingWeeklyCron != "" {
+					m.AddJob(vars.ChatRoomRankingWeeklyCron, *globalSettings.ChatRoomRankingWeeklyCron, func(params ...any) error {
+						log.Println("开始执行每周群聊排行榜任务")
+						return nil
+					})
+					log.Println("每周群聊排行榜任务初始化成功")
+				}
+
+				if globalSettings.ChatRoomRankingMonthCron != nil && *globalSettings.ChatRoomRankingMonthCron != "" {
+					m.AddJob(vars.ChatRoomRankingMonthCron, *globalSettings.ChatRoomRankingMonthCron, func(params ...any) error {
+						log.Println("开始执行每月群聊排行榜任务")
+						return nil
+					})
+					log.Println("每月群聊排行榜任务初始化成功")
+				}
+			}
 		}
 	}
-
-	// // 更新好友列表
-	// _, _ = s.Cron("0 */1 * * *").Do(service.NewContactService(context.Background()).SyncContact(true))
-	// // 开启定时任务
-	// s.StartAsync()
-	// log.Println("定时任务初始化成功")
 }
 
-func (m *CronManager) AddJob(cronName GlobalCron, cronExpr string, handler TaskHandler, params ...any) error {
+func (m *CronManager) AddJob(cronName vars.GlobalCron, cronExpr string, handler vars.TaskHandler, params ...any) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	// 添加到调度器
@@ -96,7 +130,7 @@ func (m *CronManager) AddJob(cronName GlobalCron, cronExpr string, handler TaskH
 	return nil
 }
 
-func (m *CronManager) RemoveJob(cronName GlobalCron) error {
+func (m *CronManager) RemoveJob(cronName vars.GlobalCron) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, exists := m.jobs[cronName]; exists {
@@ -107,7 +141,7 @@ func (m *CronManager) RemoveJob(cronName GlobalCron) error {
 	return nil
 }
 
-func (m *CronManager) UpdateJob(cronName GlobalCron, cronExpr string, handler TaskHandler, params ...any) error {
+func (m *CronManager) UpdateJob(cronName vars.GlobalCron, cronExpr string, handler vars.TaskHandler, params ...any) error {
 	// 先移除旧任务
 	if err := m.RemoveJob(cronName); err != nil {
 		return err
