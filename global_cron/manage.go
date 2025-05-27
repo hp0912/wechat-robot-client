@@ -20,6 +20,11 @@ type CronManager struct {
 	cancel    context.CancelFunc
 }
 
+type CronInstance interface {
+	IsActive() bool
+	Start()
+}
+
 func NewCronManager() vars.CronManagerInterface {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &CronManager{
@@ -56,59 +61,26 @@ func (m *CronManager) Start() {
 		// 为 nil 的时候，是从未扫码登陆的时候
 		if globalSettings != nil {
 			// 同步联系人
-			m.AddJob(vars.FriendSyncCron, globalSettings.FriendSyncCron, func(params ...any) error {
-				log.Println("开始同步联系人")
-				return service.NewContactService(context.Background()).SyncContact(true)
-			})
-			log.Println("同步联系人任务初始化成功")
-
-			if globalSettings.MorningEnabled != nil && *globalSettings.MorningEnabled {
-				m.AddJob(vars.MorningCron, globalSettings.MorningCron, func(params ...any) error {
-					log.Println("开始执行每日早安任务")
-					return nil
-				})
-				log.Println("每日早安任务初始化成功")
-			}
-
-			if globalSettings.NewsEnabled != nil && *globalSettings.NewsEnabled {
-				m.AddJob(vars.NewsCron, globalSettings.NewsCron, func(params ...any) error {
-					log.Println("开始执行每日早报任务")
-					return nil
-				})
-				log.Println("每日早报任务初始化成功")
-			}
-
-			if globalSettings.ChatRoomSummaryEnabled != nil && *globalSettings.ChatRoomSummaryEnabled {
-				m.AddJob(vars.ChatRoomSummaryCron, globalSettings.ChatRoomSummaryCron, func(params ...any) error {
-					log.Println("开始执行每日群聊总结任务")
-					return nil
-				})
-				log.Println("每日群聊总结任务初始化成功")
-			}
-
-			if globalSettings.ChatRoomRankingEnabled != nil && *globalSettings.ChatRoomRankingEnabled {
-				m.AddJob(vars.ChatRoomRankingDailyCron, globalSettings.ChatRoomRankingDailyCron, func(params ...any) error {
-					log.Println("开始执行每日群聊排行榜任务")
-					return nil
-				})
-				log.Println("每日群聊排行榜任务初始化成功")
-
-				if globalSettings.ChatRoomRankingWeeklyCron != nil && *globalSettings.ChatRoomRankingWeeklyCron != "" {
-					m.AddJob(vars.ChatRoomRankingWeeklyCron, *globalSettings.ChatRoomRankingWeeklyCron, func(params ...any) error {
-						log.Println("开始执行每周群聊排行榜任务")
-						return nil
-					})
-					log.Println("每周群聊排行榜任务初始化成功")
-				}
-
-				if globalSettings.ChatRoomRankingMonthCron != nil && *globalSettings.ChatRoomRankingMonthCron != "" {
-					m.AddJob(vars.ChatRoomRankingMonthCron, *globalSettings.ChatRoomRankingMonthCron, func(params ...any) error {
-						log.Println("开始执行每月群聊排行榜任务")
-						return nil
-					})
-					log.Println("每月群聊排行榜任务初始化成功")
-				}
-			}
+			syncContactCron := NewSyncContactCron(m, globalSettings)
+			syncContactCron.Start()
+			// 每日早安
+			morningCron := NewGoodMorningCron(m, globalSettings)
+			morningCron.Start()
+			// 每日早报
+			newsCron := NewNewsCron(m, globalSettings)
+			newsCron.Start()
+			// 每日群聊总结
+			chatRoomSummaryCron := NewChatRoomSummaryCron(m, globalSettings)
+			chatRoomSummaryCron.Start()
+			// 每日群聊排行榜
+			chatRoomRankingDailyCron := NewChatRoomRankingDailyCron(m, globalSettings)
+			chatRoomRankingDailyCron.Start()
+			// 每周群聊排行榜
+			chatRoomRankingWeeklyCron := NewChatRoomRankingWeeklyCron(m, globalSettings)
+			chatRoomRankingWeeklyCron.Start()
+			// 每月群聊排行榜
+			chatRoomRankingMonthCron := NewChatRoomRankingMonthCron(m, globalSettings)
+			chatRoomRankingMonthCron.Start()
 		}
 	}
 }

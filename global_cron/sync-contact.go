@@ -1,37 +1,37 @@
 package global_cron
 
 import (
+	"context"
 	"log"
 	"wechat-robot-client/model"
+	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 )
 
-type GoodMorningCron struct {
+type SyncContactCron struct {
 	CronManager    *CronManager
 	GlobalSettings *model.GlobalSettings
 }
 
-func NewGoodMorningCron(cronManager *CronManager, globalSettings *model.GlobalSettings) *GoodMorningCron {
-	return &GoodMorningCron{
+func NewSyncContactCron(cronManager *CronManager, globalSettings *model.GlobalSettings) *SyncContactCron {
+	return &SyncContactCron{
 		CronManager:    cronManager,
 		GlobalSettings: globalSettings,
 	}
 }
 
-func (cron *GoodMorningCron) IsActive() bool {
-	if cron.GlobalSettings.MorningEnabled != nil && *cron.GlobalSettings.MorningEnabled {
-		return true
-	}
-	return false
+func (cron *SyncContactCron) IsActive() bool {
+	return true
 }
 
-func (cron *GoodMorningCron) Start() {
+func (cron *SyncContactCron) Start() {
 	if !cron.IsActive() {
+		log.Println("联系人同步任务未启用")
 		return
 	}
 	cron.CronManager.AddJob(vars.FriendSyncCron, cron.GlobalSettings.FriendSyncCron, func(params ...any) error {
 		log.Println("开始同步联系人")
-		return nil
+		return service.NewContactService(context.Background()).SyncContact(true)
 	})
 	log.Println("同步联系人任务初始化成功")
 }

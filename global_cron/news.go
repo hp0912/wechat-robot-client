@@ -6,26 +6,26 @@ import (
 	"wechat-robot-client/vars"
 )
 
-type GoodMorningCron struct {
+type NewsCron struct {
 	CronManager    *CronManager
 	GlobalSettings *model.GlobalSettings
 }
 
-func NewGoodMorningCron(cronManager *CronManager, globalSettings *model.GlobalSettings) *GoodMorningCron {
-	return &GoodMorningCron{
+func NewNewsCron(cronManager *CronManager, globalSettings *model.GlobalSettings) *NewsCron {
+	return &NewsCron{
 		CronManager:    cronManager,
 		GlobalSettings: globalSettings,
 	}
 }
 
-func (cron *GoodMorningCron) IsActive() bool {
-	if cron.GlobalSettings.MorningEnabled != nil && *cron.GlobalSettings.MorningEnabled {
+func (cron *NewsCron) IsActive() bool {
+	if cron.GlobalSettings.NewsEnabled != nil && *cron.GlobalSettings.NewsEnabled {
 		return true
 	}
 	return false
 }
 
-func (cron *GoodMorningCron) Start() {
+func (cron *NewsCron) Start() {
 	if !cron.IsActive() {
 		return
 	}
