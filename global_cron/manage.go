@@ -6,7 +6,6 @@ import (
 	"log"
 	"sync"
 	"time"
-	"wechat-robot-client/repository"
 	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 
@@ -51,10 +50,9 @@ func (m *CronManager) Shutdown(ctx context.Context) error {
 func (m *CronManager) Start() {
 	// 启动调度器
 	m.scheduler.StartAsync()
-	respo := repository.NewGlobalSettingsRepo(context.Background(), vars.DB)
 	// 为空的时候，是从未扫码登陆的时候
 	if vars.RobotRuntime.WxID != "" {
-		globalSettings := respo.GetByOwner(vars.RobotRuntime.WxID)
+		globalSettings := service.NewGlobalSettingsService(context.Background()).GetGlobalSettings()
 		// 为 nil 的时候，是从未扫码登陆的时候
 		if globalSettings != nil {
 			// 同步联系人

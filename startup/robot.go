@@ -10,7 +10,6 @@ import (
 	"time"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
-	"wechat-robot-client/repository"
 	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 )
@@ -26,8 +25,7 @@ func InitWechatRobot() error {
 	if err != nil {
 		return err
 	}
-	robotRespo := repository.NewRobotAdminRepo(context.Background(), vars.AdminDB)
-	robotAdmin := robotRespo.GetByRobotID(id)
+	robotAdmin := service.NewAdminService(context.Background()).GetRobotByID(id)
 	if robotAdmin == nil {
 		return errors.New("未找到机器人配置")
 	}
