@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"text/template"
@@ -733,14 +732,8 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 }
 
 func (r *Robot) SendMusicMessage(toWxID string, songInfo SongInfo) (appMessage SendAppResponse, xmlStr string, err error) {
-	var projectRoot string
-	projectRoot, err = r.GetProjectRoot()
-	if err != nil {
-		return
-	}
-
-	musicXmlPath := filepath.Join(projectRoot, "xml", "music.xml")
-	xmlTemplate, err := os.ReadFile(musicXmlPath)
+	musicXmlPath := filepath.Join("xml", "music.xml")
+	xmlTemplate, err := XmlFolder.ReadFile(musicXmlPath)
 	if err != nil {
 		err = fmt.Errorf("读取音乐XML模板失败: %w", err)
 		return
@@ -799,15 +792,6 @@ func (r *Robot) SendCDNImg(req SendCDNAttachmentRequest) (cdnImageMessage SendCD
 func (r *Robot) SendCDNVideo(req SendCDNAttachmentRequest) (cdnVideoMessage SendCDNVideoResponse, err error) {
 	req.Wxid = r.WxID
 	return r.Client.SendCDNVideo(req)
-}
-
-func (r *Robot) GetProjectRoot() (string, error) {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return "", errors.New("无法获取运行时信息")
-	}
-	projectRoot := filepath.Join(filepath.Dir(filename), "../..") // 上一级为项目根目录
-	return projectRoot, nil
 }
 
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {
