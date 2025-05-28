@@ -111,5 +111,6 @@ func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, page
 
 func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSummary, error) {
 	summary := dto.ChatRoomSummary{}
+	//
 	return summary, nil
 }

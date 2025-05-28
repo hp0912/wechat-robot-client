@@ -27,10 +27,10 @@ func TestDraw(t *testing.T) {
 	summary.Month = int(month)
 	summary.Date = day
 	summary.Week = weekdays[weekday]
-	summary.UserTotalCount = 490
-	summary.UserJoinCount = 0
-	summary.UserLeaveCount = 1
-	summary.UserChatCount = 60
+	summary.MemberTotalCount = 490
+	summary.MemberJoinCount = 0
+	summary.MemberLeaveCount = 1
+	summary.MemberChatCount = 60
 	summary.MessageCount = 1490
 
 	image, err := Draw("知识是很美的，它们可以让你不出家门就了解这世上的许多事。", summary)

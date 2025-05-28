@@ -72,7 +72,7 @@ func Draw(dailyWords string, summary dto.ChatRoomSummary) (io.Reader, error) {
 
 	content.SetSrc(image.NewUniform(color.RGBA{R: 237, G: 39, B: 90, A: 255})) // 设置字体颜色
 	drawLeft += (utf8.RuneCountInString(drawContent) * 18)
-	drawContent = fmt.Sprintf("%d", summary.UserTotalCount)
+	drawContent = fmt.Sprintf("%d", summary.MemberTotalCount)
 	content.DrawString(drawContent, freetype.Pt(drawLeft, drawTop))
 
 	content.SetSrc(image.Opaque)
@@ -82,29 +82,29 @@ func Draw(dailyWords string, summary dto.ChatRoomSummary) (io.Reader, error) {
 
 	drawLeft = 16
 	drawTop += 30
-	if summary.UserJoinCount == 0 && summary.UserLeaveCount == 0 {
+	if summary.MemberJoinCount == 0 && summary.MemberLeaveCount == 0 {
 		drawContent = "没有人加入，也没有人离开，"
 		content.DrawString(drawContent, freetype.Pt(drawLeft, drawTop))
-	} else if summary.UserJoinCount == 0 {
+	} else if summary.MemberJoinCount == 0 {
 		drawContent = "没有人加入，有"
 		content.DrawString(drawContent, freetype.Pt(drawLeft, drawTop))
 
 		drawLeft += (utf8.RuneCountInString(drawContent) * 18)
 		content.SetSrc(image.NewUniform(color.RGBA{R: 237, G: 39, B: 90, A: 255})) // 设置字体颜色
-		drawContent = fmt.Sprintf("%d", summary.UserLeaveCount)
+		drawContent = fmt.Sprintf("%d", summary.MemberLeaveCount)
 		content.DrawString(drawContent, freetype.Pt(drawLeft, drawTop))
 
 		drawLeft += (len(drawContent) * 10)
 		content.SetSrc(image.Opaque)
 		drawContent = "人离开了我们，"
 		content.DrawString(drawContent, freetype.Pt(drawLeft, drawTop))
-	} else if summary.UserLeaveCount == 0 {
+	} else if summary.MemberLeaveCount == 0 {
 		drawContent = "有"
 		content.DrawString(drawContent, freetype.Pt(drawLeft, drawTop))
 
 		drawLeft += (utf8.RuneCountInString(drawContent) * 18)
 		content.SetSrc(image.NewUniform(color.RGBA{R: 237, G: 39, B: 90, A: 255})) // 设置字体颜色
-		drawContent = fmt.Sprintf("%d", summary.UserJoinCount)
+		drawContent = fmt.Sprintf("%d", summary.MemberJoinCount)
 		content.DrawString(drawContent, freetype.Pt(drawLeft, drawTop))
 
 		drawLeft += (len(drawContent) * 10)
@@ -117,7 +117,7 @@ func Draw(dailyWords string, summary dto.ChatRoomSummary) (io.Reader, error) {
 
 		drawLeft += (utf8.RuneCountInString(drawContent) * 18)
 		content.SetSrc(image.NewUniform(color.RGBA{R: 237, G: 39, B: 90, A: 255})) // 设置字体颜色
-		drawContent = fmt.Sprintf("%d", summary.UserJoinCount)
+		drawContent = fmt.Sprintf("%d", summary.MemberJoinCount)
 		content.DrawString(drawContent, freetype.Pt(drawLeft, drawTop))
 
 		drawLeft += (len(drawContent) * 10)
@@ -127,7 +127,7 @@ func Draw(dailyWords string, summary dto.ChatRoomSummary) (io.Reader, error) {
 
 		drawLeft += (utf8.RuneCountInString(drawContent) * 18)
 		content.SetSrc(image.NewUniform(color.RGBA{R: 237, G: 39, B: 90, A: 255})) // 设置字体颜色
-		drawContent = fmt.Sprintf("%d", summary.UserLeaveCount)
+		drawContent = fmt.Sprintf("%d", summary.MemberLeaveCount)
 		content.DrawString(drawContent, freetype.Pt(drawLeft, drawTop))
 
 		drawLeft += (len(drawContent) * 10)
@@ -144,7 +144,7 @@ func Draw(dailyWords string, summary dto.ChatRoomSummary) (io.Reader, error) {
 
 	drawLeft += (utf8.RuneCountInString(drawContent) * 18)
 	content.SetSrc(image.NewUniform(color.RGBA{R: 237, G: 39, B: 90, A: 255})) // 设置字体颜色
-	drawContent = fmt.Sprintf("%d", summary.UserChatCount)
+	drawContent = fmt.Sprintf("%d", summary.MemberChatCount)
 	content.DrawString(drawContent, freetype.Pt(drawLeft, drawTop))
 
 	drawLeft += (len(drawContent) * 10)

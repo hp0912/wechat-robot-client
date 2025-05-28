@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"strings"
+	"time"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/appx"
@@ -72,4 +73,28 @@ func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) (
 	}
 
 	return messages, total, nil
+}
+
+func (m *Message) GetYesterdayChatInfo(chatRoomID string) ([]dto.ChatRoomSummary, error) {
+	chatRoomSummary := []dto.ChatRoomSummary{}
+	// 获取今天凌晨零点
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// 获取昨天凌晨零点
+	yesterdayStart := todayStart.AddDate(0, 0, -1)
+	// 转换为时间戳（秒）
+	yesterdayStartTimestamp := yesterdayStart.Unix()
+	todayStartTimestamp := todayStart.Unix()
+	query := m.DB.Model(&model.Message{})
+	query = query.Select("count( 1 ) AS `member_chat_count`").
+		Where("from_wxid = ?", chatRoomID).
+		Where("type < 10000").
+		Where("created_at >= ?", yesterdayStartTimestamp).
+		Where("created_at < ?", todayStartTimestamp).
+		Group("sender_wxid")
+
+	if err := query.Find(&chatRoomSummary).Error; err != nil {
+		return nil, err
+	}
+	return chatRoomSummary, nil
 }

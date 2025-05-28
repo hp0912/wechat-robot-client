@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/appx"
@@ -62,10 +63,39 @@ func (c *ChatRoomMember) GetChatRoomMemberCount(chatRoomID string) (int64, error
 // 昨天入群人数
 func (c *ChatRoomMember) GetYesterdayJoinCount(chatRoomID string) (int64, error) {
 	var total int64
+	// 获取今天凌晨零点
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// 获取昨天凌晨零点
+	yesterdayStart := todayStart.AddDate(0, 0, -1)
+	// 转换为时间戳（秒）
+	yesterdayStartTimestamp := yesterdayStart.Unix()
+	todayStartTimestamp := todayStart.Unix()
 	query := c.DB.Model(&model.ChatRoomMember{})
 	query = query.Where("chat_room_id = ?", chatRoomID).
-		Where("joined_at >= ?", 0).
-		Where("joined_at < ?", 0)
+		Where("joined_at >= ?", yesterdayStartTimestamp).
+		Where("joined_at < ?", todayStartTimestamp)
+	if err := query.Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+// 昨天离群人数
+func (c *ChatRoomMember) GetYesterdayLeaveCount(chatRoomID string) (int64, error) {
+	var total int64
+	// 获取今天凌晨零点
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// 获取昨天凌晨零点
+	yesterdayStart := todayStart.AddDate(0, 0, -1)
+	// 转换为时间戳（秒）
+	yesterdayStartTimestamp := yesterdayStart.Unix()
+	todayStartTimestamp := todayStart.Unix()
+	query := c.DB.Model(&model.ChatRoomMember{})
+	query = query.Where("chat_room_id = ?", chatRoomID).
+		Where("leaved_at >= ?", yesterdayStartTimestamp).
+		Where("leaved_at < ?", todayStartTimestamp)
 	if err := query.Count(&total).Error; err != nil {
 		return 0, err
 	}
