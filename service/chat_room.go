@@ -108,3 +108,8 @@ func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, page
 	respo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
 	return respo.GetByChatRoomID(req, pager)
 }
+
+func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSummary, error) {
+	summary := dto.ChatRoomSummary{}
+	return summary, nil
+}

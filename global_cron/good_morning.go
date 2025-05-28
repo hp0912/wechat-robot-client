@@ -27,11 +27,12 @@ func (cron *GoodMorningCron) IsActive() bool {
 
 func (cron *GoodMorningCron) Start() {
 	if !cron.IsActive() {
+		log.Println("每日早安任务未启用")
 		return
 	}
 	cron.CronManager.AddJob(vars.FriendSyncCron, cron.GlobalSettings.FriendSyncCron, func(params ...any) error {
-		log.Println("开始同步联系人")
+		log.Println("开始每日早安任务")
 		return nil
 	})
-	log.Println("同步联系人任务初始化成功")
+	log.Println("每日早安任务初始化成功")
 }

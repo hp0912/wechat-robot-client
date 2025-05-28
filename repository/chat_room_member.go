@@ -47,3 +47,27 @@ func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager ap
 
 	return chatRoomMembers, total, nil
 }
+
+// 当前群总人数
+func (c *ChatRoomMember) GetChatRoomMemberCount(chatRoomID string) (int64, error) {
+	var total int64
+	query := c.DB.Model(&model.ChatRoomMember{})
+	query = query.Where("chat_room_id = ?", chatRoomID).Where("leaved_at IS NULL")
+	if err := query.Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+// 昨天入群人数
+func (c *ChatRoomMember) GetYesterdayJoinCount(chatRoomID string) (int64, error) {
+	var total int64
+	query := c.DB.Model(&model.ChatRoomMember{})
+	query = query.Where("chat_room_id = ?", chatRoomID).
+		Where("joined_at >= ?", 0).
+		Where("joined_at < ?", 0)
+	if err := query.Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return total, nil
+}

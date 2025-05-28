@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"mime/multipart"
 	"strconv"
 	"strings"
 	"time"
@@ -204,7 +203,7 @@ func (s *MessageService) SendTextMessage(req dto.SendTextMessageRequest) error {
 	return nil
 }
 
-func (s *MessageService) MsgUploadImg(toWxID string, image multipart.File) error {
+func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) error {
 	imageBytes, err := io.ReadAll(image)
 	if err != nil {
 		return fmt.Errorf("读取文件内容失败: %w", err)
@@ -236,7 +235,7 @@ func (s *MessageService) MsgUploadImg(toWxID string, image multipart.File) error
 	return nil
 }
 
-func (s *MessageService) MsgSendVideo(toWxID string, video multipart.File, videoExt string) error {
+func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt string) error {
 	videoBytes, err := io.ReadAll(video)
 	if err != nil {
 		return fmt.Errorf("读取文件内容失败: %w", err)
@@ -269,7 +268,7 @@ func (s *MessageService) MsgSendVideo(toWxID string, video multipart.File, video
 	return nil
 }
 
-func (s *MessageService) MsgSendVoice(toWxID string, voice multipart.File, voiceExt string) error {
+func (s *MessageService) MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error {
 	videoBytes, err := io.ReadAll(voice)
 	if err != nil {
 		return fmt.Errorf("读取文件内容失败: %w", err)
