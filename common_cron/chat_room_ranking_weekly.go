@@ -2,25 +2,22 @@ package common_cron
 
 import (
 	"log"
-	"wechat-robot-client/model"
 	"wechat-robot-client/vars"
 )
 
 type ChatRoomRankingWeeklyCron struct {
-	CronManager    *CronManager
-	GlobalSettings *model.GlobalSettings
+	CronManager *CronManager
 }
 
-func NewChatRoomRankingWeeklyCron(cronManager *CronManager, globalSettings *model.GlobalSettings) *ChatRoomRankingWeeklyCron {
+func NewChatRoomRankingWeeklyCron(cronManager *CronManager) *ChatRoomRankingWeeklyCron {
 	return &ChatRoomRankingWeeklyCron{
-		CronManager:    cronManager,
-		GlobalSettings: globalSettings,
+		CronManager: cronManager,
 	}
 }
 
 func (cron *ChatRoomRankingWeeklyCron) IsActive() bool {
-	if cron.GlobalSettings.ChatRoomRankingEnabled != nil && *cron.GlobalSettings.ChatRoomRankingEnabled {
-		if cron.GlobalSettings.ChatRoomRankingWeeklyCron != nil && *cron.GlobalSettings.ChatRoomRankingWeeklyCron != "" {
+	if cron.CronManager.globalSettings.ChatRoomRankingEnabled != nil && *cron.CronManager.globalSettings.ChatRoomRankingEnabled {
+		if cron.CronManager.globalSettings.ChatRoomRankingWeeklyCron != nil && *cron.CronManager.globalSettings.ChatRoomRankingWeeklyCron != "" {
 			return true
 		}
 	}
@@ -29,9 +26,10 @@ func (cron *ChatRoomRankingWeeklyCron) IsActive() bool {
 
 func (cron *ChatRoomRankingWeeklyCron) Register() {
 	if !cron.IsActive() {
+		log.Println("每周群聊排行榜任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.ChatRoomRankingWeeklyCron, *cron.GlobalSettings.ChatRoomRankingWeeklyCron, func(params ...any) error {
+	cron.CronManager.AddJob(vars.ChatRoomRankingWeeklyCron, *cron.CronManager.globalSettings.ChatRoomRankingWeeklyCron, func(params ...any) error {
 		log.Println("开始执行每周群聊排行榜任务")
 		return nil
 	})

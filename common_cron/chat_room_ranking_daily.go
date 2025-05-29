@@ -2,24 +2,21 @@ package common_cron
 
 import (
 	"log"
-	"wechat-robot-client/model"
 	"wechat-robot-client/vars"
 )
 
 type ChatRoomRankingDailyCron struct {
-	CronManager    *CronManager
-	GlobalSettings *model.GlobalSettings
+	CronManager *CronManager
 }
 
-func NewChatRoomRankingDailyCron(cronManager *CronManager, globalSettings *model.GlobalSettings) *ChatRoomRankingDailyCron {
+func NewChatRoomRankingDailyCron(cronManager *CronManager) *ChatRoomRankingDailyCron {
 	return &ChatRoomRankingDailyCron{
-		CronManager:    cronManager,
-		GlobalSettings: globalSettings,
+		CronManager: cronManager,
 	}
 }
 
 func (cron *ChatRoomRankingDailyCron) IsActive() bool {
-	if cron.GlobalSettings.ChatRoomRankingEnabled != nil && *cron.GlobalSettings.ChatRoomRankingEnabled {
+	if cron.CronManager.globalSettings.ChatRoomRankingEnabled != nil && *cron.CronManager.globalSettings.ChatRoomRankingEnabled {
 		return true
 	}
 	return false
@@ -27,9 +24,10 @@ func (cron *ChatRoomRankingDailyCron) IsActive() bool {
 
 func (cron *ChatRoomRankingDailyCron) Register() {
 	if !cron.IsActive() {
+		log.Println("每日群聊排行榜任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.ChatRoomRankingDailyCron, cron.GlobalSettings.ChatRoomRankingDailyCron, func(params ...any) error {
+	cron.CronManager.AddJob(vars.ChatRoomRankingDailyCron, cron.CronManager.globalSettings.ChatRoomRankingDailyCron, func(params ...any) error {
 		log.Println("开始执行每日群聊排行榜任务")
 		return nil
 	})

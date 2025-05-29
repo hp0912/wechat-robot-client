@@ -3,20 +3,17 @@ package common_cron
 import (
 	"context"
 	"log"
-	"wechat-robot-client/model"
 	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 )
 
 type SyncContactCron struct {
-	CronManager    *CronManager
-	GlobalSettings *model.GlobalSettings
+	CronManager *CronManager
 }
 
-func NewSyncContactCron(cronManager *CronManager, globalSettings *model.GlobalSettings) *SyncContactCron {
+func NewSyncContactCron(cronManager *CronManager) *SyncContactCron {
 	return &SyncContactCron{
-		CronManager:    cronManager,
-		GlobalSettings: globalSettings,
+		CronManager: cronManager,
 	}
 }
 
@@ -29,7 +26,7 @@ func (cron *SyncContactCron) Register() {
 		log.Println("联系人同步任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.FriendSyncCron, cron.GlobalSettings.FriendSyncCron, func(params ...any) error {
+	cron.CronManager.AddJob(vars.FriendSyncCron, cron.CronManager.globalSettings.FriendSyncCron, func(params ...any) error {
 		log.Println("开始同步联系人")
 		return service.NewContactService(context.Background()).SyncContact(true)
 	})

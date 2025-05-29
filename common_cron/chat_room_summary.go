@@ -2,24 +2,21 @@ package common_cron
 
 import (
 	"log"
-	"wechat-robot-client/model"
 	"wechat-robot-client/vars"
 )
 
 type ChatRoomSummaryCron struct {
-	CronManager    *CronManager
-	GlobalSettings *model.GlobalSettings
+	CronManager *CronManager
 }
 
-func NewChatRoomSummaryCron(cronManager *CronManager, globalSettings *model.GlobalSettings) *ChatRoomSummaryCron {
+func NewChatRoomSummaryCron(cronManager *CronManager) *ChatRoomSummaryCron {
 	return &ChatRoomSummaryCron{
-		CronManager:    cronManager,
-		GlobalSettings: globalSettings,
+		CronManager: cronManager,
 	}
 }
 
 func (cron *ChatRoomSummaryCron) IsActive() bool {
-	if cron.GlobalSettings.ChatRoomSummaryEnabled != nil && *cron.GlobalSettings.ChatRoomSummaryEnabled {
+	if cron.CronManager.globalSettings.ChatRoomSummaryEnabled != nil && *cron.CronManager.globalSettings.ChatRoomSummaryEnabled {
 		return true
 	}
 	return false
@@ -27,9 +24,10 @@ func (cron *ChatRoomSummaryCron) IsActive() bool {
 
 func (cron *ChatRoomSummaryCron) Register() {
 	if !cron.IsActive() {
+		log.Println("每日群聊总结任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.ChatRoomSummaryCron, cron.GlobalSettings.ChatRoomSummaryCron, func(params ...any) error {
+	cron.CronManager.AddJob(vars.ChatRoomSummaryCron, cron.CronManager.globalSettings.ChatRoomSummaryCron, func(params ...any) error {
 		log.Println("开始执行每日群聊总结任务")
 		return nil
 	})

@@ -25,6 +25,10 @@ func (s *GlobalSettingsService) GetGlobalSettings() *model.GlobalSettings {
 func (s *GlobalSettingsService) SaveGlobalSettings(data *model.GlobalSettings) {
 	respo := repository.NewGlobalSettingsRepo(s.ctx, vars.DB)
 	respo.Update(data)
+	// 重置公共定时任务
+	vars.CronManager.Clear()
+	vars.CronManager.SetGlobalSettings(data)
+	vars.CronManager.Start()
 }
 
 func (s *GlobalSettingsService) UpdateGlobalSettings(wxID string) {

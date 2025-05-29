@@ -6,7 +6,6 @@ import (
 	"log"
 	"strings"
 	"wechat-robot-client/dto"
-	"wechat-robot-client/model"
 	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 
@@ -14,8 +13,7 @@ import (
 )
 
 type NewsCron struct {
-	CronManager    *CronManager
-	GlobalSettings *model.GlobalSettings
+	CronManager *CronManager
 }
 
 type NewsResponse struct {
@@ -28,15 +26,14 @@ type NewsResponse struct {
 	Weiyu   string   `json:"weiyu"`
 }
 
-func NewNewsCron(cronManager *CronManager, globalSettings *model.GlobalSettings) *NewsCron {
+func NewNewsCron(cronManager *CronManager) *NewsCron {
 	return &NewsCron{
-		CronManager:    cronManager,
-		GlobalSettings: globalSettings,
+		CronManager: cronManager,
 	}
 }
 
 func (cron *NewsCron) IsActive() bool {
-	if cron.GlobalSettings.NewsEnabled != nil && *cron.GlobalSettings.NewsEnabled {
+	if cron.CronManager.globalSettings.NewsEnabled != nil && *cron.CronManager.globalSettings.NewsEnabled {
 		return true
 	}
 	return false
@@ -44,9 +41,10 @@ func (cron *NewsCron) IsActive() bool {
 
 func (cron *NewsCron) Register() {
 	if !cron.IsActive() {
+		log.Println("每日早报任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.FriendSyncCron, cron.GlobalSettings.FriendSyncCron, func(params ...any) error {
+	cron.CronManager.AddJob(vars.FriendSyncCron, cron.CronManager.globalSettings.FriendSyncCron, func(params ...any) error {
 		log.Println("开始执行每日早报任务")
 
 		settings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableNews(vars.RobotRuntime.WxID)

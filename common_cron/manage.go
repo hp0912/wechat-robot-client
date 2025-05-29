@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 	"time"
+	"wechat-robot-client/model"
 	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 
@@ -13,11 +14,12 @@ import (
 )
 
 type CronManager struct {
-	scheduler *gocron.Scheduler
-	jobs      map[vars.CommonCron]*gocron.Job
-	mu        sync.RWMutex
-	ctx       context.Context
-	cancel    context.CancelFunc
+	scheduler      *gocron.Scheduler
+	globalSettings *model.GlobalSettings
+	jobs           map[vars.CommonCron]*gocron.Job
+	mu             sync.RWMutex
+	ctx            context.Context
+	cancel         context.CancelFunc
 }
 
 type CronInstance interface {
@@ -26,16 +28,18 @@ type CronInstance interface {
 }
 
 func NewCronManager() vars.CronManagerInterface {
+	globalSettings := service.NewGlobalSettingsService(context.Background()).GetGlobalSettings()
 	ctx, cancel := context.WithCancel(context.Background())
 	return &CronManager{
-		scheduler: gocron.NewScheduler(time.Local),
-		ctx:       ctx,
-		cancel:    cancel,
+		scheduler:      gocron.NewScheduler(time.Local),
+		globalSettings: globalSettings,
+		ctx:            ctx,
+		cancel:         cancel,
 	}
 }
 
 func (m *CronManager) Name() string {
-	return "全局定时任务"
+	return "公共定时任务"
 }
 
 func (m *CronManager) Shutdown(ctx context.Context) error {
@@ -52,34 +56,37 @@ func (m *CronManager) Shutdown(ctx context.Context) error {
 	}
 }
 
+func (m *CronManager) SetGlobalSettings(globalSettings *model.GlobalSettings) {
+	m.globalSettings = globalSettings
+}
+
 func (m *CronManager) Start() {
 	// 启动调度器
 	m.scheduler.StartAsync()
 	// 为空的时候，是从未扫码登陆的时候
 	if vars.RobotRuntime.WxID != "" {
-		globalSettings := service.NewGlobalSettingsService(context.Background()).GetGlobalSettings()
 		// 为 nil 的时候，是从未扫码登陆的时候
-		if globalSettings != nil {
+		if m.globalSettings != nil {
 			// 同步联系人
-			syncContactCron := NewSyncContactCron(m, globalSettings)
+			syncContactCron := NewSyncContactCron(m)
 			syncContactCron.Register()
 			// 每日早安
-			morningCron := NewGoodMorningCron(m, globalSettings)
+			morningCron := NewGoodMorningCron(m)
 			morningCron.Register()
 			// 每日早报
-			newsCron := NewNewsCron(m, globalSettings)
+			newsCron := NewNewsCron(m)
 			newsCron.Register()
 			// 每日群聊总结
-			chatRoomSummaryCron := NewChatRoomSummaryCron(m, globalSettings)
+			chatRoomSummaryCron := NewChatRoomSummaryCron(m)
 			chatRoomSummaryCron.Register()
 			// 每日群聊排行榜
-			chatRoomRankingDailyCron := NewChatRoomRankingDailyCron(m, globalSettings)
+			chatRoomRankingDailyCron := NewChatRoomRankingDailyCron(m)
 			chatRoomRankingDailyCron.Register()
 			// 每周群聊排行榜
-			chatRoomRankingWeeklyCron := NewChatRoomRankingWeeklyCron(m, globalSettings)
+			chatRoomRankingWeeklyCron := NewChatRoomRankingWeeklyCron(m)
 			chatRoomRankingWeeklyCron.Register()
 			// 每月群聊排行榜
-			chatRoomRankingMonthCron := NewChatRoomRankingMonthCron(m, globalSettings)
+			chatRoomRankingMonthCron := NewChatRoomRankingMonthCron(m)
 			chatRoomRankingMonthCron.Register()
 		}
 	}
@@ -118,6 +125,10 @@ func (m *CronManager) UpdateJob(cronName vars.CommonCron, cronExpr string, handl
 	}
 	// 添加新任务
 	return m.AddJob(cronName, cronExpr, handler, params...)
+}
+
+func (m *CronManager) Clear() {
+	m.scheduler.Clear()
 }
 
 func (m *CronManager) Stop() {

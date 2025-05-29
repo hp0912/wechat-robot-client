@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/good_morning"
 	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
@@ -14,19 +13,17 @@ import (
 )
 
 type GoodMorningCron struct {
-	CronManager    *CronManager
-	GlobalSettings *model.GlobalSettings
+	CronManager *CronManager
 }
 
-func NewGoodMorningCron(cronManager *CronManager, globalSettings *model.GlobalSettings) *GoodMorningCron {
+func NewGoodMorningCron(cronManager *CronManager) *GoodMorningCron {
 	return &GoodMorningCron{
-		CronManager:    cronManager,
-		GlobalSettings: globalSettings,
+		CronManager: cronManager,
 	}
 }
 
 func (cron *GoodMorningCron) IsActive() bool {
-	if cron.GlobalSettings.MorningEnabled != nil && *cron.GlobalSettings.MorningEnabled {
+	if cron.CronManager.globalSettings.MorningEnabled != nil && *cron.CronManager.globalSettings.MorningEnabled {
 		return true
 	}
 	return false
@@ -37,7 +34,7 @@ func (cron *GoodMorningCron) Register() {
 		log.Println("每日早安任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.FriendSyncCron, cron.GlobalSettings.FriendSyncCron, func(params ...any) error {
+	cron.CronManager.AddJob(vars.FriendSyncCron, cron.CronManager.globalSettings.FriendSyncCron, func(params ...any) error {
 		log.Println("开始每日早安任务")
 
 		// 获取当前时间

@@ -1,6 +1,9 @@
 package vars
 
-import "context"
+import (
+	"context"
+	"wechat-robot-client/model"
+)
 
 type CommonCron string
 
@@ -19,9 +22,11 @@ type TaskHandler func(params ...any) error
 type CronManagerInterface interface {
 	Name() string
 	Shutdown(ctx context.Context) error
+	SetGlobalSettings(globalSettings *model.GlobalSettings)
 	Start()
 	AddJob(cronName CommonCron, cronExpr string, handler TaskHandler, params ...any) error
 	RemoveJob(cronName CommonCron) error
 	UpdateJob(cronName CommonCron, cronExpr string, handler TaskHandler, params ...any) error
+	Clear()
 	Stop()
 }
