@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 	"time"
-	"wechat-robot-client/global_cron"
+	"wechat-robot-client/common_cron"
 	"wechat-robot-client/pkg/shutdown"
 	"wechat-robot-client/router"
 	"wechat-robot-client/startup"
@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("启动微信机器人失败: %v", err)
 	}
 	// 初始化定时任务
-	vars.CronManager = global_cron.NewCronManager()
+	vars.CronManager = common_cron.NewCronManager()
 	vars.CronManager.Start()
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))

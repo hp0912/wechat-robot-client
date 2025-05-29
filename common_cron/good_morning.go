@@ -1,4 +1,4 @@
-package global_cron
+package common_cron
 
 import (
 	"context"
