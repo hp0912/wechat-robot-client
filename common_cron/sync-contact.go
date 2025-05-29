@@ -24,7 +24,7 @@ func (cron *SyncContactCron) IsActive() bool {
 	return true
 }
 
-func (cron *SyncContactCron) Start() {
+func (cron *SyncContactCron) Register() {
 	if !cron.IsActive() {
 		log.Println("联系人同步任务未启用")
 		return

@@ -14,7 +14,7 @@ import (
 
 type CronManager struct {
 	scheduler *gocron.Scheduler
-	jobs      map[vars.GlobalCron]*gocron.Job
+	jobs      map[vars.CommonCron]*gocron.Job
 	mu        sync.RWMutex
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -22,7 +22,7 @@ type CronManager struct {
 
 type CronInstance interface {
 	IsActive() bool
-	Start()
+	Register()
 }
 
 func NewCronManager() vars.CronManagerInterface {
@@ -62,30 +62,30 @@ func (m *CronManager) Start() {
 		if globalSettings != nil {
 			// 同步联系人
 			syncContactCron := NewSyncContactCron(m, globalSettings)
-			syncContactCron.Start()
+			syncContactCron.Register()
 			// 每日早安
 			morningCron := NewGoodMorningCron(m, globalSettings)
-			morningCron.Start()
+			morningCron.Register()
 			// 每日早报
 			newsCron := NewNewsCron(m, globalSettings)
-			newsCron.Start()
+			newsCron.Register()
 			// 每日群聊总结
 			chatRoomSummaryCron := NewChatRoomSummaryCron(m, globalSettings)
-			chatRoomSummaryCron.Start()
+			chatRoomSummaryCron.Register()
 			// 每日群聊排行榜
 			chatRoomRankingDailyCron := NewChatRoomRankingDailyCron(m, globalSettings)
-			chatRoomRankingDailyCron.Start()
+			chatRoomRankingDailyCron.Register()
 			// 每周群聊排行榜
 			chatRoomRankingWeeklyCron := NewChatRoomRankingWeeklyCron(m, globalSettings)
-			chatRoomRankingWeeklyCron.Start()
+			chatRoomRankingWeeklyCron.Register()
 			// 每月群聊排行榜
 			chatRoomRankingMonthCron := NewChatRoomRankingMonthCron(m, globalSettings)
-			chatRoomRankingMonthCron.Start()
+			chatRoomRankingMonthCron.Register()
 		}
 	}
 }
 
-func (m *CronManager) AddJob(cronName vars.GlobalCron, cronExpr string, handler vars.TaskHandler, params ...any) error {
+func (m *CronManager) AddJob(cronName vars.CommonCron, cronExpr string, handler vars.TaskHandler, params ...any) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	// 添加到调度器
@@ -100,7 +100,7 @@ func (m *CronManager) AddJob(cronName vars.GlobalCron, cronExpr string, handler 
 	return nil
 }
 
-func (m *CronManager) RemoveJob(cronName vars.GlobalCron) error {
+func (m *CronManager) RemoveJob(cronName vars.CommonCron) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, exists := m.jobs[cronName]; exists {
@@ -111,7 +111,7 @@ func (m *CronManager) RemoveJob(cronName vars.GlobalCron) error {
 	return nil
 }
 
-func (m *CronManager) UpdateJob(cronName vars.GlobalCron, cronExpr string, handler vars.TaskHandler, params ...any) error {
+func (m *CronManager) UpdateJob(cronName vars.CommonCron, cronExpr string, handler vars.TaskHandler, params ...any) error {
 	// 先移除旧任务
 	if err := m.RemoveJob(cronName); err != nil {
 		return err

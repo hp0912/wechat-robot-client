@@ -25,7 +25,7 @@ func (cron *ChatRoomSummaryCron) IsActive() bool {
 	return false
 }
 
-func (cron *ChatRoomSummaryCron) Start() {
+func (cron *ChatRoomSummaryCron) Register() {
 	if !cron.IsActive() {
 		return
 	}

@@ -32,7 +32,7 @@ func (cron *GoodMorningCron) IsActive() bool {
 	return false
 }
 
-func (cron *GoodMorningCron) Start() {
+func (cron *GoodMorningCron) Register() {
 	if !cron.IsActive() {
 		log.Println("每日早安任务未启用")
 		return

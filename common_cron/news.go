@@ -42,7 +42,7 @@ func (cron *NewsCron) IsActive() bool {
 	return false
 }
 
-func (cron *NewsCron) Start() {
+func (cron *NewsCron) Register() {
 	if !cron.IsActive() {
 		return
 	}

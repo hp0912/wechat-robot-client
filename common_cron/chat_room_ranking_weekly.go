@@ -27,7 +27,7 @@ func (cron *ChatRoomRankingWeeklyCron) IsActive() bool {
 	return false
 }
 
-func (cron *ChatRoomRankingWeeklyCron) Start() {
+func (cron *ChatRoomRankingWeeklyCron) Register() {
 	if !cron.IsActive() {
 		return
 	}
