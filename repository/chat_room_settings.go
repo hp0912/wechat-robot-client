@@ -24,3 +24,10 @@ func (respo *ChatRoomSettings) GetByOwner(owner, chatRoomID string, preloads ...
 		return g.Where("owner = ?", owner).Where("chat_room_id = ?", chatRoomID)
 	})
 }
+
+func (respo *ChatRoomSettings) GetAllEnableGoodMorning(owner string, preloads ...string) []*model.ChatRoomSettings {
+	return respo.ListByWhere(preloads, where{
+		"owner":           owner,
+		"morning_enabled": 1,
+	})
+}

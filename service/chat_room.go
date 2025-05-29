@@ -110,7 +110,35 @@ func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, page
 }
 
 func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSummary, error) {
-	summary := dto.ChatRoomSummary{}
-	//
+	summary := dto.ChatRoomSummary{ChatRoomID: chatRoomID}
+
+	crmRespo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
+	memberCount, err := crmRespo.GetChatRoomMemberCount(chatRoomID)
+	if err != nil {
+		return summary, err
+	}
+	joinCount, err := crmRespo.GetYesterdayJoinCount(chatRoomID)
+	if err != nil {
+		return summary, err
+	}
+	leaveCount, err := crmRespo.GetYesterdayLeaveCount(chatRoomID)
+	if err != nil {
+		return summary, err
+	}
+	summary.MemberTotalCount = int(memberCount)
+	summary.MemberJoinCount = int(joinCount)
+	summary.MemberLeaveCount = int(leaveCount)
+
+	messageRepo := repository.NewMessageRepo(s.ctx, vars.DB)
+	chatInfo, err := messageRepo.GetYesterdayChatInfo(chatRoomID)
+	if err != nil {
+		return summary, err
+	}
+	summary.MemberChatCount = len(chatInfo)
+	summary.MessageCount = 0
+	for _, info := range chatInfo {
+		summary.MessageCount += info.MessageCount
+	}
+
 	return summary, nil
 }

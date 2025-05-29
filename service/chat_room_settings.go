@@ -22,6 +22,11 @@ func (s *ChatRoomSettingsService) GetChatRoomSettings(chatRoomID string) *model.
 	return respo.GetByOwner(vars.RobotRuntime.WxID, chatRoomID)
 }
 
+func (s *ChatRoomSettingsService) GetAllEnableGoodMorning(owner string) []*model.ChatRoomSettings {
+	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
+	return respo.GetAllEnableGoodMorning(owner)
+}
+
 func (s *ChatRoomSettingsService) SaveChatRoomSettings(data *model.ChatRoomSettings) {
 	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
 	if data.ID == 0 {
