@@ -38,11 +38,6 @@ func (cron *GoodMorningCron) Start() {
 		return
 	}
 	cron.CronManager.AddJob(vars.FriendSyncCron, cron.GlobalSettings.FriendSyncCron, func(params ...any) error {
-		if vars.RobotRuntime.IsRunning() {
-			log.Println("机器人未在线，跳过每日早安任务")
-			return nil
-		}
-
 		log.Println("开始每日早安任务")
 
 		// 获取当前时间
@@ -60,8 +55,7 @@ func (cron *GoodMorningCron) Start() {
 
 		// 每日一言
 		dailyWords := "早上好，今天接口挂了，没有早安语。"
-		res := resty.New()
-		resp, err := res.R().
+		resp, err := resty.New().R().
 			Post("https://api.pearktrue.cn/api/hitokoto/")
 		if err != nil || resp.StatusCode() != http.StatusOK {
 			log.Printf("获取随机一言失败: %v", err)
@@ -73,6 +67,7 @@ func (cron *GoodMorningCron) Start() {
 		}
 
 		crService := service.NewChatRoomService(context.Background())
+		msgService := service.NewMessageService(context.Background())
 		for _, setting := range chatRoomSettings {
 			summary, err := crService.GetChatRoomSummary(setting.ChatRoomID)
 			if err != nil {
@@ -91,7 +86,7 @@ func (cron *GoodMorningCron) Start() {
 				continue
 			}
 
-			err = service.NewMessageService(context.Background()).MsgUploadImg(setting.ChatRoomID, image)
+			err = msgService.MsgUploadImg(setting.ChatRoomID, image)
 			if err != nil {
 				log.Printf("群[%s]早安图片发送失败: %v", setting.ChatRoomID, err)
 				continue

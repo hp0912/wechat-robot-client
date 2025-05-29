@@ -31,3 +31,10 @@ func (respo *ChatRoomSettings) GetAllEnableGoodMorning(owner string, preloads ..
 		"morning_enabled": 1,
 	})
 }
+
+func (respo *ChatRoomSettings) GetAllEnableNews(owner string, preloads ...string) []*model.ChatRoomSettings {
+	return respo.ListByWhere(preloads, where{
+		"owner":        owner,
+		"news_enabled": 1,
+	})
+}

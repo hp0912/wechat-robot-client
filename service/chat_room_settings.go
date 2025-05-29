@@ -23,8 +23,19 @@ func (s *ChatRoomSettingsService) GetChatRoomSettings(chatRoomID string) *model.
 }
 
 func (s *ChatRoomSettingsService) GetAllEnableGoodMorning(owner string) []*model.ChatRoomSettings {
+	if vars.RobotRuntime.Status == model.RobotStatusOffline {
+		return []*model.ChatRoomSettings{}
+	}
 	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
 	return respo.GetAllEnableGoodMorning(owner)
+}
+
+func (s *ChatRoomSettingsService) GetAllEnableNews(owner string) []*model.ChatRoomSettings {
+	if vars.RobotRuntime.Status == model.RobotStatusOffline {
+		return []*model.ChatRoomSettings{}
+	}
+	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
+	return respo.GetAllEnableNews(owner)
 }
 
 func (s *ChatRoomSettingsService) SaveChatRoomSettings(data *model.ChatRoomSettings) {
