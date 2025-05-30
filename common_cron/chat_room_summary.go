@@ -1,7 +1,9 @@
 package common_cron
 
 import (
+	"context"
 	"log"
+	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 )
 
@@ -29,7 +31,7 @@ func (cron *ChatRoomSummaryCron) Register() {
 	}
 	cron.CronManager.AddJob(vars.ChatRoomSummaryCron, cron.CronManager.globalSettings.ChatRoomSummaryCron, func(params ...any) error {
 		log.Println("开始执行每日群聊总结任务")
-		return nil
+		return service.NewChatRoomService(context.Background()).ChatRoomAISummary()
 	})
 	log.Println("每日群聊总结任务初始化成功")
 }

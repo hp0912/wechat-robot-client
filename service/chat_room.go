@@ -153,6 +153,32 @@ func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSum
 	return summary, nil
 }
 
+func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(chatRoomID string, startTime, endTime int64) error {
+	return nil
+}
+
+func (s *ChatRoomService) ChatRoomAISummary() error {
+	// 获取今天凌晨零点
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// 获取昨天凌晨零点
+	yesterdayStart := todayStart.AddDate(0, 0, -1)
+	// 转换为时间戳（秒）
+	yesterdayStartTimestamp := yesterdayStart.Unix()
+	todayStartTimestamp := todayStart.Unix()
+	settings := NewChatRoomSettingsService(s.ctx).GetAllEnableAISummary()
+	for _, setting := range settings {
+		err := s.ChatRoomAISummaryByChatRoomID(setting.ChatRoomID, yesterdayStartTimestamp, todayStartTimestamp)
+		if err != nil {
+			log.Printf("处理群聊 %s 的 AI 总结失败: %v\n", setting.ChatRoomID, err)
+			continue
+		}
+		// 休眠一秒，防止频繁发送
+		time.Sleep(1 * time.Second)
+	}
+	return nil
+}
+
 func (s *ChatRoomService) ChatRoomRankingDaily() error {
 	notifyMsgs := []string{"#昨日水群排行榜"}
 

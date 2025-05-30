@@ -30,6 +30,14 @@ func (s *ChatRoomSettingsService) GetAllEnableChatRank() []*model.ChatRoomSettin
 	return respo.GetAllEnableChatRank(vars.RobotRuntime.WxID)
 }
 
+func (s *ChatRoomSettingsService) GetAllEnableAISummary() []*model.ChatRoomSettings {
+	if vars.RobotRuntime.Status == model.RobotStatusOffline {
+		return []*model.ChatRoomSettings{}
+	}
+	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
+	return respo.GetAllEnableAISummary(vars.RobotRuntime.WxID)
+}
+
 func (s *ChatRoomSettingsService) GetAllEnableGoodMorning() []*model.ChatRoomSettings {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
 		return []*model.ChatRoomSettings{}
