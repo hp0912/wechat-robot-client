@@ -20,6 +20,7 @@ type SendMusicMessageRequest struct {
 }
 
 type TextMessageItem struct {
-	Nickname string `json:"nickname"`
-	Message  string `json:"message"`
+	Nickname  string `json:"nickname"`
+	Message   string `json:"message"`
+	CreatedAt int64  `json:"created_at"`
 }

@@ -156,6 +156,7 @@ func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSum
 }
 
 func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.GlobalSettings, setting *model.ChatRoomSettings, startTime, endTime int64) error {
+	msgService := NewMessageService(context.Background())
 	msgRespo := repository.NewMessageRepo(s.ctx, vars.DB)
 	ctRespo := repository.NewContactRepo(s.ctx, vars.DB)
 
@@ -170,17 +171,25 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		return err
 	}
 	if len(messages) < 100 {
-		return fmt.Errorf("群聊 %s 的消息数量不足 100 条，跳过 AI 总结", chatRoomName)
+		msgService.SendTextMessage(dto.SendTextMessageRequest{
+			SendMessageCommonRequest: dto.SendMessageCommonRequest{
+				ToWxid: setting.ChatRoomID,
+			},
+			Content: "聊天不够活跃啊~~~",
+		})
+		return nil
 	}
 
 	// 组装对话记录为字符串
 	var content []string
 	for _, message := range messages {
-		content = append(content, fmt.Sprintf(`{"%s": "%s"}--end--`, message.Nickname, strings.ReplaceAll(message.Message, "\n", "。。")))
+		// 将时间戳秒格式化为时间YYYY-MM-DD HH:MM:SS 字符串
+		timeStr := time.Unix(message.CreatedAt, 0).Format("2006-01-02 15:04:05")
+		content = append(content, fmt.Sprintf(`[%s] {"%s": "%s"}--end--`, timeStr, message.Nickname, strings.ReplaceAll(message.Message, "\n", "。。")))
 	}
 	prompt := `你是一个中文的群聊总结的助手，你可以为一个微信的群聊记录，提取并总结每个时间段大家在重点讨论的话题内容。
 
-每一行代表一个人的发言，每一行的的格式为： {"{nickname}": "{content}"}--end--
+每一行代表一个人的发言，每一行的的格式为： {"[time] {nickname}": "{content}"}--end--
 
 请帮我将给出的群聊内容总结成一个今日的群聊报告，包含不多于10个的话题的总结（如果还有更多话题，可以在后面简单补充）。每个话题包含以下内容：
 - 话题名(50字以内，带序号1️⃣2️⃣3️⃣，同时附带热度，以🔥数量表示）
@@ -208,8 +217,6 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 			Content: msg,
 		},
 	}
-
-	msgService := NewMessageService(context.Background())
 
 	// 默认使用AI回复
 	aiConfig := openai.DefaultConfig(*setting.ChatAPIKey)

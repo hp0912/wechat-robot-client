@@ -90,7 +90,7 @@ func (m *Message) GetMessagesByTimeRange(owner, chatRoomID string, startTime, en
 		END ELSE messages.content
 	END`
 	query := m.DB.Model(&model.Message{})
-	query = query.Select("chat_room_members.nickname", selectStr+" AS message").
+	query = query.Select("chat_room_members.nickname", selectStr+" AS message", "messages.created_at").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where("messages.to_wxid = ?", owner).
