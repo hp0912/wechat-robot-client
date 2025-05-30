@@ -26,7 +26,7 @@ type NewsResponse struct {
 	Weiyu   string   `json:"weiyu"`
 }
 
-func NewNewsCron(cronManager *CronManager) *NewsCron {
+func NewNewsCron(cronManager *CronManager) vars.CommonCronInstance {
 	return &NewsCron{
 		CronManager: cronManager,
 	}

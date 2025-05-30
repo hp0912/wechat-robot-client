@@ -30,7 +30,7 @@ func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager ap
 	for _, preload := range preloads {
 		query = query.Preload(preload)
 	}
-	query = query.Where("chat_room_id = ?", req.ChatRoomID)
+	query = query.Where("chat_room_id = ?", req.ChatRoomID).Where("owner = ?", req.Owner)
 	if req.Keyword != "" {
 		query = query.Where("nickname LIKE ?", "%"+req.Keyword+"%").
 			Or("alias LIKE ?", "%"+req.Keyword+"%").
@@ -50,10 +50,10 @@ func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager ap
 }
 
 // 当前群总人数
-func (c *ChatRoomMember) GetChatRoomMemberCount(chatRoomID string) (int64, error) {
+func (c *ChatRoomMember) GetChatRoomMemberCount(owner, chatRoomID string) (int64, error) {
 	var total int64
 	query := c.DB.Model(&model.ChatRoomMember{})
-	query = query.Where("chat_room_id = ?", chatRoomID).Where("leaved_at IS NULL")
+	query = query.Where("chat_room_id = ?", chatRoomID).Where("owner = ?", owner).Where("leaved_at IS NULL")
 	if err := query.Count(&total).Error; err != nil {
 		return 0, err
 	}
@@ -61,7 +61,7 @@ func (c *ChatRoomMember) GetChatRoomMemberCount(chatRoomID string) (int64, error
 }
 
 // 昨天入群人数
-func (c *ChatRoomMember) GetYesterdayJoinCount(chatRoomID string) (int64, error) {
+func (c *ChatRoomMember) GetYesterdayJoinCount(owner, chatRoomID string) (int64, error) {
 	var total int64
 	// 获取今天凌晨零点
 	now := time.Now()
@@ -73,6 +73,7 @@ func (c *ChatRoomMember) GetYesterdayJoinCount(chatRoomID string) (int64, error)
 	todayStartTimestamp := todayStart.Unix()
 	query := c.DB.Model(&model.ChatRoomMember{})
 	query = query.Where("chat_room_id = ?", chatRoomID).
+		Where("owner = ?", owner).
 		Where("joined_at >= ?", yesterdayStartTimestamp).
 		Where("joined_at < ?", todayStartTimestamp)
 	if err := query.Count(&total).Error; err != nil {
@@ -82,7 +83,7 @@ func (c *ChatRoomMember) GetYesterdayJoinCount(chatRoomID string) (int64, error)
 }
 
 // 昨天离群人数
-func (c *ChatRoomMember) GetYesterdayLeaveCount(chatRoomID string) (int64, error) {
+func (c *ChatRoomMember) GetYesterdayLeaveCount(owner, chatRoomID string) (int64, error) {
 	var total int64
 	// 获取今天凌晨零点
 	now := time.Now()
@@ -94,6 +95,7 @@ func (c *ChatRoomMember) GetYesterdayLeaveCount(chatRoomID string) (int64, error
 	todayStartTimestamp := todayStart.Unix()
 	query := c.DB.Model(&model.ChatRoomMember{})
 	query = query.Where("chat_room_id = ?", chatRoomID).
+		Where("owner = ?", owner).
 		Where("leaved_at >= ?", yesterdayStartTimestamp).
 		Where("leaved_at < ?", todayStartTimestamp)
 	if err := query.Count(&total).Error; err != nil {

@@ -11,7 +11,7 @@ type SyncContactCron struct {
 	CronManager *CronManager
 }
 
-func NewSyncContactCron(cronManager *CronManager) *SyncContactCron {
+func NewSyncContactCron(cronManager *CronManager) vars.CommonCronInstance {
 	return &SyncContactCron{
 		CronManager: cronManager,
 	}

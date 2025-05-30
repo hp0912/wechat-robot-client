@@ -1,7 +1,8 @@
 package model
 
 type ChatRoomMember struct {
-	ID              int64  `gorm:"column:id;primaryKey;autoIncrement" json:"id"`                            // 主键ID
+	ID              int64  `gorm:"column:id;primaryKey;autoIncrement" json:"id"` // 主键ID
+	Owner           string `gorm:"column:owner;type:varchar(64);default:'';comment:所有者微信ID" json:"owner"`
 	ChatRoomID      string `gorm:"column:chat_room_id;not null;index:idx_chat_room_id" json:"chat_room_id"` // 群ID
 	WechatID        string `gorm:"column:wechat_id;not null;index:idx_wechat_id" json:"wechat_id"`          // 微信ID
 	Alias           string `gorm:"column:alias" json:"alias"`                                               // 微信号

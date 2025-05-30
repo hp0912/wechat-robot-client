@@ -9,7 +9,7 @@ type ChatRoomRankingDailyCron struct {
 	CronManager *CronManager
 }
 
-func NewChatRoomRankingDailyCron(cronManager *CronManager) *ChatRoomRankingDailyCron {
+func NewChatRoomRankingDailyCron(cronManager *CronManager) vars.CommonCronInstance {
 	return &ChatRoomRankingDailyCron{
 		CronManager: cronManager,
 	}

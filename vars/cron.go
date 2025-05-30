@@ -30,3 +30,8 @@ type CronManagerInterface interface {
 	Clear()
 	Stop()
 }
+
+type CommonCronInstance interface {
+	IsActive() bool
+	Register()
+}

@@ -9,7 +9,7 @@ type ChatRoomSummaryCron struct {
 	CronManager *CronManager
 }
 
-func NewChatRoomSummaryCron(cronManager *CronManager) *ChatRoomSummaryCron {
+func NewChatRoomSummaryCron(cronManager *CronManager) vars.CommonCronInstance {
 	return &ChatRoomSummaryCron{
 		CronManager: cronManager,
 	}

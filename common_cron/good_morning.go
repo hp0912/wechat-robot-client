@@ -16,7 +16,7 @@ type GoodMorningCron struct {
 	CronManager *CronManager
 }
 
-func NewGoodMorningCron(cronManager *CronManager) *GoodMorningCron {
+func NewGoodMorningCron(cronManager *CronManager) vars.CommonCronInstance {
 	return &GoodMorningCron{
 		CronManager: cronManager,
 	}

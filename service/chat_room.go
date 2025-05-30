@@ -69,6 +69,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 			} else {
 				// 创建新成员
 				newMember := model.ChatRoomMember{
+					Owner:           vars.RobotRuntime.WxID,
 					ChatRoomID:      chatRoomID,
 					WechatID:        member.UserName,
 					Nickname:        member.NickName,
@@ -105,6 +106,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 }
 
 func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
+	req.Owner = vars.RobotRuntime.WxID
 	respo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
 	return respo.GetByChatRoomID(req, pager)
 }
@@ -112,16 +114,17 @@ func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, page
 func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSummary, error) {
 	summary := dto.ChatRoomSummary{ChatRoomID: chatRoomID}
 
+	owner := vars.RobotRuntime.WxID
 	crmRespo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
-	memberCount, err := crmRespo.GetChatRoomMemberCount(chatRoomID)
+	memberCount, err := crmRespo.GetChatRoomMemberCount(owner, chatRoomID)
 	if err != nil {
 		return summary, err
 	}
-	joinCount, err := crmRespo.GetYesterdayJoinCount(chatRoomID)
+	joinCount, err := crmRespo.GetYesterdayJoinCount(owner, chatRoomID)
 	if err != nil {
 		return summary, err
 	}
-	leaveCount, err := crmRespo.GetYesterdayLeaveCount(chatRoomID)
+	leaveCount, err := crmRespo.GetYesterdayLeaveCount(owner, chatRoomID)
 	if err != nil {
 		return summary, err
 	}

@@ -10,6 +10,7 @@ type SyncChatRoomMemberRequest struct {
 
 type ChatRoomMemberRequest struct {
 	ChatRoomID string `form:"chat_room_id" json:"chat_room_id" binding:"required"`
+	Owner      string `form:"owner" json:"owner"`
 	Keyword    string `form:"keyword" json:"keyword"`
 }
 
