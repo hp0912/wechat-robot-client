@@ -1,7 +1,9 @@
 package common_cron
 
 import (
+	"context"
 	"log"
+	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 )
 
@@ -31,7 +33,7 @@ func (cron *ChatRoomRankingMonthCron) Register() {
 	}
 	cron.CronManager.AddJob(vars.ChatRoomRankingMonthCron, *cron.CronManager.globalSettings.ChatRoomRankingMonthCron, func(params ...any) error {
 		log.Println("开始执行每月群聊排行榜任务")
-		return nil
+		return service.NewChatRoomService(context.Background()).ChatRoomRankingMonthly()
 	})
 	log.Println("每月群聊排行榜任务初始化成功")
 }

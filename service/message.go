@@ -524,3 +524,13 @@ func (s *MessageService) GetYesterdayChatRommRank(chatRoomID string) ([]*dto.Cha
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	return respo.GetYesterdayChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
 }
+
+func (s *MessageService) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	return respo.GetLastWeekChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
+}
+
+func (s *MessageService) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	return respo.GetLastMonthChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
+}

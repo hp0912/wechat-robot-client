@@ -104,13 +104,68 @@ func (m *Message) GetYesterdayChatRommRank(owner, chatRoomID string) ([]*dto.Cha
 	yesterdayStartTimestamp := yesterdayStart.Unix()
 	todayStartTimestamp := todayStart.Unix()
 	query := m.DB.Model(&model.Message{})
-	query = query.Select("messages.sender_wxid", "tgu.nickname", "count( 1 ) AS `count`").
+	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where("messages.to_wxid = ?", owner).
 		Where("messages.type < 10000").
 		Where("messages.created_at >= ?", yesterdayStartTimestamp).
 		Where("messages.created_at < ?", todayStartTimestamp).
+		Group("messages.sender_wxid").
+		Order("`count` DESC")
+	if err := query.Find(&chatRoomRank).Error; err != nil {
+		return chatRoomRank, err
+	}
+	return chatRoomRank, nil
+}
+
+func (m *Message) GetLastWeekChatRommRank(owner, chatRoomID string) ([]*dto.ChatRoomRank, error) {
+	var chatRoomRank []*dto.ChatRoomRank
+	// 获取当前时间（周一）
+	now := time.Now()
+	// 计算上周一的零点时间
+	// 当前是周一(weekday=1)，需要回退7天到上周一
+	lastMondayStart := time.Date(now.Year(), now.Month(), now.Day()-7, 0, 0, 0, 0, now.Location())
+	// 计算本周一的零点时间（上周日23:59:59的下一秒）
+	thisWeekStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// 转换为时间戳（秒）
+	lastWeekStartTimestamp := lastMondayStart.Unix()
+	thisWeekStartTimestamp := thisWeekStart.Unix()
+	query := m.DB.Model(&model.Message{})
+	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
+		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
+		Where("messages.from_wxid = ?", chatRoomID).
+		Where("messages.to_wxid = ?", owner).
+		Where("messages.type < 10000").
+		Where("messages.created_at >= ?", lastWeekStartTimestamp).
+		Where("messages.created_at < ?", thisWeekStartTimestamp).
+		Group("messages.sender_wxid").
+		Order("`count` DESC")
+	if err := query.Find(&chatRoomRank).Error; err != nil {
+		return chatRoomRank, err
+	}
+	return chatRoomRank, nil
+}
+
+func (m *Message) GetLastMonthChatRommRank(owner, chatRoomID string) ([]*dto.ChatRoomRank, error) {
+	var chatRoomRank []*dto.ChatRoomRank
+	// 获取当前时间（每月一号执行）
+	now := time.Now()
+	// 获取本月1号零点
+	thisMonthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	// 获取上月1号零点
+	lastMonthStart := thisMonthStart.AddDate(0, -1, 0)
+	// 转换为时间戳（秒）
+	lastMonthStartTimestamp := lastMonthStart.Unix()
+	thisMonthStartTimestamp := thisMonthStart.Unix()
+	query := m.DB.Model(&model.Message{})
+	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
+		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
+		Where("messages.from_wxid = ?", chatRoomID).
+		Where("messages.to_wxid = ?", owner).
+		Where("messages.type < 10000").
+		Where("messages.created_at >= ?", lastMonthStartTimestamp).
+		Where("messages.created_at < ?", thisMonthStartTimestamp).
 		Group("messages.sender_wxid").
 		Order("`count` DESC")
 	if err := query.Find(&chatRoomRank).Error; err != nil {
