@@ -69,8 +69,45 @@ func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) (
 	return messages, total, nil
 }
 
-func (m *Message) GetYesterdayChatInfo(owner, chatRoomID string) ([]dto.ChatRoomSummary, error) {
-	chatRoomSummary := []dto.ChatRoomSummary{}
+func (m *Message) GetMessagesByTimeRange(owner, chatRoomID string, startTime, endTime int64) ([]*dto.TextMessageItem, error) {
+	var messages []*dto.TextMessageItem
+	// APP消息类型
+	appMsgList := []string{"57", "4", "5", "6"}
+	// 这个查询子句抽出来写，方便后续扩展
+	selectStr := `CASE
+		WHEN messages.type = 49 THEN
+	CASE
+			WHEN EXTRACTVALUE ( messages.content, "/msg/appmsg/type" ) = '57' THEN
+			EXTRACTVALUE ( messages.content, "/msg/appmsg/title" )
+			WHEN EXTRACTVALUE ( messages.content, "/msg/appmsg/type" ) = '5' THEN
+			CONCAT("网页分享消息，标题: ", EXTRACTVALUE (messages.content, "/msg/appmsg/title"), "，描述：", EXTRACTVALUE (messages.content, "/msg/appmsg/des"))
+			WHEN EXTRACTVALUE ( messages.content, "/msg/appmsg/type" ) = '4' THEN
+			CONCAT("网页分享消息，标题: ", EXTRACTVALUE (messages.content, "/msg/appmsg/title"), "，描述：", EXTRACTVALUE (messages.content, "/msg/appmsg/des"))
+			WHEN EXTRACTVALUE ( messages.content, "/msg/appmsg/type" ) = '6' THEN
+			CONCAT("文件消息，文件名: ", EXTRACTVALUE (messages.content, "/msg/appmsg/title"))
+
+			ELSE EXTRACTVALUE ( messages.content, "/msg/appmsg/des" )
+		END ELSE messages.content
+	END`
+	query := m.DB.Model(&model.Message{})
+	query = query.Select("chat_room_members.nickname", selectStr+" AS message").
+		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
+		Where("messages.from_wxid = ?", chatRoomID).
+		Where("messages.to_wxid = ?", owner).
+		Where(`(messages.type = 1 OR ( messages.type = 49 AND EXTRACTVALUE ( messages.content, "/msg/appmsg/type" ) IN (?) ))`, appMsgList).
+		Where("messages.content NOT LIKE '#昨日水群排行榜%'").
+		Where("messages.content NOT LIKE '#昨日消息总结%'").
+		Where("messages.created_at >= ?", startTime).
+		Where("messages.created_at < ?", endTime).
+		Order("messages.created_at ASC")
+	if err := query.Find(&messages).Error; err != nil {
+		return nil, err
+	}
+	return messages, nil
+}
+
+func (m *Message) GetYesterdayChatInfo(owner, chatRoomID string) ([]*dto.ChatRoomSummary, error) {
+	var chatRoomSummary []*dto.ChatRoomSummary
 	// 获取今天凌晨零点
 	now := time.Now()
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())

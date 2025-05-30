@@ -43,6 +43,12 @@ func (c *Contact) FindRecentGroupContacts(preloads ...string) []*model.Contact {
 	return contacts
 }
 
+func (respo *Contact) GetByWechatID(owner, wechatID string, preloads ...string) *model.Contact {
+	return respo.takeOne(preloads, func(g *gorm.DB) *gorm.DB {
+		return g.Where("owner = ? AND wechat_id = ?", owner, wechatID)
+	})
+}
+
 func (c *Contact) GetByOwner(req dto.ContactListRequest, pager appx.Pager, preloads ...string) ([]*model.Contact, int64, error) {
 	var contacts []*model.Contact
 	var total int64

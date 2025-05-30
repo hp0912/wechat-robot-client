@@ -13,6 +13,8 @@ import (
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
+
+	"github.com/sashabaranov/go-openai"
 )
 
 type ChatRoomService struct {
@@ -153,7 +155,108 @@ func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSum
 	return summary, nil
 }
 
-func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(chatRoomID string, startTime, endTime int64) error {
+func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.GlobalSettings, setting *model.ChatRoomSettings, startTime, endTime int64) error {
+	msgRespo := repository.NewMessageRepo(s.ctx, vars.DB)
+	ctRespo := repository.NewContactRepo(s.ctx, vars.DB)
+
+	chatRoomName := setting.ChatRoomID
+	chatRoom := ctRespo.GetByWechatID(vars.RobotRuntime.WxID, setting.ChatRoomID)
+	if chatRoom != nil && chatRoom.Nickname != nil && *chatRoom.Nickname != "" {
+		chatRoomName = *chatRoom.Nickname
+	}
+
+	messages, err := msgRespo.GetMessagesByTimeRange(vars.RobotRuntime.WxID, setting.ChatRoomID, startTime, endTime)
+	if err != nil {
+		return err
+	}
+	if len(messages) < 100 {
+		return fmt.Errorf("群聊 %s 的消息数量不足 100 条，跳过 AI 总结", chatRoomName)
+	}
+
+	// 组装对话记录为字符串
+	var content []string
+	for _, message := range messages {
+		content = append(content, fmt.Sprintf(`{"%s": "%s"}--end--`, message.Nickname, strings.ReplaceAll(message.Message, "\n", "。。")))
+	}
+	prompt := `你是一个中文的群聊总结的助手，你可以为一个微信的群聊记录，提取并总结每个时间段大家在重点讨论的话题内容。
+
+每一行代表一个人的发言，每一行的的格式为： {"{nickname}": "{content}"}--end--
+
+请帮我将给出的群聊内容总结成一个今日的群聊报告，包含不多于10个的话题的总结（如果还有更多话题，可以在后面简单补充）。每个话题包含以下内容：
+- 话题名(50字以内，带序号1️⃣2️⃣3️⃣，同时附带热度，以🔥数量表示）
+- 参与者(不超过5个人，将重复的人名去重)
+- 时间段(从几点到几点)
+- 过程(50到200字左右）
+- 评价(50字以下)
+- 分割线： ------------
+
+另外有以下要求：
+1. 每个话题结束使用 ------------ 分割
+2. 使用中文冒号
+3. 无需大标题
+4. 开始给出本群讨论风格的整体评价，例如活跃、太水、太黄、太暴力、话题不集中、无聊诸如此类
+`
+	msg := fmt.Sprintf("群名称: %s\n聊天记录如下:\n%s", chatRoomName, strings.Join(content, "\n"))
+	// AI总结
+	aiMessages := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: prompt,
+		},
+		{
+			Role:    openai.ChatMessageRoleUser,
+			Content: msg,
+		},
+	}
+
+	msgService := NewMessageService(context.Background())
+
+	// 默认使用AI回复
+	aiConfig := openai.DefaultConfig(*setting.ChatAPIKey)
+	aiConfig.BaseURL = strings.TrimRight(globalSettings.ChatBaseURL, "/")
+	if !strings.HasSuffix(aiConfig.BaseURL, "/v1") {
+		aiConfig.BaseURL += "/v1"
+	}
+	model := globalSettings.ChatRoomSummaryModel
+	if setting.ChatRoomSummaryModel != nil && *setting.ChatRoomSummaryModel != "" {
+		model = *setting.ChatRoomSummaryModel
+	}
+	ai := openai.NewClientWithConfig(aiConfig)
+	var resp openai.ChatCompletionResponse
+	resp, err = ai.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model:    model,
+			Messages: aiMessages,
+		},
+	)
+	if err != nil {
+		log.Printf("群聊记录总结失败: %v", err.Error())
+		msgService.SendTextMessage(dto.SendTextMessageRequest{
+			SendMessageCommonRequest: dto.SendMessageCommonRequest{
+				ToWxid: setting.ChatRoomID,
+			},
+			Content: "#昨日消息总结\n\n群聊消息总结失败，错误信息: " + err.Error(),
+		})
+		return err
+	}
+	// 返回消息为空
+	if resp.Choices[0].Message.Content == "" {
+		msgService.SendTextMessage(dto.SendTextMessageRequest{
+			SendMessageCommonRequest: dto.SendMessageCommonRequest{
+				ToWxid: setting.ChatRoomID,
+			},
+			Content: "#昨日消息总结\n\n群聊消息总结失败，AI返回结果为空",
+		})
+		return nil
+	}
+	replyMsg := fmt.Sprintf("#消息总结\n让我们一起来看看群友们都聊了什么有趣的话题吧~\n\n%s", resp.Choices[0].Message.Content)
+	msgService.SendTextMessage(dto.SendTextMessageRequest{
+		SendMessageCommonRequest: dto.SendMessageCommonRequest{
+			ToWxid: setting.ChatRoomID,
+		},
+		Content: replyMsg,
+	})
 	return nil
 }
 
@@ -166,9 +269,20 @@ func (s *ChatRoomService) ChatRoomAISummary() error {
 	// 转换为时间戳（秒）
 	yesterdayStartTimestamp := yesterdayStart.Unix()
 	todayStartTimestamp := todayStart.Unix()
+
+	globalSettings := repository.NewGlobalSettingsRepo(s.ctx, vars.DB).GetByOwner(vars.RobotRuntime.WxID)
+	if globalSettings == nil || globalSettings.ChatAIEnabled == nil || !*globalSettings.ChatAIEnabled || globalSettings.ChatAPIKey == "" || globalSettings.ChatBaseURL == "" {
+		log.Printf("全局设置未开启AI，跳过群聊总结")
+		return nil
+	}
+
 	settings := NewChatRoomSettingsService(s.ctx).GetAllEnableAISummary()
 	for _, setting := range settings {
-		err := s.ChatRoomAISummaryByChatRoomID(setting.ChatRoomID, yesterdayStartTimestamp, todayStartTimestamp)
+		if setting == nil || setting.ChatRoomSummaryEnabled == nil || !*setting.ChatRoomSummaryEnabled {
+			log.Printf("群聊 %s 的 AI 总结模型未配置，跳过处理\n", setting.ChatRoomID)
+			continue
+		}
+		err := s.ChatRoomAISummaryByChatRoomID(globalSettings, setting, yesterdayStartTimestamp, todayStartTimestamp)
 		if err != nil {
 			log.Printf("处理群聊 %s 的 AI 总结失败: %v\n", setting.ChatRoomID, err)
 			continue
