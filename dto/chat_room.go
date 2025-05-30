@@ -27,3 +27,9 @@ type ChatRoomSummary struct {
 	MemberChatCount  int // 昨天聊天人数
 	MessageCount     int // 昨天消息数
 }
+
+type ChatRoomRank struct {
+	WechatID string // 微信Id
+	Nickname string // 昵称
+	Count    int64  // 消息数
+}

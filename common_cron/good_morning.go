@@ -48,7 +48,7 @@ func (cron *GoodMorningCron) Register() {
 		// 定义中文星期数组
 		weekdays := [...]string{"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"}
 
-		chatRoomSettings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableGoodMorning(vars.RobotRuntime.WxID)
+		chatRoomSettings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableGoodMorning()
 
 		// 每日一言
 		dailyWords := "早上好，今天接口挂了，没有早安语。"

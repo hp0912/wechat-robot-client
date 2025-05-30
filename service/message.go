@@ -519,3 +519,8 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 
 	return nil
 }
+
+func (s *MessageService) GetYesterdayChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	return respo.GetYesterdayChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
+}

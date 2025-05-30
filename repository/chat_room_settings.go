@@ -38,3 +38,10 @@ func (respo *ChatRoomSettings) GetAllEnableNews(owner string, preloads ...string
 		"news_enabled": 1,
 	})
 }
+
+func (respo *ChatRoomSettings) GetAllEnableChatRank(owner string, preloads ...string) []*model.ChatRoomSettings {
+	return respo.ListByWhere(preloads, where{
+		"owner":                     owner,
+		"chat_room_ranking_enabled": 1,
+	})
+}

@@ -38,9 +38,7 @@ func (m *Message) GetByMsgID(msgId int64, preloads ...string) *model.Message {
 func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) ([]*model.Message, int64, error) {
 	var messages []*model.Message
 	var total int64
-
 	query := m.DB.Model(&model.Message{})
-
 	// 判断是群聊还是单聊，决定关联哪张表
 	if strings.HasSuffix(req.ContactID, "@chatroom") {
 		// 群聊，需要关联 chat_room_members 以获取发送者昵称和头像
@@ -53,17 +51,14 @@ func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) (
 			Joins("LEFT JOIN contacts ON contacts.wechat_id = messages.sender_wxid").
 			Select("messages.*, contacts.nickname AS sender_nickname, contacts.avatar AS sender_avatar")
 	}
-
 	query = query.Where("from_wxid = ?", req.ContactID).Where("to_wxid = ?", req.Owner)
 	if req.Keyword != "" {
 		query = query.Where("content LIKE ?", "%"+req.Keyword+"%")
 	}
-
 	err := query.Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
-
 	err = query.Order("id DESC").
 		Offset(pager.OffSet).
 		Limit(pager.PageSize).
@@ -71,11 +66,10 @@ func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) (
 	if err != nil {
 		return nil, 0, err
 	}
-
 	return messages, total, nil
 }
 
-func (m *Message) GetYesterdayChatInfo(chatRoomID string) ([]dto.ChatRoomSummary, error) {
+func (m *Message) GetYesterdayChatInfo(owner, chatRoomID string) ([]dto.ChatRoomSummary, error) {
 	chatRoomSummary := []dto.ChatRoomSummary{}
 	// 获取今天凌晨零点
 	now := time.Now()
@@ -88,13 +82,39 @@ func (m *Message) GetYesterdayChatInfo(chatRoomID string) ([]dto.ChatRoomSummary
 	query := m.DB.Model(&model.Message{})
 	query = query.Select("count( 1 ) AS `member_chat_count`").
 		Where("from_wxid = ?", chatRoomID).
+		Where("to_wxid = ?", owner).
 		Where("type < 10000").
 		Where("created_at >= ?", yesterdayStartTimestamp).
 		Where("created_at < ?", todayStartTimestamp).
 		Group("sender_wxid")
-
 	if err := query.Find(&chatRoomSummary).Error; err != nil {
 		return nil, err
 	}
 	return chatRoomSummary, nil
+}
+
+func (m *Message) GetYesterdayChatRommRank(owner, chatRoomID string) ([]*dto.ChatRoomRank, error) {
+	var chatRoomRank []*dto.ChatRoomRank
+	// 获取今天凌晨零点
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// 获取昨天凌晨零点
+	yesterdayStart := todayStart.AddDate(0, 0, -1)
+	// 转换为时间戳（秒）
+	yesterdayStartTimestamp := yesterdayStart.Unix()
+	todayStartTimestamp := todayStart.Unix()
+	query := m.DB.Model(&model.Message{})
+	query = query.Select("messages.sender_wxid", "tgu.nickname", "count( 1 ) AS `count`").
+		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
+		Where("messages.from_wxid = ?", chatRoomID).
+		Where("messages.to_wxid = ?", owner).
+		Where("messages.type < 10000").
+		Where("messages.created_at >= ?", yesterdayStartTimestamp).
+		Where("messages.created_at < ?", todayStartTimestamp).
+		Group("messages.sender_wxid").
+		Order("`count` DESC")
+	if err := query.Find(&chatRoomRank).Error; err != nil {
+		return chatRoomRank, err
+	}
+	return chatRoomRank, nil
 }

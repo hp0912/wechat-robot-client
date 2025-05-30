@@ -47,7 +47,7 @@ func (cron *NewsCron) Register() {
 	cron.CronManager.AddJob(vars.FriendSyncCron, cron.CronManager.globalSettings.FriendSyncCron, func(params ...any) error {
 		log.Println("开始执行每日早报任务")
 
-		settings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableNews(vars.RobotRuntime.WxID)
+		settings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableNews()
 
 		var newsResp NewsResponse
 		_, err := resty.New().R().

@@ -111,6 +111,11 @@ func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, page
 	return respo.GetByChatRoomID(req, pager)
 }
 
+func (s *ChatRoomService) GetChatRoomMemberCount(chatRoomID string) (int64, error) {
+	respo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
+	return respo.GetChatRoomMemberCount(vars.RobotRuntime.WxID, chatRoomID)
+}
+
 func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSummary, error) {
 	summary := dto.ChatRoomSummary{ChatRoomID: chatRoomID}
 
@@ -133,7 +138,7 @@ func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSum
 	summary.MemberLeaveCount = int(leaveCount)
 
 	messageRepo := repository.NewMessageRepo(s.ctx, vars.DB)
-	chatInfo, err := messageRepo.GetYesterdayChatInfo(chatRoomID)
+	chatInfo, err := messageRepo.GetYesterdayChatInfo(owner, chatRoomID)
 	if err != nil {
 		return summary, err
 	}
