@@ -1,8 +1,10 @@
 package common_cron
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 	"wechat-robot-client/dto"
@@ -66,11 +68,15 @@ func (cron *NewsCron) Register() {
 		newsText := strings.Join(newsResp.News, "\n")
 
 		newsImage := newsResp.Image
-		resp, err := resty.New().R().Get(newsImage)
+		resp, err := resty.New().R().SetDoNotParseResponse(true).Get(newsImage)
 		if err != nil {
 			return err
 		}
 		defer resp.RawBody().Close()
+		imageBytes, err := io.ReadAll(resp.RawBody())
+		if err != nil {
+			return err
+		}
 
 		for _, setting := range settings {
 			if setting.NewsType == "text" {
@@ -84,7 +90,7 @@ func (cron *NewsCron) Register() {
 					log.Printf("[每日早报] 发送文本消息失败: %v", err)
 				}
 			} else {
-				err := msgService.MsgUploadImg(setting.ChatRoomID, resp.RawBody())
+				err := msgService.MsgUploadImg(setting.ChatRoomID, io.NopCloser(bytes.NewReader(imageBytes)))
 				if err != nil {
 					log.Printf("[每日早报] 发送图片消息失败: %v", err)
 				}
