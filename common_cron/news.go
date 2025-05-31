@@ -74,14 +74,20 @@ func (cron *NewsCron) Register() {
 
 		for _, setting := range settings {
 			if setting.NewsType == "text" {
-				msgService.SendTextMessage(dto.SendTextMessageRequest{
+				err := msgService.SendTextMessage(dto.SendTextMessageRequest{
 					SendMessageCommonRequest: dto.SendMessageCommonRequest{
 						ToWxid: setting.ChatRoomID,
 					},
 					Content: newsText,
 				})
+				if err != nil {
+					log.Printf("[每日早报] 发送文本消息失败: %v", err)
+				}
 			} else {
-				msgService.MsgUploadImg(setting.ChatRoomID, resp.RawBody())
+				err := msgService.MsgUploadImg(setting.ChatRoomID, resp.RawBody())
+				if err != nil {
+					log.Printf("[每日早报] 发送图片消息失败: %v", err)
+				}
 			}
 		}
 

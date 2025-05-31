@@ -173,12 +173,15 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		return err
 	}
 	if len(messages) < 100 {
-		msgService.SendTextMessage(dto.SendTextMessageRequest{
+		err := msgService.SendTextMessage(dto.SendTextMessageRequest{
 			SendMessageCommonRequest: dto.SendMessageCommonRequest{
 				ToWxid: setting.ChatRoomID,
 			},
 			Content: "聊天不够活跃啊~~~",
 		})
+		if err != nil {
+			log.Printf("发送消息失败: %v", err)
+		}
 		return nil
 	}
 
