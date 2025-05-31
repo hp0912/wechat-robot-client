@@ -117,7 +117,7 @@ func (m *Message) GetYesterdayChatInfo(owner, chatRoomID string) ([]*dto.ChatRoo
 	yesterdayStartTimestamp := yesterdayStart.Unix()
 	todayStartTimestamp := todayStart.Unix()
 	query := m.DB.Model(&model.Message{})
-	query = query.Select("count( 1 ) AS `member_chat_count`").
+	query = query.Select("count( 1 ) AS `message_count`").
 		Where("from_wxid = ?", chatRoomID).
 		Where("to_wxid = ?", owner).
 		Where("type < 10000").

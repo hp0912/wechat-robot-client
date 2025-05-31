@@ -18,7 +18,7 @@ const (
 	FriendSyncCron            CommonCron = "friend_sync_cron"
 )
 
-type TaskHandler func() error
+type TaskHandler func()
 
 type CronManagerInterface interface {
 	Name() string
@@ -34,5 +34,6 @@ type CronManagerInterface interface {
 
 type CommonCronInstance interface {
 	IsActive() bool
+	Cron() error
 	Register()
 }

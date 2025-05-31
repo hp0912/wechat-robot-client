@@ -1,12 +1,13 @@
 package common_cron
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
+	"time"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
@@ -41,63 +42,85 @@ func (cron *NewsCron) IsActive() bool {
 	return false
 }
 
+func (cron *NewsCron) Cron() error {
+	settings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableNews()
+
+	var newsResp NewsResponse
+	_, err := resty.New().R().
+		SetHeader("Content-Type", "application/json;chartset=utf-8").
+		SetQueryParam("type", "json").
+		SetResult(&newsResp).
+		Get("https://api.suxun.site/api/sixs")
+	if err != nil {
+		return err
+	}
+	if newsResp.Code != "200" {
+		return fmt.Errorf("获取每日早报失败: %s", newsResp.Msg)
+	}
+
+	msgService := service.NewMessageService(context.Background())
+	newsText := strings.Join(newsResp.News, "\n")
+
+	newsImage := newsResp.Image
+	resp, err := resty.New().R().SetDoNotParseResponse(true).Get(newsImage)
+	if err != nil {
+		return err
+	}
+	defer resp.RawBody().Close()
+	// 创建临时文件
+	tempFile, err := os.CreateTemp("", "news_image_*")
+	if err != nil {
+		return err
+	}
+	defer tempFile.Close()
+	defer os.Remove(tempFile.Name()) // 清理临时文件
+	// 将图片数据写入临时文件
+	_, err = io.Copy(tempFile, resp.RawBody())
+	if err != nil {
+		return err
+	}
+
+	for _, setting := range settings {
+		if setting.NewsType == "text" {
+			err := msgService.SendTextMessage(dto.SendTextMessageRequest{
+				SendMessageCommonRequest: dto.SendMessageCommonRequest{
+					ToWxid: setting.ChatRoomID,
+				},
+				Content: newsText,
+			})
+			if err != nil {
+				log.Printf("[每日早报] 发送文本消息失败: %v", err)
+			}
+		} else {
+			// 重置文件指针到开始位置
+			_, err := tempFile.Seek(0, 0)
+			if err != nil {
+				log.Printf("[每日早报] 重置文件指针失败: %v", err)
+				continue
+			}
+			err = msgService.MsgUploadImg(setting.ChatRoomID, tempFile)
+			if err != nil {
+				log.Printf("[每日早报] 发送图片消息失败: %v", err)
+			}
+		}
+		time.Sleep(1 * time.Second) // 避免发送过快
+	}
+
+	return nil
+}
+
 func (cron *NewsCron) Register() {
 	if !cron.IsActive() {
 		log.Println("每日早报任务未启用")
 		return
 	}
-	err := cron.CronManager.AddJob(vars.NewsCron, cron.CronManager.globalSettings.NewsCron, func() error {
+	err := cron.CronManager.AddJob(vars.NewsCron, cron.CronManager.globalSettings.NewsCron, func() {
 		log.Println("开始执行每日早报任务")
-
-		settings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableNews()
-
-		var newsResp NewsResponse
-		_, err := resty.New().R().
-			SetHeader("Content-Type", "application/json;chartset=utf-8").
-			SetQueryParam("type", "json").
-			SetResult(&newsResp).
-			Get("https://api.suxun.site/api/sixs")
-		if err != nil {
-			return err
+		if err := cron.Cron(); err != nil {
+			log.Printf("执行每日早报任务失败: %v", err)
+		} else {
+			log.Println("每日早报任务执行完成")
 		}
-		if newsResp.Code != "200" {
-			return fmt.Errorf("获取每日早报失败: %s", newsResp.Msg)
-		}
-
-		msgService := service.NewMessageService(context.Background())
-		newsText := strings.Join(newsResp.News, "\n")
-
-		newsImage := newsResp.Image
-		resp, err := resty.New().R().SetDoNotParseResponse(true).Get(newsImage)
-		if err != nil {
-			return err
-		}
-		defer resp.RawBody().Close()
-		imageBytes, err := io.ReadAll(resp.RawBody())
-		if err != nil {
-			return err
-		}
-
-		for _, setting := range settings {
-			if setting.NewsType == "text" {
-				err := msgService.SendTextMessage(dto.SendTextMessageRequest{
-					SendMessageCommonRequest: dto.SendMessageCommonRequest{
-						ToWxid: setting.ChatRoomID,
-					},
-					Content: newsText,
-				})
-				if err != nil {
-					log.Printf("[每日早报] 发送文本消息失败: %v", err)
-				}
-			} else {
-				err := msgService.MsgUploadImg(setting.ChatRoomID, io.NopCloser(bytes.NewReader(imageBytes)))
-				if err != nil {
-					log.Printf("[每日早报] 发送图片消息失败: %v", err)
-				}
-			}
-		}
-
-		return nil
 	})
 	if err != nil {
 		log.Printf("每日早报任务注册失败: %v", err)

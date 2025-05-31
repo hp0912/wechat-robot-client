@@ -26,14 +26,22 @@ func (cron *ChatRoomRankingWeeklyCron) IsActive() bool {
 	return false
 }
 
+func (cron *ChatRoomRankingWeeklyCron) Cron() error {
+	return service.NewChatRoomService(context.Background()).ChatRoomRankingWeekly()
+}
+
 func (cron *ChatRoomRankingWeeklyCron) Register() {
 	if !cron.IsActive() {
 		log.Println("每周群聊排行榜任务未启用")
 		return
 	}
-	err := cron.CronManager.AddJob(vars.ChatRoomRankingWeeklyCron, *cron.CronManager.globalSettings.ChatRoomRankingWeeklyCron, func() error {
+	err := cron.CronManager.AddJob(vars.ChatRoomRankingWeeklyCron, *cron.CronManager.globalSettings.ChatRoomRankingWeeklyCron, func() {
 		log.Println("开始执行每周群聊排行榜任务")
-		return service.NewChatRoomService(context.Background()).ChatRoomRankingWeekly()
+		if err := cron.Cron(); err != nil {
+			log.Printf("每周群聊排行榜任务执行失败: %v", err)
+		} else {
+			log.Println("每周群聊排行榜任务执行完成")
+		}
 	})
 	if err != nil {
 		log.Printf("每周群聊排行榜任务注册失败: %v", err)
