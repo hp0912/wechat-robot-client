@@ -31,9 +31,13 @@ func (cron *ChatRoomRankingWeeklyCron) Register() {
 		log.Println("每周群聊排行榜任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.ChatRoomRankingWeeklyCron, *cron.CronManager.globalSettings.ChatRoomRankingWeeklyCron, func(params ...any) error {
+	err := cron.CronManager.AddJob(vars.ChatRoomRankingWeeklyCron, *cron.CronManager.globalSettings.ChatRoomRankingWeeklyCron, func() error {
 		log.Println("开始执行每周群聊排行榜任务")
 		return service.NewChatRoomService(context.Background()).ChatRoomRankingWeekly()
 	})
+	if err != nil {
+		log.Printf("每周群聊排行榜任务注册失败: %v", err)
+		return
+	}
 	log.Println("每周群聊排行榜任务初始化成功")
 }

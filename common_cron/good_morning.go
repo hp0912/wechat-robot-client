@@ -34,7 +34,7 @@ func (cron *GoodMorningCron) Register() {
 		log.Println("每日早安任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.FriendSyncCron, cron.CronManager.globalSettings.FriendSyncCron, func(params ...any) error {
+	err := cron.CronManager.AddJob(vars.MorningCron, cron.CronManager.globalSettings.MorningCron, func() error {
 		log.Println("开始每日早安任务")
 
 		// 获取当前时间
@@ -94,5 +94,9 @@ func (cron *GoodMorningCron) Register() {
 
 		return nil
 	})
+	if err != nil {
+		log.Printf("每日早安任务注册失败: %v", err)
+		return
+	}
 	log.Println("每日早安任务初始化成功")
 }

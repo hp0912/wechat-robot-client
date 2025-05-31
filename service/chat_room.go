@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -303,6 +305,12 @@ func (s *ChatRoomService) ChatRoomAISummary() error {
 func (s *ChatRoomService) ChatRoomRankingDaily() error {
 	notifyMsgs := []string{"#昨日水群排行榜"}
 
+	// 获取今天凌晨零点
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// 获取昨天凌晨零点
+	yesterdayStart := todayStart.AddDate(0, 0, -1)
+
 	settings := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
 	msgService := NewMessageService(context.Background())
 
@@ -377,6 +385,26 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 			},
 			Content: strings.Join(notifyMsgs, "\n"),
 		})
+		// 休眠一秒，防止频繁发送
+		time.Sleep(1 * time.Second)
+		// 发送词云图片
+		wordCloudCacheDir := filepath.Join(string(filepath.Separator), "app", "word_cloud_cache")
+		dateStr := yesterdayStart.Format("2006-01-02")
+		filename := fmt.Sprintf("%s_%s.png", setting.ChatRoomID, dateStr)
+		filePath := filepath.Join(wordCloudCacheDir, filename)
+		imageFile, err := os.Open(filePath)
+		if err != nil {
+			log.Printf("群聊 %s 打开词云图片文件失败: %v", setting.ChatRoomID, err)
+			continue
+		}
+		defer imageFile.Close()
+		err = msgService.MsgUploadImg(setting.ChatRoomID, imageFile)
+		if err != nil {
+			log.Printf("群聊 %s 词云图片发送失败: %v", setting.ChatRoomID, err)
+			continue
+		}
+		// 休眠一秒，防止频繁发送
+		time.Sleep(1 * time.Second)
 	}
 	return nil
 }
@@ -459,6 +487,8 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 			},
 			Content: strings.Join(notifyMsgs, "\n"),
 		})
+		// 休眠一秒，防止频繁发送
+		time.Sleep(1 * time.Second)
 	}
 	return nil
 }
@@ -541,6 +571,8 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 			},
 			Content: strings.Join(notifyMsgs, "\n"),
 		})
+		// 休眠一秒，防止频繁发送
+		time.Sleep(1 * time.Second)
 	}
 	return nil
 }

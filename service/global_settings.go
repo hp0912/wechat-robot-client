@@ -24,10 +24,12 @@ func (s *GlobalSettingsService) GetGlobalSettings() *model.GlobalSettings {
 
 func (s *GlobalSettingsService) SaveGlobalSettings(data *model.GlobalSettings) {
 	respo := repository.NewGlobalSettingsRepo(s.ctx, vars.DB)
+	data.FriendSyncCron = "" // 这个不允许用户修改
 	respo.Update(data)
 	// 重置公共定时任务
+	newData := s.GetGlobalSettings()
 	vars.CronManager.Clear()
-	vars.CronManager.SetGlobalSettings(data)
+	vars.CronManager.SetGlobalSettings(newData)
 	if vars.RobotRuntime.Status == model.RobotStatusOnline {
 		vars.CronManager.Start()
 	}

@@ -26,9 +26,13 @@ func (cron *SyncContactCron) Register() {
 		log.Println("联系人同步任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.FriendSyncCron, cron.CronManager.globalSettings.FriendSyncCron, func(params ...any) error {
+	err := cron.CronManager.AddJob(vars.FriendSyncCron, cron.CronManager.globalSettings.FriendSyncCron, func() error {
 		log.Println("开始同步联系人")
 		return service.NewContactService(context.Background()).SyncContact(true)
 	})
+	if err != nil {
+		log.Printf("联系人同步任务注册失败: %v", err)
+		return
+	}
 	log.Println("同步联系人任务初始化成功")
 }

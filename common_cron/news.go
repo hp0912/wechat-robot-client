@@ -44,7 +44,7 @@ func (cron *NewsCron) Register() {
 		log.Println("每日早报任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.FriendSyncCron, cron.CronManager.globalSettings.FriendSyncCron, func(params ...any) error {
+	err := cron.CronManager.AddJob(vars.NewsCron, cron.CronManager.globalSettings.NewsCron, func() error {
 		log.Println("开始执行每日早报任务")
 
 		settings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableNews()
@@ -87,5 +87,9 @@ func (cron *NewsCron) Register() {
 
 		return nil
 	})
+	if err != nil {
+		log.Printf("每日早报任务注册失败: %v", err)
+		return
+	}
 	log.Println("每日早报任务初始化成功")
 }

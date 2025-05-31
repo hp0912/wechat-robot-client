@@ -29,9 +29,13 @@ func (cron *ChatRoomSummaryCron) Register() {
 		log.Println("每日群聊总结任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.ChatRoomSummaryCron, cron.CronManager.globalSettings.ChatRoomSummaryCron, func(params ...any) error {
+	err := cron.CronManager.AddJob(vars.ChatRoomSummaryCron, cron.CronManager.globalSettings.ChatRoomSummaryCron, func() error {
 		log.Println("开始执行每日群聊总结任务")
 		return service.NewChatRoomService(context.Background()).ChatRoomAISummary()
 	})
+	if err != nil {
+		log.Printf("每日群聊总结任务注册失败: %v", err)
+		return
+	}
 	log.Println("每日群聊总结任务初始化成功")
 }

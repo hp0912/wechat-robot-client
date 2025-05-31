@@ -2,7 +2,10 @@ package common_cron
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
@@ -35,7 +38,7 @@ func (cron *WordCloudDailyCron) Register() {
 		return
 	}
 	// 写死 5 0 * * *
-	cron.CronManager.AddJob(vars.WordCloudDailyCron, "5 0 * * *", func(params ...any) error {
+	err := cron.CronManager.AddJob(vars.WordCloudDailyCron, "5 0 * * *", func() error {
 		log.Println("开始执行每日词云任务")
 
 		// 获取今天凌晨零点
@@ -46,7 +49,12 @@ func (cron *WordCloudDailyCron) Register() {
 		// 转换为时间戳（秒）
 		yesterdayStartTimestamp := yesterdayStart.Unix()
 		todayStartTimestamp := todayStart.Unix()
-
+		// 创建词云缓存目录
+		wordCloudCacheDir := filepath.Join(string(filepath.Separator), "app", "word_cloud_cache")
+		if err := os.MkdirAll(wordCloudCacheDir, 0755); err != nil {
+			log.Printf("创建词云缓存目录失败: %v", err)
+			return err
+		}
 		wcService := service.NewWordCloudService(context.Background())
 		settings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
 		for _, setting := range settings {
@@ -63,10 +71,22 @@ func (cron *WordCloudDailyCron) Register() {
 				log.Printf("[词云] 群聊 %s 生成了空图片，跳过处理\n", setting.ChatRoomID)
 				continue
 			}
-
+			// 保存词云图片
+			dateStr := yesterdayStart.Format("2006-01-02")
+			filename := fmt.Sprintf("%s_%s.png", setting.ChatRoomID, dateStr)
+			filePath := filepath.Join(wordCloudCacheDir, filename)
+			if err := os.WriteFile(filePath, imageData, 0644); err != nil {
+				log.Printf("[词云] 群聊 %s 保存词云图片失败: %v\n", setting.ChatRoomID, err)
+				continue
+			}
+			log.Printf("[词云] 群聊 %s 词云图片已保存至: %s\n", setting.ChatRoomID, filePath)
 		}
 
 		return nil
 	})
+	if err != nil {
+		log.Printf("每日词云任务注册失败: %v", err)
+		return
+	}
 	log.Println("每日词云任务初始化成功")
 }

@@ -18,16 +18,16 @@ const (
 	FriendSyncCron            CommonCron = "friend_sync_cron"
 )
 
-type TaskHandler func(params ...any) error
+type TaskHandler func() error
 
 type CronManagerInterface interface {
 	Name() string
 	Shutdown(ctx context.Context) error
 	SetGlobalSettings(globalSettings *model.GlobalSettings)
 	Start()
-	AddJob(cronName CommonCron, cronExpr string, handler TaskHandler, params ...any) error
+	AddJob(cronName CommonCron, cronExpr string, handler TaskHandler) error
 	RemoveJob(cronName CommonCron) error
-	UpdateJob(cronName CommonCron, cronExpr string, handler TaskHandler, params ...any) error
+	UpdateJob(cronName CommonCron, cronExpr string, handler TaskHandler) error
 	Clear()
 	Stop()
 }

@@ -29,9 +29,13 @@ func (cron *ChatRoomRankingDailyCron) Register() {
 		log.Println("每日群聊排行榜任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.ChatRoomRankingDailyCron, cron.CronManager.globalSettings.ChatRoomRankingDailyCron, func(params ...any) error {
+	err := cron.CronManager.AddJob(vars.ChatRoomRankingDailyCron, cron.CronManager.globalSettings.ChatRoomRankingDailyCron, func() error {
 		log.Println("开始执行每日群聊排行榜任务")
 		return service.NewChatRoomService(context.Background()).ChatRoomRankingDaily()
 	})
+	if err != nil {
+		log.Printf("每日群聊排行榜任务注册失败: %v", err)
+		return
+	}
 	log.Println("每日群聊排行榜任务初始化成功")
 }

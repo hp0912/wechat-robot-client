@@ -31,9 +31,13 @@ func (cron *ChatRoomRankingMonthCron) Register() {
 		log.Println("每月群聊排行榜任务未启用")
 		return
 	}
-	cron.CronManager.AddJob(vars.ChatRoomRankingMonthCron, *cron.CronManager.globalSettings.ChatRoomRankingMonthCron, func(params ...any) error {
+	err := cron.CronManager.AddJob(vars.ChatRoomRankingMonthCron, *cron.CronManager.globalSettings.ChatRoomRankingMonthCron, func() error {
 		log.Println("开始执行每月群聊排行榜任务")
 		return service.NewChatRoomService(context.Background()).ChatRoomRankingMonthly()
 	})
+	if err != nil {
+		log.Printf("每月群聊排行榜任务注册失败: %v", err)
+		return
+	}
 	log.Println("每月群聊排行榜任务初始化成功")
 }

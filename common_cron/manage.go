@@ -15,6 +15,7 @@ import (
 
 type CronManager struct {
 	scheduler      *gocron.Scheduler
+	isRunning      bool
 	globalSettings *model.GlobalSettings
 	jobs           map[vars.CommonCron]*gocron.Job
 	mu             sync.RWMutex
@@ -33,6 +34,8 @@ func NewCronManager() vars.CronManagerInterface {
 	return &CronManager{
 		scheduler:      gocron.NewScheduler(time.Local),
 		globalSettings: globalSettings,
+		jobs:           make(map[vars.CommonCron]*gocron.Job),
+		isRunning:      false,
 		ctx:            ctx,
 		cancel:         cancel,
 	}
@@ -62,7 +65,10 @@ func (m *CronManager) SetGlobalSettings(globalSettings *model.GlobalSettings) {
 
 func (m *CronManager) Start() {
 	// 启动调度器
-	m.scheduler.StartAsync()
+	if !m.isRunning {
+		m.scheduler.StartAsync()
+		m.isRunning = true
+	}
 	// 为空的时候，是从未扫码登陆的时候
 	if vars.RobotRuntime.WxID != "" {
 		// 为 nil 的时候，是从未扫码登陆的时候
@@ -95,11 +101,11 @@ func (m *CronManager) Start() {
 	}
 }
 
-func (m *CronManager) AddJob(cronName vars.CommonCron, cronExpr string, handler vars.TaskHandler, params ...any) error {
+func (m *CronManager) AddJob(cronName vars.CommonCron, cronExpr string, handler vars.TaskHandler) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	// 添加到调度器
-	cronJob, err := m.scheduler.Cron(cronExpr).Do(handler, params...)
+	cronJob, err := m.scheduler.Cron(cronExpr).Do(handler)
 	if err != nil {
 		return fmt.Errorf("failed to schedule job %s: %w", cronName, err)
 	}
@@ -121,13 +127,13 @@ func (m *CronManager) RemoveJob(cronName vars.CommonCron) error {
 	return nil
 }
 
-func (m *CronManager) UpdateJob(cronName vars.CommonCron, cronExpr string, handler vars.TaskHandler, params ...any) error {
+func (m *CronManager) UpdateJob(cronName vars.CommonCron, cronExpr string, handler vars.TaskHandler) error {
 	// 先移除旧任务
 	if err := m.RemoveJob(cronName); err != nil {
 		return err
 	}
 	// 添加新任务
-	return m.AddJob(cronName, cronExpr, handler, params...)
+	return m.AddJob(cronName, cronExpr, handler)
 }
 
 func (m *CronManager) Clear() {
@@ -136,5 +142,8 @@ func (m *CronManager) Clear() {
 
 func (m *CronManager) Stop() {
 	m.cancel()
-	m.scheduler.Stop()
+	if m.isRunning {
+		m.scheduler.Stop()
+		m.isRunning = false
+	}
 }
