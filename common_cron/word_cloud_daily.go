@@ -54,7 +54,16 @@ func (cron *WordCloudDailyCron) Register() {
 				log.Printf("[词云] 群聊 %s 未开启群聊排行榜，跳过处理\n", setting.ChatRoomID)
 				continue
 			}
-			wcService.WordCloudDaily(setting.ChatRoomID, yesterdayStartTimestamp, todayStartTimestamp)
+			imageData, err := wcService.WordCloudDaily(setting.ChatRoomID, yesterdayStartTimestamp, todayStartTimestamp)
+			if err != nil {
+				log.Printf("[词云] 群聊 %s 生成词云失败: %v\n", setting.ChatRoomID, err)
+				continue
+			}
+			if imageData == nil {
+				log.Printf("[词云] 群聊 %s 生成了空图片，跳过处理\n", setting.ChatRoomID)
+				continue
+			}
+
 		}
 
 		return nil
