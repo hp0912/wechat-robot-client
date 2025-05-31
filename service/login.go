@@ -25,6 +25,10 @@ func NewLoginService(ctx context.Context) *LoginService {
 
 func (s *LoginService) Online() {
 	vars.RobotRuntime.Status = model.RobotStatusOnline
+	// 启动定时任务
+	vars.CronManager.Clear()
+	vars.CronManager.Start()
+	// 更新机器人状态
 	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
 		ID:     vars.RobotRuntime.RobotID,
@@ -41,6 +45,9 @@ func (s *LoginService) Offline() {
 	if vars.RobotRuntime.SyncMessageCancel != nil {
 		vars.RobotRuntime.SyncMessageCancel()
 	}
+	// 清空定时任务
+	vars.CronManager.Clear()
+	// 更新状态
 	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
 		ID:     vars.RobotRuntime.RobotID,
@@ -125,6 +132,9 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 		// 开启消息同步
 		msgService := NewMessageService(context.Background())
 		go msgService.SyncMessageStart()
+		// 开启定时任务
+		vars.CronManager.Clear()
+		vars.CronManager.Start()
 		// 更新登陆状态
 		var profile robot.GetProfileResponse
 		profile, err = vars.RobotRuntime.GetProfile(resp.AcctSectResp.Username)

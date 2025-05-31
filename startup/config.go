@@ -56,4 +56,7 @@ func loadEnvConfig() {
 		}
 		vars.RobotStartTimeout = time.Duration(t) * time.Second
 	}
+
+	// 词云
+	vars.WordCloudUrl = os.Getenv("WORD_CLOUD_URL")
 }

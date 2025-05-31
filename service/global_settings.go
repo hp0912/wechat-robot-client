@@ -28,7 +28,9 @@ func (s *GlobalSettingsService) SaveGlobalSettings(data *model.GlobalSettings) {
 	// 重置公共定时任务
 	vars.CronManager.Clear()
 	vars.CronManager.SetGlobalSettings(data)
-	vars.CronManager.Start()
+	if vars.RobotRuntime.Status == model.RobotStatusOnline {
+		vars.CronManager.Start()
+	}
 }
 
 func (s *GlobalSettingsService) UpdateGlobalSettings(wxID string) {

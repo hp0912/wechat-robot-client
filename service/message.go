@@ -314,7 +314,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 		return fmt.Errorf("获取歌曲信息失败: %w", err)
 	}
 	if result.Title == nil {
-		return errors.New(fmt.Sprintf("没有搜索到歌曲 %s", songTitle))
+		return fmt.Errorf("没有搜索到歌曲 %s", songTitle)
 	}
 
 	songInfo := robot.SongInfo{}

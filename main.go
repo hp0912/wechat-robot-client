@@ -30,7 +30,6 @@ func main() {
 	}
 	// 初始化定时任务
 	vars.CronManager = common_cron.NewCronManager()
-	vars.CronManager.Start()
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))
 	app := gin.Default()
@@ -46,6 +45,11 @@ func main() {
 	shutdownManager.Register(dbConn)
 	shutdownManager.Register(vars.RobotRuntime)
 	shutdownManager.Register(vars.CronManager)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("主程序，发现未处理的异常:", r)
+		}
+	}()
 	// 开始监听停止信号
 	shutdownManager.Start()
 	// 启动服务

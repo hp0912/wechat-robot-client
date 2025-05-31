@@ -8,6 +8,7 @@ import (
 type CommonCron string
 
 const (
+	WordCloudDailyCron        CommonCron = "word_cloud_daily_cron"
 	ChatRoomRankingDailyCron  CommonCron = "chat_room_ranking_daily_cron"
 	ChatRoomRankingWeeklyCron CommonCron = "chat_room_ranking_weekly_cron"
 	ChatRoomRankingMonthCron  CommonCron = "chat_room_ranking_month_cron"

@@ -79,6 +79,9 @@ func (m *CronManager) Start() {
 			// 每日群聊总结
 			chatRoomSummaryCron := NewChatRoomSummaryCron(m)
 			chatRoomSummaryCron.Register()
+			// 每日词云
+			wordCloudDailyCron := NewWordCloudDailyCron(m)
+			wordCloudDailyCron.Register()
 			// 每日群聊排行榜
 			chatRoomRankingDailyCron := NewChatRoomRankingDailyCron(m)
 			chatRoomRankingDailyCron.Register()
