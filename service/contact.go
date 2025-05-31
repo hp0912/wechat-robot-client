@@ -34,11 +34,6 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) (err error) {
 	if err != nil {
 		return
 	}
-	defer func() {
-		if err := recover(); err != nil {
-			log.Printf("同步联系人出错了: %v", err)
-		}
-	}()
 	respo := repository.NewContactRepo(s.ctx, vars.DB)
 	recentGroupContacts := respo.FindRecentGroupContacts()
 	for _, groupContact := range recentGroupContacts {

@@ -37,11 +37,6 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 		log.Printf("获取群[%s]成员失败: %v", chatRoomID, err)
 		return
 	}
-	defer func() {
-		if err := recover(); err != nil {
-			log.Printf("获取群[%s]成员失败: %v", chatRoomID, err)
-		}
-	}()
 	// 遍历获取到的群成员列表，如果数据库存在，则更新，数据库不存在则新增
 	if len(chatRoomMembers) > 0 {
 		memberRepo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
@@ -224,8 +219,16 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 	}
 
 	// 默认使用AI回复
-	aiConfig := openai.DefaultConfig(*setting.ChatAPIKey)
-	aiConfig.BaseURL = strings.TrimRight(globalSettings.ChatBaseURL, "/")
+	aiApiKey := globalSettings.ChatAPIKey
+	if *setting.ChatAPIKey != "" {
+		aiApiKey = *setting.ChatAPIKey
+	}
+	aiConfig := openai.DefaultConfig(aiApiKey)
+	aiApiBaseURL := strings.TrimRight(globalSettings.ChatBaseURL, "/")
+	if setting.ChatBaseURL != nil && *setting.ChatBaseURL != "" {
+		aiApiBaseURL = strings.TrimRight(*setting.ChatBaseURL, "/")
+	}
+	aiConfig.BaseURL = aiApiBaseURL
 	if !strings.HasSuffix(aiConfig.BaseURL, "/v1") {
 		aiConfig.BaseURL += "/v1"
 	}
@@ -238,8 +241,9 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 	resp, err = ai.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    model,
-			Messages: aiMessages,
+			Model:               model,
+			Messages:            aiMessages,
+			MaxCompletionTokens: 4096,
 		},
 	)
 	if err != nil {

@@ -40,11 +40,6 @@ func (s *MessageService) SyncMessage() {
 		// 没有消息，直接返回
 		return
 	}
-	defer func() {
-		if err := recover(); err != nil {
-			log.Printf("消息入库出错了: %v", err)
-		}
-	}()
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	for _, message := range syncResp.AddMsgs {
 		m := model.Message{
