@@ -12,33 +12,45 @@ import (
 )
 
 type Message struct {
-	Base[model.Message]
+	Ctx context.Context
+	DB  *gorm.DB
 }
 
 func NewMessageRepo(ctx context.Context, db *gorm.DB) *Message {
 	return &Message{
-		Base[model.Message]{
-			Ctx: ctx,
-			DB:  db,
-		}}
+		Ctx: ctx,
+		DB:  db,
+	}
 }
 
-func (m *Message) GetByID(id int64, preloads ...string) *model.Message {
-	return m.takeOne(preloads, func(g *gorm.DB) *gorm.DB {
-		return g.Where("id = ?", id)
-	})
+func (m *Message) GetByID(id int64) (*model.Message, error) {
+	var message model.Message
+	err := m.DB.WithContext(m.Ctx).Where("id = ?", id).First(&message).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &message, nil
 }
 
-func (m *Message) GetByMsgID(msgId int64, preloads ...string) *model.Message {
-	return m.takeOne(preloads, func(g *gorm.DB) *gorm.DB {
-		return g.Where("msg_id = ?", msgId)
-	})
+func (m *Message) GetByMsgID(owner string, msgId int64) (*model.Message, error) {
+	var message model.Message
+	err := m.DB.WithContext(m.Ctx).Where("to_wxid = ? AND msg_id = ?", owner, msgId).First(&message).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &message, nil
 }
 
 func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) ([]*model.Message, int64, error) {
 	var messages []*model.Message
 	var total int64
-	query := m.DB.Model(&model.Message{})
+	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
 	// 判断是群聊还是单聊，决定关联哪张表
 	if strings.HasSuffix(req.ContactID, "@chatroom") {
 		// 群聊，需要关联 chat_room_members 以获取发送者昵称和头像
@@ -89,7 +101,7 @@ func (m *Message) GetMessagesByTimeRange(owner, chatRoomID string, startTime, en
 			ELSE EXTRACTVALUE ( messages.content, "/msg/appmsg/des" )
 		END ELSE messages.content
 	END`
-	query := m.DB.Model(&model.Message{})
+	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
 	query = query.Select("chat_room_members.nickname", selectStr+" AS message", "messages.created_at").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
@@ -116,7 +128,7 @@ func (m *Message) GetYesterdayChatInfo(owner, chatRoomID string) ([]*dto.ChatRoo
 	// 转换为时间戳（秒）
 	yesterdayStartTimestamp := yesterdayStart.Unix()
 	todayStartTimestamp := todayStart.Unix()
-	query := m.DB.Model(&model.Message{})
+	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
 	query = query.Select("count( 1 ) AS `message_count`").
 		Where("from_wxid = ?", chatRoomID).
 		Where("to_wxid = ?", owner).
@@ -140,7 +152,7 @@ func (m *Message) GetYesterdayChatRommRank(owner, chatRoomID string) ([]*dto.Cha
 	// 转换为时间戳（秒）
 	yesterdayStartTimestamp := yesterdayStart.Unix()
 	todayStartTimestamp := todayStart.Unix()
-	query := m.DB.Model(&model.Message{})
+	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
 	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
@@ -168,7 +180,7 @@ func (m *Message) GetLastWeekChatRommRank(owner, chatRoomID string) ([]*dto.Chat
 	// 转换为时间戳（秒）
 	lastWeekStartTimestamp := lastMondayStart.Unix()
 	thisWeekStartTimestamp := thisWeekStart.Unix()
-	query := m.DB.Model(&model.Message{})
+	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
 	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
@@ -195,7 +207,7 @@ func (m *Message) GetLastMonthChatRommRank(owner, chatRoomID string) ([]*dto.Cha
 	// 转换为时间戳（秒）
 	lastMonthStartTimestamp := lastMonthStart.Unix()
 	thisMonthStartTimestamp := thisMonthStart.Unix()
-	query := m.DB.Model(&model.Message{})
+	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
 	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
@@ -209,4 +221,12 @@ func (m *Message) GetLastMonthChatRommRank(owner, chatRoomID string) ([]*dto.Cha
 		return chatRoomRank, err
 	}
 	return chatRoomRank, nil
+}
+
+func (m *Message) Create(data *model.Message) error {
+	return m.DB.WithContext(m.Ctx).Create(data).Error
+}
+
+func (m *Message) Update(data *model.Message) error {
+	return m.DB.WithContext(m.Ctx).Where("id = ?", data.ID).Updates(data).Error
 }

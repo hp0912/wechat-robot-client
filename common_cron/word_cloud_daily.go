@@ -44,7 +44,11 @@ func (cron *WordCloudDailyCron) Cron() error {
 		return err
 	}
 	wcService := service.NewWordCloudService(context.Background())
-	settings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
+	settings, err := service.NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
+	if err != nil {
+		log.Printf("获取群聊设置失败: %v", err)
+		return err
+	}
 	for _, setting := range settings {
 		if setting == nil || setting.ChatRoomRankingEnabled == nil || !*setting.ChatRoomRankingEnabled {
 			log.Printf("[词云] 群聊 %s 未开启群聊排行榜，跳过处理\n", setting.ChatRoomID)

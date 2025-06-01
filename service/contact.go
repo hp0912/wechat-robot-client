@@ -24,18 +24,23 @@ func NewContactService(ctx context.Context) *ContactService {
 	}
 }
 
-func (s *ContactService) SyncContact(syncChatRoomMember bool) (err error) {
+func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
-		return
+		return nil
 	}
 	// 先获取全部id
 	var contactIds []string
-	contactIds, err = vars.RobotRuntime.GetContactList()
+	contactIds, err := vars.RobotRuntime.GetContactList()
 	if err != nil {
-		return
+		return err
 	}
+
 	respo := repository.NewContactRepo(s.ctx, vars.DB)
-	recentGroupContacts := respo.FindRecentGroupContacts()
+	recentGroupContacts, err := respo.FindRecentGroupContacts()
+	if err != nil {
+		return err
+	}
+
 	for _, groupContact := range recentGroupContacts {
 		if !slices.Contains(contactIds, groupContact.WechatID) {
 			contactIds = append(contactIds, groupContact.WechatID)
@@ -75,10 +80,15 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) (err error) {
 		}
 		validContactIds = append(validContactIds, *contact.UserName.String)
 		// 判断数据库是否存在当前数据，不存在就新建，存在就更新
-		isExist := respo.ExistsByWeChatID(*contact.UserName.String)
-		if isExist {
+		existContact, err := respo.GetContact(vars.RobotRuntime.WxID, *contact.UserName.String)
+		if err != nil {
+			log.Printf("获取联系人失败: %v", err)
+			continue
+		}
+		if existContact != nil {
 			// 存在，修改
 			contactPerson := model.Contact{
+				ID:            existContact.ID,
 				Owner:         vars.RobotRuntime.WxID,
 				Alias:         contact.Alias,
 				Nickname:      contact.NickName.String,
@@ -95,9 +105,11 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) (err error) {
 			if contact.BigHeadImgUrl == "" {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
 			}
-			respo.UpdateColumnsByWhere(&contactPerson, map[string]any{
-				"wechat_id": *contact.UserName.String,
-			})
+			err = respo.Update(&contactPerson)
+			if err != nil {
+				log.Printf("更新联系人失败: %v", err)
+				continue
+			}
 		} else {
 			contactPerson := model.Contact{
 				WechatID:      *contact.UserName.String,
@@ -123,10 +135,14 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) (err error) {
 			if strings.HasSuffix(*contact.UserName.String, "@chatroom") {
 				contactPerson.Type = model.ContactTypeGroup
 			}
-			respo.Create(&contactPerson)
+			err = respo.Create(&contactPerson)
+			if err != nil {
+				log.Printf("创建联系人失败: %v", err)
+				continue
+			}
 		}
 	}
-	return
+	return nil
 }
 
 func (s *ContactService) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
@@ -137,9 +153,13 @@ func (s *ContactService) GetContacts(req dto.ContactListRequest, pager appx.Page
 
 func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 	contactRespo := repository.NewContactRepo(s.ctx, vars.DB)
+	existContact, err := contactRespo.GetContact(vars.RobotRuntime.WxID, contactID)
+	if err != nil {
+		log.Printf("获取联系人失败: %v", err)
+		return
+	}
 	if strings.HasSuffix(contactID, "@chatroom") {
-		isExist := contactRespo.ExistsByWeChatID(contactID)
-		if !isExist {
+		if existContact == nil {
 			contactGroup := model.Contact{
 				WechatID:  contactID,
 				Owner:     vars.RobotRuntime.WxID,
@@ -147,25 +167,35 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 				CreatedAt: time.Now().Unix(),
 				UpdatedAt: time.Now().Unix(),
 			}
-			contactRespo.Create(&contactGroup)
+			err = contactRespo.Create(&contactGroup)
+			if err != nil {
+				log.Printf("创建群聊联系人失败: %v", err)
+				return
+			}
 		} else {
 			// 存在，更新一下活跃时间
 			contactGroup := model.Contact{
+				ID:        existContact.ID,
 				Owner:     vars.RobotRuntime.WxID,
 				UpdatedAt: time.Now().Unix(),
 			}
-			contactRespo.UpdateColumnsByWhere(&contactGroup, map[string]any{
-				"wechat_id": contactID,
-			})
+			err = contactRespo.Update(&contactGroup)
+			if err != nil {
+				log.Printf("更新群聊联系人失败: %v", err)
+				return
+			}
 		}
 	} else {
 		// 普通联系人肯定存在，更新一下活跃时间就好了
 		contactGroup := model.Contact{
+			ID:        existContact.ID,
 			Owner:     vars.RobotRuntime.WxID,
 			UpdatedAt: time.Now().Unix(),
 		}
-		contactRespo.UpdateColumnsByWhere(&contactGroup, map[string]any{
-			"wechat_id": contactID,
-		})
+		err = contactRespo.Update(&contactGroup)
+		if err != nil {
+			log.Printf("更新联系人活跃时间失败: %v", err)
+			return
+		}
 	}
 }

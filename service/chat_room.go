@@ -50,11 +50,12 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 
 		for _, member := range chatRoomMembers {
 			// 检查成员是否已存在
-			exists := memberRepo.ExistsByWhere(map[string]any{
-				"chat_room_id": chatRoomID,
-				"wechat_id":    member.UserName,
-			})
-			if exists {
+			existMember, err := memberRepo.GetChatRoomMember(vars.RobotRuntime.WxID, chatRoomID, member.UserName)
+			if err != nil {
+				log.Printf("查询群[%s]成员[%s]失败: %v", chatRoomID, member.UserName, err)
+				continue
+			}
+			if existMember != nil {
 				// 更新现有成员
 				updateMember := map[string]any{
 					"nickname":  member.NickName,
@@ -63,10 +64,11 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					"leaved_at": nil,   // 清除离开时间
 				}
 				// 更新数据库中已有的记录
-				memberRepo.UpdateColumnsByWhere(&updateMember, map[string]any{
-					"chat_room_id": chatRoomID,
-					"wechat_id":    member.UserName,
-				})
+				err = memberRepo.UpdateChatRoomMember(existMember.ID, &updateMember)
+				if err != nil {
+					log.Printf("更新群[%s]成员[%s]失败: %v", chatRoomID, member.UserName, err)
+					continue
+				}
 			} else {
 				// 创建新成员
 				newMember := model.ChatRoomMember{
@@ -80,14 +82,19 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					JoinedAt:        now,
 					LastActiveAt:    now,
 				}
-				memberRepo.Create(&newMember)
+				err = memberRepo.Create(&newMember)
+				if err != nil {
+					log.Printf("创建群[%s]成员[%s]失败: %v", chatRoomID, member.UserName, err)
+					continue
+				}
 			}
 		}
 		// 查询数据库中该群的所有成员
-		dbMembers := memberRepo.ListByWhere(nil, map[string]any{
-			"chat_room_id": chatRoomID,
-			"is_leaved":    false, // 只处理未离开的成员
-		})
+		dbMembers, err := memberRepo.GetChatRoomMembers(vars.RobotRuntime.WxID, chatRoomID)
+		if err != nil {
+			log.Printf("获取群[%s]成员失败: %v", chatRoomID, err)
+			return
+		}
 		// 标记已离开的成员
 		for _, dbMember := range dbMembers {
 			if !slices.Contains(currentMemberIDs, dbMember.WechatID) {
@@ -97,10 +104,11 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					IsLeaved: true,
 					LeavedAt: &leaveTime,
 				}
-				memberRepo.UpdateColumnsByWhere(&updateMember, map[string]any{
-					"chat_room_id": chatRoomID,
-					"wechat_id":    dbMember.WechatID,
-				})
+				err = memberRepo.UpdateChatRoomMember(dbMember.ID, &updateMember)
+				if err != nil {
+					log.Printf("标记群[%s]成员[%s]为已离开失败: %v", chatRoomID, dbMember.WechatID, err)
+					continue
+				}
 			}
 		}
 	}
@@ -158,7 +166,11 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 	ctRespo := repository.NewContactRepo(s.ctx, vars.DB)
 
 	chatRoomName := setting.ChatRoomID
-	chatRoom := ctRespo.GetByWechatID(vars.RobotRuntime.WxID, setting.ChatRoomID)
+	chatRoom, err := ctRespo.GetByWechatID(vars.RobotRuntime.WxID, setting.ChatRoomID)
+	if err != nil {
+		return err
+	}
+
 	if chatRoom != nil && chatRoom.Nickname != nil && *chatRoom.Nickname != "" {
 		chatRoomName = *chatRoom.Nickname
 	}
@@ -286,13 +298,21 @@ func (s *ChatRoomService) ChatRoomAISummary() error {
 	yesterdayStartTimestamp := yesterdayStart.Unix()
 	todayStartTimestamp := todayStart.Unix()
 
-	globalSettings := repository.NewGlobalSettingsRepo(s.ctx, vars.DB).GetByOwner(vars.RobotRuntime.WxID)
+	globalSettings, err := repository.NewGlobalSettingsRepo(s.ctx, vars.DB).GetByOwner(vars.RobotRuntime.WxID)
+	if err != nil {
+		return err
+	}
+
 	if globalSettings == nil || globalSettings.ChatAIEnabled == nil || !*globalSettings.ChatAIEnabled || globalSettings.ChatAPIKey == "" || globalSettings.ChatBaseURL == "" {
 		log.Printf("全局设置未开启AI，跳过群聊总结")
 		return nil
 	}
 
-	settings := NewChatRoomSettingsService(s.ctx).GetAllEnableAISummary()
+	settings, err := NewChatRoomSettingsService(s.ctx).GetAllEnableAISummary()
+	if err != nil {
+		return err
+	}
+
 	for _, setting := range settings {
 		if setting == nil || setting.ChatRoomSummaryEnabled == nil || !*setting.ChatRoomSummaryEnabled {
 			log.Printf("群聊 %s 的 AI 总结模型未配置，跳过处理\n", setting.ChatRoomID)
@@ -318,7 +338,11 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 	// 获取昨天凌晨零点
 	yesterdayStart := todayStart.AddDate(0, 0, -1)
 
-	settings := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
+	settings, err := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
+	if err != nil {
+		return err
+	}
+
 	msgService := NewMessageService(context.Background())
 
 	for _, setting := range settings {
@@ -419,7 +443,11 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 	notifyMsgs := []string{"#上周水群排行榜"}
 
-	settings := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
+	settings, err := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
+	if err != nil {
+		return err
+	}
+
 	msgService := NewMessageService(context.Background())
 
 	for _, setting := range settings {
@@ -504,7 +532,11 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 	monthStr := time.Now().Local().AddDate(0, 0, -1).Format("2006年01月")
 	notifyMsgs := []string{fmt.Sprintf("#%s水群排行榜", monthStr)}
 
-	settings := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
+	settings, err := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
+	if err != nil {
+		return err
+	}
+
 	msgService := NewMessageService(context.Background())
 
 	for _, setting := range settings {

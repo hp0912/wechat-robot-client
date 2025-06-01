@@ -41,7 +41,11 @@ func (cron *GoodMorningCron) Cron() error {
 	// 定义中文星期数组
 	weekdays := [...]string{"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"}
 
-	chatRoomSettings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableGoodMorning()
+	chatRoomSettings, err := service.NewChatRoomSettingsService(context.Background()).GetAllEnableGoodMorning()
+	if err != nil {
+		log.Printf("获取群聊设置失败: %v", err)
+		return err
+	}
 
 	// 每日一言
 	dailyWords := "早上好，今天接口挂了，没有早安语。"

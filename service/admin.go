@@ -17,7 +17,7 @@ func NewAdminService(ctx context.Context) *AdminService {
 	}
 }
 
-func (s *AdminService) GetRobotByID(robotID int64) *model.RobotAdmin {
+func (s *AdminService) GetRobotByID(robotID int64) (*model.RobotAdmin, error) {
 	robotRespo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	return robotRespo.GetByRobotID(robotID)
 }

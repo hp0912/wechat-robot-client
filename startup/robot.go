@@ -25,7 +25,10 @@ func InitWechatRobot() error {
 	if err != nil {
 		return err
 	}
-	robotAdmin := service.NewAdminService(context.Background()).GetRobotByID(id)
+	robotAdmin, err := service.NewAdminService(context.Background()).GetRobotByID(id)
+	if err != nil {
+		return err
+	}
 	if robotAdmin == nil {
 		return errors.New("未找到机器人配置")
 	}

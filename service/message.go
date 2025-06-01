@@ -107,10 +107,17 @@ func (s *MessageService) SyncMessage() {
 			var msgXml robot.SystemMessage
 			err := vars.RobotRuntime.XmlDecoder(m.Content, &msgXml)
 			if err == nil {
-				oldMsg := respo.GetByMsgID(msgXml.RevokeMsg.NewMsgID)
+				oldMsg, err := respo.GetByMsgID(vars.RobotRuntime.WxID, msgXml.RevokeMsg.NewMsgID)
+				if err != nil {
+					log.Printf("获取撤回消息失败: %v", err)
+					continue
+				}
 				if oldMsg != nil {
 					oldMsg.IsRecalled = true
-					respo.Update(oldMsg)
+					err = respo.Update(oldMsg)
+					if err != nil {
+						log.Printf("撤回消息失败: %v", err)
+					}
 					continue
 				}
 			}
@@ -126,7 +133,10 @@ func (s *MessageService) SyncMessage() {
 				}
 			}
 		}
-		respo.Create(&m)
+		err = respo.Create(&m)
+		if err != nil {
+			log.Printf("入库消息失败: %v", err)
+		}
 		// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 		NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 	}
@@ -147,7 +157,10 @@ func (s *MessageService) SyncMessageStart() {
 
 func (s *MessageService) MessageRevoke(req dto.MessageCommonRequest) error {
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	message := respo.GetByID(req.MessageID)
+	message, err := respo.GetByID(req.MessageID)
+	if err != nil {
+		return fmt.Errorf("获取消息失败: %w", err)
+	}
 	if message == nil {
 		return errors.New("消息不存在")
 	}
@@ -188,7 +201,10 @@ func (s *MessageService) SendTextMessage(req dto.SendTextMessageRequest) error {
 					CreatedAt:          message.Createtime,
 					UpdatedAt:          time.Now().Unix(),
 				}
-				respo.Create(&m)
+				err = respo.Create(&m)
+				if err != nil {
+					log.Printf("入库消息失败: %v", err)
+				}
 				// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 				NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 			}
@@ -223,7 +239,10 @@ func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) error {
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	respo.Create(&m)
+	err = respo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
@@ -256,7 +275,10 @@ func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt s
 		CreatedAt:          time.Now().Unix(),
 		UpdatedAt:          time.Now().Unix(),
 	}
-	respo.Create(&m)
+	err = respo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
@@ -289,7 +311,10 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice io.Reader, voiceExt s
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	respo.Create(&m)
+	err = respo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
@@ -346,7 +371,10 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	respo.Create(&m)
+	err = respo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
@@ -382,7 +410,10 @@ func (s *MessageService) SendEmoji(toWxID string, md5 string, totalLen int32) er
 			CreatedAt:          time.Now().Unix(),
 			UpdatedAt:          time.Now().Unix(),
 		}
-		respo.Create(&m)
+		err = respo.Create(&m)
+		if err != nil {
+			log.Println("入库消息失败: ", err)
+		}
 		// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 		NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 	}
@@ -415,7 +446,10 @@ func (s *MessageService) ShareLink(toWxID string, linkXml string) error {
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	respo.Create(&m)
+	err = respo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
@@ -446,7 +480,10 @@ func (s *MessageService) SendCDNFile(toWxID string, content string) error {
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	respo.Create(&m)
+	err = respo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
@@ -477,7 +514,10 @@ func (s *MessageService) SendCDNImg(toWxID string, content string) error {
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	respo.Create(&m)
+	err = respo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
@@ -508,7 +548,10 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 		CreatedAt:          time.Now().Unix(),
 		UpdatedAt:          time.Now().Unix(),
 	}
-	respo.Create(&m)
+	err = respo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 

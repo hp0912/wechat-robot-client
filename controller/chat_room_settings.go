@@ -24,7 +24,11 @@ func (ct *ChatRoomSettings) GetChatRoomSettings(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	chatRoomSettings := service.NewChatRoomSettingsService(c).GetChatRoomSettings(req.ChatRoomID)
+	chatRoomSettings, err := service.NewChatRoomSettingsService(c).GetChatRoomSettings(req.ChatRoomID)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
 	if chatRoomSettings == nil {
 		resp.ToResponse(model.ChatRoomSettings{})
 		return
@@ -69,6 +73,10 @@ func (ct *ChatRoomSettings) SaveChatRoomSettings(c *gin.Context) {
 			}
 		}
 	}
-	service.NewChatRoomSettingsService(c).SaveChatRoomSettings(&req)
+	err := service.NewChatRoomSettingsService(c).SaveChatRoomSettings(&req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
 	resp.ToResponse(nil)
 }

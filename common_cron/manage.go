@@ -29,7 +29,10 @@ type CronInstance interface {
 }
 
 func NewCronManager() vars.CronManagerInterface {
-	globalSettings := service.NewGlobalSettingsService(context.Background()).GetGlobalSettings()
+	globalSettings, err := service.NewGlobalSettingsService(context.Background()).GetGlobalSettings()
+	if err != nil {
+		panic(err)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	return &CronManager{
 		scheduler:      gocron.NewScheduler(time.Local),

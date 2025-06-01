@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -23,7 +24,7 @@ func NewLoginService(ctx context.Context) *LoginService {
 	}
 }
 
-func (s *LoginService) Online() {
+func (s *LoginService) Online() error {
 	vars.RobotRuntime.Status = model.RobotStatusOnline
 	// 启动定时任务
 	vars.CronManager.Clear()
@@ -34,10 +35,10 @@ func (s *LoginService) Online() {
 		ID:     vars.RobotRuntime.RobotID,
 		Status: model.RobotStatusOnline,
 	}
-	respo.Update(&robot)
+	return respo.Update(&robot)
 }
 
-func (s *LoginService) Offline() {
+func (s *LoginService) Offline() error {
 	vars.RobotRuntime.Status = model.RobotStatusOffline
 	if vars.RobotRuntime.HeartbeatCancel != nil {
 		vars.RobotRuntime.HeartbeatCancel()
@@ -53,7 +54,7 @@ func (s *LoginService) Offline() {
 		ID:     vars.RobotRuntime.RobotID,
 		Status: model.RobotStatusOffline,
 	}
-	respo.Update(&robot)
+	return respo.Update(&robot)
 }
 
 func (s *LoginService) IsRunning() (result bool) {
@@ -126,7 +127,10 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 		vars.RobotRuntime.Status = model.RobotStatusOnline
 		// 更新下全局配置的所有人, 全局配置在创建机器人实例的时候创建，这个时候的所有人是空，因为获取不到微信ID
 		globalSettingsSvc := NewGlobalSettingsService(s.ctx)
-		globalSettingsSvc.UpdateGlobalSettings(resp.AcctSectResp.Username)
+		err = globalSettingsSvc.UpdateGlobalSettings(resp.AcctSectResp.Username)
+		if err != nil {
+			panic(fmt.Errorf("更新全局配置失败，请联系管理员: %w", err))
+		}
 		// 开启心跳
 		go s.HeartbeatStart()
 		// 开启消息同步
@@ -159,7 +163,7 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 			ProfileExt:  bytesExt,
 			LastLoginAt: time.Now().Unix(),
 		}
-		respo.Update(&robot)
+		err = respo.Update(&robot)
 	}
 	return
 }

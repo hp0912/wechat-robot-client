@@ -43,10 +43,14 @@ func (cron *NewsCron) IsActive() bool {
 }
 
 func (cron *NewsCron) Cron() error {
-	settings := service.NewChatRoomSettingsService(context.Background()).GetAllEnableNews()
+	settings, err := service.NewChatRoomSettingsService(context.Background()).GetAllEnableNews()
+	if err != nil {
+		log.Printf("获取群聊设置失败: %v", err)
+		return err
+	}
 
 	var newsResp NewsResponse
-	_, err := resty.New().R().
+	_, err = resty.New().R().
 		SetHeader("Content-Type", "application/json;chartset=utf-8").
 		SetQueryParam("type", "json").
 		SetResult(&newsResp).

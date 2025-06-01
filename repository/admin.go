@@ -8,19 +8,29 @@ import (
 )
 
 type RobotAdmin struct {
-	Base[model.RobotAdmin]
+	Ctx context.Context
+	DB  *gorm.DB
 }
 
 func NewRobotAdminRepo(ctx context.Context, db *gorm.DB) *RobotAdmin {
 	return &RobotAdmin{
-		Base[model.RobotAdmin]{
-			Ctx: ctx,
-			DB:  db,
-		}}
+		Ctx: ctx,
+		DB:  db,
+	}
 }
 
-func (r *RobotAdmin) GetByRobotID(robotID int64, preloads ...string) *model.RobotAdmin {
-	return r.takeOne(preloads, func(g *gorm.DB) *gorm.DB {
-		return g.Where("id = ?", robotID)
-	})
+func (r *RobotAdmin) GetByRobotID(robotID int64) (*model.RobotAdmin, error) {
+	var robotAdmin model.RobotAdmin
+	err := r.DB.WithContext(r.Ctx).Where("id = ?", robotID).First(&robotAdmin).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &robotAdmin, nil
+}
+
+func (r *RobotAdmin) Update(robot *model.RobotAdmin) error {
+	return r.DB.WithContext(r.Ctx).Updates(robot).Error
 }

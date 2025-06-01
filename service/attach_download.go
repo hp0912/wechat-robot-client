@@ -22,7 +22,10 @@ func NewAttachDownloadService(ctx context.Context) *AttachDownloadService {
 
 func (a *AttachDownloadService) DownloadImage(req dto.AttachDownloadRequest) ([]byte, string, string, error) {
 	respo := repository.NewMessageRepo(a.ctx, vars.DB)
-	message := respo.GetByID(req.MessageID)
+	message, err := respo.GetByID(req.MessageID)
+	if err != nil {
+		return nil, "", "", err
+	}
 	if message == nil {
 		return nil, "", "", errors.New("消息不存在")
 	}
@@ -34,7 +37,10 @@ func (a *AttachDownloadService) DownloadImage(req dto.AttachDownloadRequest) ([]
 
 func (a *AttachDownloadService) DownloadVoice(req dto.AttachDownloadRequest) ([]byte, string, string, error) {
 	respo := repository.NewMessageRepo(a.ctx, vars.DB)
-	message := respo.GetByID(req.MessageID)
+	message, err := respo.GetByID(req.MessageID)
+	if err != nil {
+		return nil, "", "", err
+	}
 	if message == nil {
 		return nil, "", "", errors.New("消息不存在")
 	}
@@ -46,7 +52,10 @@ func (a *AttachDownloadService) DownloadVoice(req dto.AttachDownloadRequest) ([]
 
 func (a *AttachDownloadService) DownloadFile(req dto.AttachDownloadRequest) (io.ReadCloser, string, error) {
 	respo := repository.NewMessageRepo(a.ctx, vars.DB)
-	message := respo.GetByID(req.MessageID)
+	message, err := respo.GetByID(req.MessageID)
+	if err != nil {
+		return nil, "", err
+	}
 	if message == nil {
 		return nil, "", errors.New("消息不存在")
 	}
@@ -58,7 +67,10 @@ func (a *AttachDownloadService) DownloadFile(req dto.AttachDownloadRequest) (io.
 
 func (a *AttachDownloadService) DownloadVideo(req dto.AttachDownloadRequest) (io.ReadCloser, string, error) {
 	respo := repository.NewMessageRepo(a.ctx, vars.DB)
-	message := respo.GetByID(req.MessageID)
+	message, err := respo.GetByID(req.MessageID)
+	if err != nil {
+		return nil, "", err
+	}
 	if message == nil {
 		return nil, "", errors.New("消息不存在")
 	}

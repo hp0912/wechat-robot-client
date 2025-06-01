@@ -17,49 +17,48 @@ func NewChatRoomSettingsService(ctx context.Context) *ChatRoomSettingsService {
 	}
 }
 
-func (s *ChatRoomSettingsService) GetChatRoomSettings(chatRoomID string) *model.ChatRoomSettings {
+func (s *ChatRoomSettingsService) GetChatRoomSettings(chatRoomID string) (*model.ChatRoomSettings, error) {
 	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
 	return respo.GetByOwner(vars.RobotRuntime.WxID, chatRoomID)
 }
 
-func (s *ChatRoomSettingsService) GetAllEnableChatRank() []*model.ChatRoomSettings {
+func (s *ChatRoomSettingsService) GetAllEnableChatRank() ([]*model.ChatRoomSettings, error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
-		return []*model.ChatRoomSettings{}
+		return []*model.ChatRoomSettings{}, nil
 	}
 	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
 	return respo.GetAllEnableChatRank(vars.RobotRuntime.WxID)
 }
 
-func (s *ChatRoomSettingsService) GetAllEnableAISummary() []*model.ChatRoomSettings {
+func (s *ChatRoomSettingsService) GetAllEnableAISummary() ([]*model.ChatRoomSettings, error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
-		return []*model.ChatRoomSettings{}
+		return []*model.ChatRoomSettings{}, nil
 	}
 	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
 	return respo.GetAllEnableAISummary(vars.RobotRuntime.WxID)
 }
 
-func (s *ChatRoomSettingsService) GetAllEnableGoodMorning() []*model.ChatRoomSettings {
+func (s *ChatRoomSettingsService) GetAllEnableGoodMorning() ([]*model.ChatRoomSettings, error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
-		return []*model.ChatRoomSettings{}
+		return []*model.ChatRoomSettings{}, nil
 	}
 	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
 	return respo.GetAllEnableGoodMorning(vars.RobotRuntime.WxID)
 }
 
-func (s *ChatRoomSettingsService) GetAllEnableNews() []*model.ChatRoomSettings {
+func (s *ChatRoomSettingsService) GetAllEnableNews() ([]*model.ChatRoomSettings, error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
-		return []*model.ChatRoomSettings{}
+		return []*model.ChatRoomSettings{}, nil
 	}
 	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
 	return respo.GetAllEnableNews(vars.RobotRuntime.WxID)
 }
 
-func (s *ChatRoomSettingsService) SaveChatRoomSettings(data *model.ChatRoomSettings) {
+func (s *ChatRoomSettingsService) SaveChatRoomSettings(data *model.ChatRoomSettings) error {
 	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
 	if data.ID == 0 {
 		data.Owner = vars.RobotRuntime.WxID
-		respo.Create(data)
-	} else {
-		respo.Update(data)
+		return respo.Create(data)
 	}
+	return respo.Update(data)
 }
