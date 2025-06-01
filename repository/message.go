@@ -160,7 +160,7 @@ func (m *Message) GetYesterdayChatRommRank(owner, chatRoomID string) ([]*dto.Cha
 		Where("messages.type < 10000").
 		Where("messages.created_at >= ?", yesterdayStartTimestamp).
 		Where("messages.created_at < ?", todayStartTimestamp).
-		Group("messages.sender_wxid").
+		Group("messages.sender_wxid, chat_room_members.nickname").
 		Order("`count` DESC")
 	if err := query.Find(&chatRoomRank).Error; err != nil {
 		return chatRoomRank, err
@@ -188,7 +188,7 @@ func (m *Message) GetLastWeekChatRommRank(owner, chatRoomID string) ([]*dto.Chat
 		Where("messages.type < 10000").
 		Where("messages.created_at >= ?", lastWeekStartTimestamp).
 		Where("messages.created_at < ?", thisWeekStartTimestamp).
-		Group("messages.sender_wxid").
+		Group("messages.sender_wxid, chat_room_members.nickname").
 		Order("`count` DESC")
 	if err := query.Find(&chatRoomRank).Error; err != nil {
 		return chatRoomRank, err
@@ -215,7 +215,7 @@ func (m *Message) GetLastMonthChatRommRank(owner, chatRoomID string) ([]*dto.Cha
 		Where("messages.type < 10000").
 		Where("messages.created_at >= ?", lastMonthStartTimestamp).
 		Where("messages.created_at < ?", thisMonthStartTimestamp).
-		Group("messages.sender_wxid").
+		Group("messages.sender_wxid, chat_room_members.nickname").
 		Order("`count` DESC")
 	if err := query.Find(&chatRoomRank).Error; err != nil {
 		return chatRoomRank, err

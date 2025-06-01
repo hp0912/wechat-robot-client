@@ -415,7 +415,6 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.Nickname, r.Count))
 		}
 		notifyMsgs = append(notifyMsgs, " \n🎉感谢以上群友昨日对群活跃做出的卓越贡献，也请未上榜的群友多多反思。")
-		log.Printf("排行榜: \n%s", strings.Join(notifyMsgs, "\n"))
 		msgService.SendTextMessage(dto.SendTextMessageRequest{
 			SendMessageCommonRequest: dto.SendMessageCommonRequest{
 				ToWxid: setting.ChatRoomID,
@@ -521,7 +520,6 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.Nickname, r.Count))
 		}
 		notifyMsgs = append(notifyMsgs, " \n🎉感谢以上群友上周对群活跃做出的卓越贡献，也请未上榜的群友多多反思。")
-		log.Printf("排行榜: \n%s", strings.Join(notifyMsgs, "\n"))
 		msgService.SendTextMessage(dto.SendTextMessageRequest{
 			SendMessageCommonRequest: dto.SendMessageCommonRequest{
 				ToWxid: setting.ChatRoomID,
@@ -609,7 +607,6 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.Nickname, r.Count))
 		}
 		notifyMsgs = append(notifyMsgs, fmt.Sprintf(" \n🎉感谢以上群友%s对群活跃做出的卓越贡献，也请未上榜的群友多多反思。", monthStr))
-		log.Printf("排行榜: \n%s", strings.Join(notifyMsgs, "\n"))
 		msgService.SendTextMessage(dto.SendTextMessageRequest{
 			SendMessageCommonRequest: dto.SendMessageCommonRequest{
 				ToWxid: setting.ChatRoomID,
