@@ -57,20 +57,23 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 			}
 			if existMember != nil {
 				// 更新现有成员
-				updateMember := map[string]any{
-					"nickname":  member.NickName,
-					"avatar":    member.SmallHeadImgUrl,
-					"is_leaved": false, // 确保标记为未离开
-					"leaved_at": nil,   // 清除离开时间
+				isLeaved := false
+				updateMember := model.ChatRoomMember{
+					ID:       existMember.ID,
+					Nickname: member.NickName,
+					Avatar:   member.SmallHeadImgUrl,
+					IsLeaved: &isLeaved, // 确保标记为未离开
+					LeavedAt: nil,       // 清除离开时间
 				}
 				// 更新数据库中已有的记录
-				err = memberRepo.UpdateChatRoomMember(existMember.ID, &updateMember)
+				err = memberRepo.Update(&updateMember)
 				if err != nil {
 					log.Printf("更新群[%s]成员[%s]失败: %v", chatRoomID, member.UserName, err)
 					continue
 				}
 			} else {
 				// 创建新成员
+				isLeaved := false
 				newMember := model.ChatRoomMember{
 					Owner:           vars.RobotRuntime.WxID,
 					ChatRoomID:      chatRoomID,
@@ -78,7 +81,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					Nickname:        member.NickName,
 					Avatar:          member.SmallHeadImgUrl,
 					InviterWechatID: member.InviterUserName,
-					IsLeaved:        false,
+					IsLeaved:        &isLeaved,
 					JoinedAt:        now,
 					LastActiveAt:    now,
 				}
@@ -100,11 +103,13 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 			if !slices.Contains(currentMemberIDs, dbMember.WechatID) {
 				// 数据库有记录但当前群成员列表中不存在，标记为已离开
 				leaveTime := now
+				isLeaved := true
 				updateMember := model.ChatRoomMember{
-					IsLeaved: true,
+					ID:       dbMember.ID,
+					IsLeaved: &isLeaved,
 					LeavedAt: &leaveTime,
 				}
-				err = memberRepo.UpdateChatRoomMember(dbMember.ID, &updateMember)
+				err = memberRepo.Update(&updateMember)
 				if err != nil {
 					log.Printf("标记群[%s]成员[%s]为已离开失败: %v", chatRoomID, dbMember.WechatID, err)
 					continue
@@ -255,7 +260,8 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		openai.ChatCompletionRequest{
 			Model:               model,
 			Messages:            aiMessages,
-			MaxCompletionTokens: 4096,
+			Stream:              false,
+			MaxCompletionTokens: 2000,
 		},
 	)
 	if err != nil {

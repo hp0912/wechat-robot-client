@@ -10,7 +10,7 @@ type ChatRoomMember struct {
 	Avatar          string `gorm:"column:avatar" json:"avatar"`                                             // 头像
 	InviterWechatID string `gorm:"column:inviter_wechat_id;not null" json:"inviter_wechat_id"`              // 邀请人微信ID
 	IsAdmin         bool   `gorm:"column:is_admin;default:false" json:"is_admin"`                           // 是否群管理员
-	IsLeaved        bool   `gorm:"column:is_leaved;default:false" json:"is_leaved"`                         // 是否已经离开群聊
+	IsLeaved        *bool  `gorm:"column:is_leaved;default:false" json:"is_leaved"`                         // 是否已经离开群聊
 	Score           *int64 `gorm:"column:score" json:"score"`                                               // 积分
 	Remark          string `gorm:"column:remark" json:"remark"`                                             // 备注
 	JoinedAt        int64  `gorm:"column:joined_at;not null" json:"joined_at"`                              // 加入时间

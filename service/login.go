@@ -164,6 +164,9 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 			LastLoginAt: time.Now().Unix(),
 		}
 		err = respo.Update(&robot)
+		if err != nil {
+			return
+		}
 	}
 	return
 }

@@ -172,11 +172,6 @@ func (s *MessageService) MessageRevoke(req dto.MessageCommonRequest) error {
 }
 
 func (s *MessageService) SendTextMessage(req dto.SendTextMessageRequest) error {
-	// 如果消息内容超过2000字，直接截断
-	if len(req.Content) > 2000 {
-		req.Content = req.Content[:2000]
-	}
-
 	newMessages, newMessageContent, err := vars.RobotRuntime.SendTextMessage(req.ToWxid, req.Content, req.At...)
 	if err != nil {
 		return err
