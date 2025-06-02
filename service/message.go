@@ -225,8 +225,10 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 			// 未知消息类型
 			log.Printf("未知消息类型: %d, 内容: %s", m.Type, m.Content)
 		}
-		// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
-		NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+		go func() {
+			// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+			NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+		}()
 	}
 }
 
