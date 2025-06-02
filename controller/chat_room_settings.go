@@ -33,6 +33,9 @@ func (ct *ChatRoomSettings) GetChatRoomSettings(c *gin.Context) {
 		resp.ToResponse(model.ChatRoomSettings{})
 		return
 	}
+	if chatRoomSettings.NewsType != nil && *chatRoomSettings.NewsType == model.NewsTypeNone {
+		chatRoomSettings.NewsType = nil
+	}
 	resp.ToResponse(chatRoomSettings)
 }
 

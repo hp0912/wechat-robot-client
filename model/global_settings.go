@@ -16,6 +16,7 @@ const (
 type NewsType string
 
 const (
+	NewsTypeNone  NewsType = ""
 	NewsTypeText  NewsType = "text"  // 文本
 	NewsTypeImage NewsType = "image" // 图片
 )

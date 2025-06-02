@@ -43,6 +43,11 @@ func (cron *NewsCron) IsActive() bool {
 }
 
 func (cron *NewsCron) Cron() error {
+	globalSettings, err := service.NewGlobalSettingsService(context.Background()).GetGlobalSettings()
+	if err != nil {
+		log.Printf("获取全局设置失败: %v", err)
+		return err
+	}
 	settings, err := service.NewChatRoomSettingsService(context.Background()).GetAllEnableNews()
 	if err != nil {
 		log.Printf("获取群聊设置失败: %v", err)
@@ -85,7 +90,11 @@ func (cron *NewsCron) Cron() error {
 	}
 
 	for _, setting := range settings {
-		if setting.NewsType == "text" {
+		newsType := globalSettings.NewsType
+		if setting.NewsType != nil && *setting.NewsType != "" {
+			newsType = *setting.NewsType
+		}
+		if newsType == "text" {
 			err := msgService.SendTextMessage(dto.SendTextMessageRequest{
 				SendMessageCommonRequest: dto.SendMessageCommonRequest{
 					ToWxid: setting.ChatRoomID,
