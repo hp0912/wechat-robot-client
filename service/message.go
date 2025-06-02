@@ -28,18 +28,7 @@ func NewMessageService(ctx context.Context) *MessageService {
 	}
 }
 
-func (s *MessageService) SyncMessage() {
-	// 获取新消息
-	syncResp, err := vars.RobotRuntime.SyncMessage()
-	if err != nil {
-		// 有可能是用户退出了，或者掉线了，这里不处理，由心跳机制处理机器人在线/离线状态
-		log.Println("获取新消息失败: ", err)
-		return
-	}
-	if len(syncResp.AddMsgs) == 0 {
-		// 没有消息，直接返回
-		return
-	}
+func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	for _, message := range syncResp.AddMsgs {
 		m := model.Message{
@@ -133,13 +122,28 @@ func (s *MessageService) SyncMessage() {
 				}
 			}
 		}
-		err = respo.Create(&m)
+		err := respo.Create(&m)
 		if err != nil {
 			log.Printf("入库消息失败: %v", err)
 		}
 		// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 		NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 	}
+}
+
+func (s *MessageService) SyncMessage() {
+	// 获取新消息
+	syncResp, err := vars.RobotRuntime.SyncMessage()
+	if err != nil {
+		// 有可能是用户退出了，或者掉线了，这里不处理，由心跳机制处理机器人在线/离线状态
+		log.Println("获取新消息失败: ", err)
+		return
+	}
+	if len(syncResp.AddMsgs) == 0 {
+		// 没有消息，直接返回
+		return
+	}
+	s.ProcessMessage(syncResp)
 }
 
 func (s *MessageService) SyncMessageStart() {

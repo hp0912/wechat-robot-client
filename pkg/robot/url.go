@@ -8,6 +8,8 @@ const (
 	LoginAwaken        = "/Login/LoginAwaken"
 	LoginGetQR         = "/Login/LoginGetQRx"
 	LoginCheckQR       = "/Login/LoginCheckQR"
+	AutoHeartBeat      = "/Login/AutoHeartBeat"
+	CloseAutoHeartBeat = "/Login/CloseAutoHeartBeat"
 	LoginHeartBeat     = "/Login/HeartBeat"
 	LoginLogout        = "/Login/LogOut"
 

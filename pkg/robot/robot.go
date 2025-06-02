@@ -805,6 +805,14 @@ func (r *Robot) Logout() error {
 	return r.Client.Logout(r.WxID)
 }
 
+func (r *Robot) AutoHeartBeat() error {
+	return r.Client.AutoHeartBeat(r.WxID)
+}
+
+func (r *Robot) CloseAutoHeartBeat() error {
+	return r.Client.CloseAutoHeartBeat(r.WxID)
+}
+
 func (r *Robot) Heartbeat() error {
 	return r.Client.Heartbeat(r.WxID)
 }

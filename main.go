@@ -30,6 +30,7 @@ func main() {
 	}
 	// 初始化定时任务
 	vars.CronManager = common_cron.NewCronManager()
+	vars.CronManager.Clear()
 	vars.CronManager.Start()
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))

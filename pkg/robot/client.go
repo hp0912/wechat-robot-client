@@ -167,6 +167,28 @@ func (c *Client) Logout(wxid string) (err error) {
 	return
 }
 
+// AutoHeartBeat 自动心跳，包括自动同步消息
+func (c *Client) AutoHeartBeat(wxid string) (err error) {
+	var result ClientResponse[struct{}]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetQueryParam("wxid", wxid).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), AutoHeartBeat))
+	err = result.CheckError(err)
+	return
+}
+
+// CloseAutoHeartBeat 关闭自动心跳
+func (c *Client) CloseAutoHeartBeat(wxid string) (err error) {
+	var result ClientResponse[struct{}]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetQueryParam("wxid", wxid).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), CloseAutoHeartBeat))
+	err = result.CheckError(err)
+	return
+}
+
 // Heartbeat 手动发起心跳
 func (c *Client) Heartbeat(wxid string) (err error) {
 	var result ClientResponse[struct{}]

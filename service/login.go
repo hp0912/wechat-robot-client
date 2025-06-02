@@ -27,8 +27,15 @@ func NewLoginService(ctx context.Context) *LoginService {
 func (s *LoginService) Online() error {
 	vars.RobotRuntime.Status = model.RobotStatusOnline
 	// 启动定时任务
-	vars.CronManager.Clear()
-	vars.CronManager.Start()
+	if vars.CronManager != nil {
+		vars.CronManager.Clear()
+		vars.CronManager.Start()
+	}
+	// 开启自动心跳，包括长连接自动同步消息
+	err := s.AutoHeartBeat()
+	if err != nil {
+		return fmt.Errorf("开启自动心跳失败: %w", err)
+	}
 	// 更新机器人状态
 	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
@@ -40,14 +47,14 @@ func (s *LoginService) Online() error {
 
 func (s *LoginService) Offline() error {
 	vars.RobotRuntime.Status = model.RobotStatusOffline
-	if vars.RobotRuntime.HeartbeatCancel != nil {
-		vars.RobotRuntime.HeartbeatCancel()
-	}
-	if vars.RobotRuntime.SyncMessageCancel != nil {
-		vars.RobotRuntime.SyncMessageCancel()
+	err := s.CloseAutoHeartBeat()
+	if err != nil {
+		log.Printf("关闭自动心跳失败: %v\n", err)
 	}
 	// 清空定时任务
-	vars.CronManager.Clear()
+	if vars.CronManager != nil {
+		vars.CronManager.Clear()
+	}
 	// 更新状态
 	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
@@ -71,6 +78,14 @@ func (s *LoginService) IsLoggedIn() (result bool) {
 		s.Offline()
 	}
 	return
+}
+
+func (s *LoginService) AutoHeartBeat() error {
+	return vars.RobotRuntime.AutoHeartBeat()
+}
+
+func (s *LoginService) CloseAutoHeartBeat() error {
+	return vars.RobotRuntime.CloseAutoHeartBeat()
 }
 
 func (s *LoginService) HeartbeatStart() {
@@ -108,8 +123,10 @@ func (s *LoginService) HeartbeatStart() {
 
 func (s *LoginService) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOnline {
-		err = errors.New("您已经登陆，可以尝试刷新机器人状态")
-		return
+		err := s.Logout()
+		if err != nil {
+			log.Printf("登出失败: %v\n", err)
+		}
 	}
 	uuid, awkenLogin, autoLogin, err = vars.RobotRuntime.Login()
 	return
@@ -131,14 +148,10 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 		if err != nil {
 			panic(fmt.Errorf("更新全局配置失败，请联系管理员: %w", err))
 		}
-		// 开启心跳
-		go s.HeartbeatStart()
-		// 开启消息同步
-		msgService := NewMessageService(context.Background())
-		go msgService.SyncMessageStart()
-		// 开启定时任务
-		vars.CronManager.Clear()
-		vars.CronManager.Start()
+		err = s.Online()
+		if err != nil {
+			return
+		}
 		// 更新登陆状态
 		var profile robot.GetProfileResponse
 		profile, err = vars.RobotRuntime.GetProfile(resp.AcctSectResp.Username)
@@ -172,7 +185,24 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 }
 
 func (r *LoginService) Logout() (err error) {
-	r.Offline()
+	err = r.Offline()
+	if err != nil {
+		return
+	}
 	err = vars.RobotRuntime.Logout()
 	return
+}
+
+func (r *LoginService) SyncMessageCallback(wxID string, syncMessage robot.SyncMessage) {
+	if wxID != vars.RobotRuntime.WxID {
+		return
+	}
+	NewMessageService(r.ctx).ProcessMessage(syncMessage)
+}
+
+func (r *LoginService) LogoutCallback(wxID string) (err error) {
+	if wxID != vars.RobotRuntime.WxID {
+		return
+	}
+	return r.Offline()
 }

@@ -86,8 +86,8 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/chat-room-settings", chatRoomSettingsCtl.GetChatRoomSettings)
 	api.POST("/robot/chat-room-settings", chatRoomSettingsCtl.SaveChatRoomSettings)
 
-	api.POST("/wechat-client/:wechatID/sync-message/callback", wechatServerCallbackCtl.SyncMessageCallback)
-	api.POST("/wechat-client/:wechatID/logout/callback", wechatServerCallbackCtl.LogoutCallback)
+	api.POST("/wechat-client/:wechatID/sync-message", wechatServerCallbackCtl.SyncMessageCallback)
+	api.POST("/wechat-client/:wechatID/logout", wechatServerCallbackCtl.LogoutCallback)
 
 	return nil
 }
