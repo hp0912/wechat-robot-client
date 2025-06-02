@@ -28,6 +28,96 @@ func NewMessageService(ctx context.Context) *MessageService {
 	}
 }
 
+// ProcessTextMessage 处理文本消息
+func (s *MessageService) ProcessTextMessage(message *model.Message) {
+
+}
+
+// ProcessImageMessage 处理图片消息
+func (s *MessageService) ProcessImageMessage(message *model.Message) {
+
+}
+
+// ProcessVoiceMessage 处理语音消息
+func (s *MessageService) ProcessVoiceMessage(message *model.Message) {
+
+}
+
+// ProcessVideoMessage 处理视频消息
+func (s *MessageService) ProcessVideoMessage(message *model.Message) {
+
+}
+
+// ProcessEmojiMessage 处理表情消息
+func (s *MessageService) ProcessEmojiMessage(message *model.Message) {
+
+}
+
+// ProcessAppMessage 处理应用消息
+func (s *MessageService) ProcessAppMessage(message *model.Message) {
+
+}
+
+// ProcessShareCardMessage 处理分享名片消息
+func (s *MessageService) ProcessShareCardMessage(message *model.Message) {
+
+}
+
+// ProcessFriendVerifyMessage 处理好友添加请求通知消息
+func (s *MessageService) ProcessFriendVerifyMessage(message *model.Message) {
+
+}
+
+// ProcessRecalledMessage 处理撤回消息
+func (s *MessageService) ProcessRecalledMessage(message *model.Message, msgXml robot.SystemMessage) {
+	respo := repository.NewMessageRepo(s.ctx, vars.DB)
+	oldMsg, err := respo.GetByMsgID(vars.RobotRuntime.WxID, msgXml.RevokeMsg.NewMsgID)
+	if err != nil {
+		log.Printf("获取撤回的消息失败: %v", err)
+		return
+	}
+	if oldMsg != nil {
+		oldMsg.IsRecalled = true
+		err = respo.Update(oldMsg)
+		if err != nil {
+			log.Printf("标记撤回消息失败: %v", err)
+		}
+		return
+	}
+}
+
+// ProcessPatMessage 处理拍一拍消息
+func (s *MessageService) ProcessPatMessage(message *model.Message) {
+
+}
+
+// ProcessSystemMessage 处理系统消息
+func (s *MessageService) ProcessSystemMessage(message *model.Message) {
+	var msgXml robot.SystemMessage
+	err := vars.RobotRuntime.XmlDecoder(message.Content, &msgXml)
+	if err != nil {
+		return
+	}
+	if msgXml.Type == "revokemsg" {
+		s.ProcessRecalledMessage(message, msgXml)
+		return
+	}
+	if msgXml.Type == "pat" {
+		s.ProcessPatMessage(message)
+		return
+	}
+}
+
+// ProcessLocationMessage 处理位置消息
+func (s *MessageService) ProcessLocationMessage(message *model.Message) {
+
+}
+
+// ProcessPromptMessage 处理提示消息
+func (s *MessageService) ProcessPromptMessage(message *model.Message) {
+
+}
+
 func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	for _, message := range syncResp.AddMsgs {
@@ -75,7 +165,7 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		if m.Type == model.MsgTypeInit || m.Type == model.MsgTypeUnknow {
 			continue
 		}
-		if m.Type == model.MsgTypeRecalled && m.SenderWxID == "weixin" {
+		if m.Type == model.MsgTypeSystem && m.SenderWxID == "weixin" {
 			continue
 		}
 		if m.Type == model.MsgTypeApp {
@@ -87,26 +177,7 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 				}
 				m.AppMsgType = model.AppMessageType(subType)
 				if m.AppMsgType == model.AppMsgTypeAttachUploading {
-					continue
-				}
-			}
-		}
-		// 正常撤回的消息
-		if m.Type == model.MsgTypeRecalled {
-			var msgXml robot.SystemMessage
-			err := vars.RobotRuntime.XmlDecoder(m.Content, &msgXml)
-			if err == nil {
-				oldMsg, err := respo.GetByMsgID(vars.RobotRuntime.WxID, msgXml.RevokeMsg.NewMsgID)
-				if err != nil {
-					log.Printf("获取撤回消息失败: %v", err)
-					continue
-				}
-				if oldMsg != nil {
-					oldMsg.IsRecalled = true
-					err = respo.Update(oldMsg)
-					if err != nil {
-						log.Printf("撤回消息失败: %v", err)
-					}
+					// 消息不入库
 					continue
 				}
 			}
@@ -125,6 +196,34 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		err := respo.Create(&m)
 		if err != nil {
 			log.Printf("入库消息失败: %v", err)
+		}
+		switch m.Type {
+		case model.MsgTypeText:
+			go s.ProcessTextMessage(&m)
+		case model.MsgTypeImage:
+			go s.ProcessImageMessage(&m)
+		case model.MsgTypeVoice:
+			go s.ProcessVoiceMessage(&m)
+		case model.MsgTypeVideo:
+			go s.ProcessVideoMessage(&m)
+		case model.MsgTypeEmoticon:
+			go s.ProcessEmojiMessage(&m)
+		case model.MsgTypeApp:
+			go s.ProcessAppMessage(&m)
+		case model.MsgTypeShareCard:
+			go s.ProcessShareCardMessage(&m)
+		case model.MsgTypeVerify:
+			// 好友添加请求通知消息
+			go s.ProcessFriendVerifyMessage(&m)
+		case model.MsgTypeSystem:
+			go s.ProcessSystemMessage(&m)
+		case model.MsgTypeLocation:
+			go s.ProcessLocationMessage(&m)
+		case model.MsgTypePrompt:
+			go s.ProcessPromptMessage(&m)
+		default:
+			// 未知消息类型
+			log.Printf("未知消息类型: %d, 内容: %s", m.Type, m.Content)
 		}
 		// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 		NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
