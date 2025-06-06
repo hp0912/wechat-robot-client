@@ -1,6 +1,7 @@
 package robot
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"golang.org/x/time/rate"
 )
 
 type ClientResponse[T any] struct {
@@ -43,14 +45,16 @@ func (c ClientResponse[T]) CheckError(err error) error {
 }
 
 type Client struct {
-	client *resty.Client
-	Domain WechatDomain
+	client  *resty.Client
+	Domain  WechatDomain
+	limiter *rate.Limiter
 }
 
 func NewClient(domain WechatDomain) *Client {
 	return &Client{
-		client: resty.New(),
-		Domain: domain,
+		client:  resty.New(),
+		Domain:  domain,
+		limiter: rate.NewLimiter(rate.Every(time.Second), 1), // 1 token/sec, burst = 1
 	}
 }
 
@@ -65,6 +69,9 @@ func (c *Client) IsRunning() bool {
 }
 
 func (c *Client) GetProfile(wxid string) (resp GetProfileResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[GetProfileResponse]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
@@ -219,6 +226,9 @@ func (c *Client) SyncMessage(wxid string) (messageResponse SyncMessage, err erro
 
 // MessageRevoke 撤回消息
 func (c *Client) MessageRevoke(req MessageRevokeRequest) (err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[MessageRevokeResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -231,6 +241,9 @@ func (c *Client) MessageRevoke(req MessageRevokeRequest) (err error) {
 
 // SendTextMessage 发送文本消息
 func (c *Client) SendTextMessage(req SendTextMessageRequest) (newMessages SendTextMessageResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SendTextMessageResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -244,6 +257,9 @@ func (c *Client) SendTextMessage(req SendTextMessageRequest) (newMessages SendTe
 
 // MsgUploadImg 发送图片消息
 func (c *Client) MsgUploadImg(wxid, toWxid, base64 string) (imageMessage MsgUploadImgResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[MsgUploadImgResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -261,6 +277,9 @@ func (c *Client) MsgUploadImg(wxid, toWxid, base64 string) (imageMessage MsgUplo
 
 // MsgSendVideo 发送视频消息
 func (c *Client) MsgSendVideo(req MsgSendVideoRequest) (videoMessage MsgSendVideoResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[MsgSendVideoResponse]
 	req.Base64 = "data:video/mp4;base64," + req.Base64
 	req.ImageBase64 = "data:image/jpeg;base64," + req.ImageBase64
@@ -276,6 +295,9 @@ func (c *Client) MsgSendVideo(req MsgSendVideoRequest) (videoMessage MsgSendVide
 
 // MsgSendVoice 发送音频消息
 func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage MsgSendVoiceResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[MsgSendVoiceResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -289,6 +311,9 @@ func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage MsgSendVoic
 
 // SendApp 发送App消息
 func (c *Client) SendApp(req SendAppRequest) (appMessage SendAppResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SendAppResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -302,6 +327,9 @@ func (c *Client) SendApp(req SendAppRequest) (appMessage SendAppResponse, err er
 
 // SendEmoji 发送表情消息
 func (c *Client) SendEmoji(req SendEmojiRequest) (emojiMessage SendEmojiResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SendEmojiResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -315,6 +343,9 @@ func (c *Client) SendEmoji(req SendEmojiRequest) (emojiMessage SendEmojiResponse
 
 // ShareLink 发送分享链接消息
 func (c *Client) ShareLink(req ShareLinkRequest) (shareLinkMessage ShareLinkResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[ShareLinkResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -328,6 +359,9 @@ func (c *Client) ShareLink(req ShareLinkRequest) (shareLinkMessage ShareLinkResp
 
 // SendCDNFile 转发文件消息（转发，并非上传）
 func (c *Client) SendCDNFile(req SendCDNAttachmentRequest) (cdnFileMessage SendCDNFileResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SendCDNFileResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -341,6 +375,9 @@ func (c *Client) SendCDNFile(req SendCDNAttachmentRequest) (cdnFileMessage SendC
 
 // SendCDNImg 转发图片消息（转发，并非上传）
 func (c *Client) SendCDNImg(req SendCDNAttachmentRequest) (cdnImageMessage SendCDNImgResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SendCDNImgResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -354,6 +391,9 @@ func (c *Client) SendCDNImg(req SendCDNAttachmentRequest) (cdnImageMessage SendC
 
 // SendCDNVideo 转发视频消息（转发，并非上传）
 func (c *Client) SendCDNVideo(req SendCDNAttachmentRequest) (cdnVideoMessage SendCDNVideoResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SendCDNVideoResponse]
 	_, err = c.client.R().
 		SetResult(&result).

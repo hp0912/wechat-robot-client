@@ -86,7 +86,6 @@ func (cron *GoodMorningCron) Cron() error {
 			continue
 		}
 		log.Printf("群[%s]早安图片发送成功", setting.ChatRoomID)
-		time.Sleep(1 * time.Second) // 避免发送过快
 	}
 
 	return nil

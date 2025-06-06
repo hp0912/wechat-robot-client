@@ -73,7 +73,7 @@ func TestDownloadVideo(t *testing.T) {
 	if err != nil {
 		t.Errorf("下载视频失败: %v", err)
 	}
-	fmt.Printf(filename)
+	fmt.Println(filename)
 }
 
 func TestDownloadVoice(t *testing.T) {
@@ -136,7 +136,7 @@ func TestDownloadFile(t *testing.T) {
 	if err != nil {
 		t.Errorf("下载语音失败: %v", err)
 	}
-	fmt.Printf(filename)
+	fmt.Println(filename)
 }
 
 func TestXmlFastDecoder(t *testing.T) {

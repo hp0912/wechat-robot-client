@@ -326,8 +326,6 @@ func (s *ChatRoomService) ChatRoomAISummary() error {
 			log.Printf("处理群聊 %s 的 AI 总结失败: %v\n", setting.ChatRoomID, err)
 			continue
 		}
-		// 休眠一秒，防止频繁发送
-		time.Sleep(1 * time.Second)
 	}
 	return nil
 }
@@ -418,8 +416,6 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 			},
 			Content: strings.Join(notifyMsgs, "\n"),
 		})
-		// 休眠一秒，防止频繁发送
-		time.Sleep(1 * time.Second)
 		// 发送词云图片
 		wordCloudCacheDir := filepath.Join(string(filepath.Separator), "app", "word_cloud_cache")
 		dateStr := yesterdayStart.Format("2006-01-02")
@@ -436,8 +432,6 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 			log.Printf("群聊 %s 词云图片发送失败: %v", setting.ChatRoomID, err)
 			continue
 		}
-		// 休眠一秒，防止频繁发送
-		time.Sleep(1 * time.Second)
 	}
 	return nil
 }
@@ -523,8 +517,6 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 			},
 			Content: strings.Join(notifyMsgs, "\n"),
 		})
-		// 休眠一秒，防止频繁发送
-		time.Sleep(1 * time.Second)
 	}
 	return nil
 }
@@ -610,8 +602,6 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 			},
 			Content: strings.Join(notifyMsgs, "\n"),
 		})
-		// 休眠一秒，防止频繁发送
-		time.Sleep(1 * time.Second)
 	}
 	return nil
 }

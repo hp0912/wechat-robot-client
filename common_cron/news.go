@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
@@ -116,7 +115,6 @@ func (cron *NewsCron) Cron() error {
 				log.Printf("[每日早报] 发送图片消息失败: %v", err)
 			}
 		}
-		time.Sleep(1 * time.Second) // 避免发送过快
 	}
 
 	return nil
