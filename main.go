@@ -44,7 +44,11 @@ func main() {
 		DB:      vars.DB,
 		AdminDB: vars.AdminDB,
 	}
+	redisConn := &shutdown.RedisConnection{
+		Client: vars.RedisClient,
+	}
 	shutdownManager.Register(dbConn)
+	shutdownManager.Register(redisConn)
 	shutdownManager.Register(vars.RobotRuntime)
 	shutdownManager.Register(vars.CronManager)
 	// 开始监听停止信号

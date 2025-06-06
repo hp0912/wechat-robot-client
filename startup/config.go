@@ -37,6 +37,21 @@ func loadEnvConfig() {
 	vars.MysqlSettings.AdminDb = os.Getenv("MYSQL_ADMIN_DB")
 	vars.MysqlSettings.Schema = os.Getenv("MYSQL_SCHEMA")
 
+	// redis
+	vars.RedisSettings.Host = os.Getenv("REDIS_HOST")
+	vars.RedisSettings.Port = os.Getenv("REDIS_PORT")
+	vars.RedisSettings.Password = os.Getenv("REDIS_PASSWORD")
+	redisDb := os.Getenv("REDIS_DB")
+	if redisDb == "" {
+		log.Fatalf("REDIS_DB 环境变量未设置")
+	} else {
+		db, err := strconv.Atoi(redisDb)
+		if err != nil {
+			log.Fatalf("REDIS_DB 转换失败: %v", err)
+		}
+		vars.RedisSettings.Db = db
+	}
+
 	// rabbitmq
 	vars.RabbitmqSettings.Host = os.Getenv("RABBITMQ_HOST")
 	vars.RabbitmqSettings.Port = os.Getenv("RABBITMQ_PORT")

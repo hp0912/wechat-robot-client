@@ -11,6 +11,13 @@ type MysqlSettingS struct {
 	Schema   string // postgres 专用
 }
 
+type RedisSettingS struct {
+	Host     string
+	Port     string
+	Password string
+	Db       int
+}
+
 type RabbitmqSettingS struct {
 	Host     string
 	Port     string
@@ -20,4 +27,5 @@ type RabbitmqSettingS struct {
 }
 
 var MysqlSettings = &MysqlSettingS{}
+var RedisSettings = &RedisSettingS{}
 var RabbitmqSettings = &RabbitmqSettingS{}

@@ -5,6 +5,7 @@ import (
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/plugin"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -13,6 +14,9 @@ var DB *gorm.DB
 
 // 机器人管理后台数据库
 var AdminDB *gorm.DB
+
+// redis实例
+var RedisClient *redis.Client
 
 // 机器人消息处理插件
 var MessageHandler plugin.MessageHandler
