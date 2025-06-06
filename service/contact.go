@@ -80,7 +80,7 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 		}
 		validContactIds = append(validContactIds, *contact.UserName.String)
 		// 判断数据库是否存在当前数据，不存在就新建，存在就更新
-		existContact, err := respo.GetContact(vars.RobotRuntime.WxID, *contact.UserName.String)
+		existContact, err := respo.GetContact(*contact.UserName.String)
 		if err != nil {
 			log.Printf("获取联系人失败: %v", err)
 			continue
@@ -89,7 +89,6 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 			// 存在，修改
 			contactPerson := model.Contact{
 				ID:            existContact.ID,
-				Owner:         vars.RobotRuntime.WxID,
 				Alias:         contact.Alias,
 				Nickname:      contact.NickName.String,
 				Avatar:        contact.BigHeadImgUrl,
@@ -113,7 +112,6 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 		} else {
 			contactPerson := model.Contact{
 				WechatID:      *contact.UserName.String,
-				Owner:         vars.RobotRuntime.WxID,
 				Alias:         contact.Alias,
 				Nickname:      contact.NickName.String,
 				Avatar:        contact.BigHeadImgUrl,
@@ -146,14 +144,13 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 }
 
 func (s *ContactService) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
-	req.Owner = vars.RobotRuntime.WxID
 	respo := repository.NewContactRepo(s.ctx, vars.DB)
-	return respo.GetByOwner(req, pager)
+	return respo.GetContacts(req, pager)
 }
 
 func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 	contactRespo := repository.NewContactRepo(s.ctx, vars.DB)
-	existContact, err := contactRespo.GetContact(vars.RobotRuntime.WxID, contactID)
+	existContact, err := contactRespo.GetContact(contactID)
 	if err != nil {
 		log.Printf("获取联系人失败: %v", err)
 		return
@@ -162,7 +159,6 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 		if existContact == nil {
 			contactGroup := model.Contact{
 				WechatID:  contactID,
-				Owner:     vars.RobotRuntime.WxID,
 				Type:      model.ContactTypeGroup,
 				CreatedAt: time.Now().Unix(),
 				UpdatedAt: time.Now().Unix(),
@@ -176,7 +172,6 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 			// 存在，更新一下活跃时间
 			contactGroup := model.Contact{
 				ID:        existContact.ID,
-				Owner:     vars.RobotRuntime.WxID,
 				UpdatedAt: time.Now().Unix(),
 			}
 			err = contactRespo.Update(&contactGroup)
@@ -189,7 +184,6 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 		// 普通联系人肯定存在，更新一下活跃时间就好了
 		contactGroup := model.Contact{
 			ID:        existContact.ID,
-			Owner:     vars.RobotRuntime.WxID,
 			UpdatedAt: time.Now().Unix(),
 		}
 		err = contactRespo.Update(&contactGroup)

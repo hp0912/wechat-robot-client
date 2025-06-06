@@ -26,7 +26,7 @@ func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager ap
 	var chatRoomMembers []*model.ChatRoomMember
 	var total int64
 	query := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{})
-	query = query.Where("chat_room_id = ?", req.ChatRoomID).Where("owner = ?", req.Owner)
+	query = query.Where("chat_room_id = ?", req.ChatRoomID)
 	if req.Keyword != "" {
 		query = query.Where("nickname LIKE ?", "%"+req.Keyword+"%").
 			Or("alias LIKE ?", "%"+req.Keyword+"%").
@@ -42,9 +42,9 @@ func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager ap
 	return chatRoomMembers, total, nil
 }
 
-func (c *ChatRoomMember) GetChatRoomMember(owner, chatRoomID, wechatID string) (*model.ChatRoomMember, error) {
+func (c *ChatRoomMember) GetChatRoomMember(chatRoomID, wechatID string) (*model.ChatRoomMember, error) {
 	var chatRoomMember model.ChatRoomMember
-	err := c.DB.WithContext(c.Ctx).Where("owner = ? AND chat_room_id = ? AND wechat_id = ?", owner, chatRoomID, wechatID).First(&chatRoomMember).Error
+	err := c.DB.WithContext(c.Ctx).Where("chat_room_id = ? AND wechat_id = ?", chatRoomID, wechatID).First(&chatRoomMember).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -55,9 +55,9 @@ func (c *ChatRoomMember) GetChatRoomMember(owner, chatRoomID, wechatID string) (
 }
 
 // GetChatRoomMembers 获取未退出群聊的成员
-func (c *ChatRoomMember) GetChatRoomMembers(owner, chatRoomID string) ([]*model.ChatRoomMember, error) {
+func (c *ChatRoomMember) GetChatRoomMembers(chatRoomID string) ([]*model.ChatRoomMember, error) {
 	var chatRoomMembers []*model.ChatRoomMember
-	err := c.DB.WithContext(c.Ctx).Where("owner = ? AND chat_room_id = ? AND leaved_at IS NULL", owner, chatRoomID).Find(&chatRoomMembers).Error
+	err := c.DB.WithContext(c.Ctx).Where("chat_room_id = ? AND leaved_at IS NULL", chatRoomID).Find(&chatRoomMembers).Error
 	if err != nil {
 		return nil, err
 	}
@@ -65,10 +65,10 @@ func (c *ChatRoomMember) GetChatRoomMembers(owner, chatRoomID string) ([]*model.
 }
 
 // 当前群总人数
-func (c *ChatRoomMember) GetChatRoomMemberCount(owner, chatRoomID string) (int64, error) {
+func (c *ChatRoomMember) GetChatRoomMemberCount(chatRoomID string) (int64, error) {
 	var total int64
 	query := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{})
-	query = query.Where("chat_room_id = ?", chatRoomID).Where("owner = ?", owner).Where("leaved_at IS NULL")
+	query = query.Where("chat_room_id = ?", chatRoomID).Where("leaved_at IS NULL")
 	if err := query.Count(&total).Error; err != nil {
 		return 0, err
 	}
@@ -76,7 +76,7 @@ func (c *ChatRoomMember) GetChatRoomMemberCount(owner, chatRoomID string) (int64
 }
 
 // 昨天入群人数
-func (c *ChatRoomMember) GetYesterdayJoinCount(owner, chatRoomID string) (int64, error) {
+func (c *ChatRoomMember) GetYesterdayJoinCount(chatRoomID string) (int64, error) {
 	var total int64
 	// 获取今天凌晨零点
 	now := time.Now()
@@ -88,7 +88,6 @@ func (c *ChatRoomMember) GetYesterdayJoinCount(owner, chatRoomID string) (int64,
 	todayStartTimestamp := todayStart.Unix()
 	query := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{})
 	query = query.Where("chat_room_id = ?", chatRoomID).
-		Where("owner = ?", owner).
 		Where("joined_at >= ?", yesterdayStartTimestamp).
 		Where("joined_at < ?", todayStartTimestamp)
 	if err := query.Count(&total).Error; err != nil {
@@ -98,7 +97,7 @@ func (c *ChatRoomMember) GetYesterdayJoinCount(owner, chatRoomID string) (int64,
 }
 
 // 昨天离群人数
-func (c *ChatRoomMember) GetYesterdayLeaveCount(owner, chatRoomID string) (int64, error) {
+func (c *ChatRoomMember) GetYesterdayLeaveCount(chatRoomID string) (int64, error) {
 	var total int64
 	// 获取今天凌晨零点
 	now := time.Now()
@@ -110,7 +109,6 @@ func (c *ChatRoomMember) GetYesterdayLeaveCount(owner, chatRoomID string) (int64
 	todayStartTimestamp := todayStart.Unix()
 	query := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{})
 	query = query.Where("chat_room_id = ?", chatRoomID).
-		Where("owner = ?", owner).
 		Where("leaved_at >= ?", yesterdayStartTimestamp).
 		Where("leaved_at < ?", todayStartTimestamp)
 	if err := query.Count(&total).Error; err != nil {

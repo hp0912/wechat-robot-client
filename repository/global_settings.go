@@ -19,9 +19,9 @@ func NewGlobalSettingsRepo(ctx context.Context, db *gorm.DB) *GlobalSettings {
 	}
 }
 
-func (respo *GlobalSettings) GetByOwner(owner string) (*model.GlobalSettings, error) {
+func (respo *GlobalSettings) GetGlobalSettings() (*model.GlobalSettings, error) {
 	var globalSettings model.GlobalSettings
-	err := respo.DB.WithContext(respo.Ctx).Where("owner = ?", owner).First(&globalSettings).Error
+	err := respo.DB.WithContext(respo.Ctx).First(&globalSettings).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}

@@ -19,9 +19,9 @@ func NewFriendSettingsRepo(ctx context.Context, db *gorm.DB) *FriendSettings {
 	}
 }
 
-func (respo *FriendSettings) GetByOwner(owner, contactID string) (*model.FriendSettings, error) {
+func (respo *FriendSettings) GetFriendSettings(contactID string) (*model.FriendSettings, error) {
 	var friendSettings model.FriendSettings
-	err := respo.DB.WithContext(respo.Ctx).Where("owner = ? AND wechat_id = ?", owner, contactID).First(&friendSettings).Error
+	err := respo.DB.WithContext(respo.Ctx).Where("wechat_id = ?", contactID).First(&friendSettings).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}

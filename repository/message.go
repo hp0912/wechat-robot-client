@@ -35,9 +35,9 @@ func (m *Message) GetByID(id int64) (*model.Message, error) {
 	return &message, nil
 }
 
-func (m *Message) GetByMsgID(owner string, msgId int64) (*model.Message, error) {
+func (m *Message) GetByMsgID(msgId int64) (*model.Message, error) {
 	var message model.Message
-	err := m.DB.WithContext(m.Ctx).Where("to_wxid = ? AND msg_id = ?", owner, msgId).First(&message).Error
+	err := m.DB.WithContext(m.Ctx).Where("msg_id = ?", msgId).First(&message).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -63,7 +63,7 @@ func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) (
 			Joins("LEFT JOIN contacts ON contacts.wechat_id = messages.sender_wxid").
 			Select("messages.*, contacts.nickname AS sender_nickname, contacts.avatar AS sender_avatar")
 	}
-	query = query.Where("from_wxid = ?", req.ContactID).Where("to_wxid = ?", req.Owner)
+	query = query.Where("from_wxid = ?", req.ContactID)
 	if req.Keyword != "" {
 		query = query.Where("content LIKE ?", "%"+req.Keyword+"%")
 	}
@@ -81,7 +81,7 @@ func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) (
 	return messages, total, nil
 }
 
-func (m *Message) GetMessagesByTimeRange(owner, chatRoomID string, startTime, endTime int64) ([]*dto.TextMessageItem, error) {
+func (m *Message) GetMessagesByTimeRange(chatRoomID string, startTime, endTime int64) ([]*dto.TextMessageItem, error) {
 	var messages []*dto.TextMessageItem
 	// APP消息类型
 	appMsgList := []string{"57", "4", "5", "6"}
@@ -105,7 +105,6 @@ func (m *Message) GetMessagesByTimeRange(owner, chatRoomID string, startTime, en
 	query = query.Select("chat_room_members.nickname", selectStr+" AS message", "messages.created_at").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
-		Where("messages.to_wxid = ?", owner).
 		Where(`(messages.type = 1 OR ( messages.type = 49 AND EXTRACTVALUE ( messages.content, "/msg/appmsg/type" ) IN (?) ))`, appMsgList).
 		Where("messages.content NOT LIKE '#昨日水群排行榜%'").
 		Where("messages.content NOT LIKE '#昨日消息总结%'").
@@ -118,7 +117,7 @@ func (m *Message) GetMessagesByTimeRange(owner, chatRoomID string, startTime, en
 	return messages, nil
 }
 
-func (m *Message) GetYesterdayChatInfo(owner, chatRoomID string) ([]*dto.ChatRoomSummary, error) {
+func (m *Message) GetYesterdayChatInfo(chatRoomID string) ([]*dto.ChatRoomSummary, error) {
 	var chatRoomSummary []*dto.ChatRoomSummary
 	// 获取今天凌晨零点
 	now := time.Now()
@@ -131,7 +130,6 @@ func (m *Message) GetYesterdayChatInfo(owner, chatRoomID string) ([]*dto.ChatRoo
 	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
 	query = query.Select("count( 1 ) AS `message_count`").
 		Where("from_wxid = ?", chatRoomID).
-		Where("to_wxid = ?", owner).
 		Where("type < 10000").
 		Where("created_at >= ?", yesterdayStartTimestamp).
 		Where("created_at < ?", todayStartTimestamp).
@@ -142,7 +140,7 @@ func (m *Message) GetYesterdayChatInfo(owner, chatRoomID string) ([]*dto.ChatRoo
 	return chatRoomSummary, nil
 }
 
-func (m *Message) GetYesterdayChatRommRank(owner, chatRoomID string) ([]*dto.ChatRoomRank, error) {
+func (m *Message) GetYesterdayChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	var chatRoomRank []*dto.ChatRoomRank
 	// 获取今天凌晨零点
 	now := time.Now()
@@ -156,7 +154,6 @@ func (m *Message) GetYesterdayChatRommRank(owner, chatRoomID string) ([]*dto.Cha
 	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
-		Where("messages.to_wxid = ?", owner).
 		Where("messages.type < 10000").
 		Where("messages.created_at >= ?", yesterdayStartTimestamp).
 		Where("messages.created_at < ?", todayStartTimestamp).
@@ -168,7 +165,7 @@ func (m *Message) GetYesterdayChatRommRank(owner, chatRoomID string) ([]*dto.Cha
 	return chatRoomRank, nil
 }
 
-func (m *Message) GetLastWeekChatRommRank(owner, chatRoomID string) ([]*dto.ChatRoomRank, error) {
+func (m *Message) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	var chatRoomRank []*dto.ChatRoomRank
 	// 获取当前时间（周一）
 	now := time.Now()
@@ -184,7 +181,6 @@ func (m *Message) GetLastWeekChatRommRank(owner, chatRoomID string) ([]*dto.Chat
 	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
-		Where("messages.to_wxid = ?", owner).
 		Where("messages.type < 10000").
 		Where("messages.created_at >= ?", lastWeekStartTimestamp).
 		Where("messages.created_at < ?", thisWeekStartTimestamp).
@@ -196,7 +192,7 @@ func (m *Message) GetLastWeekChatRommRank(owner, chatRoomID string) ([]*dto.Chat
 	return chatRoomRank, nil
 }
 
-func (m *Message) GetLastMonthChatRommRank(owner, chatRoomID string) ([]*dto.ChatRoomRank, error) {
+func (m *Message) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	var chatRoomRank []*dto.ChatRoomRank
 	// 获取当前时间（每月一号执行）
 	now := time.Now()
@@ -211,7 +207,6 @@ func (m *Message) GetLastMonthChatRommRank(owner, chatRoomID string) ([]*dto.Cha
 	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
-		Where("messages.to_wxid = ?", owner).
 		Where("messages.type < 10000").
 		Where("messages.created_at >= ?", lastMonthStartTimestamp).
 		Where("messages.created_at < ?", thisMonthStartTimestamp).

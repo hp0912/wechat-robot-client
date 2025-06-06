@@ -19,9 +19,9 @@ func NewChatRoomSettingsRepo(ctx context.Context, db *gorm.DB) *ChatRoomSettings
 	}
 }
 
-func (respo *ChatRoomSettings) GetByOwner(owner, chatRoomID string) (*model.ChatRoomSettings, error) {
+func (respo *ChatRoomSettings) GetChatRoomSettings(chatRoomID string) (*model.ChatRoomSettings, error) {
 	var chatRoomSettings model.ChatRoomSettings
-	err := respo.DB.WithContext(respo.Ctx).Where("owner = ? AND chat_room_id = ?", owner, chatRoomID).First(&chatRoomSettings).Error
+	err := respo.DB.WithContext(respo.Ctx).Where("chat_room_id = ?", chatRoomID).First(&chatRoomSettings).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -31,36 +31,36 @@ func (respo *ChatRoomSettings) GetByOwner(owner, chatRoomID string) (*model.Chat
 	return &chatRoomSettings, nil
 }
 
-func (respo *ChatRoomSettings) GetAllEnableGoodMorning(owner string) ([]*model.ChatRoomSettings, error) {
+func (respo *ChatRoomSettings) GetAllEnableGoodMorning() ([]*model.ChatRoomSettings, error) {
 	var chatRoomSettings []*model.ChatRoomSettings
-	err := respo.DB.WithContext(respo.Ctx).Where("owner = ? AND morning_enabled = ?", owner, 1).Find(&chatRoomSettings).Error
+	err := respo.DB.WithContext(respo.Ctx).Where("morning_enabled = ?", 1).Find(&chatRoomSettings).Error
 	if err != nil {
 		return nil, err
 	}
 	return chatRoomSettings, nil
 }
 
-func (respo *ChatRoomSettings) GetAllEnableNews(owner string) ([]*model.ChatRoomSettings, error) {
+func (respo *ChatRoomSettings) GetAllEnableNews() ([]*model.ChatRoomSettings, error) {
 	var chatRoomSettings []*model.ChatRoomSettings
-	err := respo.DB.WithContext(respo.Ctx).Where("owner = ? AND news_enabled = ?", owner, 1).Find(&chatRoomSettings).Error
+	err := respo.DB.WithContext(respo.Ctx).Where("news_enabled = ?", 1).Find(&chatRoomSettings).Error
 	if err != nil {
 		return nil, err
 	}
 	return chatRoomSettings, nil
 }
 
-func (respo *ChatRoomSettings) GetAllEnableChatRank(owner string) ([]*model.ChatRoomSettings, error) {
+func (respo *ChatRoomSettings) GetAllEnableChatRank() ([]*model.ChatRoomSettings, error) {
 	var chatRoomSettings []*model.ChatRoomSettings
-	err := respo.DB.WithContext(respo.Ctx).Where("owner = ? AND chat_room_ranking_enabled = ?", owner, 1).Find(&chatRoomSettings).Error
+	err := respo.DB.WithContext(respo.Ctx).Where("chat_room_ranking_enabled = ?", 1).Find(&chatRoomSettings).Error
 	if err != nil {
 		return nil, err
 	}
 	return chatRoomSettings, nil
 }
 
-func (respo *ChatRoomSettings) GetAllEnableAISummary(owner string) ([]*model.ChatRoomSettings, error) {
+func (respo *ChatRoomSettings) GetAllEnableAISummary() ([]*model.ChatRoomSettings, error) {
 	var chatRoomSettings []*model.ChatRoomSettings
-	err := respo.DB.WithContext(respo.Ctx).Where("owner = ? AND chat_room_summary_enabled = ?", owner, 1).Find(&chatRoomSettings).Error
+	err := respo.DB.WithContext(respo.Ctx).Where("chat_room_summary_enabled = ?", 1).Find(&chatRoomSettings).Error
 	if err != nil {
 		return nil, err
 	}

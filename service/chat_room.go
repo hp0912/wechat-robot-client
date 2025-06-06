@@ -50,7 +50,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 
 		for _, member := range chatRoomMembers {
 			// 检查成员是否已存在
-			existMember, err := memberRepo.GetChatRoomMember(vars.RobotRuntime.WxID, chatRoomID, member.UserName)
+			existMember, err := memberRepo.GetChatRoomMember(chatRoomID, member.UserName)
 			if err != nil {
 				log.Printf("查询群[%s]成员[%s]失败: %v", chatRoomID, member.UserName, err)
 				continue
@@ -75,7 +75,6 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 				// 创建新成员
 				isLeaved := false
 				newMember := model.ChatRoomMember{
-					Owner:           vars.RobotRuntime.WxID,
 					ChatRoomID:      chatRoomID,
 					WechatID:        member.UserName,
 					Nickname:        member.NickName,
@@ -93,7 +92,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 			}
 		}
 		// 查询数据库中该群的所有成员
-		dbMembers, err := memberRepo.GetChatRoomMembers(vars.RobotRuntime.WxID, chatRoomID)
+		dbMembers, err := memberRepo.GetChatRoomMembers(chatRoomID)
 		if err != nil {
 			log.Printf("获取群[%s]成员失败: %v", chatRoomID, err)
 			return
@@ -120,30 +119,28 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 }
 
 func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
-	req.Owner = vars.RobotRuntime.WxID
 	respo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
 	return respo.GetByChatRoomID(req, pager)
 }
 
 func (s *ChatRoomService) GetChatRoomMemberCount(chatRoomID string) (int64, error) {
 	respo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
-	return respo.GetChatRoomMemberCount(vars.RobotRuntime.WxID, chatRoomID)
+	return respo.GetChatRoomMemberCount(chatRoomID)
 }
 
 func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSummary, error) {
 	summary := dto.ChatRoomSummary{ChatRoomID: chatRoomID}
 
-	owner := vars.RobotRuntime.WxID
 	crmRespo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
-	memberCount, err := crmRespo.GetChatRoomMemberCount(owner, chatRoomID)
+	memberCount, err := crmRespo.GetChatRoomMemberCount(chatRoomID)
 	if err != nil {
 		return summary, err
 	}
-	joinCount, err := crmRespo.GetYesterdayJoinCount(owner, chatRoomID)
+	joinCount, err := crmRespo.GetYesterdayJoinCount(chatRoomID)
 	if err != nil {
 		return summary, err
 	}
-	leaveCount, err := crmRespo.GetYesterdayLeaveCount(owner, chatRoomID)
+	leaveCount, err := crmRespo.GetYesterdayLeaveCount(chatRoomID)
 	if err != nil {
 		return summary, err
 	}
@@ -152,7 +149,7 @@ func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSum
 	summary.MemberLeaveCount = int(leaveCount)
 
 	messageRepo := repository.NewMessageRepo(s.ctx, vars.DB)
-	chatInfo, err := messageRepo.GetYesterdayChatInfo(owner, chatRoomID)
+	chatInfo, err := messageRepo.GetYesterdayChatInfo(chatRoomID)
 	if err != nil {
 		return summary, err
 	}
@@ -171,7 +168,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 	ctRespo := repository.NewContactRepo(s.ctx, vars.DB)
 
 	chatRoomName := setting.ChatRoomID
-	chatRoom, err := ctRespo.GetByWechatID(vars.RobotRuntime.WxID, setting.ChatRoomID)
+	chatRoom, err := ctRespo.GetByWechatID(setting.ChatRoomID)
 	if err != nil {
 		return err
 	}
@@ -180,7 +177,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		chatRoomName = *chatRoom.Nickname
 	}
 
-	messages, err := msgRespo.GetMessagesByTimeRange(vars.RobotRuntime.WxID, setting.ChatRoomID, startTime, endTime)
+	messages, err := msgRespo.GetMessagesByTimeRange(setting.ChatRoomID, startTime, endTime)
 	if err != nil {
 		return err
 	}
@@ -304,7 +301,7 @@ func (s *ChatRoomService) ChatRoomAISummary() error {
 	yesterdayStartTimestamp := yesterdayStart.Unix()
 	todayStartTimestamp := todayStart.Unix()
 
-	globalSettings, err := repository.NewGlobalSettingsRepo(s.ctx, vars.DB).GetByOwner(vars.RobotRuntime.WxID)
+	globalSettings, err := repository.NewGlobalSettingsRepo(s.ctx, vars.DB).GetGlobalSettings()
 	if err != nil {
 		return err
 	}

@@ -71,7 +71,7 @@ func (s *MessageService) ProcessFriendVerifyMessage(message *model.Message) {
 // ProcessRecalledMessage 处理撤回消息
 func (s *MessageService) ProcessRecalledMessage(message *model.Message, msgXml robot.SystemMessage) {
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	oldMsg, err := respo.GetByMsgID(vars.RobotRuntime.WxID, msgXml.RevokeMsg.NewMsgID)
+	oldMsg, err := respo.GetByMsgID(msgXml.RevokeMsg.NewMsgID)
 	if err != nil {
 		log.Printf("获取撤回的消息失败: %v", err)
 		return
@@ -172,13 +172,12 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 			subTypeStr := vars.RobotRuntime.XmlFastDecoder(m.Content, "type")
 			if subTypeStr != "" {
 				subType, err := strconv.Atoi(subTypeStr)
-				if err != nil {
-					continue
-				}
-				m.AppMsgType = model.AppMessageType(subType)
-				if m.AppMsgType == model.AppMsgTypeAttachUploading {
-					// 消息不入库
-					continue
+				if err == nil {
+					m.AppMsgType = model.AppMessageType(subType)
+					if m.AppMsgType == model.AppMsgTypeAttachUploading {
+						// 消息不入库
+						continue
+					}
 				}
 			}
 		}
@@ -660,15 +659,15 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 
 func (s *MessageService) GetYesterdayChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	return respo.GetYesterdayChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
+	return respo.GetYesterdayChatRommRank(chatRoomID)
 }
 
 func (s *MessageService) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	return respo.GetLastWeekChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
+	return respo.GetLastWeekChatRommRank(chatRoomID)
 }
 
 func (s *MessageService) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	return respo.GetLastMonthChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
+	return respo.GetLastMonthChatRommRank(chatRoomID)
 }

@@ -19,13 +19,12 @@ func NewFriendSettingsService(ctx context.Context) *FriendSettingsService {
 
 func (s *FriendSettingsService) GetFriendSettings(contactID string) (*model.FriendSettings, error) {
 	respo := repository.NewFriendSettingsRepo(s.ctx, vars.DB)
-	return respo.GetByOwner(vars.RobotRuntime.WxID, contactID)
+	return respo.GetFriendSettings(contactID)
 }
 
 func (s *FriendSettingsService) SaveFriendSettings(data *model.FriendSettings) error {
 	respo := repository.NewFriendSettingsRepo(s.ctx, vars.DB)
 	if data.ID == 0 {
-		data.Owner = vars.RobotRuntime.WxID
 		return respo.Create(data)
 	}
 	return respo.Update(data)

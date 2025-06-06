@@ -139,15 +139,24 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 	}
 	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	if resp.AcctSectResp.Username != "" {
+		// 一个机器人实例只能绑定一个微信账号
+		var robotAdmin *model.RobotAdmin
+		robotAdmin, err = respo.GetByRobotID(vars.RobotRuntime.RobotID)
+		if err != nil {
+			return
+		}
+		if robotAdmin == nil {
+			err = errors.New("查询机器人实例失败，请联系管理员。")
+			return
+		}
+		if robotAdmin.WeChatID != resp.AcctSectResp.Username {
+			err = errors.New("一个机器人实例只能绑定一个微信账号。")
+			_ = s.Logout()
+			return
+		}
 		// 登陆成功
 		vars.RobotRuntime.WxID = resp.AcctSectResp.Username
 		vars.RobotRuntime.Status = model.RobotStatusOnline
-		// 更新下全局配置的所有人, 全局配置在创建机器人实例的时候创建，这个时候的所有人是空，因为获取不到微信ID
-		globalSettingsSvc := NewGlobalSettingsService(s.ctx)
-		err = globalSettingsSvc.UpdateGlobalSettings(resp.AcctSectResp.Username)
-		if err != nil {
-			panic(fmt.Errorf("更新全局配置失败，请联系管理员: %w", err))
-		}
 		err = s.Online()
 		if err != nil {
 			return

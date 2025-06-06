@@ -22,9 +22,9 @@ func NewContactRepo(ctx context.Context, db *gorm.DB) *Contact {
 	}
 }
 
-func (c *Contact) GetContact(owner, wechatID string) (*model.Contact, error) {
+func (c *Contact) GetContact(wechatID string) (*model.Contact, error) {
 	var contact model.Contact
-	err := c.DB.WithContext(c.Ctx).Where("owner = ? AND wechat_id = ?", owner, wechatID).First(&contact).Error
+	err := c.DB.WithContext(c.Ctx).Where("wechat_id = ?", wechatID).First(&contact).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -48,9 +48,9 @@ func (c *Contact) FindRecentGroupContacts() ([]*model.Contact, error) {
 	return contacts, nil
 }
 
-func (respo *Contact) GetByWechatID(owner, wechatID string) (*model.Contact, error) {
+func (respo *Contact) GetByWechatID(wechatID string) (*model.Contact, error) {
 	var contact model.Contact
-	err := respo.DB.WithContext(respo.Ctx).Where("owner = ? AND wechat_id = ?", owner, wechatID).First(&contact).Error
+	err := respo.DB.WithContext(respo.Ctx).Where("wechat_id = ?", wechatID).First(&contact).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -60,7 +60,7 @@ func (respo *Contact) GetByWechatID(owner, wechatID string) (*model.Contact, err
 	return &contact, nil
 }
 
-func (c *Contact) GetByOwner(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
+func (c *Contact) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
 	var contacts []*model.Contact
 	var total int64
 	query := c.DB.WithContext(c.Ctx).Model(&model.Contact{})
