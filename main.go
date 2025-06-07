@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -54,7 +55,7 @@ func main() {
 	// 开始监听停止信号
 	shutdownManager.Start()
 	// 启动服务
-	if err := app.Run(":9001"); err != nil { // TODO
+	if err := app.Run(fmt.Sprintf(":%s", vars.WechatClientPort)); err != nil {
 		log.Panicf("服务启动失败：%v", err)
 	}
 }

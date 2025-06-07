@@ -26,6 +26,13 @@ func loadEnvConfig() {
 		}
 	}
 
+	// 监听端口
+	vars.WechatClientPort = os.Getenv("WECHAT_CLIENT_PORT")
+	if vars.WechatClientPort == "" {
+		log.Fatal("WECHAT_CLIENT_PORT 环境变量未设置")
+	}
+	vars.WechatServerHost = os.Getenv("WECHAT_SERVER_HOST")
+
 	// mysql
 	vars.MysqlSettings.Driver = os.Getenv("MYSQL_DRIVER")
 	vars.MysqlSettings.Host = os.Getenv("MYSQL_HOST")

@@ -9,6 +9,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// 微信机器人客户端监听端口
+var WechatClientPort string
+
+// 微信机器人服务端地址，仅供本地调试用
+var WechatServerHost string
+
 // 机器人实例数据库
 var DB *gorm.DB
 
