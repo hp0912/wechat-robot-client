@@ -38,10 +38,10 @@ func (c *Contact) DeleteByWeChatIDNotIn(wechatIDs []string) error {
 	return c.DB.WithContext(c.Ctx).Where("wechat_id NOT IN (?)", wechatIDs).Delete(&model.Contact{}).Error
 }
 
-func (c *Contact) FindRecentGroupContacts() ([]*model.Contact, error) {
+func (c *Contact) FindRecentChatRoomContacts() ([]*model.Contact, error) {
 	oneDayAgo := time.Now().Add(-24 * time.Hour).Unix()
 	var contacts []*model.Contact
-	query := c.DB.WithContext(c.Ctx).Where("type = ? AND updated_at >= ?", model.ContactTypeGroup, oneDayAgo)
+	query := c.DB.WithContext(c.Ctx).Where("type = ? AND updated_at >= ?", model.ContactTypeChatRoom, oneDayAgo)
 	if err := query.Find(&contacts).Error; err != nil {
 		return nil, err
 	}

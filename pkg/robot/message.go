@@ -49,6 +49,56 @@ type SyncMessageRequest struct {
 	Synckey string `json:"Synckey"`
 }
 
+type XmlMessage struct {
+	XMLName      xml.Name   `xml:"msg"`
+	AppMsg       AppMessage `xml:"appmsg"`
+	FromUsername string     `xml:"fromusername"`
+	Scene        int        `xml:"scene"`
+	AppInfo      AppInfo    `xml:"appinfo"`
+	CommentURL   string     `xml:"commenturl"`
+}
+
+type AppMessage struct {
+	AppID             string       `xml:"appid,attr"`
+	SDKVer            string       `xml:"sdkver,attr"`
+	Title             string       `xml:"title"`
+	Des               string       `xml:"des"`
+	Action            string       `xml:"action"`
+	Type              int          `xml:"type"`
+	ShowType          int          `xml:"showtype"`
+	SoundType         int          `xml:"soundtype"`
+	MediaTagName      string       `xml:"mediatagname"`
+	MessageExt        string       `xml:"messageext"`
+	MessageAction     string       `xml:"messageaction"`
+	Content           string       `xml:"content"`
+	ContentAttr       int          `xml:"contentattr"`
+	URL               string       `xml:"url"`
+	LowURL            string       `xml:"lowurl"`
+	DataURL           string       `xml:"dataurl"`
+	LowDataURL        string       `xml:"lowdataurl"`
+	SongAlbumURL      string       `xml:"songalbumurl"`
+	SongLyric         string       `xml:"songlyric"`
+	AppAttach         AppAttach    `xml:"appattach"`
+	ExtInfo           string       `xml:"extinfo"`
+	SourceUsername    string       `xml:"sourceusername"`
+	SourceDisplayName string       `xml:"sourcedisplayname"`
+	ThumbURL          string       `xml:"thumburl"`
+	MD5               string       `xml:"md5"`
+	StatExtStr        string       `xml:"statextstr"`
+	ReferMsg          ReferMessage `xml:"refermsg"`
+}
+
+type ReferMessage struct {
+	Type        int    `xml:"type"`
+	SvrID       string `xml:"svrid"`
+	FromUsr     string `xml:"fromusr"`
+	ChatUsr     string `xml:"chatusr"`
+	DisplayName string `xml:"displayname"`
+	Content     string `xml:"content"`
+	MsgSource   string `xml:"msgsource"`
+	CreateTime  int64  `xml:"createtime"`
+}
+
 type SystemMessage struct {
 	XMLName   xml.Name  `xml:"sysmsg"`
 	Type      string    `xml:"type,attr"`

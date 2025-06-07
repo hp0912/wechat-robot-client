@@ -6,8 +6,8 @@ import "gorm.io/gorm"
 type ContactType string
 
 const (
-	ContactTypeFriend ContactType = "friend"
-	ContactTypeGroup  ContactType = "group"
+	ContactTypeFriend   ContactType = "friend"
+	ContactTypeChatRoom ContactType = "chat_room"
 )
 
 // Contact 表示微信联系人，包括好友和群组
@@ -37,7 +37,7 @@ func (Contact) TableName() string {
 	return "contacts"
 }
 
-// IsGroup 判断联系人是否为群组
-func (c *Contact) IsGroup() bool {
-	return c.Type == ContactTypeGroup
+// IsChatRoom 判断联系人是否为群组
+func (c *Contact) IsChatRoom() bool {
+	return c.Type == ContactTypeChatRoom
 }

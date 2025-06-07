@@ -16,6 +16,7 @@ import (
 	"wechat-robot-client/vars"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/sashabaranov/go-openai"
 )
 
 type MessageService struct {
@@ -58,7 +59,7 @@ func (s *MessageService) ProcessAI(message *model.Message) {
 // ProcessTextMessage 处理文本消息
 func (s *MessageService) ProcessTextMessage(message *model.Message) {
 	aiService := NewAIService(s.ctx, message)
-	if message.IsGroup {
+	if message.IsChatRoom {
 		if aiService.IsAISessionStart(message) {
 			s.SendTextMessage(message.FromWxID, "AI会话已开始，请输入您的问题。10分钟不说话会话将自动结束，您也可以输入 #退出AI会话 来结束会话。", message.SenderWxID)
 			return
@@ -106,9 +107,22 @@ func (s *MessageService) ProcessEmojiMessage(message *model.Message) {
 
 }
 
+// ProcessReferMessage 处理引用消息
+func (s *MessageService) ProcessReferMessage(message *model.Message) {
+	var xmlMessage robot.XmlMessage
+	err := vars.RobotRuntime.XmlDecoder(message.Content, &xmlMessage)
+	if err != nil {
+		log.Printf("解析引用消息失败: %v", err)
+		return
+	}
+}
+
 // ProcessAppMessage 处理应用消息
 func (s *MessageService) ProcessAppMessage(message *model.Message) {
-
+	if message.AppMsgType == model.AppMsgTypequote {
+		s.ProcessReferMessage(message)
+		return
+	}
 }
 
 // ProcessShareCardMessage 处理分享名片消息
@@ -197,7 +211,7 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		}
 		// 群聊消息
 		if strings.HasSuffix(m.FromWxID, "@chatroom") {
-			m.IsGroup = true
+			m.IsChatRoom = true
 			splitContents := strings.SplitN(m.Content, ":\n", 2)
 			if len(splitContents) > 1 {
 				m.Content = splitContents[1]
@@ -208,7 +222,7 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 				m.SenderWxID = self
 			}
 		} else {
-			m.IsGroup = false
+			m.IsChatRoom = false
 			m.SenderWxID = m.FromWxID
 			if m.FromWxID == self {
 				m.FromWxID = m.ToWxID
@@ -349,7 +363,7 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 					FromWxID:           toWxID,
 					ToWxID:             vars.RobotRuntime.WxID,
 					SenderWxID:         vars.RobotRuntime.WxID,
-					IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+					IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 					CreatedAt:          message.Createtime,
 					UpdatedAt:          time.Now().Unix(),
 				}
@@ -387,7 +401,7 @@ func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) error {
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
-		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
@@ -423,7 +437,7 @@ func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt s
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
-		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 		CreatedAt:          time.Now().Unix(),
 		UpdatedAt:          time.Now().Unix(),
 	}
@@ -459,7 +473,7 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice io.Reader, voiceExt s
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
-		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
@@ -520,7 +534,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
-		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
@@ -559,7 +573,7 @@ func (s *MessageService) SendEmoji(toWxID string, md5 string, totalLen int32) er
 			FromWxID:           toWxID,
 			ToWxID:             vars.RobotRuntime.WxID,
 			SenderWxID:         vars.RobotRuntime.WxID,
-			IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+			IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 			CreatedAt:          time.Now().Unix(),
 			UpdatedAt:          time.Now().Unix(),
 		}
@@ -595,7 +609,7 @@ func (s *MessageService) ShareLink(toWxID string, linkXml string) error {
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
-		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
@@ -629,7 +643,7 @@ func (s *MessageService) SendCDNFile(toWxID string, content string) error {
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
-		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
@@ -663,7 +677,7 @@ func (s *MessageService) SendCDNImg(toWxID string, content string) error {
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
-		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
@@ -697,7 +711,7 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
-		IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 		CreatedAt:          time.Now().Unix(),
 		UpdatedAt:          time.Now().Unix(),
 	}
@@ -711,16 +725,54 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 	return nil
 }
 
-func (s *MessageService) GetFriendAIMessageContext(message model.Message) ([]*model.Message, error) {
-	return nil, nil
+func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []openai.ChatCompletionMessage {
+	var aiMessages []openai.ChatCompletionMessage
+	for _, msg := range messages {
+		aiMessage := openai.ChatCompletionMessage{}
+		if msg.SenderWxID == vars.RobotRuntime.WxID {
+			aiMessage.Role = openai.ChatMessageRoleAssistant
+		} else {
+			aiMessage.Role = openai.ChatMessageRoleUser
+		}
+		if msg.Type == model.MsgTypeText {
+			aiMessage.Content = msg.Content
+		}
+		if msg.Type == model.MsgTypeImage {
+			aiMessage.MultiContent = []openai.ChatMessagePart{
+				{
+					Type: openai.ChatMessagePartTypeImageURL,
+					ImageURL: &openai.ChatMessageImageURL{
+						URL: msg.AttachmentUrl,
+					},
+				},
+			}
+		}
+		if msg.Type == model.MsgTypeApp && msg.AppMsgType == model.AppMsgTypequote {
+
+		}
+		aiMessages = append(aiMessages, aiMessage)
+	}
+	return aiMessages
 }
 
-func (s *MessageService) GetChatRoomAIMessageContext(message model.Message) ([]*model.Message, error) {
-	return nil, nil
+func (s *MessageService) GetFriendAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
+	messages, err := repository.NewMessageRepo(s.ctx, vars.DB).GetFriendAIMessageContext(message)
+	if err != nil {
+		return nil, err
+	}
+	return s.ProcessAIMessageContext(messages), nil
 }
 
-func (s *MessageService) GetAIMessageContext(message model.Message) ([]*model.Message, error) {
-	if message.IsGroup {
+func (s *MessageService) GetChatRoomAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
+	messages, err := repository.NewMessageRepo(s.ctx, vars.DB).GetChatRoomAIMessageContext(message)
+	if err != nil {
+		return nil, err
+	}
+	return s.ProcessAIMessageContext(messages), nil
+}
+
+func (s *MessageService) GetAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
+	if message.IsChatRoom {
 		return s.GetChatRoomAIMessageContext(message)
 	}
 	return s.GetFriendAIMessageContext(message)

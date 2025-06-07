@@ -36,21 +36,21 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 	}
 
 	respo := repository.NewContactRepo(s.ctx, vars.DB)
-	recentGroupContacts, err := respo.FindRecentGroupContacts()
+	recentChatRoomContacts, err := respo.FindRecentChatRoomContacts()
 	if err != nil {
 		return err
 	}
 
-	for _, groupContact := range recentGroupContacts {
-		if !slices.Contains(contactIds, groupContact.WechatID) {
-			contactIds = append(contactIds, groupContact.WechatID)
+	for _, chatRoomContact := range recentChatRoomContacts {
+		if !slices.Contains(contactIds, chatRoomContact.WechatID) {
+			contactIds = append(contactIds, chatRoomContact.WechatID)
 		}
 	}
 	// 同步群成员
 	cmService := NewChatRoomService(s.ctx)
 	if syncChatRoomMember {
-		for _, groupContact := range recentGroupContacts {
-			cmService.SyncChatRoomMember(groupContact.WechatID)
+		for _, chatRoomContact := range recentChatRoomContacts {
+			cmService.SyncChatRoomMember(chatRoomContact.WechatID)
 		}
 	}
 
@@ -131,7 +131,7 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
 			}
 			if strings.HasSuffix(*contact.UserName.String, "@chatroom") {
-				contactPerson.Type = model.ContactTypeGroup
+				contactPerson.Type = model.ContactTypeChatRoom
 			}
 			err = respo.Create(&contactPerson)
 			if err != nil {
@@ -157,24 +157,24 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 	}
 	if strings.HasSuffix(contactID, "@chatroom") {
 		if existContact == nil {
-			contactGroup := model.Contact{
+			contactChatRoom := model.Contact{
 				WechatID:  contactID,
-				Type:      model.ContactTypeGroup,
+				Type:      model.ContactTypeChatRoom,
 				CreatedAt: time.Now().Unix(),
 				UpdatedAt: time.Now().Unix(),
 			}
-			err = contactRespo.Create(&contactGroup)
+			err = contactRespo.Create(&contactChatRoom)
 			if err != nil {
 				log.Printf("创建群聊联系人失败: %v", err)
 				return
 			}
 		} else {
 			// 存在，更新一下活跃时间
-			contactGroup := model.Contact{
+			contactChatRoom := model.Contact{
 				ID:        existContact.ID,
 				UpdatedAt: time.Now().Unix(),
 			}
-			err = contactRespo.Update(&contactGroup)
+			err = contactRespo.Update(&contactChatRoom)
 			if err != nil {
 				log.Printf("更新群聊联系人失败: %v", err)
 				return
@@ -182,11 +182,11 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 		}
 	} else {
 		// 普通联系人肯定存在，更新一下活跃时间就好了
-		contactGroup := model.Contact{
+		contact := model.Contact{
 			ID:        existContact.ID,
 			UpdatedAt: time.Now().Unix(),
 		}
-		err = contactRespo.Update(&contactGroup)
+		err = contactRespo.Update(&contact)
 		if err != nil {
 			log.Printf("更新联系人活跃时间失败: %v", err)
 			return
