@@ -1,0 +1,25 @@
+<sysmsg type="sysmsgtemplate">
+  <sysmsgtemplate>
+    <content_template type="tmpl_type_profilewithrevoke">
+      <plain><![CDATA[]]></plain>
+      <template><![CDATA[你邀请"$names$"加入了群聊  $revoke$]]></template>
+      <link_list>
+        <link name="names" type="link_profile">
+          <memberlist>
+            <member>
+              <username><![CDATA[wxid_b28npmhznnwl12]]></username>
+              <nickname><![CDATA[***]]></nickname>
+            </member>
+          </memberlist>
+          <separator><![CDATA[、]]></separator>
+        </link>
+        <link name="revoke" type="link_revoke" hidden="1">
+          <title><![CDATA[撤销]]></title>
+          <usernamelist>
+            <username><![CDATA[wxid_b28npmhznnwl12]]></username>
+          </usernamelist>
+        </link>
+      </link_list>
+    </content_template>
+  </sysmsgtemplate>
+</sysmsg>

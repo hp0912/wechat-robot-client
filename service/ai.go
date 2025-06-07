@@ -36,6 +36,7 @@ type AIService struct {
 	ctx              context.Context
 	chatRoomSettings *model.ChatRoomSettings
 	globalSettings   *model.GlobalSettings
+	friendSettings   *model.FriendSettings
 }
 
 const defaultTTL = 10 * time.Minute
@@ -43,12 +44,21 @@ const defaultTTL = 10 * time.Minute
 func NewAIService(ctx context.Context, message *model.Message) *AIService {
 	gsRespo := repository.NewGlobalSettingsRepo(ctx, vars.DB)
 	crsRespo := repository.NewChatRoomSettingsRepo(ctx, vars.DB)
-	chatRoomSettings, _ := crsRespo.GetChatRoomSettings(message.FromWxID)
-	globalSettings, _ := gsRespo.GetGlobalSettings()
+	fsRespo := repository.NewFriendSettingsRepo(ctx, vars.DB)
+	var globalSettings *model.GlobalSettings
+	var chatRoomSettings *model.ChatRoomSettings
+	var friendSettings *model.FriendSettings
+	globalSettings, _ = gsRespo.GetGlobalSettings()
+	if message.IsChatRoom {
+		chatRoomSettings, _ = crsRespo.GetChatRoomSettings(message.FromWxID)
+	} else {
+		friendSettings, _ = fsRespo.GetFriendSettings(message.FromWxID)
+	}
 	return &AIService{
 		ctx:              ctx,
-		chatRoomSettings: chatRoomSettings,
 		globalSettings:   globalSettings,
+		chatRoomSettings: chatRoomSettings,
+		friendSettings:   friendSettings,
 	}
 }
 
@@ -129,6 +139,16 @@ func (s *AIService) GetAIConfig() (baseURL string, apiKey string, model string) 
 		baseURL += "/v1"
 	}
 	return
+}
+
+func (s *AIService) IsAIEnabled() bool {
+	if s.friendSettings != nil && s.friendSettings.ChatAIEnabled != nil {
+		return *s.friendSettings.ChatAIEnabled
+	}
+	if s.globalSettings != nil && s.globalSettings.ChatAIEnabled != nil {
+		return *s.globalSettings.ChatAIEnabled
+	}
+	return false
 }
 
 func (s *AIService) IsAITrigger(message *model.Message) bool {

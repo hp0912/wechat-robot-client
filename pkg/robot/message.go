@@ -100,9 +100,10 @@ type ReferMessage struct {
 }
 
 type SystemMessage struct {
-	XMLName   xml.Name  `xml:"sysmsg"`
-	Type      string    `xml:"type,attr"`
-	RevokeMsg RevokeMsg `xml:"revokemsg"`
+	XMLName        xml.Name       `xml:"sysmsg"`
+	Type           string         `xml:"type,attr"`
+	RevokeMsg      RevokeMsg      `xml:"revokemsg"`
+	SysMsgTemplate SysMsgTemplate `xml:"sysmsgtemplate"`
 }
 
 type RevokeMsg struct {
@@ -111,6 +112,44 @@ type RevokeMsg struct {
 	MsgID      int64    `xml:"msgid"`
 	NewMsgID   int64    `xml:"newmsgid"`
 	ReplaceMsg string   `xml:"replacemsg"`
+}
+
+type SysMsgTemplate struct {
+	ContentTemplate ContentTemplate `xml:"content_template"`
+}
+
+type ContentTemplate struct {
+	Type     string   `xml:"type,attr"`
+	Plain    string   `xml:"plain"`
+	Template string   `xml:"template"`
+	LinkList LinkList `xml:"link_list"`
+}
+
+type LinkList struct {
+	Links []Link `xml:"link"`
+}
+
+type Link struct {
+	Name         string        `xml:"name,attr"`
+	Type         string        `xml:"type,attr"`
+	Hidden       string        `xml:"hidden,attr,omitempty"`
+	MemberList   *MemberList   `xml:"memberlist,omitempty"`
+	Separator    string        `xml:"separator,omitempty"`
+	Title        string        `xml:"title,omitempty"`
+	UsernameList *UsernameList `xml:"usernamelist,omitempty"`
+}
+
+type MemberList struct {
+	Members []Member `xml:"member"`
+}
+
+type Member struct {
+	Username string `xml:"username"`
+	Nickname string `xml:"nickname"`
+}
+
+type UsernameList struct {
+	Usernames []string `xml:"username"`
 }
 
 type MessageRevokeRequest struct {
@@ -245,6 +284,13 @@ type SongInfo struct {
 	MusicUrl string `json:"MusicUrl"`
 	CoverUrl string `json:"CoverUrl"`
 	Lyric    string `json:"Lyric"`
+}
+
+type ShareLinkInfo struct {
+	Title    string `json:"Title"`
+	Desc     string `json:"Desc"`
+	Url      string `json:"Url"`
+	ThumbUrl string `json:"ThumbUrl"`
 }
 
 type MusicSearchResponse struct {

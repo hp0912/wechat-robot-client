@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -51,7 +53,7 @@ func (s *MessageService) ProcessAI(message *model.Message) {
 			s.SendTextMessage(message.FromWxID, aiReply)
 		}
 	case ChatIntentionSing:
-		// do something
+		s.SendTextMessage(message.FromWxID, "唱歌功能正在开发中，敬请期待！")
 	case ChatIntentionSongRequest:
 		title := aiService.GetSongRequestTitle(message)
 		if title == "" {
@@ -63,11 +65,11 @@ func (s *MessageService) ProcessAI(message *model.Message) {
 			s.SendTextMessage(message.FromWxID, err.Error())
 		}
 	case ChatIntentionDrawAPicture:
-		// do something
+		s.SendTextMessage(message.FromWxID, "绘画功能正在开发中，敬请期待！")
 	case ChatIntentionEditPictures:
-		// do something
+		s.SendTextMessage(message.FromWxID, "修图功能正在开发中，敬请期待！")
 	default:
-		// 未知意图
+		s.SendTextMessage(message.FromWxID, "更多功能正在开发中，敬请期待！")
 	}
 }
 
@@ -96,9 +98,8 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 			s.ProcessAI(message)
 			return
 		}
-	} else {
-		// do something
-		// 切换大模型
+	} else if aiService.IsAIEnabled() {
+		s.ProcessAI(message)
 	}
 }
 
@@ -173,6 +174,97 @@ func (s *MessageService) ProcessPatMessage(message *model.Message) {
 
 }
 
+func (s *MessageService) ProcessNewChatRoomMemberMessage(message *model.Message, msgXml robot.SystemMessage) {
+	welcomeConfig, err := NewChatRoomSettingsService(s.ctx).GetChatRoomWelcomeConfig(message.FromWxID)
+	if err != nil {
+		log.Printf("获取群聊欢迎配置失败: %v", err)
+		return
+	}
+	if welcomeConfig.WelcomeEnabled != nil && !*welcomeConfig.WelcomeEnabled {
+		return
+	}
+	if welcomeConfig.WelcomeType == model.WelcomeTypeText {
+		s.SendTextMessage(message.FromWxID, welcomeConfig.WelcomeText)
+	}
+	if welcomeConfig.WelcomeType == model.WelcomeTypeEmoji {
+		s.SendEmoji(message.FromWxID, welcomeConfig.WelcomeEmojiMD5, int32(welcomeConfig.WelcomeEmojiLen))
+	}
+	if welcomeConfig.WelcomeType == model.WelcomeTypeImage {
+		resp, err := resty.New().R().SetDoNotParseResponse(true).Get(welcomeConfig.WelcomeImageURL)
+		if err != nil {
+			log.Println("获取欢迎图片失败: ", err)
+			return
+		}
+		defer resp.RawBody().Close()
+		// 创建临时文件
+		tempFile, err := os.CreateTemp("", "welcome_image_*")
+		if err != nil {
+			log.Println("创建临时文件失败: ", err)
+			return
+		}
+		defer tempFile.Close()
+		defer os.Remove(tempFile.Name()) // 清理临时文件
+		// 将图片数据写入临时文件
+		_, err = io.Copy(tempFile, resp.RawBody())
+		if err != nil {
+			log.Println("将图片数据写入临时文件失败: ", err)
+			return
+		}
+		err = s.MsgUploadImg(message.FromWxID, tempFile)
+		if err != nil {
+			log.Println("发送欢迎图片消息失败: ", err)
+			return
+		}
+	}
+	if welcomeConfig.WelcomeType == model.WelcomeTypeURL {
+		var newMemberWechatIds []string
+		if len(msgXml.SysMsgTemplate.ContentTemplate.LinkList.Links) > 0 {
+			newMembers := msgXml.SysMsgTemplate.ContentTemplate.LinkList.Links[0]
+			if newMembers.MemberList != nil {
+				for _, member := range newMembers.MemberList.Members {
+					newMemberWechatIds = append(newMemberWechatIds, member.Username)
+				}
+			}
+		}
+		// 将ids拆分成二十个一个的数组之后再获取详情
+		var newMembers = make([]robot.Contact, 0)
+		chunker := slices.Chunk(newMemberWechatIds, 20)
+		processChunk := func(chunk []string) bool {
+			// 获取昵称等详细信息
+			var c = make([]robot.Contact, 0)
+			c, err = vars.RobotRuntime.GetContactDetail(chunk)
+			if err != nil {
+				// 处理错误
+				log.Printf("获取联系人详情失败: %v", err)
+				return false
+			}
+			newMembers = append(newMembers, c...)
+			return true
+		}
+		chunker(processChunk)
+		if len(newMembers) == 0 {
+			return
+		}
+		shareLinkInfo := robot.ShareLinkInfo{
+			Desc:     welcomeConfig.WelcomeText,
+			Url:      welcomeConfig.WelcomeURL,
+			ThumbUrl: newMembers[0].SmallHeadImgUrl,
+		}
+		if len(newMembers) > 1 {
+			shareLinkInfo.Title = fmt.Sprintf("欢迎%d位家人进群", len(newMembers))
+		} else if newMembers[0].NickName.String != nil && *newMembers[0].NickName.String != "" {
+			shareLinkInfo.Title = fmt.Sprintf("欢迎%s进群", *newMembers[0].NickName.String)
+		} else {
+			shareLinkInfo.Title = "欢迎新成员进群"
+		}
+		err := s.ShareLink(message.FromWxID, shareLinkInfo)
+		if err != nil {
+			log.Println("发送欢迎链接消息失败: ", err)
+			return
+		}
+	}
+}
+
 // ProcessSystemMessage 处理系统消息
 func (s *MessageService) ProcessSystemMessage(message *model.Message) {
 	var msgXml robot.SystemMessage
@@ -186,6 +278,10 @@ func (s *MessageService) ProcessSystemMessage(message *model.Message) {
 	}
 	if msgXml.Type == "pat" {
 		s.ProcessPatMessage(message)
+		return
+	}
+	if msgXml.SysMsgTemplate.ContentTemplate.Type == "tmpl_type_profilewithrevoke" && strings.Contains(msgXml.SysMsgTemplate.ContentTemplate.Template, "加入了群聊") {
+		s.ProcessNewChatRoomMemberMessage(message, msgXml)
 		return
 	}
 }
@@ -606,12 +702,8 @@ func (s *MessageService) SendEmoji(toWxID string, md5 string, totalLen int32) er
 	return nil
 }
 
-func (s *MessageService) ShareLink(toWxID string, linkXml string) error {
-	message, err := vars.RobotRuntime.ShareLink(robot.ShareLinkRequest{
-		ToWxid: toWxID,
-		Type:   5,
-		Xml:    linkXml,
-	})
+func (s *MessageService) ShareLink(toWxID string, shareLinkInfo robot.ShareLinkInfo) error {
+	message, xmlStr, err := vars.RobotRuntime.ShareLink(toWxID, shareLinkInfo)
 	if err != nil {
 		return err
 	}
@@ -621,7 +713,7 @@ func (s *MessageService) ShareLink(toWxID string, linkXml string) error {
 		MsgId:              message.NewMsgId,
 		ClientMsgId:        message.MsgId,
 		Type:               model.MsgTypeApp,
-		Content:            "",
+		Content:            xmlStr,
 		DisplayFullContent: "",
 		MessageSource:      message.MsgSource,
 		FromWxID:           toWxID,

@@ -1200,3 +1200,7 @@ Q. **为什么同一条消息会重复回调？**
     "Wxid": "wxid_phyyedw9xap22"  掉线号的wxid
 }
 ```
+
+```
+"34948034760@chatroom:\n<sysmsg type=\"sysmsgtemplate\">\n\t<sysmsgtemplate>\n\t\t<content_template type=\"tmpl_type_profilewithrevoke\">\n\t\t\t<plain><![CDATA[]]></plain>\n\t\t\t<template><![CDATA[你邀请\"$names$\"加入了群聊  $revoke$]]></template>\n\t\t\t<link_list>\n\t\t\t\t<link name=\"names\" type=\"link_profile\">\n\t\t\t\t\t<memberlist>\n\t\t\t\t\t\t<member>\n\t\t\t\t\t\t\t<username><![CDATA[wxid_b28npmhznnwl12]]></username>\n\t\t\t\t\t\t\t<nickname><![CDATA[***]]></nickname>\n\t\t\t\t\t\t</member>\n\t\t\t\t\t</memberlist>\n\t\t\t\t\t<separator><![CDATA[、]]></separator>\n\t\t\t\t</link>\n\t\t\t\t<link name=\"revoke\" type=\"link_revoke\" hidden=\"1\">\n\t\t\t\t\t<title><![CDATA[撤销]]></title>\n\t\t\t\t\t<usernamelist>\n\t\t\t\t\t\t<username><![CDATA[wxid_b28npmhznnwl12]]></username>\n\t\t\t\t\t</usernamelist>\n\t\t\t\t</link>\n\t\t\t</link_list>\n\t\t</content_template>\n\t</sysmsgtemplate>\n</sysmsg>\n"
+```
