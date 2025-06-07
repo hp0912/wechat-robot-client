@@ -149,7 +149,7 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 			err = errors.New("查询机器人实例失败，请联系管理员。")
 			return
 		}
-		if robotAdmin.WeChatID != resp.AcctSectResp.Username {
+		if robotAdmin.WeChatID != "" && robotAdmin.WeChatID != resp.AcctSectResp.Username {
 			err = errors.New("一个机器人实例只能绑定一个微信账号。")
 			_ = s.Logout()
 			return
