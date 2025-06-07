@@ -97,9 +97,10 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 			log.Printf("获取群[%s]成员失败: %v", chatRoomID, err)
 			return
 		}
+		var leavedMembers []string
 		// 标记已离开的成员
 		for _, dbMember := range dbMembers {
-			if !slices.Contains(currentMemberIDs, dbMember.WechatID) {
+			if dbMember.IsLeaved != nil && !*dbMember.IsLeaved && !slices.Contains(currentMemberIDs, dbMember.WechatID) {
 				// 数据库有记录但当前群成员列表中不存在，标记为已离开
 				leaveTime := now
 				isLeaved := true
@@ -108,11 +109,21 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					IsLeaved: &isLeaved,
 					LeavedAt: &leaveTime,
 				}
+				if dbMember.Nickname != "" {
+					leavedMembers = append(leavedMembers, dbMember.Nickname)
+				}
 				err = memberRepo.Update(&updateMember)
 				if err != nil {
 					log.Printf("标记群[%s]成员[%s]为已离开失败: %v", chatRoomID, dbMember.WechatID, err)
 					continue
 				}
+			}
+		}
+		if len(leavedMembers) > 0 {
+			if len(leavedMembers) <= 10 {
+				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，以下%d位家人永远地离开了我们：%s～", len(leavedMembers), strings.Join(leavedMembers, "、")))
+			} else {
+				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，又有%d位家人永远地离开了我们～", len(leavedMembers)))
 			}
 		}
 	}
