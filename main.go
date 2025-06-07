@@ -1,11 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"time"
+	"wechat-robot-client/common_cron"
+	"wechat-robot-client/pkg/shutdown"
 	"wechat-robot-client/router"
 	"wechat-robot-client/startup"
-	"wechat-robot-client/task"
+	"wechat-robot-client/vars"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,6 +22,7 @@ func main() {
 	if err := startup.SetupVars(); err != nil {
 		log.Fatalf("MySQL连接失败: %v", err)
 	}
+	shutdownManager := shutdown.NewShutdownManager(30 * time.Second)
 	// 注册消息处理插件
 	startup.RegisterPlugin()
 	// 初始化微信机器人
@@ -25,7 +30,9 @@ func main() {
 		log.Fatalf("启动微信机器人失败: %v", err)
 	}
 	// 初始化定时任务
-	task.InitTasks()
+	vars.CronManager = common_cron.NewCronManager()
+	vars.CronManager.Clear()
+	vars.CronManager.Start()
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))
 	app := gin.Default()
@@ -34,8 +41,21 @@ func main() {
 	if err := router.RegisterRouter(app); err != nil {
 		log.Fatalf("注册路由失败: %v", err)
 	}
+	dbConn := &shutdown.DBConnection{
+		DB:      vars.DB,
+		AdminDB: vars.AdminDB,
+	}
+	redisConn := &shutdown.RedisConnection{
+		Client: vars.RedisClient,
+	}
+	shutdownManager.Register(dbConn)
+	shutdownManager.Register(redisConn)
+	shutdownManager.Register(vars.RobotRuntime)
+	shutdownManager.Register(vars.CronManager)
+	// 开始监听停止信号
+	shutdownManager.Start()
 	// 启动服务
-	if err := app.Run(":9001"); err != nil { // TODO
+	if err := app.Run(fmt.Sprintf(":%s", vars.WechatClientPort)); err != nil {
 		log.Panicf("服务启动失败：%v", err)
 	}
 }

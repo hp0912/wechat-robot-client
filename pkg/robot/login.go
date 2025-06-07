@@ -1,10 +1,10 @@
 package robot
 
 type LoginGetQRRequest struct {
-	DeviceID   string `json:"DeviceID"`
-	DeviceName string `json:"DeviceName"`
-	LoginType  string `json:"LoginType"`
-	Proxy      Proxy  `json:"Proxy"`
+	DeviceID   string    `json:"DeviceID"`
+	DeviceName string    `json:"DeviceName"`
+	LoginType  string    `json:"LoginType"`
+	Proxy      ProxyInfo `json:"Proxy"`
 }
 
 type GetQRCode struct {
@@ -15,18 +15,23 @@ type GetQRCode struct {
 }
 
 type AwakenLoginRequest struct {
-	Wxid  string `json:"Wxid"`
-	Proxy Proxy  `json:"Proxy"`
+	Wxid  string    `json:"Wxid"`
+	Proxy ProxyInfo `json:"Proxy"`
+}
+
+type UnifyAuthResponse struct {
+	BaseResponse      *BaseResponse `json:"baseResponse,omitempty"`
+	UnifyAuthSectFlag *uint32       `json:"unifyAuthSectFlag,omitempty"`
 }
 
 type QrCode struct {
-	BaseResponse              BaseResponse  `json:"BaseResponse"`
-	BlueToothBroadCastContent BuiltinBuffer `json:"BlueToothBroadCastContent"`
-	BlueToothBroadCastUuid    string        `json:"BlueToothBroadCastUuid"`
-	CheckTime                 int           `json:"CheckTime"`
-	ExpiredTime               int           `json:"ExpiredTime"`
-	NotifyKey                 BuiltinBuffer `json:"NotifyKey"`
-	Uuid                      string        `json:"Uuid"`
+	BaseResponse              BaseResponse     `json:"BaseResponse"`
+	BlueToothBroadCastContent SKBuiltinBufferT `json:"BlueToothBroadCastContent"`
+	BlueToothBroadCastUuid    string           `json:"BlueToothBroadCastUuid"`
+	CheckTime                 int              `json:"CheckTime"`
+	ExpiredTime               int              `json:"ExpiredTime"`
+	NotifyKey                 SKBuiltinBufferT `json:"NotifyKey"`
+	Uuid                      string           `json:"Uuid"`
 }
 
 type AcctSectRespData struct {

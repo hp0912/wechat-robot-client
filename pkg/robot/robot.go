@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"text/template"
@@ -30,6 +29,36 @@ type Robot struct {
 	HeartbeatCancel    func()
 	SyncMessageContext context.Context
 	SyncMessageCancel  func()
+}
+
+// 实现优雅退出接口
+func (r *Robot) Name() string {
+	return "微信机器人"
+}
+
+func (r *Robot) Shutdown(ctx context.Context) error {
+	if r.WxID == "" {
+		return nil
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// 手动心跳才需要取消，现在改成了自动心跳，其实下面等代码没什么用
+		if r.HeartbeatCancel != nil {
+			r.HeartbeatCancel()
+		}
+		// 手动心跳才需要取消，现在改成了自动心跳，其实下面等代码没什么用
+		if r.SyncMessageCancel != nil {
+			r.SyncMessageCancel()
+		}
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (r *Robot) IsRunning() bool {
@@ -58,13 +87,13 @@ func (r *Robot) GetQrCode() (uuid string, err error) {
 	return
 }
 
-func (r *Robot) GetProfile(wxid string) (UserProfile, error) {
+func (r *Robot) GetProfile(wxid string) (GetProfileResponse, error) {
 	return r.Client.GetProfile(wxid)
 }
 
 func (r *Robot) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 	// 尝试唤醒登陆
-	var cachedInfo CachedInfo
+	var cachedInfo LoginData
 	cachedInfo, err = r.Client.GetCachedInfo(r.WxID)
 	if err == nil && cachedInfo.Wxid != "" {
 		err = r.LoginTwiceAutoAuth()
@@ -397,7 +426,10 @@ func (r *Robot) SendTextMessage(toWxID, content string, at ...string) (SendTextM
 			if err != nil || len(contacts) == 0 {
 				continue
 			}
-			atMsg += fmt.Sprintf("@%s%s", contacts[0].NickName.String, "\u2005")
+			if contacts[0].NickName.String == nil {
+				continue
+			}
+			atMsg += fmt.Sprintf("@%s%s", *contacts[0].NickName.String, "\u2005")
 		}
 	}
 	newMessageContent := atMsg + content
@@ -702,14 +734,8 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 }
 
 func (r *Robot) SendMusicMessage(toWxID string, songInfo SongInfo) (appMessage SendAppResponse, xmlStr string, err error) {
-	var projectRoot string
-	projectRoot, err = r.GetProjectRoot()
-	if err != nil {
-		return
-	}
-
-	musicXmlPath := filepath.Join(projectRoot, "xml", "music.xml")
-	xmlTemplate, err := os.ReadFile(musicXmlPath)
+	musicXmlPath := filepath.Join("xml", "music.xml")
+	xmlTemplate, err := XmlFolder.ReadFile(musicXmlPath)
 	if err != nil {
 		err = fmt.Errorf("读取音乐XML模板失败: %w", err)
 		return
@@ -750,9 +776,37 @@ func (r *Robot) SendEmoji(req SendEmojiRequest) (emojiMessage SendEmojiResponse,
 	return r.Client.SendEmoji(req)
 }
 
-func (r *Robot) ShareLink(req ShareLinkRequest) (shareLinkMessage ShareLinkResponse, err error) {
-	req.Wxid = r.WxID
-	return r.Client.ShareLink(req)
+func (r *Robot) ShareLink(toWxID string, shareLinkInfo ShareLinkInfo) (shareLinkMessage ShareLinkResponse, xmlStr string, err error) {
+	welcomeXmlPath := filepath.Join("xml", "welcome_new.xml")
+	xmlTemplate, err := XmlFolder.ReadFile(welcomeXmlPath)
+	if err != nil {
+		err = fmt.Errorf("读取欢迎XML模板失败: %w", err)
+		return
+	}
+
+	// 使用模板引擎渲染XML
+	tmpl, err := template.New("welcomeXml").Parse(string(xmlTemplate))
+	if err != nil {
+		err = fmt.Errorf("解析XML模板失败: %w", err)
+		return
+	}
+
+	var renderedXml bytes.Buffer
+	err = tmpl.Execute(&renderedXml, shareLinkInfo)
+	if err != nil {
+		err = fmt.Errorf("渲染XML模板失败: %w", err)
+		return
+	}
+
+	// 发送分享链接消息
+	xmlStr = renderedXml.String()
+	shareLinkMessage, err = r.Client.ShareLink(ShareLinkRequest{
+		ToWxid: toWxID,
+		Wxid:   r.WxID,
+		Type:   5,
+		Xml:    xmlStr,
+	})
+	return
 }
 
 func (r *Robot) SendCDNFile(req SendCDNAttachmentRequest) (cdnFileMessage SendCDNFileResponse, err error) {
@@ -770,15 +824,6 @@ func (r *Robot) SendCDNVideo(req SendCDNAttachmentRequest) (cdnVideoMessage Send
 	return r.Client.SendCDNVideo(req)
 }
 
-func (r *Robot) GetProjectRoot() (string, error) {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return "", errors.New("无法获取运行时信息")
-	}
-	projectRoot := filepath.Join(filepath.Dir(filename), "../..") // 上一级为项目根目录
-	return projectRoot, nil
-}
-
 func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {
 	return r.Client.CheckLoginUuid(uuid)
 }
@@ -788,6 +833,14 @@ func (r *Robot) Logout() error {
 		return errors.New("您还未登陆")
 	}
 	return r.Client.Logout(r.WxID)
+}
+
+func (r *Robot) AutoHeartBeat() error {
+	return r.Client.AutoHeartBeat(r.WxID)
+}
+
+func (r *Robot) CloseAutoHeartBeat() error {
+	return r.Client.CloseAutoHeartBeat(r.WxID)
 }
 
 func (r *Robot) Heartbeat() error {

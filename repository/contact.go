@@ -11,46 +11,59 @@ import (
 )
 
 type Contact struct {
-	Base[model.Contact]
+	Ctx context.Context
+	DB  *gorm.DB
 }
 
 func NewContactRepo(ctx context.Context, db *gorm.DB) *Contact {
 	return &Contact{
-		Base[model.Contact]{
-			Ctx: ctx,
-			DB:  db,
-		}}
+		Ctx: ctx,
+		DB:  db,
+	}
 }
 
-func (c *Contact) ExistsByWeChatID(wechatID string) bool {
-	return c.ExistsByWhere(where{
-		"wechat_id": wechatID,
-	})
+func (c *Contact) GetContact(wechatID string) (*model.Contact, error) {
+	var contact model.Contact
+	err := c.DB.WithContext(c.Ctx).Where("wechat_id = ?", wechatID).First(&contact).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &contact, nil
 }
 
-func (c *Contact) DeleteByWeChatIDNotIn(wechatIDs []string) {
-	c.panicError(c.DB.Where("wechat_id NOT IN (?)", wechatIDs).Delete(new(model.Contact)).Error)
+func (c *Contact) DeleteByWeChatIDNotIn(wechatIDs []string) error {
+	return c.DB.WithContext(c.Ctx).Where("wechat_id NOT IN (?)", wechatIDs).Delete(&model.Contact{}).Error
 }
 
-func (c *Contact) FindRecentGroupContacts(preloads ...string) []*model.Contact {
+func (c *Contact) FindRecentChatRoomContacts() ([]*model.Contact, error) {
 	oneDayAgo := time.Now().Add(-24 * time.Hour).Unix()
 	var contacts []*model.Contact
-	query := c.DB.Where("type = ? AND updated_at >= ?", model.ContactTypeGroup, oneDayAgo)
-	for _, preload := range preloads {
-		query = query.Preload(preload)
+	query := c.DB.WithContext(c.Ctx).Where("type = ? AND updated_at >= ?", model.ContactTypeChatRoom, oneDayAgo)
+	if err := query.Find(&contacts).Error; err != nil {
+		return nil, err
 	}
-	c.panicError(query.Find(&contacts).Error)
-	return contacts
+	return contacts, nil
 }
 
-func (c *Contact) GetByOwner(req dto.ContactListRequest, pager appx.Pager, preloads ...string) ([]*model.Contact, int64, error) {
+func (respo *Contact) GetByWechatID(wechatID string) (*model.Contact, error) {
+	var contact model.Contact
+	err := respo.DB.WithContext(respo.Ctx).Where("wechat_id = ?", wechatID).First(&contact).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &contact, nil
+}
+
+func (c *Contact) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
 	var contacts []*model.Contact
 	var total int64
-
-	query := c.DB.Model(&model.Contact{})
-	for _, preload := range preloads {
-		query = query.Preload(preload)
-	}
+	query := c.DB.WithContext(c.Ctx).Model(&model.Contact{})
 	if req.Type != "" {
 		query = query.Where("type = ?", req.Type)
 	}
@@ -59,15 +72,21 @@ func (c *Contact) GetByOwner(req dto.ContactListRequest, pager appx.Pager, prelo
 			Or("alias LIKE ?", "%"+req.Keyword+"%").
 			Or("wechat_id LIKE ?", "%"+req.Keyword+"%")
 	}
-
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-
 	query = query.Order("updated_at DESC").Order("id DESC")
 	if err := query.Offset(pager.OffSet).Limit(pager.PageSize).Find(&contacts).Error; err != nil {
 		return nil, 0, err
 	}
 
 	return contacts, total, nil
+}
+
+func (c *Contact) Create(data *model.Contact) error {
+	return c.DB.WithContext(c.Ctx).Create(data).Error
+}
+
+func (c *Contact) Update(data *model.Contact) error {
+	return c.DB.WithContext(c.Ctx).Where("id = ?", data.ID).Updates(data).Error
 }

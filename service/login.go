@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -23,30 +24,44 @@ func NewLoginService(ctx context.Context) *LoginService {
 	}
 }
 
-func (s *LoginService) Online() {
+func (s *LoginService) Online() error {
 	vars.RobotRuntime.Status = model.RobotStatusOnline
+	// 启动定时任务
+	if vars.CronManager != nil {
+		vars.CronManager.Clear()
+		vars.CronManager.Start()
+	}
+	// 开启自动心跳，包括长连接自动同步消息
+	err := s.AutoHeartBeat()
+	if err != nil {
+		return fmt.Errorf("开启自动心跳失败: %w", err)
+	}
+	// 更新机器人状态
 	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
 		ID:     vars.RobotRuntime.RobotID,
 		Status: model.RobotStatusOnline,
 	}
-	respo.Update(&robot)
+	return respo.Update(&robot)
 }
 
-func (s *LoginService) Offline() {
+func (s *LoginService) Offline() error {
 	vars.RobotRuntime.Status = model.RobotStatusOffline
-	if vars.RobotRuntime.HeartbeatCancel != nil {
-		vars.RobotRuntime.HeartbeatCancel()
+	err := s.CloseAutoHeartBeat()
+	if err != nil {
+		log.Printf("关闭自动心跳失败: %v\n", err)
 	}
-	if vars.RobotRuntime.SyncMessageCancel != nil {
-		vars.RobotRuntime.SyncMessageCancel()
+	// 清空定时任务
+	if vars.CronManager != nil {
+		vars.CronManager.Clear()
 	}
+	// 更新状态
 	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
 		ID:     vars.RobotRuntime.RobotID,
 		Status: model.RobotStatusOffline,
 	}
-	respo.Update(&robot)
+	return respo.Update(&robot)
 }
 
 func (s *LoginService) IsRunning() (result bool) {
@@ -63,6 +78,14 @@ func (s *LoginService) IsLoggedIn() (result bool) {
 		s.Offline()
 	}
 	return
+}
+
+func (s *LoginService) AutoHeartBeat() error {
+	return vars.RobotRuntime.AutoHeartBeat()
+}
+
+func (s *LoginService) CloseAutoHeartBeat() error {
+	return vars.RobotRuntime.CloseAutoHeartBeat()
 }
 
 func (s *LoginService) HeartbeatStart() {
@@ -100,8 +123,10 @@ func (s *LoginService) HeartbeatStart() {
 
 func (s *LoginService) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOnline {
-		err = errors.New("您已经登陆，可以尝试刷新机器人状态")
-		return
+		err := s.Logout()
+		if err != nil {
+			log.Printf("登出失败: %v\n", err)
+		}
 	}
 	uuid, awkenLogin, autoLogin, err = vars.RobotRuntime.Login()
 	return
@@ -114,25 +139,43 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 	}
 	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	if resp.AcctSectResp.Username != "" {
+		// 一个机器人实例只能绑定一个微信账号
+		var robotAdmin *model.RobotAdmin
+		robotAdmin, err = respo.GetByRobotID(vars.RobotRuntime.RobotID)
+		if err != nil {
+			return
+		}
+		if robotAdmin == nil {
+			err = errors.New("查询机器人实例失败，请联系管理员。")
+			return
+		}
+		if robotAdmin.WeChatID != "" && robotAdmin.WeChatID != resp.AcctSectResp.Username {
+			err = errors.New("一个机器人实例只能绑定一个微信账号。")
+			_ = s.Logout()
+			return
+		}
 		// 登陆成功
 		vars.RobotRuntime.WxID = resp.AcctSectResp.Username
 		vars.RobotRuntime.Status = model.RobotStatusOnline
-		// 开启心跳
-		go s.HeartbeatStart()
-		// 开启消息同步
-		msgService := NewMessageService(context.Background())
-		go msgService.SyncMessageStart()
+		err = s.Online()
+		if err != nil {
+			return
+		}
 		// 更新登陆状态
-		var profile robot.UserProfile
+		var profile robot.GetProfileResponse
 		profile, err = vars.RobotRuntime.GetProfile(resp.AcctSectResp.Username)
 		if err != nil {
+			return
+		}
+		if profile.UserInfo.UserName.String == nil {
+			err = errors.New("获取用户信息失败")
 			return
 		}
 		bytes, _ := json.Marshal(profile.UserInfo)
 		bytesExt, _ := json.Marshal(profile.UserInfoExt)
 		robot := model.RobotAdmin{
 			ID:          vars.RobotRuntime.RobotID,
-			WeChatID:    profile.UserInfo.UserName.String,
+			WeChatID:    *profile.UserInfo.UserName.String,
 			Alias:       profile.UserInfo.Alias,
 			BindMobile:  profile.UserInfo.BindMobile.String,
 			Nickname:    profile.UserInfo.NickName.String,
@@ -142,13 +185,33 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 			ProfileExt:  bytesExt,
 			LastLoginAt: time.Now().Unix(),
 		}
-		respo.Update(&robot)
+		err = respo.Update(&robot)
+		if err != nil {
+			return
+		}
 	}
 	return
 }
 
 func (r *LoginService) Logout() (err error) {
-	r.Offline()
+	err = r.Offline()
+	if err != nil {
+		return
+	}
 	err = vars.RobotRuntime.Logout()
 	return
+}
+
+func (r *LoginService) SyncMessageCallback(wxID string, syncMessage robot.SyncMessage) {
+	if wxID != vars.RobotRuntime.WxID {
+		return
+	}
+	NewMessageService(r.ctx).ProcessMessage(syncMessage)
+}
+
+func (r *LoginService) LogoutCallback(wxID string) (err error) {
+	if wxID != vars.RobotRuntime.WxID {
+		return
+	}
+	return r.Offline()
 }

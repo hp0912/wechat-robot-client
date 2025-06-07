@@ -6,7 +6,6 @@ import (
 
 type ChatRoomSettings struct {
 	ID                     uint64         `gorm:"column:id;primaryKey;autoIncrement;comment:公共配置表主键ID" json:"id"`
-	Owner                  string         `gorm:"column:owner;type:varchar(64);default:'';comment:所有者微信ID" json:"owner"`
 	ChatRoomID             string         `gorm:"column:chat_room_id;type:varchar(64);default:'';comment:群聊ID" json:"chat_room_id"`
 	ChatAIEnabled          *bool          `gorm:"column:chat_ai_enabled;default:false;comment:是否启用AI聊天功能" json:"chat_ai_enabled"`
 	ChatAITrigger          *string        `gorm:"column:chat_ai_trigger;type:varchar(20);default:'';comment:触发聊天AI的关键词" json:"chat_ai_trigger"`
@@ -28,7 +27,7 @@ type ChatRoomSettings struct {
 	ChatRoomSummaryEnabled *bool          `gorm:"column:chat_room_summary_enabled;default:false;comment:是否启用聊天记录总结功能" json:"chat_room_summary_enabled"`
 	ChatRoomSummaryModel   *string        `gorm:"column:chat_room_summary_model;type:varchar(100);default:'';comment:聊天总结使用的AI模型名称" json:"chat_room_summary_model"`
 	NewsEnabled            *bool          `gorm:"column:news_enabled;default:false;comment:是否启用每日早报功能" json:"news_enabled"`
-	NewsType               NewsType       `gorm:"column:news_type;type:enum('text','image');default:'text';comment:是否启用每日早报功能" json:"news_type"`
+	NewsType               *NewsType      `gorm:"column:news_type;type:enum('text','image');default:'text';comment:是否启用每日早报功能" json:"news_type"`
 	MorningEnabled         *bool          `gorm:"column:morning_enabled;default:false;comment:是否启用早安问候功能" json:"morning_enabled"`
 }
 

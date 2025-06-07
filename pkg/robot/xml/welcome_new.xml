@@ -1,0 +1,8 @@
+<appmsg>
+  <title>{{ .Title }}</title>
+  <des>{{ .Desc }}</des>
+  <type>5</type>
+  <url>{{ .Url }}</url>
+  <thumburl>{{ .ThumbUrl }}</thumburl>
+  <appattach />
+</appmsg>

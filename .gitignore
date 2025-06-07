@@ -1,3 +1,4 @@
 .env
 wechat-robot-client
+pkg/good_morning/test_output
 __debug*

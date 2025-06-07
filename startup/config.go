@@ -26,6 +26,13 @@ func loadEnvConfig() {
 		}
 	}
 
+	// 监听端口
+	vars.WechatClientPort = os.Getenv("WECHAT_CLIENT_PORT")
+	if vars.WechatClientPort == "" {
+		log.Fatal("WECHAT_CLIENT_PORT 环境变量未设置")
+	}
+	vars.WechatServerHost = os.Getenv("WECHAT_SERVER_HOST")
+
 	// mysql
 	vars.MysqlSettings.Driver = os.Getenv("MYSQL_DRIVER")
 	vars.MysqlSettings.Host = os.Getenv("MYSQL_HOST")
@@ -36,6 +43,21 @@ func loadEnvConfig() {
 	vars.MysqlSettings.Db = os.Getenv("ROBOT_CODE")
 	vars.MysqlSettings.AdminDb = os.Getenv("MYSQL_ADMIN_DB")
 	vars.MysqlSettings.Schema = os.Getenv("MYSQL_SCHEMA")
+
+	// redis
+	vars.RedisSettings.Host = os.Getenv("REDIS_HOST")
+	vars.RedisSettings.Port = os.Getenv("REDIS_PORT")
+	vars.RedisSettings.Password = os.Getenv("REDIS_PASSWORD")
+	redisDb := os.Getenv("REDIS_DB")
+	if redisDb == "" {
+		log.Fatalf("REDIS_DB 环境变量未设置")
+	} else {
+		db, err := strconv.Atoi(redisDb)
+		if err != nil {
+			log.Fatalf("REDIS_DB 转换失败: %v", err)
+		}
+		vars.RedisSettings.Db = db
+	}
 
 	// rabbitmq
 	vars.RabbitmqSettings.Host = os.Getenv("RABBITMQ_HOST")
@@ -56,4 +78,7 @@ func loadEnvConfig() {
 		}
 		vars.RobotStartTimeout = time.Duration(t) * time.Second
 	}
+
+	// 词云
+	vars.WordCloudUrl = os.Getenv("WORD_CLOUD_URL")
 }

@@ -8,12 +8,14 @@ const (
 	LoginAwaken        = "/Login/LoginAwaken"
 	LoginGetQR         = "/Login/LoginGetQRx"
 	LoginCheckQR       = "/Login/LoginCheckQR"
+	AutoHeartBeat      = "/Login/AutoHeartBeat"
+	CloseAutoHeartBeat = "/Login/CloseAutoHeartBeat"
 	LoginHeartBeat     = "/Login/HeartBeat"
 	LoginLogout        = "/Login/LogOut"
 
 	UserGetContactProfile = "/User/GetContractProfile"
 
-	MsgSyncPath     = "/Msg/Sync"
+	MsgSync         = "/Msg/Sync"
 	MsgRevoke       = "/Msg/Revoke"
 	MsgSendTxt      = "/Msg/SendTxt"
 	MsgUploadImg    = "/Msg/UploadImg"

@@ -17,12 +17,27 @@ func NewGlobalSettingsService(ctx context.Context) *GlobalSettingsService {
 	}
 }
 
-func (s *GlobalSettingsService) GetGlobalSettings() *model.GlobalSettings {
+func (s *GlobalSettingsService) GetGlobalSettings() (*model.GlobalSettings, error) {
 	respo := repository.NewGlobalSettingsRepo(s.ctx, vars.DB)
-	return respo.GetByOwner(vars.RobotRuntime.WxID)
+	return respo.GetGlobalSettings()
 }
 
-func (s *GlobalSettingsService) SaveGlobalSettings(data *model.GlobalSettings) {
+func (s *GlobalSettingsService) SaveGlobalSettings(data *model.GlobalSettings) error {
 	respo := repository.NewGlobalSettingsRepo(s.ctx, vars.DB)
-	respo.Update(data)
+	data.FriendSyncCron = "" // 这个不允许用户修改
+	err := respo.Update(data)
+	if err != nil {
+		return err
+	}
+	// 重置公共定时任务
+	newData, err := s.GetGlobalSettings()
+	if err != nil {
+		return err
+	}
+	vars.CronManager.Clear()
+	vars.CronManager.SetGlobalSettings(newData)
+	if vars.RobotRuntime.Status == model.RobotStatusOnline {
+		vars.CronManager.Start()
+	}
+	return nil
 }

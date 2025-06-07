@@ -16,13 +16,13 @@ const (
 type NewsType string
 
 const (
+	NewsTypeNone  NewsType = ""
 	NewsTypeText  NewsType = "text"  // 文本
 	NewsTypeImage NewsType = "image" // 图片
 )
 
 type GlobalSettings struct {
 	ID                        uint64         `gorm:"column:id;primaryKey;autoIncrement;comment:公共配置表主键ID" json:"id"`
-	Owner                     string         `gorm:"column:owner;type:varchar(64);default:'';comment:所有者微信ID" json:"owner"`
 	ChatAIEnabled             *bool          `gorm:"column:chat_ai_enabled;default:false;comment:是否启用AI聊天功能" json:"chat_ai_enabled"`
 	ChatAITrigger             *string        `gorm:"column:chat_ai_trigger;type:varchar(20);default:'';comment:触发聊天AI的关键词" json:"chat_ai_trigger"`
 	ChatBaseURL               string         `gorm:"column:chat_base_url;type:varchar(255);default:'';comment:聊天AI的基础URL地址" json:"chat_base_url"`

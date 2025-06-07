@@ -6,7 +6,7 @@ import (
 )
 
 func TestSendEmoji(t *testing.T) {
-	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 	client.SendEmoji(SendEmojiRequest{
 		Wxid:     "wxid_7bpstqonj92212",
 		ToWxid:   "34948034760@chatroom",
@@ -16,7 +16,7 @@ func TestSendEmoji(t *testing.T) {
 }
 
 func TestShareLink(t *testing.T) {
-	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 	client.ShareLink(ShareLinkRequest{
 		Wxid:   "wxid_7bpstqonj92212",
 		ToWxid: "2929637787@chatroom",
@@ -33,7 +33,7 @@ func TestShareLink(t *testing.T) {
 }
 
 func TestSendApp(t *testing.T) {
-	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 	client.SendApp(SendAppRequest{
 		Wxid:   "wxid_7bpstqonj92212",
 		ToWxid: "19945487398@chatroom",
@@ -122,7 +122,7 @@ func TestSendApp(t *testing.T) {
 }
 
 func TestSendCDNFile(t *testing.T) {
-	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 
 	content := `<appmsg appid="" sdkver="0">
 		<title>MacNetPlayerN5-0912.zip</title>
@@ -169,7 +169,7 @@ func TestSendCDNFile(t *testing.T) {
 }
 
 func TestSendCDNImg(t *testing.T) {
-	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 
 	content := `<msg>
 	<img aeskey="c30c80eb54a79de7fdf299264e47896b" encryver="1" cdnthumbaeskey="c30c80eb54a79de7fdf299264e47896b" cdnthumburl="3057020100044b30490201000204df99987302032f841102040eba587d020468248d08042433313636613961352d643864322d346430612d623232302d3163336133353064316134300204051418020201000405004c556900" cdnthumblength="13513" cdnthumbheight="85" cdnthumbwidth="120" cdnmidheight="0" cdnmidwidth="0" cdnhdheight="0" cdnhdwidth="0" cdnmidimgurl="3057020100044b30490201000204df99987302032f841102040eba587d020468248d08042433313636613961352d643864322d346430612d623232302d3163336133353064316134300204051418020201000405004c556900" length="204896" md5="479ac74112ae3f1a09722fbd2b5b1b47">
@@ -201,7 +201,7 @@ func TestSendCDNImg(t *testing.T) {
 }
 
 func TestSendCDNVideo(t *testing.T) {
-	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 
 	content := `<msg>
 	<videomsg aeskey="729b88a6b0fab41917604d24e0898078" cdnvideourl="3057020100044b30490201000204df99987302032f5c9d020493a93db7020468249069042432303263353136382d656133382d343839352d383136612d3530643133313232336336610204051808040201000405004c4d3500" cdnthumbaeskey="729b88a6b0fab41917604d24e0898078" cdnthumburl="3057020100044b30490201000204df99987302032f5c9d020493a93db7020468249069042432303263353136382d656133382d343839352d383136612d3530643133313232336336610204051808040201000405004c4d3500" length="144353" playlength="6" cdnthumblength="15280" cdnthumbwidth="240" cdnthumbheight="155" fromusername="wxid_7bpstqonj92212" md5="e49a94b0e05b07875055f97b3a9ccb92" newmd5="94e8fb926624d66db5f42c853b363bfb" isplaceholder="0" rawmd5="" rawlength="0" cdnrawvideourl="" cdnrawvideoaeskey="" overwritenewmsgid="0" originsourcemd5="" isad="0" />

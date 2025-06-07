@@ -21,7 +21,7 @@ func TestDownloadImage(t *testing.T) {
 	var robot = &Robot{
 		WxID: "wxid_7bpstqonj92212",
 	}
-	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 	robot.Client = client
 	message := model.Message{
 		Content: `<?xml version="1.0"?>
@@ -59,7 +59,7 @@ func TestDownloadVideo(t *testing.T) {
 	var robot = &Robot{
 		WxID: "wxid_7bpstqonj92212",
 	}
-	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 	robot.Client = client
 	message := model.Message{
 		ClientMsgId: 82803497,
@@ -73,14 +73,14 @@ func TestDownloadVideo(t *testing.T) {
 	if err != nil {
 		t.Errorf("下载视频失败: %v", err)
 	}
-	fmt.Printf(filename)
+	fmt.Println(filename)
 }
 
 func TestDownloadVoice(t *testing.T) {
 	var robot = &Robot{
 		WxID: "wxid_7bpstqonj92212",
 	}
-	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 	robot.Client = client
 	message := model.Message{
 		ClientMsgId: 1454615540,
@@ -97,7 +97,7 @@ func TestDownloadFile(t *testing.T) {
 	var robot = &Robot{
 		WxID: "wxid_7bpstqonj92212",
 	}
-	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003))) // TODO
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 	robot.Client = client
 	message := model.Message{
 		ClientMsgId: 1106707108,
@@ -136,7 +136,7 @@ func TestDownloadFile(t *testing.T) {
 	if err != nil {
 		t.Errorf("下载语音失败: %v", err)
 	}
-	fmt.Printf(filename)
+	fmt.Println(filename)
 }
 
 func TestXmlFastDecoder(t *testing.T) {

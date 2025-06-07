@@ -19,7 +19,11 @@ func NewGlobalSettingsController() *GlobalSettings {
 
 func (ct *GlobalSettings) GetGlobalSettings(c *gin.Context) {
 	resp := appx.NewResponse(c)
-	globalSettings := service.NewGlobalSettingsService(c).GetGlobalSettings()
+	globalSettings, err := service.NewGlobalSettingsService(c).GetGlobalSettings()
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
 	if globalSettings == nil {
 		resp.ToErrorResponse(errors.New("获取全局设置失败"))
 		return
@@ -130,6 +134,10 @@ func (ct *GlobalSettings) SaveGlobalSettings(c *gin.Context) {
 			return
 		}
 	}
-	service.NewGlobalSettingsService(c).SaveGlobalSettings(&req)
+	err := service.NewGlobalSettingsService(c).SaveGlobalSettings(&req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
 	resp.ToResponse(nil)
 }

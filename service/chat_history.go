@@ -20,7 +20,6 @@ func NewChatHistoryService(ctx context.Context) *ChatHistoryService {
 }
 
 func (s *ChatHistoryService) GetChatHistory(req dto.ChatHistoryRequest, pager appx.Pager) ([]*model.Message, int64, error) {
-	req.Owner = vars.RobotRuntime.WxID
 	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	return respo.GetByContactID(req, pager)
 }

@@ -14,7 +14,7 @@ type SyncMessage struct {
 	UserInfoExts    []*UserInfoExt    `json:"UserInfoExts"`
 	AddMsgs         []Message         `json:"AddMsgs"`
 	ContinueFlag    int               `json:"ContinueFlag"`
-	KeyBuf          BuiltinBuffer     `json:"KeyBuf"`
+	KeyBuf          SKBuiltinBufferT  `json:"KeyBuf"`
 	Status          int               `json:"Status"`
 	Continue        int               `json:"Continue"`
 	Time            int               `json:"Time"`
@@ -24,14 +24,14 @@ type SyncMessage struct {
 
 type Message struct {
 	MsgId        int64             `json:"MsgId"`
-	FromUserName BuiltinString     `json:"FromUserName"`
-	ToUserName   BuiltinString     `json:"ToUserName"`
-	Content      BuiltinString     `json:"Content"`
+	FromUserName SKBuiltinStringT  `json:"FromUserName"`
+	ToUserName   SKBuiltinStringT  `json:"ToUserName"`
+	Content      SKBuiltinStringT  `json:"Content"`
 	CreateTime   int64             `json:"CreateTime"`
 	MsgType      model.MessageType `json:"MsgType"`
 	Status       int               `json:"Status"`
 	ImgStatus    int               `json:"ImgStatus"`
-	ImgBuf       BuiltinBuffer     `json:"ImgBuf"`
+	ImgBuf       SKBuiltinBufferT  `json:"ImgBuf"`
 	MsgSource    string            `json:"MsgSource"`
 	NewMsgId     int64             `json:"NewMsgId"`
 	MsgSeq       int               `json:"MsgSeq"`
@@ -49,10 +49,61 @@ type SyncMessageRequest struct {
 	Synckey string `json:"Synckey"`
 }
 
+type XmlMessage struct {
+	XMLName      xml.Name   `xml:"msg"`
+	AppMsg       AppMessage `xml:"appmsg"`
+	FromUsername string     `xml:"fromusername"`
+	Scene        int        `xml:"scene"`
+	AppInfo      AppInfo    `xml:"appinfo"`
+	CommentURL   string     `xml:"commenturl"`
+}
+
+type AppMessage struct {
+	AppID             string       `xml:"appid,attr"`
+	SDKVer            string       `xml:"sdkver,attr"`
+	Title             string       `xml:"title"`
+	Des               string       `xml:"des"`
+	Action            string       `xml:"action"`
+	Type              int          `xml:"type"`
+	ShowType          int          `xml:"showtype"`
+	SoundType         int          `xml:"soundtype"`
+	MediaTagName      string       `xml:"mediatagname"`
+	MessageExt        string       `xml:"messageext"`
+	MessageAction     string       `xml:"messageaction"`
+	Content           string       `xml:"content"`
+	ContentAttr       int          `xml:"contentattr"`
+	URL               string       `xml:"url"`
+	LowURL            string       `xml:"lowurl"`
+	DataURL           string       `xml:"dataurl"`
+	LowDataURL        string       `xml:"lowdataurl"`
+	SongAlbumURL      string       `xml:"songalbumurl"`
+	SongLyric         string       `xml:"songlyric"`
+	AppAttach         AppAttach    `xml:"appattach"`
+	ExtInfo           string       `xml:"extinfo"`
+	SourceUsername    string       `xml:"sourceusername"`
+	SourceDisplayName string       `xml:"sourcedisplayname"`
+	ThumbURL          string       `xml:"thumburl"`
+	MD5               string       `xml:"md5"`
+	StatExtStr        string       `xml:"statextstr"`
+	ReferMsg          ReferMessage `xml:"refermsg"`
+}
+
+type ReferMessage struct {
+	Type        int    `xml:"type"`
+	SvrID       string `xml:"svrid"`
+	FromUsr     string `xml:"fromusr"`
+	ChatUsr     string `xml:"chatusr"`
+	DisplayName string `xml:"displayname"`
+	Content     string `xml:"content"`
+	MsgSource   string `xml:"msgsource"`
+	CreateTime  int64  `xml:"createtime"`
+}
+
 type SystemMessage struct {
-	XMLName   xml.Name  `xml:"sysmsg"`
-	Type      string    `xml:"type,attr"`
-	RevokeMsg RevokeMsg `xml:"revokemsg"`
+	XMLName        xml.Name       `xml:"sysmsg"`
+	Type           string         `xml:"type,attr"`
+	RevokeMsg      RevokeMsg      `xml:"revokemsg"`
+	SysMsgTemplate SysMsgTemplate `xml:"sysmsgtemplate"`
 }
 
 type RevokeMsg struct {
@@ -61,6 +112,44 @@ type RevokeMsg struct {
 	MsgID      int64    `xml:"msgid"`
 	NewMsgID   int64    `xml:"newmsgid"`
 	ReplaceMsg string   `xml:"replacemsg"`
+}
+
+type SysMsgTemplate struct {
+	ContentTemplate ContentTemplate `xml:"content_template"`
+}
+
+type ContentTemplate struct {
+	Type     string   `xml:"type,attr"`
+	Plain    string   `xml:"plain"`
+	Template string   `xml:"template"`
+	LinkList LinkList `xml:"link_list"`
+}
+
+type LinkList struct {
+	Links []Link `xml:"link"`
+}
+
+type Link struct {
+	Name         string        `xml:"name,attr"`
+	Type         string        `xml:"type,attr"`
+	Hidden       string        `xml:"hidden,attr,omitempty"`
+	MemberList   *MemberList   `xml:"memberlist,omitempty"`
+	Separator    string        `xml:"separator,omitempty"`
+	Title        string        `xml:"title,omitempty"`
+	UsernameList *UsernameList `xml:"usernamelist,omitempty"`
+}
+
+type MemberList struct {
+	Members []Member `xml:"member"`
+}
+
+type Member struct {
+	Username string `xml:"username"`
+	Nickname string `xml:"nickname"`
+}
+
+type UsernameList struct {
+	Usernames []string `xml:"username"`
 }
 
 type MessageRevokeRequest struct {
@@ -85,14 +174,14 @@ type SendTextMessageRequest struct {
 }
 
 type TextMessageResponse struct {
-	Ret         int           `json:"Ret"`
-	ToUsetName  BuiltinString `json:"ToUsetName"`
-	MsgId       int64         `json:"MsgId"`
-	ClientMsgid int64         `json:"ClientMsgid"`
-	Createtime  int64         `json:"Createtime"`
-	Servertime  int64         `json:"servertime"`
-	Type        int           `json:"Type"`
-	NewMsgId    int64         `json:"NewMsgId"`
+	Ret         int              `json:"Ret"`
+	ToUsetName  SKBuiltinStringT `json:"ToUsetName"`
+	MsgId       int64            `json:"MsgId"`
+	ClientMsgid int64            `json:"ClientMsgid"`
+	Createtime  int64            `json:"Createtime"`
+	Servertime  int64            `json:"servertime"`
+	Type        int              `json:"Type"`
+	NewMsgId    int64            `json:"NewMsgId"`
 }
 
 type SendTextMessageResponse struct {
@@ -110,16 +199,16 @@ type MsgUploadImgRequest struct {
 
 type MsgUploadImgResponse struct {
 	BaseResponse
-	Msgid        int64         `json:"Msgid"`
-	ClientImgId  BuiltinString `json:"ClientImgId"`
-	FromUserName BuiltinString `json:"FromUserName"`
-	ToUserName   BuiltinString `json:"ToUserName"`
-	TotalLen     int64         `json:"TotalLen"`
-	StartPos     int64         `json:"StartPos"`
-	DataLen      int64         `json:"DataLen"`
-	CreateTime   int64         `json:"CreateTime"`
-	Newmsgid     int64         `json:"Newmsgid"`
-	MsgSource    string        `json:"MsgSource"`
+	Msgid        int64            `json:"Msgid"`
+	ClientImgId  SKBuiltinStringT `json:"ClientImgId"`
+	FromUserName SKBuiltinStringT `json:"FromUserName"`
+	ToUserName   SKBuiltinStringT `json:"ToUserName"`
+	TotalLen     int64            `json:"TotalLen"`
+	StartPos     int64            `json:"StartPos"`
+	DataLen      int64            `json:"DataLen"`
+	CreateTime   int64            `json:"CreateTime"`
+	Newmsgid     int64            `json:"Newmsgid"`
+	MsgSource    string           `json:"MsgSource"`
 }
 
 type MsgSendVideoRequest struct {
@@ -197,15 +286,26 @@ type SongInfo struct {
 	Lyric    string `json:"Lyric"`
 }
 
+type ShareLinkInfo struct {
+	Title    string `json:"Title"`
+	Desc     string `json:"Desc"`
+	Url      string `json:"Url"`
+	ThumbUrl string `json:"ThumbUrl"`
+}
+
 type MusicSearchResponse struct {
-	Code     int     `json:"code"`
-	Title    *string `json:"title"`
-	Singer   string  `json:"singer"`
-	ID       string  `json:"id"`
-	Cover    *string `json:"cover"`
-	Link     string  `json:"link"`
-	MusicUrl string  `json:"music_url"`
-	Lrc      *string `json:"lrc"`
+	Data MusicSearchData `json:"data"`
+}
+
+type MusicSearchData struct {
+	Code   int     `json:"code"`
+	Title  *string `json:"title"`
+	Singer string  `json:"singer"`
+	ID     string  `json:"id"`
+	Cover  *string `json:"cover"`
+	Link   string  `json:"link"`
+	Url    string  `json:"url"`
+	Lyric  *string `json:"lyric"`
 }
 
 type SendEmojiRequest struct {
@@ -273,18 +373,18 @@ type SendCDNFileResponse struct {
 
 type SendCDNImgResponse struct {
 	BaseResponse
-	FromUserName BuiltinString `json:"FromUserName"`
-	DataLen      int64         `json:"DataLen"`
-	CreateTime   int64         `json:"CreateTime"`
-	Newmsgid     int64         `json:"Newmsgid"`
-	Fileid       string        `json:"Fileid"`
-	MsgSource    string        `json:"MsgSource"`
-	Msgid        int64         `json:"Msgid"`
-	ClientImgId  BuiltinString `json:"ClientImgId"`
-	ToUserName   BuiltinString `json:"ToUserName"`
-	TotalLen     int64         `json:"TotalLen"`
-	StartPos     int64         `json:"StartPos"`
-	Aeskey       string        `json:"Aeskey"`
+	FromUserName SKBuiltinStringT `json:"FromUserName"`
+	DataLen      int64            `json:"DataLen"`
+	CreateTime   int64            `json:"CreateTime"`
+	Newmsgid     int64            `json:"Newmsgid"`
+	Fileid       string           `json:"Fileid"`
+	MsgSource    string           `json:"MsgSource"`
+	Msgid        int64            `json:"Msgid"`
+	ClientImgId  SKBuiltinStringT `json:"ClientImgId"`
+	ToUserName   SKBuiltinStringT `json:"ToUserName"`
+	TotalLen     int64            `json:"TotalLen"`
+	StartPos     int64            `json:"StartPos"`
+	Aeskey       string           `json:"Aeskey"`
 }
 
 type SendCDNVideoResponse struct {

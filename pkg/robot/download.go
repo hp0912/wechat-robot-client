@@ -95,6 +95,7 @@ type AppAttach struct {
 	TotalLen        int64  `xml:"totallen"`
 	FileExt         string `xml:"fileext"`
 	AttachID        string `xml:"attachid"`
+	EmoticonMD5     string `xml:"emoticonmd5"`
 	CDNAttachURL    string `xml:"cdnattachurl"`
 	CDNThumbAESKey  string `xml:"cdnthumbaeskey"`
 	AESKey          string `xml:"aeskey"`

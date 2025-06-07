@@ -6,7 +6,6 @@ import (
 
 type FriendSettings struct {
 	ID              uint64         `gorm:"column:id;primaryKey;autoIncrement;comment:公共配置表主键ID" json:"id"`
-	Owner           string         `gorm:"column:owner;type:varchar(64);default:'';comment:所有者微信ID" json:"owner"`
 	WeChatID        string         `gorm:"column:wechat_id;type:varchar(64);default:'';comment:好友微信ID" json:"wechat_id"`
 	ChatAIEnabled   *bool          `gorm:"column:chat_ai_enabled;default:false;comment:是否启用AI聊天功能" json:"chat_ai_enabled"`
 	ChatBaseURL     *string        `gorm:"column:chat_base_url;type:varchar(255);default:'';comment:聊天AI的基础URL地址" json:"chat_base_url"`

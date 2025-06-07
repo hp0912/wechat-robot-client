@@ -18,3 +18,9 @@ type SendMusicMessageRequest struct {
 	SendMessageCommonRequest
 	Song string `form:"song" json:"song" binding:"required"`
 }
+
+type TextMessageItem struct {
+	Nickname  string `json:"nickname"`
+	Message   string `json:"message"`
+	CreatedAt int64  `json:"created_at"`
+}

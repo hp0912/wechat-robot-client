@@ -1,9 +1,9 @@
 package robot
 
 type LinkedinContactItem struct {
-	LinkedinMemberId  string `json:"LinkedinMemberId"`
-	LinkedinName      string `json:"LinkedinName"`
-	LinkedinPublicUrl string `json:"LinkedinPublicUrl"`
+	LinkedinName      *string `protobuf:"bytes,1,opt,name=LinkedinName" json:"LinkedinName,omitempty"`
+	LinkedinMemberId  *string `protobuf:"bytes,2,opt,name=LinkedinMemberId" json:"LinkedinMemberId,omitempty"`
+	LinkedinPublicUrl *string `protobuf:"bytes,3,opt,name=LinkedinPublicUrl" json:"LinkedinPublicUrl,omitempty"`
 }
 
 type AdditionalContactList struct {
@@ -23,8 +23,8 @@ type PhoneNumListInfo struct {
 }
 
 type RoomInfo struct {
-	NickName BuiltinString `json:"NickName"`
-	UserName BuiltinString `json:"UserName"`
+	NickName SKBuiltinStringT `json:"NickName"`
+	UserName SKBuiltinStringT `json:"UserName"`
 }
 
 type Contact struct {
@@ -61,7 +61,7 @@ type Contact struct {
 	HasWeiXinHdHeadImg    int                   `json:"HasWeiXinHdHeadImg"`
 	HeadImgMd5            string                `json:"HeadImgMd5"`
 	IdCardNum             string                `json:"IdcardNum"`
-	ImgBuf                BuiltinBuffer         `json:"ImgBuf"`
+	ImgBuf                SKBuiltinBufferT      `json:"ImgBuf"`
 	ImgFlag               int                   `json:"ImgFlag"`
 	LabelIdList           string                `json:"LabelIdlist"`
 	Level                 int                   `json:"Level"`
@@ -69,16 +69,16 @@ type Contact struct {
 	MobileHash            string                `json:"MobileHash"`
 	MyBrandList           string                `json:"MyBrandList"`
 	NewChatroomData       NewChatroomData       `json:"NewChatroomData"`
-	NickName              BuiltinString         `json:"NickName"`
+	NickName              SKBuiltinStringT      `json:"NickName"`
 	PersonalCard          int                   `json:"PersonalCard"`
 	PhoneNumListInfo      PhoneNumListInfo      `json:"PhoneNumListInfo"`
 	Province              string                `json:"Province"`
-	Pyinitial             BuiltinString         `json:"Pyinitial"`
-	QuanPin               BuiltinString         `json:"QuanPin"`
+	Pyinitial             SKBuiltinStringT      `json:"Pyinitial"`
+	QuanPin               SKBuiltinStringT      `json:"QuanPin"`
 	RealName              string                `json:"RealName"`
-	Remark                BuiltinString         `json:"Remark"`
-	RemarkPyinitial       BuiltinString         `json:"RemarkPyinitial"`
-	RemarkQuanPin         BuiltinString         `json:"RemarkQuanPin"`
+	Remark                SKBuiltinStringT      `json:"Remark"`
+	RemarkPyinitial       SKBuiltinStringT      `json:"RemarkPyinitial"`
+	RemarkQuanPin         SKBuiltinStringT      `json:"RemarkQuanPin"`
 	RoomInfoCount         int                   `json:"RoomInfoCount"`
 	RoomInfoList          []RoomInfo            `json:"RoomInfoList"`
 	Sex                   int                   `json:"Sex"`
@@ -86,7 +86,7 @@ type Contact struct {
 	SmallHeadImgUrl       string                `json:"SmallHeadImgUrl"`
 	SnsUserInfo           SnsUserInfo           `json:"SnsUserInfo"`
 	Source                int                   `json:"Source"`
-	UserName              BuiltinString         `json:"UserName"`
+	UserName              SKBuiltinStringT      `json:"UserName"`
 	SourceExtInfo         string                `json:"SourceExtInfo"`
 	VerifyContent         string                `json:"VerifyContent"`
 	VerifyFlag            int                   `json:"VerifyFlag"`
@@ -98,8 +98,8 @@ type Contact struct {
 }
 
 type DelContact struct {
-	DeleteContactScen int           `json:"DeleteContactScene"`
-	UserName          BuiltinString `json:"UserName"`
+	DeleteContactScen int              `json:"DeleteContactScene"`
+	UserName          SKBuiltinStringT `json:"UserName"`
 }
 
 type GetContactListResponse struct {

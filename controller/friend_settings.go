@@ -24,7 +24,11 @@ func (ct *FriendSettings) GetFriendSettings(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	friendSettings := service.NewFriendSettingsService(c).GetFriendSettings(req.ContactID)
+	friendSettings, err := service.NewFriendSettingsService(c).GetFriendSettings(req.ContactID)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
 	if friendSettings == nil {
 		resp.ToResponse(model.FriendSettings{})
 		return
@@ -39,6 +43,10 @@ func (ct *FriendSettings) SaveFriendSettings(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	service.NewFriendSettingsService(c).SaveFriendSettings(&req)
+	err := service.NewFriendSettingsService(c).SaveFriendSettings(&req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
 	resp.ToResponse(nil)
 }

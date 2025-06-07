@@ -1,12 +1,14 @@
 package startup
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"wechat-robot-client/vars"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -17,6 +19,10 @@ func SetupVars() error {
 		return err
 	}
 	log.Println("MySQL连接成功")
+	if err := InitRedisClient(); err != nil {
+		return err
+	}
+	log.Println("Redis连接成功")
 	return nil
 }
 
@@ -55,5 +61,15 @@ func InitMySQLClient() (err error) {
 		adminGormConfig.Logger = logger.Default.LogMode(logger.Info)
 	}
 	vars.AdminDB, err = gorm.Open(mysql.New(adminYysqlConfig), &adminGormConfig)
+	return err
+}
+
+func InitRedisClient() (err error) {
+	vars.RedisClient = redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", vars.RedisSettings.Host, vars.RedisSettings.Port),
+		Password: vars.RedisSettings.Password,
+		DB:       vars.RedisSettings.Db,
+	})
+	_, err = vars.RedisClient.Ping(context.Background()).Result()
 	return err
 }
