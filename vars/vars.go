@@ -34,3 +34,5 @@ var CronManager CronManagerInterface
 var MusicSearchApi = "https://www.hhlqilongzhu.cn/api/joox/juhe_music.php"
 
 var WordCloudUrl string
+
+var TrimAtRegexp = `@[^ | ]+?(?: | )`

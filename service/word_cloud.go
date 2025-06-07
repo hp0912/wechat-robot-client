@@ -33,7 +33,7 @@ func (s *WordCloudService) WordCloudDaily(chatRoomID string, startTime, endTime 
 		return nil, nil
 	}
 	// 正则表达式编译一次，提高性能
-	re := regexp.MustCompile(`@([^ | ]+)`)
+	re := regexp.MustCompile(vars.TrimAtRegexp)
 	// 使用 strings.Builder 高效拼接字符串
 	var builder strings.Builder
 	for i, msg := range messages {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -34,18 +35,32 @@ func (s *MessageService) ProcessAI(message *model.Message) {
 	chatIntention := aiService.ChatIntention(message)
 	switch chatIntention {
 	case ChatIntentionChat:
-		// do something
+		aiContext, err := s.GetAIMessageContext(message)
+		if err != nil {
+			s.SendTextMessage(message.FromWxID, err.Error())
+			return
+		}
+		aiReply, err := aiService.Chat(aiContext)
+		if err != nil {
+			s.SendTextMessage(message.FromWxID, err.Error())
+			return
+		}
+		if message.IsChatRoom {
+			s.SendTextMessage(message.FromWxID, aiReply, message.SenderWxID)
+		} else {
+			s.SendTextMessage(message.FromWxID, aiReply)
+		}
 	case ChatIntentionSing:
 		// do something
 	case ChatIntentionSongRequest:
 		title := aiService.GetSongRequestTitle(message)
 		if title == "" {
-			s.SendTextMessage(message.FromWxID, "抱歉，我无法识别您想要点的歌曲。", message.SenderWxID)
+			s.SendTextMessage(message.FromWxID, "抱歉，我无法识别您想要点的歌曲。")
 			return
 		}
 		err := s.SendMusicMessage(message.FromWxID, title)
 		if err != nil {
-			s.SendTextMessage(message.FromWxID, err.Error(), message.SenderWxID)
+			s.SendTextMessage(message.FromWxID, err.Error())
 		}
 	case ChatIntentionDrawAPicture:
 		// do something
@@ -366,6 +381,9 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 					IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
 					CreatedAt:          message.Createtime,
 					UpdatedAt:          time.Now().Unix(),
+				}
+				if m.IsChatRoom && len(at) > 0 {
+					m.ReplyWxID = at[0]
 				}
 				err = respo.Create(&m)
 				if err != nil {
@@ -727,6 +745,7 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 
 func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []openai.ChatCompletionMessage {
 	var aiMessages []openai.ChatCompletionMessage
+	re := regexp.MustCompile(vars.TrimAtRegexp)
 	for _, msg := range messages {
 		aiMessage := openai.ChatCompletionMessage{}
 		if msg.SenderWxID == vars.RobotRuntime.WxID {
@@ -735,7 +754,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 			aiMessage.Role = openai.ChatMessageRoleUser
 		}
 		if msg.Type == model.MsgTypeText {
-			aiMessage.Content = msg.Content
+			aiMessage.Content = re.ReplaceAllString(msg.Content, "")
 		}
 		if msg.Type == model.MsgTypeImage {
 			aiMessage.MultiContent = []openai.ChatMessagePart{
@@ -748,7 +767,89 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 			}
 		}
 		if msg.Type == model.MsgTypeApp && msg.AppMsgType == model.AppMsgTypequote {
-
+			var xmlMessage robot.XmlMessage
+			err := vars.RobotRuntime.XmlDecoder(msg.Content, &xmlMessage)
+			if err != nil {
+				continue
+			}
+			referUser := xmlMessage.AppMsg.ReferMsg.ChatUsr
+			// 如果引用的消息不是自己发的，也不是机器人发的，将消息内容添加到上下文
+			if referUser != msg.SenderWxID && referUser != vars.RobotRuntime.WxID {
+				// 引用的是第三人的文本消息，将引用的消息内容添加到上下文
+				if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeText) {
+					aiMessage.MultiContent = []openai.ChatMessagePart{
+						{
+							Type: openai.ChatMessagePartTypeText,
+							Text: re.ReplaceAllString(xmlMessage.AppMsg.ReferMsg.Content, ""),
+						},
+						{
+							Type: openai.ChatMessagePartTypeText,
+							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, ""),
+						},
+					}
+				}
+				if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeImage) {
+					respo := repository.NewMessageRepo(s.ctx, vars.DB)
+					referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
+					// 字符串转int64
+					referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
+					if err != nil {
+						continue
+					}
+					refreMsg, err := respo.GetByID(referMsgID)
+					if err != nil {
+						continue
+					}
+					if refreMsg == nil {
+						continue
+					}
+					aiMessage.MultiContent = []openai.ChatMessagePart{
+						{
+							Type: openai.ChatMessagePartTypeImageURL,
+							ImageURL: &openai.ChatMessageImageURL{
+								URL: refreMsg.AttachmentUrl,
+							},
+						},
+						{
+							Type: openai.ChatMessagePartTypeText,
+							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, ""),
+						},
+					}
+				}
+				if xmlMessage.AppMsg.ReferMsg.Type == int(model.AppMsgTypequote) {
+					respo := repository.NewMessageRepo(s.ctx, vars.DB)
+					referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
+					// 字符串转int64
+					referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
+					if err != nil {
+						continue
+					}
+					refreMsg, err := respo.GetByID(referMsgID)
+					if err != nil {
+						continue
+					}
+					if refreMsg == nil {
+						continue
+					}
+					var subXmlMessage robot.XmlMessage
+					err = vars.RobotRuntime.XmlDecoder(refreMsg.Content, &subXmlMessage)
+					if err != nil {
+						continue
+					}
+					aiMessage.MultiContent = []openai.ChatMessagePart{
+						{
+							Type: openai.ChatMessagePartTypeText,
+							Text: re.ReplaceAllString(subXmlMessage.AppMsg.Title, ""),
+						},
+						{
+							Type: openai.ChatMessagePartTypeText,
+							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, ""),
+						},
+					}
+				}
+			} else {
+				aiMessage.Content = re.ReplaceAllString(xmlMessage.AppMsg.Title, "")
+			}
 		}
 		aiMessages = append(aiMessages, aiMessage)
 	}

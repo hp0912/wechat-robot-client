@@ -133,7 +133,7 @@ func (s *AIService) GetAIConfig() (baseURL string, apiKey string, model string) 
 
 func (s *AIService) IsAITrigger(message *model.Message) bool {
 	if message.IsAtMe {
-		re := regexp.MustCompile(`@([^ | ]+)`)
+		re := regexp.MustCompile(vars.TrimAtRegexp)
 		message.Content = re.ReplaceAllString(message.Content, "")
 		return true
 	}
@@ -296,4 +296,26 @@ func (s *AIService) GetSongRequestTitle(message *model.Message) string {
 	}
 
 	return result.SongTitle
+}
+
+func (s *AIService) Chat(aiMessages []openai.ChatCompletionMessage) (string, error) {
+	baseURL, apiKey, model := s.GetAIConfig()
+	aiConfig := openai.DefaultConfig(apiKey)
+	aiConfig.BaseURL = baseURL
+	client := openai.NewClientWithConfig(aiConfig)
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model:    model,
+			Messages: aiMessages,
+			Stream:   false,
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	if len(resp.Choices) == 0 || resp.Choices[0].Message.Content == "" {
+		return "", fmt.Errorf("AI返回了空内容，请联系管理员")
+	}
+	return resp.Choices[0].Message.Content, nil
 }
