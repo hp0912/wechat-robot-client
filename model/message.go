@@ -53,7 +53,7 @@ type Message struct {
 	ID                 int64          `gorm:"primarykey" json:"id"`
 	MsgId              int64          `gorm:"column:msg_id;index;" json:"msg_id"`               // 消息Id
 	ClientMsgId        int64          `gorm:"column:client_msg_id;index;" json:"client_msg_id"` // 客户端消息Id
-	IsGroup            bool           `gorm:"column:is_group;default:false;comment:'消息是否来自群聊'" json:"is_group"`
+	IsGroup            bool           `gorm:"column:is_chat_room;default:false;comment:'消息是否来自群聊'" json:"is_chat_room"`
 	IsAtMe             bool           `gorm:"column:is_at_me;default:false;comment:'消息是否艾特我'" json:"is_at_me"` // @所有人 好的
 	IsRecalled         bool           `gorm:"column:is_recalled;default:false;comment:'消息是否已经撤回'" json:"is_recalled"`
 	Type               MessageType    `gorm:"column:type" json:"type"`                                 // 消息类型

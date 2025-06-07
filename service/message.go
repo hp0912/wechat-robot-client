@@ -28,6 +28,33 @@ func NewMessageService(ctx context.Context) *MessageService {
 	}
 }
 
+func (s *MessageService) ProcessAI(message *model.Message) {
+	aiService := NewAIService(s.ctx, message)
+	chatIntention := aiService.ChatIntention(message)
+	switch chatIntention {
+	case ChatIntentionChat:
+		// do something
+	case ChatIntentionSing:
+		// do something
+	case ChatIntentionSongRequest:
+		title := aiService.GetSongRequestTitle(message)
+		if title == "" {
+			s.SendTextMessage(message.FromWxID, "抱歉，我无法识别您想要点的歌曲。", message.SenderWxID)
+			return
+		}
+		err := s.SendMusicMessage(message.FromWxID, title)
+		if err != nil {
+			s.SendTextMessage(message.FromWxID, err.Error(), message.SenderWxID)
+		}
+	case ChatIntentionDrawAPicture:
+		// do something
+	case ChatIntentionEditPictures:
+		// do something
+	default:
+		// 未知意图
+	}
+}
+
 // ProcessTextMessage 处理文本消息
 func (s *MessageService) ProcessTextMessage(message *model.Message) {
 	aiService := NewAIService(s.ctx, message)
@@ -50,29 +77,7 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 			return
 		}
 		if aiService.IsAITrigger(message) {
-			chatIntention := aiService.ChatIntention(message)
-			switch chatIntention {
-			case ChatIntentionChat:
-				// do something
-			case ChatIntentionSing:
-				// do something
-			case ChatIntentionSongRequest:
-				title := aiService.GetSongRequestTitle(message)
-				if title == "" {
-					s.SendTextMessage(message.FromWxID, "抱歉，我无法识别您想要点的歌曲。", message.SenderWxID)
-					return
-				}
-				err := s.SendMusicMessage(message.FromWxID, title)
-				if err != nil {
-					s.SendTextMessage(message.FromWxID, err.Error(), message.SenderWxID)
-				}
-			case ChatIntentionDrawAPicture:
-				// do something
-			case ChatIntentionEditPictures:
-				// do something
-			default:
-				// 未知意图
-			}
+			s.ProcessAI(message)
 			return
 		}
 	} else {
@@ -704,6 +709,21 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
 	return nil
+}
+
+func (s *MessageService) GetFriendAIMessageContext(message model.Message) ([]*model.Message, error) {
+	return nil, nil
+}
+
+func (s *MessageService) GetChatRoomAIMessageContext(message model.Message) ([]*model.Message, error) {
+	return nil, nil
+}
+
+func (s *MessageService) GetAIMessageContext(message model.Message) ([]*model.Message, error) {
+	if message.IsGroup {
+		return s.GetChatRoomAIMessageContext(message)
+	}
+	return s.GetFriendAIMessageContext(message)
 }
 
 func (s *MessageService) GetYesterdayChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {

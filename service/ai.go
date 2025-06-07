@@ -64,6 +64,18 @@ func (s *AIService) ExpireAISession(message *model.Message) error {
 	return vars.RedisClient.Del(s.ctx, s.GetSessionID(message)).Err()
 }
 
+func (s *AIService) ExpireAllAISessionByChatRoomID(chatRoomID string) error {
+	sessionID := fmt.Sprintf("ai_session_%s:", chatRoomID)
+	keys, err := vars.RedisClient.Keys(s.ctx, sessionID+"*").Result()
+	if err != nil {
+		return err
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+	return vars.RedisClient.Del(s.ctx, keys...).Err()
+}
+
 func (s *AIService) IsInAISession(message *model.Message) (bool, error) {
 	cnt, err := vars.RedisClient.Exists(s.ctx, s.GetSessionID(message)).Result()
 	return cnt == 1, err
