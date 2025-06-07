@@ -198,14 +198,18 @@ type SongInfo struct {
 }
 
 type MusicSearchResponse struct {
-	Code     int     `json:"code"`
-	Title    *string `json:"title"`
-	Singer   string  `json:"singer"`
-	ID       string  `json:"id"`
-	Cover    *string `json:"cover"`
-	Link     string  `json:"link"`
-	MusicUrl string  `json:"music_url"`
-	Lrc      *string `json:"lrc"`
+	Data MusicSearchData `json:"data"`
+}
+
+type MusicSearchData struct {
+	Code   int     `json:"code"`
+	Title  *string `json:"title"`
+	Singer string  `json:"singer"`
+	ID     string  `json:"id"`
+	Cover  *string `json:"cover"`
+	Link   string  `json:"link"`
+	Url    string  `json:"url"`
+	Lyric  *string `json:"lyric"`
 }
 
 type SendEmojiRequest struct {

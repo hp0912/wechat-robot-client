@@ -182,12 +182,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		return err
 	}
 	if len(messages) < 100 {
-		err := msgService.SendTextMessage(dto.SendTextMessageRequest{
-			SendMessageCommonRequest: dto.SendMessageCommonRequest{
-				ToWxid: setting.ChatRoomID,
-			},
-			Content: "聊天不够活跃啊~~~",
-		})
+		err := msgService.SendTextMessage(setting.ChatRoomID, "聊天不够活跃啊~~~")
 		if err != nil {
 			log.Printf("发送消息失败: %v", err)
 		}
@@ -263,31 +258,16 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 	)
 	if err != nil {
 		log.Printf("群聊记录总结失败: %v", err.Error())
-		msgService.SendTextMessage(dto.SendTextMessageRequest{
-			SendMessageCommonRequest: dto.SendMessageCommonRequest{
-				ToWxid: setting.ChatRoomID,
-			},
-			Content: "#昨日消息总结\n\n群聊消息总结失败，错误信息: " + err.Error(),
-		})
+		msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息总结失败，错误信息: "+err.Error())
 		return err
 	}
 	// 返回消息为空
 	if resp.Choices[0].Message.Content == "" {
-		msgService.SendTextMessage(dto.SendTextMessageRequest{
-			SendMessageCommonRequest: dto.SendMessageCommonRequest{
-				ToWxid: setting.ChatRoomID,
-			},
-			Content: "#昨日消息总结\n\n群聊消息总结失败，AI返回结果为空",
-		})
+		msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息总结失败，AI返回结果为空")
 		return nil
 	}
 	replyMsg := fmt.Sprintf("#消息总结\n让我们一起来看看群友们都聊了什么有趣的话题吧~\n\n%s", resp.Choices[0].Message.Content)
-	msgService.SendTextMessage(dto.SendTextMessageRequest{
-		SendMessageCommonRequest: dto.SendMessageCommonRequest{
-			ToWxid: setting.ChatRoomID,
-		},
-		Content: replyMsg,
-	})
+	msgService.SendTextMessage(setting.ChatRoomID, replyMsg)
 	return nil
 }
 
@@ -410,12 +390,7 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.Nickname, r.Count))
 		}
 		notifyMsgs = append(notifyMsgs, " \n🎉感谢以上群友昨日对群活跃做出的卓越贡献，也请未上榜的群友多多反思。")
-		msgService.SendTextMessage(dto.SendTextMessageRequest{
-			SendMessageCommonRequest: dto.SendMessageCommonRequest{
-				ToWxid: setting.ChatRoomID,
-			},
-			Content: strings.Join(notifyMsgs, "\n"),
-		})
+		msgService.SendTextMessage(setting.ChatRoomID, strings.Join(notifyMsgs, "\n"))
 		// 发送词云图片
 		wordCloudCacheDir := filepath.Join(string(filepath.Separator), "app", "word_cloud_cache")
 		dateStr := yesterdayStart.Format("2006-01-02")
@@ -511,12 +486,7 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.Nickname, r.Count))
 		}
 		notifyMsgs = append(notifyMsgs, " \n🎉感谢以上群友上周对群活跃做出的卓越贡献，也请未上榜的群友多多反思。")
-		msgService.SendTextMessage(dto.SendTextMessageRequest{
-			SendMessageCommonRequest: dto.SendMessageCommonRequest{
-				ToWxid: setting.ChatRoomID,
-			},
-			Content: strings.Join(notifyMsgs, "\n"),
-		})
+		msgService.SendTextMessage(setting.ChatRoomID, strings.Join(notifyMsgs, "\n"))
 	}
 	return nil
 }
@@ -596,12 +566,7 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.Nickname, r.Count))
 		}
 		notifyMsgs = append(notifyMsgs, fmt.Sprintf(" \n🎉感谢以上群友%s对群活跃做出的卓越贡献，也请未上榜的群友多多反思。", monthStr))
-		msgService.SendTextMessage(dto.SendTextMessageRequest{
-			SendMessageCommonRequest: dto.SendMessageCommonRequest{
-				ToWxid: setting.ChatRoomID,
-			},
-			Content: strings.Join(notifyMsgs, "\n"),
-		})
+		msgService.SendTextMessage(setting.ChatRoomID, strings.Join(notifyMsgs, "\n"))
 	}
 	return nil
 }

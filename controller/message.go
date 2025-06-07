@@ -38,7 +38,7 @@ func (m *Message) SendTextMessage(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	err := service.NewMessageService(c).SendTextMessage(req)
+	err := service.NewMessageService(c).SendTextMessage(req.ToWxid, req.Content, req.At...)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

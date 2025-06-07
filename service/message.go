@@ -30,7 +30,55 @@ func NewMessageService(ctx context.Context) *MessageService {
 
 // ProcessTextMessage 处理文本消息
 func (s *MessageService) ProcessTextMessage(message *model.Message) {
-
+	aiService := NewAIService(s.ctx, message)
+	if message.IsGroup {
+		if aiService.IsAISessionStart(message) {
+			s.SendTextMessage(message.FromWxID, "AI会话已开始，请输入您的问题。10分钟不说话会话将自动结束，您也可以输入 #退出AI会话 来结束会话。", message.SenderWxID)
+			return
+		}
+		isInSession, err := aiService.IsInAISession(message)
+		if err != nil {
+			log.Printf("检查AI会话失败: %v", err)
+			return
+		}
+		if isInSession {
+			fmt.Println(isInSession)
+			return
+		}
+		if aiService.IsAISessionEnd(message) {
+			s.SendTextMessage(message.FromWxID, "AI会话已结束，您可以输入 #进入AI会话 来重新开始。", message.SenderWxID)
+			return
+		}
+		if aiService.IsAITrigger(message) {
+			chatIntention := aiService.ChatIntention(message)
+			switch chatIntention {
+			case ChatIntentionChat:
+				// do something
+			case ChatIntentionSing:
+				// do something
+			case ChatIntentionSongRequest:
+				title := aiService.GetSongRequestTitle(message)
+				if title == "" {
+					s.SendTextMessage(message.FromWxID, "抱歉，我无法识别您想要点的歌曲。", message.SenderWxID)
+					return
+				}
+				err := s.SendMusicMessage(message.FromWxID, title)
+				if err != nil {
+					s.SendTextMessage(message.FromWxID, err.Error(), message.SenderWxID)
+				}
+			case ChatIntentionDrawAPicture:
+				// do something
+			case ChatIntentionEditPictures:
+				// do something
+			default:
+				// 未知意图
+			}
+			return
+		}
+	} else {
+		// do something
+		// 切换大模型
+	}
 }
 
 // ProcessImageMessage 处理图片消息
@@ -275,8 +323,8 @@ func (s *MessageService) MessageRevoke(req dto.MessageCommonRequest) error {
 	return vars.RobotRuntime.MessageRevoke(*message)
 }
 
-func (s *MessageService) SendTextMessage(req dto.SendTextMessageRequest) error {
-	newMessages, newMessageContent, err := vars.RobotRuntime.SendTextMessage(req.ToWxid, req.Content, req.At...)
+func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) error {
+	newMessages, newMessageContent, err := vars.RobotRuntime.SendTextMessage(toWxID, content, at...)
 	if err != nil {
 		return err
 	}
@@ -293,10 +341,10 @@ func (s *MessageService) SendTextMessage(req dto.SendTextMessageRequest) error {
 					Content:            newMessageContent,
 					DisplayFullContent: "",
 					MessageSource:      "",
-					FromWxID:           req.ToWxid,
+					FromWxID:           toWxID,
 					ToWxID:             vars.RobotRuntime.WxID,
 					SenderWxID:         vars.RobotRuntime.WxID,
-					IsGroup:            strings.HasSuffix(req.ToWxid, "@chatroom"),
+					IsGroup:            strings.HasSuffix(toWxID, "@chatroom"),
 					CreatedAt:          message.Createtime,
 					UpdatedAt:          time.Now().Unix(),
 				}
@@ -421,17 +469,18 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice io.Reader, voiceExt s
 }
 
 func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error {
-	var result robot.MusicSearchResponse
+	var resp robot.MusicSearchResponse
 	_, err := resty.New().R().
 		SetHeader("Content-Type", "application/json").
-		SetQueryParam("gm", songTitle).
+		SetQueryParam("msg", songTitle).
 		SetQueryParam("type", "json").
 		SetQueryParam("n", "1").
-		SetResult(&result).
+		SetResult(&resp).
 		Get(vars.MusicSearchApi)
 	if err != nil {
 		return fmt.Errorf("获取歌曲信息失败: %w", err)
 	}
+	result := resp.Data
 	if result.Title == nil {
 		return fmt.Errorf("没有搜索到歌曲 %s", songTitle)
 	}
@@ -442,12 +491,12 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 	songInfo.Title = *result.Title
 	songInfo.Singer = result.Singer
 	songInfo.Url = result.Link
-	songInfo.MusicUrl = result.MusicUrl
+	songInfo.MusicUrl = result.Url
 	if result.Cover != nil {
 		songInfo.CoverUrl = *result.Cover
 	}
-	if result.Lrc != nil {
-		songInfo.Lyric = *result.Lrc
+	if result.Lyric != nil {
+		songInfo.Lyric = *result.Lyric
 	}
 
 	message, xmlStr, err := vars.RobotRuntime.SendMusicMessage(toWxID, songInfo)

@@ -44,9 +44,11 @@ func (r *Robot) Shutdown(ctx context.Context) error {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
+		// 手动心跳才需要取消，现在改成了自动心跳，其实下面等代码没什么用
 		if r.HeartbeatCancel != nil {
 			r.HeartbeatCancel()
 		}
+		// 手动心跳才需要取消，现在改成了自动心跳，其实下面等代码没什么用
 		if r.SyncMessageCancel != nil {
 			r.SyncMessageCancel()
 		}
