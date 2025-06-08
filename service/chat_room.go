@@ -129,6 +129,79 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 	}
 }
 
+func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID string, memberWeChatIDs []string) ([]*model.ChatRoomMember, error) {
+	respo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
+	// 将ids拆分成二十个一个的数组之后再获取详情
+	var newMembers = make([]robot.Contact, 0)
+	chunker := slices.Chunk(memberWeChatIDs, 20)
+	processChunk := func(chunk []string) bool {
+		// 获取昵称等详细信息
+		var c = make([]robot.Contact, 0)
+		c, err := vars.RobotRuntime.GetContactDetail(chunk)
+		if err != nil {
+			// 处理错误
+			log.Printf("获取联系人详情失败: %v", err)
+			return false
+		}
+		newMembers = append(newMembers, c...)
+		return true
+	}
+	chunker(processChunk)
+
+	for _, member := range newMembers {
+		if member.UserName.String == nil {
+			continue
+		}
+		if strings.TrimSpace(*member.UserName.String) == "" {
+			continue
+		}
+		memberUserName := *member.UserName.String
+		// 检查成员是否已存在
+		existMember, err := respo.GetChatRoomMember(chatRoomID, memberUserName)
+		if err != nil {
+			log.Printf("查询群[%s]成员[%s]失败: %v", chatRoomID, memberUserName, err)
+			continue
+		}
+		if existMember != nil {
+			// 更新现有成员
+			isLeaved := false
+			updateMember := model.ChatRoomMember{
+				ID:       existMember.ID,
+				WechatID: memberUserName,
+				Nickname: *member.NickName.String,
+				Avatar:   member.SmallHeadImgUrl,
+				IsLeaved: &isLeaved, // 确保标记为未离开
+				LeavedAt: nil,       // 清除离开时间
+			}
+			// 更新数据库中已有的记录
+			err = respo.Update(&updateMember)
+			if err != nil {
+				log.Printf("更新群[%s]成员[%s]失败: %v", chatRoomID, memberUserName, err)
+				continue
+			}
+		} else {
+			// 创建新成员
+			isLeaved := false
+			newMember := model.ChatRoomMember{
+				ChatRoomID:      chatRoomID,
+				WechatID:        memberUserName,
+				Nickname:        *member.NickName.String,
+				Avatar:          member.SmallHeadImgUrl,
+				InviterWechatID: "",
+				IsLeaved:        &isLeaved,
+				JoinedAt:        time.Now().Unix(),
+				LastActiveAt:    time.Now().Unix(),
+			}
+			err = respo.Create(&newMember)
+			if err != nil {
+				log.Printf("创建群[%s]成员[%s]失败: %v", chatRoomID, memberUserName, err)
+				continue
+			}
+		}
+	}
+	return respo.GetChatRoomMemberByWeChatIDs(chatRoomID, memberWeChatIDs)
+}
+
 func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
 	respo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
 	return respo.GetByChatRoomID(req, pager)

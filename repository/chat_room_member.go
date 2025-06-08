@@ -54,6 +54,18 @@ func (c *ChatRoomMember) GetChatRoomMember(chatRoomID, wechatID string) (*model.
 	return &chatRoomMember, nil
 }
 
+func (c *ChatRoomMember) GetChatRoomMemberByWeChatIDs(chatRoomID string, wechatIDs []string) ([]*model.ChatRoomMember, error) {
+	var chatRoomMembers []*model.ChatRoomMember
+	err := c.DB.WithContext(c.Ctx).Where("chat_room_id = ? AND wechat_id IN ?", chatRoomID, wechatIDs).Find(&chatRoomMembers).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return chatRoomMembers, nil
+}
+
 // GetChatRoomMembers 获取未退出群聊的成员
 func (c *ChatRoomMember) GetChatRoomMembers(chatRoomID string) ([]*model.ChatRoomMember, error) {
 	var chatRoomMembers []*model.ChatRoomMember
