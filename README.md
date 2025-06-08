@@ -1203,4 +1203,33 @@ Q. **为什么同一条消息会重复回调？**
 
 ```
 "34948034760@chatroom:\n<sysmsg type=\"sysmsgtemplate\">\n\t<sysmsgtemplate>\n\t\t<content_template type=\"tmpl_type_profilewithrevoke\">\n\t\t\t<plain><![CDATA[]]></plain>\n\t\t\t<template><![CDATA[你邀请\"$names$\"加入了群聊  $revoke$]]></template>\n\t\t\t<link_list>\n\t\t\t\t<link name=\"names\" type=\"link_profile\">\n\t\t\t\t\t<memberlist>\n\t\t\t\t\t\t<member>\n\t\t\t\t\t\t\t<username><![CDATA[wxid_b28npmhznnwl12]]></username>\n\t\t\t\t\t\t\t<nickname><![CDATA[***]]></nickname>\n\t\t\t\t\t\t</member>\n\t\t\t\t\t</memberlist>\n\t\t\t\t\t<separator><![CDATA[、]]></separator>\n\t\t\t\t</link>\n\t\t\t\t<link name=\"revoke\" type=\"link_revoke\" hidden=\"1\">\n\t\t\t\t\t<title><![CDATA[撤销]]></title>\n\t\t\t\t\t<usernamelist>\n\t\t\t\t\t\t<username><![CDATA[wxid_b28npmhznnwl12]]></username>\n\t\t\t\t\t</usernamelist>\n\t\t\t\t</link>\n\t\t\t</link_list>\n\t\t</content_template>\n\t</sysmsgtemplate>\n</sysmsg>\n"
+
+<sysmsg type="sysmsgtemplate">
+	<sysmsgtemplate>
+		<content_template type="tmpl_type_profile">
+			<plain><![CDATA[]]></plain>
+			<template><![CDATA["$username$"邀请"$names$"加入了群聊]]></template>
+			<link_list>
+				<link name="username" type="link_profile">
+					<memberlist>
+						<member>
+							<username><![CDATA[xiehuaping668]]></username>
+							<nickname><![CDATA[🥺]]></nickname>
+						</member>
+					</memberlist>
+				</link>
+				<link name="names" type="link_profile">
+					<memberlist>
+						<member>
+							<username><![CDATA[wxid_7bpstqonj92212]]></username>
+							<nickname><![CDATA[又双叒叕]]></nickname>
+						</member>
+					</memberlist>
+					<separator><![CDATA[、]]></separator>
+				</link>
+			</link_list>
+		</content_template>
+	</sysmsgtemplate>
+</sysmsg>
+
 ```
