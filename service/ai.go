@@ -111,7 +111,7 @@ func (s *AIService) IsAISessionEnd(message *model.Message) bool {
 	return false
 }
 
-func (s *AIService) GetAIConfig() (baseURL string, apiKey string, model string) {
+func (s *AIService) GetAIConfig() (baseURL string, apiKey string, model string, prompt string) {
 	if s.globalSettings != nil {
 		if s.globalSettings.ChatBaseURL != "" {
 			baseURL = s.globalSettings.ChatBaseURL
@@ -121,6 +121,9 @@ func (s *AIService) GetAIConfig() (baseURL string, apiKey string, model string) 
 		}
 		if s.globalSettings.ChatModel != "" {
 			model = s.globalSettings.ChatModel
+		}
+		if s.globalSettings.ChatPrompt != "" {
+			prompt = s.globalSettings.ChatPrompt
 		}
 	}
 	if s.chatRoomSettings != nil {
@@ -132,6 +135,9 @@ func (s *AIService) GetAIConfig() (baseURL string, apiKey string, model string) 
 		}
 		if s.chatRoomSettings.ChatModel != nil && *s.chatRoomSettings.ChatModel != "" {
 			model = *s.chatRoomSettings.ChatModel
+		}
+		if s.chatRoomSettings.ChatPrompt != nil && *s.chatRoomSettings.ChatPrompt != "" {
+			prompt = *s.chatRoomSettings.ChatPrompt
 		}
 	}
 	baseURL = strings.TrimRight(baseURL, "/")
@@ -192,7 +198,7 @@ func (s *AIService) IsAITrigger(message *model.Message) bool {
 }
 
 func (s *AIService) ChatIntention(message *model.Message) ChatIntention {
-	baseURL, apiKey, model := s.GetAIConfig()
+	baseURL, apiKey, model, _ := s.GetAIConfig()
 	aiConfig := openai.DefaultConfig(apiKey)
 	aiConfig.BaseURL = baseURL
 
@@ -260,7 +266,7 @@ func (s *AIService) ChatIntention(message *model.Message) ChatIntention {
 }
 
 func (s *AIService) GetSongRequestTitle(message *model.Message) string {
-	baseURL, apiKey, model := s.GetAIConfig()
+	baseURL, apiKey, model, _ := s.GetAIConfig()
 	aiConfig := openai.DefaultConfig(apiKey)
 	aiConfig.BaseURL = baseURL
 
@@ -319,7 +325,14 @@ func (s *AIService) GetSongRequestTitle(message *model.Message) string {
 }
 
 func (s *AIService) Chat(aiMessages []openai.ChatCompletionMessage) (string, error) {
-	baseURL, apiKey, model := s.GetAIConfig()
+	baseURL, apiKey, model, prompt := s.GetAIConfig()
+	if prompt != "" {
+		systemMessage := openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: prompt,
+		}
+		aiMessages = append([]openai.ChatCompletionMessage{systemMessage}, aiMessages...)
+	}
 	aiConfig := openai.DefaultConfig(apiKey)
 	aiConfig.BaseURL = baseURL
 	client := openai.NewClientWithConfig(aiConfig)
