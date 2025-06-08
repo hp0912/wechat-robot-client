@@ -1,0 +1,20 @@
+services:
+  ipad-test:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-ipad:latest
+    container_name: ipad-test
+    restart: always
+    networks:
+      - wechat-robot
+    ports:
+      - '3010:9000'
+    environment:
+      WECHAT_PORT: 9000
+      REDIS_HOST: wechat-admin-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: 123456
+      REDIS_DB: 0
+      WECHAT_CLIENT_HOST: 127.0.0.1:9001
+
+networks:
+  wechat-robot:
+    external: true
