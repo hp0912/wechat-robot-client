@@ -1,4 +1,5 @@
 .env
+dev-wechat-ipad.yml
 wechat-robot-client
 pkg/good_morning/test_output
 __debug*
