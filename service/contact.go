@@ -71,7 +71,6 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 		return true
 	}
 	chunker(processChunk)
-	validContactIds := make([]string, 0)
 	for _, contact := range contacts {
 		if contact.UserName.String == nil {
 			continue
@@ -79,7 +78,6 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 		if strings.TrimSpace(*contact.UserName.String) == "" {
 			continue
 		}
-		validContactIds = append(validContactIds, *contact.UserName.String)
 		// 判断数据库是否存在当前数据，不存在就新建，存在就更新
 		existContact, err := s.ctRespo.GetContact(*contact.UserName.String)
 		if err != nil {

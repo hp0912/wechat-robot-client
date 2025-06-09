@@ -953,13 +953,13 @@ func (s *MessageService) GetAIMessageContext(message *model.Message) ([]openai.C
 }
 
 func (s *MessageService) GetYesterdayChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
-	return s.msgRespo.GetYesterdayChatRommRank(chatRoomID)
+	return s.msgRespo.GetYesterdayChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
 }
 
 func (s *MessageService) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
-	return s.msgRespo.GetLastWeekChatRommRank(chatRoomID)
+	return s.msgRespo.GetLastWeekChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
 }
 
 func (s *MessageService) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
-	return s.msgRespo.GetLastMonthChatRommRank(chatRoomID)
+	return s.msgRespo.GetLastMonthChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
 }
