@@ -28,7 +28,7 @@ type ChatRoomSummary struct {
 }
 
 type ChatRoomRank struct {
-	WechatID string // 微信Id
-	Nickname string // 昵称
-	Count    int64  // 消息数
+	SenderWxID string `gorm:"column:sender_wxid" json:"sender_wxid"` // 微信Id
+	Nickname   string `gorm:"column:nickname" json:"nickname"`       // 昵称
+	Count      int64  `gorm:"column:count" json:"count"`             // 消息数
 }

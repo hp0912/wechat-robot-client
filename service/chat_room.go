@@ -461,7 +461,7 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 			if i >= 10 {
 				break
 			}
-			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.WechatID, r.Count)
+			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.SenderWxID, r.Count)
 			badge := "🏆"
 			switch i {
 			case 0:
@@ -557,7 +557,7 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 			if i >= 10 {
 				break
 			}
-			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.WechatID, r.Count)
+			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.SenderWxID, r.Count)
 			badge := "🏆"
 			switch i {
 			case 0:
@@ -637,7 +637,7 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 			if i >= 10 {
 				break
 			}
-			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.WechatID, r.Count)
+			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.SenderWxID, r.Count)
 			badge := "🏆"
 			switch i {
 			case 0:
