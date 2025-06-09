@@ -393,8 +393,6 @@ func (s *ChatRoomService) ChatRoomAISummary() error {
 }
 
 func (s *ChatRoomService) ChatRoomRankingDaily() error {
-	notifyMsgs := []string{"#昨日水群排行榜"}
-
 	// 获取今天凌晨零点
 	now := time.Now()
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -409,6 +407,8 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 	msgService := NewMessageService(context.Background())
 
 	for _, setting := range settings {
+		notifyMsgs := []string{"#昨日水群排行榜"}
+
 		ranks, err := msgService.GetYesterdayChatRommRank(setting.ChatRoomID)
 		if err != nil {
 			log.Printf("获取群聊 %s 的排行榜失败: %v\n", setting.ChatRoomID, err)
@@ -494,8 +494,6 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 }
 
 func (s *ChatRoomService) ChatRoomRankingWeekly() error {
-	notifyMsgs := []string{"#上周水群排行榜"}
-
 	settings, err := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
 	if err != nil {
 		return err
@@ -504,6 +502,8 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 	msgService := NewMessageService(context.Background())
 
 	for _, setting := range settings {
+		notifyMsgs := []string{"#上周水群排行榜"}
+
 		ranks, err := msgService.GetLastWeekChatRommRank(setting.ChatRoomID)
 		if err != nil {
 			log.Printf("获取群聊 %s 的排行榜失败: %v\n", setting.ChatRoomID, err)
@@ -575,7 +575,6 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 
 func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 	monthStr := time.Now().Local().AddDate(0, 0, -1).Format("2006年01月")
-	notifyMsgs := []string{fmt.Sprintf("#%s水群排行榜", monthStr)}
 
 	settings, err := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
 	if err != nil {
@@ -585,6 +584,8 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 	msgService := NewMessageService(context.Background())
 
 	for _, setting := range settings {
+		notifyMsgs := []string{fmt.Sprintf("#%s水群排行榜", monthStr)}
+
 		ranks, err := msgService.GetLastMonthChatRommRank(setting.ChatRoomID)
 		if err != nil {
 			log.Printf("获取群聊 %s 的排行榜失败: %v\n", setting.ChatRoomID, err)
