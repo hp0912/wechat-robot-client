@@ -247,11 +247,11 @@ func (s *MessageService) ProcessNewChatRoomMemberMessage(message *model.Message,
 			ThumbUrl: newMembers[0].Avatar,
 		}
 		if len(newMembers) > 1 {
-			shareLinkInfo.Title = fmt.Sprintf("欢迎%d位家人进群", len(newMembers))
+			shareLinkInfo.Title = fmt.Sprintf("欢迎%d位家人加入群聊", len(newMembers))
 		} else if newMembers[0].Nickname != "" {
-			shareLinkInfo.Title = fmt.Sprintf("欢迎%s进群", newMembers[0].Nickname)
+			shareLinkInfo.Title = fmt.Sprintf("欢迎%s加入群聊", newMembers[0].Nickname)
 		} else {
-			shareLinkInfo.Title = "欢迎新成员进群"
+			shareLinkInfo.Title = "欢迎新成员加入群聊"
 		}
 		err := s.ShareLink(message.FromWxID, shareLinkInfo)
 		if err != nil {
