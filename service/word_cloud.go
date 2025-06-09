@@ -3,28 +3,29 @@ package service
 import (
 	"context"
 	"log"
-	"regexp"
 	"strings"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 
 	"github.com/go-resty/resty/v2"
 )
 
 type WordCloudService struct {
-	ctx context.Context
+	ctx      context.Context
+	msgRespo *repository.Message
 }
 
 func NewWordCloudService(ctx context.Context) *WordCloudService {
 	return &WordCloudService{
-		ctx: ctx,
+		ctx:      ctx,
+		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
 	}
 }
 
-func (s *WordCloudService) WordCloudDaily(chatRoomID string, startTime, endTime int64) ([]byte, error) {
-	msgRespo := repository.NewMessageRepo(s.ctx, vars.DB)
-	messages, err := msgRespo.GetMessagesByTimeRange(chatRoomID, startTime, endTime)
+func (s *WordCloudService) WordCloudDaily(chatRoomID, aiTriggerWord string, startTime, endTime int64) ([]byte, error) {
+	messages, err := s.msgRespo.GetMessagesByTimeRange(chatRoomID, startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
@@ -32,15 +33,13 @@ func (s *WordCloudService) WordCloudDaily(chatRoomID string, startTime, endTime 
 		log.Printf("[词云] 群聊 %s 在昨天没有消息，跳过处理\n", chatRoomID)
 		return nil, nil
 	}
-	// 正则表达式编译一次，提高性能
-	re := regexp.MustCompile(vars.TrimAtRegexp)
 	// 使用 strings.Builder 高效拼接字符串
 	var builder strings.Builder
 	for i, msg := range messages {
 		// 去除首尾空格
 		content := strings.TrimSpace(msg.Message)
-		// 去除特殊字符
-		content = re.ReplaceAllString(content, "")
+		// 去除艾特，去除AI触发词
+		content = utils.TrimAITriggerAll(content, aiTriggerWord)
 		// 如果内容为空，跳过
 		if content == "" {
 			continue

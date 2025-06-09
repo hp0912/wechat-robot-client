@@ -9,31 +9,32 @@ import (
 )
 
 type ChatRoomSettingsService struct {
-	ctx context.Context
+	ctx      context.Context
+	gsRespo  *repository.GlobalSettings
+	crsRespo *repository.ChatRoomSettings
 }
 
 func NewChatRoomSettingsService(ctx context.Context) *ChatRoomSettingsService {
 	return &ChatRoomSettingsService{
-		ctx: ctx,
+		ctx:      ctx,
+		gsRespo:  repository.NewGlobalSettingsRepo(ctx, vars.DB),
+		crsRespo: repository.NewChatRoomSettingsRepo(ctx, vars.DB),
 	}
 }
 
 func (s *ChatRoomSettingsService) GetChatRoomSettings(chatRoomID string) (*model.ChatRoomSettings, error) {
-	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
-	return respo.GetChatRoomSettings(chatRoomID)
+	return s.crsRespo.GetChatRoomSettings(chatRoomID)
 }
 
 func (s *ChatRoomSettingsService) GetChatRoomWelcomeConfig(chatRoomID string) (*model.ChatRoomSettings, error) {
-	gsRespo := repository.NewGlobalSettingsRepo(s.ctx, vars.DB)
-	crsRespo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
-	globalSettings, err := gsRespo.GetGlobalSettings()
+	globalSettings, err := s.gsRespo.GetGlobalSettings()
 	if err != nil {
 		return nil, err
 	}
 	if globalSettings == nil {
 		return nil, fmt.Errorf("加载全局配置失败")
 	}
-	chatRoomSetting, err := crsRespo.GetChatRoomSettings(chatRoomID)
+	chatRoomSetting, err := s.crsRespo.GetChatRoomSettings(chatRoomID)
 	if err != nil {
 		return nil, err
 	}
@@ -55,38 +56,33 @@ func (s *ChatRoomSettingsService) GetAllEnableChatRank() ([]*model.ChatRoomSetti
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
 		return []*model.ChatRoomSettings{}, nil
 	}
-	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
-	return respo.GetAllEnableChatRank()
+	return s.crsRespo.GetAllEnableChatRank()
 }
 
 func (s *ChatRoomSettingsService) GetAllEnableAISummary() ([]*model.ChatRoomSettings, error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
 		return []*model.ChatRoomSettings{}, nil
 	}
-	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
-	return respo.GetAllEnableAISummary()
+	return s.crsRespo.GetAllEnableAISummary()
 }
 
 func (s *ChatRoomSettingsService) GetAllEnableGoodMorning() ([]*model.ChatRoomSettings, error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
 		return []*model.ChatRoomSettings{}, nil
 	}
-	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
-	return respo.GetAllEnableGoodMorning()
+	return s.crsRespo.GetAllEnableGoodMorning()
 }
 
 func (s *ChatRoomSettingsService) GetAllEnableNews() ([]*model.ChatRoomSettings, error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
 		return []*model.ChatRoomSettings{}, nil
 	}
-	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
-	return respo.GetAllEnableNews()
+	return s.crsRespo.GetAllEnableNews()
 }
 
 func (s *ChatRoomSettingsService) SaveChatRoomSettings(data *model.ChatRoomSettings) error {
-	respo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
 	if data.ID == 0 {
-		return respo.Create(data)
+		return s.crsRespo.Create(data)
 	}
-	return respo.Update(data)
+	return s.crsRespo.Update(data)
 }

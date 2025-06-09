@@ -22,17 +22,18 @@ import (
 )
 
 type MessageService struct {
-	ctx context.Context
+	ctx      context.Context
+	msgRespo *repository.Message
 }
 
 func NewMessageService(ctx context.Context) *MessageService {
 	return &MessageService{
-		ctx: ctx,
+		ctx:      ctx,
+		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
 	}
 }
 
-func (s *MessageService) ProcessAI(message *model.Message) {
-	aiService := NewAIService(s.ctx, message)
+func (s *MessageService) ProcessAI(aiService *AIService, message *model.Message) {
 	chatIntention := aiService.ChatIntention(message)
 	switch chatIntention {
 	case ChatIntentionChat:
@@ -73,8 +74,7 @@ func (s *MessageService) ProcessAI(message *model.Message) {
 }
 
 // ProcessTextMessage 处理文本消息
-func (s *MessageService) ProcessTextMessage(message *model.Message) {
-	aiService := NewAIService(s.ctx, message)
+func (s *MessageService) ProcessTextMessage(aiService *AIService, message *model.Message) {
 	if message.IsChatRoom {
 		if aiService.IsAISessionStart(message) {
 			s.SendTextMessage(message.FromWxID, "AI会话已开始，请输入您的问题。10分钟不说话会话将自动结束，您也可以输入 #退出AI会话 来结束会话。", message.SenderWxID)
@@ -94,11 +94,11 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 			return
 		}
 		if aiService.IsAITrigger(message) {
-			s.ProcessAI(message)
+			s.ProcessAI(aiService, message)
 			return
 		}
 	} else if aiService.IsAIEnabled() {
-		s.ProcessAI(message)
+		s.ProcessAI(aiService, message)
 	}
 }
 
@@ -152,15 +152,14 @@ func (s *MessageService) ProcessFriendVerifyMessage(message *model.Message) {
 
 // ProcessRecalledMessage 处理撤回消息
 func (s *MessageService) ProcessRecalledMessage(message *model.Message, msgXml robot.SystemMessage) {
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	oldMsg, err := respo.GetByMsgID(msgXml.RevokeMsg.NewMsgID)
+	oldMsg, err := s.msgRespo.GetByMsgID(msgXml.RevokeMsg.NewMsgID)
 	if err != nil {
 		log.Printf("获取撤回的消息失败: %v", err)
 		return
 	}
 	if oldMsg != nil {
 		oldMsg.IsRecalled = true
-		err = respo.Update(oldMsg)
+		err = s.msgRespo.Update(oldMsg)
 		if err != nil {
 			log.Printf("标记撤回消息失败: %v", err)
 		}
@@ -246,11 +245,11 @@ func (s *MessageService) ProcessNewChatRoomMemberMessage(message *model.Message,
 			ThumbUrl: newMembers[0].Avatar,
 		}
 		if len(newMembers) > 1 {
-			shareLinkInfo.Title = fmt.Sprintf("欢迎%d位家人进群", len(newMembers))
+			shareLinkInfo.Title = fmt.Sprintf("欢迎%d位家人加入群聊", len(newMembers))
 		} else if newMembers[0].Nickname != "" {
-			shareLinkInfo.Title = fmt.Sprintf("欢迎%s进群", newMembers[0].Nickname)
+			shareLinkInfo.Title = fmt.Sprintf("欢迎%s加入群聊", newMembers[0].Nickname)
 		} else {
-			shareLinkInfo.Title = "欢迎新成员进群"
+			shareLinkInfo.Title = "欢迎新成员加入群聊"
 		}
 		err := s.ShareLink(message.FromWxID, shareLinkInfo)
 		if err != nil {
@@ -291,7 +290,6 @@ func (s *MessageService) ProcessPromptMessage(message *model.Message) {
 }
 
 func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	for _, message := range syncResp.AddMsgs {
 		m := model.Message{
 			MsgId:              message.NewMsgId,
@@ -364,13 +362,27 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 				}
 			}
 		}
-		err := respo.Create(&m)
+		// 是否是AI上下文，开启了AI聊天且(是艾特我或者包含AI触发词 -> 群聊  或者是私聊)
+		aiService := NewAIService(s.ctx, &m)
+		isAIEnabled := aiService.IsAIEnabled()
+		isAITrigger := aiService.IsAITrigger(&m)
+		IsInAISession, _ := aiService.IsInAISession(&m)
+		if isAIEnabled {
+			if m.IsChatRoom {
+				if isAITrigger || IsInAISession {
+					m.IsAIContext = true
+				}
+			} else {
+				m.IsAIContext = true
+			}
+		}
+		err := s.msgRespo.Create(&m)
 		if err != nil {
 			log.Printf("入库消息失败: %v", err)
 		}
 		switch m.Type {
 		case model.MsgTypeText:
-			go s.ProcessTextMessage(&m)
+			go s.ProcessTextMessage(aiService, &m)
 		case model.MsgTypeImage:
 			go s.ProcessImageMessage(&m)
 		case model.MsgTypeVoice:
@@ -432,8 +444,7 @@ func (s *MessageService) SyncMessageStart() {
 }
 
 func (s *MessageService) MessageRevoke(req dto.MessageCommonRequest) error {
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	message, err := respo.GetByID(req.MessageID)
+	message, err := s.msgRespo.GetByID(req.MessageID)
 	if err != nil {
 		return fmt.Errorf("获取消息失败: %w", err)
 	}
@@ -455,7 +466,6 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 
 	// 通过机器人发送的消息，消息同步接口获取不到，所以这里需要手动入库
 	if len(newMessages.List) > 0 {
-		respo := repository.NewMessageRepo(s.ctx, vars.DB)
 		for _, message := range newMessages.List {
 			if message.Ret == 0 {
 				m := model.Message{
@@ -475,7 +485,7 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 				if m.IsChatRoom && len(at) > 0 {
 					m.ReplyWxID = at[0]
 				}
-				err = respo.Create(&m)
+				err = s.msgRespo.Create(&m)
 				if err != nil {
 					log.Printf("入库消息失败: %v", err)
 				}
@@ -498,7 +508,6 @@ func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) error {
 		return err
 	}
 
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	m := model.Message{
 		MsgId:              message.Newmsgid,
 		ClientMsgId:        message.Msgid,
@@ -513,7 +522,7 @@ func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) error {
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	err = respo.Create(&m)
+	err = s.msgRespo.Create(&m)
 	if err != nil {
 		log.Println("入库消息失败: ", err)
 	}
@@ -533,7 +542,6 @@ func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt s
 		return err
 	}
 
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	msgid := time.Now().UnixNano()
 	m := model.Message{
 		MsgId:              msgid,
@@ -549,7 +557,7 @@ func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt s
 		CreatedAt:          time.Now().Unix(),
 		UpdatedAt:          time.Now().Unix(),
 	}
-	err = respo.Create(&m)
+	err = s.msgRespo.Create(&m)
 	if err != nil {
 		log.Println("入库消息失败: ", err)
 	}
@@ -569,7 +577,6 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice io.Reader, voiceExt s
 		return err
 	}
 
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	clientMsgId, _ := strconv.ParseInt(message.ClientMsgId, 10, 64)
 	m := model.Message{
 		MsgId:              message.NewMsgId,
@@ -585,7 +592,7 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice io.Reader, voiceExt s
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	err = respo.Create(&m)
+	err = s.msgRespo.Create(&m)
 	if err != nil {
 		log.Println("入库消息失败: ", err)
 	}
@@ -631,7 +638,6 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 		return err
 	}
 
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	m := model.Message{
 		MsgId:              message.NewMsgId,
 		ClientMsgId:        message.MsgId,
@@ -646,7 +652,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	err = respo.Create(&m)
+	err = s.msgRespo.Create(&m)
 	if err != nil {
 		log.Println("入库消息失败: ", err)
 	}
@@ -666,7 +672,6 @@ func (s *MessageService) SendEmoji(toWxID string, md5 string, totalLen int32) er
 		return err
 	}
 
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	for _, emojiItem := range message.EmojiItem {
 		if emojiItem.Ret != 0 {
 			continue
@@ -685,7 +690,7 @@ func (s *MessageService) SendEmoji(toWxID string, md5 string, totalLen int32) er
 			CreatedAt:          time.Now().Unix(),
 			UpdatedAt:          time.Now().Unix(),
 		}
-		err = respo.Create(&m)
+		err = s.msgRespo.Create(&m)
 		if err != nil {
 			log.Println("入库消息失败: ", err)
 		}
@@ -702,7 +707,6 @@ func (s *MessageService) ShareLink(toWxID string, shareLinkInfo robot.ShareLinkI
 		return err
 	}
 
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	m := model.Message{
 		MsgId:              message.NewMsgId,
 		ClientMsgId:        message.MsgId,
@@ -717,7 +721,7 @@ func (s *MessageService) ShareLink(toWxID string, shareLinkInfo robot.ShareLinkI
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	err = respo.Create(&m)
+	err = s.msgRespo.Create(&m)
 	if err != nil {
 		log.Println("入库消息失败: ", err)
 	}
@@ -736,7 +740,6 @@ func (s *MessageService) SendCDNFile(toWxID string, content string) error {
 		return err
 	}
 
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	m := model.Message{
 		MsgId:              message.NewMsgId,
 		ClientMsgId:        message.MsgId,
@@ -751,7 +754,7 @@ func (s *MessageService) SendCDNFile(toWxID string, content string) error {
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	err = respo.Create(&m)
+	err = s.msgRespo.Create(&m)
 	if err != nil {
 		log.Println("入库消息失败: ", err)
 	}
@@ -770,7 +773,6 @@ func (s *MessageService) SendCDNImg(toWxID string, content string) error {
 		return err
 	}
 
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	m := model.Message{
 		MsgId:              message.Newmsgid,
 		ClientMsgId:        message.Msgid,
@@ -785,7 +787,7 @@ func (s *MessageService) SendCDNImg(toWxID string, content string) error {
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
-	err = respo.Create(&m)
+	err = s.msgRespo.Create(&m)
 	if err != nil {
 		log.Println("入库消息失败: ", err)
 	}
@@ -804,7 +806,6 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 		return err
 	}
 
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
 	m := model.Message{
 		MsgId:              message.NewMsgId,
 		ClientMsgId:        message.MsgId,
@@ -819,7 +820,7 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 		CreatedAt:          time.Now().Unix(),
 		UpdatedAt:          time.Now().Unix(),
 	}
-	err = respo.Create(&m)
+	err = s.msgRespo.Create(&m)
 	if err != nil {
 		log.Println("入库消息失败: ", err)
 	}
@@ -875,14 +876,13 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					}
 				}
 				if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeImage) {
-					respo := repository.NewMessageRepo(s.ctx, vars.DB)
 					referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
 					// 字符串转int64
 					referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
 					if err != nil {
 						continue
 					}
-					refreMsg, err := respo.GetByID(referMsgID)
+					refreMsg, err := s.msgRespo.GetByID(referMsgID)
 					if err != nil {
 						continue
 					}
@@ -903,14 +903,13 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					}
 				}
 				if xmlMessage.AppMsg.ReferMsg.Type == int(model.AppMsgTypequote) {
-					respo := repository.NewMessageRepo(s.ctx, vars.DB)
 					referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
 					// 字符串转int64
 					referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
 					if err != nil {
 						continue
 					}
-					refreMsg, err := respo.GetByID(referMsgID)
+					refreMsg, err := s.msgRespo.GetByID(referMsgID)
 					if err != nil {
 						continue
 					}
@@ -943,7 +942,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 }
 
 func (s *MessageService) GetFriendAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
-	messages, err := repository.NewMessageRepo(s.ctx, vars.DB).GetFriendAIMessageContext(message)
+	messages, err := s.msgRespo.GetFriendAIMessageContext(message)
 	if err != nil {
 		return nil, err
 	}
@@ -951,7 +950,7 @@ func (s *MessageService) GetFriendAIMessageContext(message *model.Message) ([]op
 }
 
 func (s *MessageService) GetChatRoomAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
-	messages, err := repository.NewMessageRepo(s.ctx, vars.DB).GetChatRoomAIMessageContext(message)
+	messages, err := s.msgRespo.GetChatRoomAIMessageContext(message)
 	if err != nil {
 		return nil, err
 	}
@@ -966,16 +965,13 @@ func (s *MessageService) GetAIMessageContext(message *model.Message) ([]openai.C
 }
 
 func (s *MessageService) GetYesterdayChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	return respo.GetYesterdayChatRommRank(chatRoomID)
+	return s.msgRespo.GetYesterdayChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
 }
 
 func (s *MessageService) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	return respo.GetLastWeekChatRommRank(chatRoomID)
+	return s.msgRespo.GetLastWeekChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
 }
 
 func (s *MessageService) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	return respo.GetLastMonthChatRommRank(chatRoomID)
+	return s.msgRespo.GetLastMonthChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
 }

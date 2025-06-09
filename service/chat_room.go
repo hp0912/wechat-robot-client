@@ -20,12 +20,20 @@ import (
 )
 
 type ChatRoomService struct {
-	ctx context.Context
+	ctx      context.Context
+	msgRespo *repository.Message
+	ctRespo  *repository.Contact
+	gsRespo  *repository.GlobalSettings
+	crmRespo *repository.ChatRoomMember
 }
 
 func NewChatRoomService(ctx context.Context) *ChatRoomService {
 	return &ChatRoomService{
-		ctx: ctx,
+		ctx:      ctx,
+		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
+		ctRespo:  repository.NewContactRepo(ctx, vars.DB),
+		gsRespo:  repository.NewGlobalSettingsRepo(ctx, vars.DB),
+		crmRespo: repository.NewChatRoomMemberRepo(ctx, vars.DB),
 	}
 }
 
@@ -39,7 +47,6 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 	}
 	// 遍历获取到的群成员列表，如果数据库存在，则更新，数据库不存在则新增
 	if len(chatRoomMembers) > 0 {
-		memberRepo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
 		now := time.Now().Unix()
 
 		// 获取当前成员的微信ID列表，用于后续比对
@@ -50,7 +57,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 
 		for _, member := range chatRoomMembers {
 			// 检查成员是否已存在
-			existMember, err := memberRepo.GetChatRoomMember(chatRoomID, member.UserName)
+			existMember, err := s.crmRespo.GetChatRoomMember(chatRoomID, member.UserName)
 			if err != nil {
 				log.Printf("查询群[%s]成员[%s]失败: %v", chatRoomID, member.UserName, err)
 				continue
@@ -66,7 +73,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					LeavedAt: nil,       // 清除离开时间
 				}
 				// 更新数据库中已有的记录
-				err = memberRepo.Update(&updateMember)
+				err = s.crmRespo.Update(&updateMember)
 				if err != nil {
 					log.Printf("更新群[%s]成员[%s]失败: %v", chatRoomID, member.UserName, err)
 					continue
@@ -84,7 +91,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					JoinedAt:        now,
 					LastActiveAt:    now,
 				}
-				err = memberRepo.Create(&newMember)
+				err = s.crmRespo.Create(&newMember)
 				if err != nil {
 					log.Printf("创建群[%s]成员[%s]失败: %v", chatRoomID, member.UserName, err)
 					continue
@@ -92,7 +99,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 			}
 		}
 		// 查询数据库中该群的所有成员
-		dbMembers, err := memberRepo.GetChatRoomMembers(chatRoomID)
+		dbMembers, err := s.crmRespo.GetChatRoomMembers(chatRoomID)
 		if err != nil {
 			log.Printf("获取群[%s]成员失败: %v", chatRoomID, err)
 			return
@@ -112,7 +119,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 				if dbMember.Nickname != "" {
 					leavedMembers = append(leavedMembers, dbMember.Nickname)
 				}
-				err = memberRepo.Update(&updateMember)
+				err = s.crmRespo.Update(&updateMember)
 				if err != nil {
 					log.Printf("标记群[%s]成员[%s]为已离开失败: %v", chatRoomID, dbMember.WechatID, err)
 					continue
@@ -121,7 +128,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 		}
 		if len(leavedMembers) > 0 {
 			if len(leavedMembers) <= 10 {
-				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，以下%d位家人永远地离开了我们：%s～", len(leavedMembers), strings.Join(leavedMembers, "、")))
+				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，：%s永远地离开了我们～", strings.Join(leavedMembers, "、")))
 			} else {
 				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，又有%d位家人永远地离开了我们～", len(leavedMembers)))
 			}
@@ -130,7 +137,6 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 }
 
 func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID string, memberWeChatIDs []string) ([]*model.ChatRoomMember, error) {
-	respo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
 	// 将ids拆分成二十个一个的数组之后再获取详情
 	var newMembers = make([]robot.Contact, 0)
 	chunker := slices.Chunk(memberWeChatIDs, 20)
@@ -157,7 +163,7 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 		}
 		memberUserName := *member.UserName.String
 		// 检查成员是否已存在
-		existMember, err := respo.GetChatRoomMember(chatRoomID, memberUserName)
+		existMember, err := s.crmRespo.GetChatRoomMember(chatRoomID, memberUserName)
 		if err != nil {
 			log.Printf("查询群[%s]成员[%s]失败: %v", chatRoomID, memberUserName, err)
 			continue
@@ -174,7 +180,7 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 				LeavedAt: nil,       // 清除离开时间
 			}
 			// 更新数据库中已有的记录
-			err = respo.Update(&updateMember)
+			err = s.crmRespo.Update(&updateMember)
 			if err != nil {
 				log.Printf("更新群[%s]成员[%s]失败: %v", chatRoomID, memberUserName, err)
 				continue
@@ -192,39 +198,35 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 				JoinedAt:        time.Now().Unix(),
 				LastActiveAt:    time.Now().Unix(),
 			}
-			err = respo.Create(&newMember)
+			err = s.crmRespo.Create(&newMember)
 			if err != nil {
 				log.Printf("创建群[%s]成员[%s]失败: %v", chatRoomID, memberUserName, err)
 				continue
 			}
 		}
 	}
-	return respo.GetChatRoomMemberByWeChatIDs(chatRoomID, memberWeChatIDs)
+	return s.crmRespo.GetChatRoomMemberByWeChatIDs(chatRoomID, memberWeChatIDs)
 }
 
 func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
-	respo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
-	return respo.GetByChatRoomID(req, pager)
+	return s.crmRespo.GetByChatRoomID(req, pager)
 }
 
 func (s *ChatRoomService) GetChatRoomMemberCount(chatRoomID string) (int64, error) {
-	respo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
-	return respo.GetChatRoomMemberCount(chatRoomID)
+	return s.crmRespo.GetChatRoomMemberCount(chatRoomID)
 }
 
 func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSummary, error) {
 	summary := dto.ChatRoomSummary{ChatRoomID: chatRoomID}
-
-	crmRespo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
-	memberCount, err := crmRespo.GetChatRoomMemberCount(chatRoomID)
+	memberCount, err := s.crmRespo.GetChatRoomMemberCount(chatRoomID)
 	if err != nil {
 		return summary, err
 	}
-	joinCount, err := crmRespo.GetYesterdayJoinCount(chatRoomID)
+	joinCount, err := s.crmRespo.GetYesterdayJoinCount(chatRoomID)
 	if err != nil {
 		return summary, err
 	}
-	leaveCount, err := crmRespo.GetYesterdayLeaveCount(chatRoomID)
+	leaveCount, err := s.crmRespo.GetYesterdayLeaveCount(chatRoomID)
 	if err != nil {
 		return summary, err
 	}
@@ -232,8 +234,7 @@ func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSum
 	summary.MemberJoinCount = int(joinCount)
 	summary.MemberLeaveCount = int(leaveCount)
 
-	messageRepo := repository.NewMessageRepo(s.ctx, vars.DB)
-	chatInfo, err := messageRepo.GetYesterdayChatInfo(chatRoomID)
+	chatInfo, err := s.msgRespo.GetYesterdayChatInfo(chatRoomID)
 	if err != nil {
 		return summary, err
 	}
@@ -248,11 +249,8 @@ func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSum
 
 func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.GlobalSettings, setting *model.ChatRoomSettings, startTime, endTime int64) error {
 	msgService := NewMessageService(context.Background())
-	msgRespo := repository.NewMessageRepo(s.ctx, vars.DB)
-	ctRespo := repository.NewContactRepo(s.ctx, vars.DB)
-
 	chatRoomName := setting.ChatRoomID
-	chatRoom, err := ctRespo.GetByWechatID(setting.ChatRoomID)
+	chatRoom, err := s.ctRespo.GetByWechatID(setting.ChatRoomID)
 	if err != nil {
 		return err
 	}
@@ -261,7 +259,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		chatRoomName = *chatRoom.Nickname
 	}
 
-	messages, err := msgRespo.GetMessagesByTimeRange(setting.ChatRoomID, startTime, endTime)
+	messages, err := s.msgRespo.GetMessagesByTimeRange(setting.ChatRoomID, startTime, endTime)
 	if err != nil {
 		return err
 	}
@@ -365,7 +363,7 @@ func (s *ChatRoomService) ChatRoomAISummary() error {
 	yesterdayStartTimestamp := yesterdayStart.Unix()
 	todayStartTimestamp := todayStart.Unix()
 
-	globalSettings, err := repository.NewGlobalSettingsRepo(s.ctx, vars.DB).GetGlobalSettings()
+	globalSettings, err := s.gsRespo.GetGlobalSettings()
 	if err != nil {
 		return err
 	}
@@ -395,8 +393,6 @@ func (s *ChatRoomService) ChatRoomAISummary() error {
 }
 
 func (s *ChatRoomService) ChatRoomRankingDaily() error {
-	notifyMsgs := []string{"#昨日水群排行榜"}
-
 	// 获取今天凌晨零点
 	now := time.Now()
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -411,6 +407,8 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 	msgService := NewMessageService(context.Background())
 
 	for _, setting := range settings {
+		notifyMsgs := []string{"#昨日水群排行榜"}
+
 		ranks, err := msgService.GetYesterdayChatRommRank(setting.ChatRoomID)
 		if err != nil {
 			log.Printf("获取群聊 %s 的排行榜失败: %v\n", setting.ChatRoomID, err)
@@ -461,7 +459,7 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 			if i >= 10 {
 				break
 			}
-			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.WechatID, r.Count)
+			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.SenderWxID, r.Count)
 			badge := "🏆"
 			switch i {
 			case 0:
@@ -496,8 +494,6 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 }
 
 func (s *ChatRoomService) ChatRoomRankingWeekly() error {
-	notifyMsgs := []string{"#上周水群排行榜"}
-
 	settings, err := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
 	if err != nil {
 		return err
@@ -506,6 +502,8 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 	msgService := NewMessageService(context.Background())
 
 	for _, setting := range settings {
+		notifyMsgs := []string{"#上周水群排行榜"}
+
 		ranks, err := msgService.GetLastWeekChatRommRank(setting.ChatRoomID)
 		if err != nil {
 			log.Printf("获取群聊 %s 的排行榜失败: %v\n", setting.ChatRoomID, err)
@@ -557,7 +555,7 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 			if i >= 10 {
 				break
 			}
-			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.WechatID, r.Count)
+			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.SenderWxID, r.Count)
 			badge := "🏆"
 			switch i {
 			case 0:
@@ -577,7 +575,6 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 
 func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 	monthStr := time.Now().Local().AddDate(0, 0, -1).Format("2006年01月")
-	notifyMsgs := []string{fmt.Sprintf("#%s水群排行榜", monthStr)}
 
 	settings, err := NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
 	if err != nil {
@@ -587,6 +584,8 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 	msgService := NewMessageService(context.Background())
 
 	for _, setting := range settings {
+		notifyMsgs := []string{fmt.Sprintf("#%s水群排行榜", monthStr)}
+
 		ranks, err := msgService.GetLastMonthChatRommRank(setting.ChatRoomID)
 		if err != nil {
 			log.Printf("获取群聊 %s 的排行榜失败: %v\n", setting.ChatRoomID, err)
@@ -637,7 +636,7 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 			if i >= 10 {
 				break
 			}
-			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.WechatID, r.Count)
+			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.SenderWxID, r.Count)
 			badge := "🏆"
 			switch i {
 			case 0:

@@ -15,12 +15,14 @@ import (
 )
 
 type LoginService struct {
-	ctx context.Context
+	ctx             context.Context
+	robotAdminRespo *repository.RobotAdmin
 }
 
 func NewLoginService(ctx context.Context) *LoginService {
 	return &LoginService{
-		ctx: ctx,
+		ctx:             ctx,
+		robotAdminRespo: repository.NewRobotAdminRepo(ctx, vars.AdminDB),
 	}
 }
 
@@ -37,12 +39,11 @@ func (s *LoginService) Online() error {
 		return fmt.Errorf("开启自动心跳失败: %w", err)
 	}
 	// 更新机器人状态
-	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
 		ID:     vars.RobotRuntime.RobotID,
 		Status: model.RobotStatusOnline,
 	}
-	return respo.Update(&robot)
+	return s.robotAdminRespo.Update(&robot)
 }
 
 func (s *LoginService) Offline() error {
@@ -56,12 +57,11 @@ func (s *LoginService) Offline() error {
 		vars.CronManager.Clear()
 	}
 	// 更新状态
-	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	robot := model.RobotAdmin{
 		ID:     vars.RobotRuntime.RobotID,
 		Status: model.RobotStatusOffline,
 	}
-	return respo.Update(&robot)
+	return s.robotAdminRespo.Update(&robot)
 }
 
 func (s *LoginService) IsRunning() (result bool) {
@@ -137,11 +137,10 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 	if err != nil {
 		return
 	}
-	respo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
 	if resp.AcctSectResp.Username != "" {
 		// 一个机器人实例只能绑定一个微信账号
 		var robotAdmin *model.RobotAdmin
-		robotAdmin, err = respo.GetByRobotID(vars.RobotRuntime.RobotID)
+		robotAdmin, err = s.robotAdminRespo.GetByRobotID(vars.RobotRuntime.RobotID)
 		if err != nil {
 			return
 		}
@@ -185,7 +184,7 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 			ProfileExt:  bytesExt,
 			LastLoginAt: time.Now().Unix(),
 		}
-		err = respo.Update(&robot)
+		err = s.robotAdminRespo.Update(&robot)
 		if err != nil {
 			return
 		}

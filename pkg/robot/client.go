@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"slices"
 	"strings"
 	"time"
 
@@ -418,14 +417,6 @@ func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 		return
 	}
 	wxids = result.Data.ContactUsernameList
-	// 过滤掉系统微信Id
-	var specialId = []string{"filehelper", "newsapp", "fmessage", "weibo", "qqmail", "tmessage", "qmessage", "qqsync",
-		"floatbottle", "lbsapp", "shakeapp", "medianote", "qqfriend", "readerapp", "blogapp", "facebookapp", "masssendapp",
-		"meishiapp", "feedsapp", "voip", "blogappweixin", "weixin", "brandsessionholder", "weixinreminder", "officialaccounts",
-		"notification_messages", "wxitil", "userexperience_alarm", "notification_messages", "exmail_tool", "mphelper"}
-	wxids = slices.DeleteFunc(wxids, func(id string) bool {
-		return slices.Contains(specialId, id) || strings.HasPrefix(id, "gh_") || strings.TrimSpace(id) == ""
-	})
 	return
 }
 

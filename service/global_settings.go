@@ -8,24 +8,24 @@ import (
 )
 
 type GlobalSettingsService struct {
-	ctx context.Context
+	ctx     context.Context
+	gsRespo *repository.GlobalSettings
 }
 
 func NewGlobalSettingsService(ctx context.Context) *GlobalSettingsService {
 	return &GlobalSettingsService{
-		ctx: ctx,
+		ctx:     ctx,
+		gsRespo: repository.NewGlobalSettingsRepo(ctx, vars.DB),
 	}
 }
 
 func (s *GlobalSettingsService) GetGlobalSettings() (*model.GlobalSettings, error) {
-	respo := repository.NewGlobalSettingsRepo(s.ctx, vars.DB)
-	return respo.GetGlobalSettings()
+	return s.gsRespo.GetGlobalSettings()
 }
 
 func (s *GlobalSettingsService) SaveGlobalSettings(data *model.GlobalSettings) error {
-	respo := repository.NewGlobalSettingsRepo(s.ctx, vars.DB)
 	data.FriendSyncCron = "" // 这个不允许用户修改
-	err := respo.Update(data)
+	err := s.gsRespo.Update(data)
 	if err != nil {
 		return err
 	}

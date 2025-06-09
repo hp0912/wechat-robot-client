@@ -8,24 +8,24 @@ import (
 )
 
 type FriendSettingsService struct {
-	ctx context.Context
+	ctx     context.Context
+	fsRespo *repository.FriendSettings
 }
 
 func NewFriendSettingsService(ctx context.Context) *FriendSettingsService {
 	return &FriendSettingsService{
-		ctx: ctx,
+		ctx:     ctx,
+		fsRespo: repository.NewFriendSettingsRepo(ctx, vars.DB),
 	}
 }
 
 func (s *FriendSettingsService) GetFriendSettings(contactID string) (*model.FriendSettings, error) {
-	respo := repository.NewFriendSettingsRepo(s.ctx, vars.DB)
-	return respo.GetFriendSettings(contactID)
+	return s.fsRespo.GetFriendSettings(contactID)
 }
 
 func (s *FriendSettingsService) SaveFriendSettings(data *model.FriendSettings) error {
-	respo := repository.NewFriendSettingsRepo(s.ctx, vars.DB)
 	if data.ID == 0 {
-		return respo.Create(data)
+		return s.fsRespo.Create(data)
 	}
-	return respo.Update(data)
+	return s.fsRespo.Update(data)
 }

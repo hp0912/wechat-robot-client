@@ -99,12 +99,11 @@ func (m *Message) GetFriendAIMessageContext(message *model.Message) ([]*model.Me
 
 func (m *Message) GetChatRoomAIMessageContext(message *model.Message) ([]*model.Message, error) {
 	var messages []*model.Message
-	now := time.Now().Unix()
 	tenMinutesAgo := time.Now().Add(-10 * time.Minute).Unix()
 	err := m.DB.WithContext(m.Ctx).Where("id <= ?", message.ID).
 		Where("from_wxid = ?", message.FromWxID).
-		Where("sender_wxid = ? OR reply_wxid = ?", message.SenderWxID, message.SenderWxID).
-		Where("created_at >= ? AND created_at < ?", tenMinutesAgo, now).
+		Where("(sender_wxid = ? AND is_ai_context = 1) OR reply_wxid = ?", message.SenderWxID, message.SenderWxID).
+		Where("created_at >= ?", tenMinutesAgo).
 		Where("`type` in (1, 3) OR (`type` = 49 AND `app_msg_type` = 57)").
 		Find(&messages).
 		Order("id ASC").Error
@@ -173,7 +172,7 @@ func (m *Message) GetYesterdayChatInfo(chatRoomID string) ([]*dto.ChatRoomSummar
 	return chatRoomSummary, nil
 }
 
-func (m *Message) GetYesterdayChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
+func (m *Message) GetYesterdayChatRommRank(self, chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	var chatRoomRank []*dto.ChatRoomRank
 	// 获取今天凌晨零点
 	now := time.Now()
@@ -188,6 +187,7 @@ func (m *Message) GetYesterdayChatRommRank(chatRoomID string) ([]*dto.ChatRoomRa
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where("messages.type < 10000").
+		Where("messages.sender_wxid != ?", self).
 		Where("messages.created_at >= ?", yesterdayStartTimestamp).
 		Where("messages.created_at < ?", todayStartTimestamp).
 		Group("messages.sender_wxid, chat_room_members.nickname").
@@ -198,7 +198,7 @@ func (m *Message) GetYesterdayChatRommRank(chatRoomID string) ([]*dto.ChatRoomRa
 	return chatRoomRank, nil
 }
 
-func (m *Message) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
+func (m *Message) GetLastWeekChatRommRank(self, chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	var chatRoomRank []*dto.ChatRoomRank
 	// 获取当前时间（周一）
 	now := time.Now()
@@ -215,6 +215,7 @@ func (m *Message) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.ChatRoomRan
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where("messages.type < 10000").
+		Where("messages.sender_wxid != ?", self).
 		Where("messages.created_at >= ?", lastWeekStartTimestamp).
 		Where("messages.created_at < ?", thisWeekStartTimestamp).
 		Group("messages.sender_wxid, chat_room_members.nickname").
@@ -225,7 +226,7 @@ func (m *Message) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.ChatRoomRan
 	return chatRoomRank, nil
 }
 
-func (m *Message) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
+func (m *Message) GetLastMonthChatRommRank(self, chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	var chatRoomRank []*dto.ChatRoomRank
 	// 获取当前时间（每月一号执行）
 	now := time.Now()
@@ -241,6 +242,7 @@ func (m *Message) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRa
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where("messages.type < 10000").
+		Where("messages.sender_wxid != ?", self).
 		Where("messages.created_at >= ?", lastMonthStartTimestamp).
 		Where("messages.created_at < ?", thisMonthStartTimestamp).
 		Group("messages.sender_wxid, chat_room_members.nickname").

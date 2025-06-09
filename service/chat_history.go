@@ -10,16 +10,17 @@ import (
 )
 
 type ChatHistoryService struct {
-	ctx context.Context
+	ctx      context.Context
+	msgRespo *repository.Message
 }
 
 func NewChatHistoryService(ctx context.Context) *ChatHistoryService {
 	return &ChatHistoryService{
-		ctx: ctx,
+		ctx:      ctx,
+		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
 	}
 }
 
 func (s *ChatHistoryService) GetChatHistory(req dto.ChatHistoryRequest, pager appx.Pager) ([]*model.Message, int64, error) {
-	respo := repository.NewMessageRepo(s.ctx, vars.DB)
-	return respo.GetByContactID(req, pager)
+	return s.msgRespo.GetByContactID(req, pager)
 }

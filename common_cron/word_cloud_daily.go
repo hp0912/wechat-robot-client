@@ -44,6 +44,11 @@ func (cron *WordCloudDailyCron) Cron() error {
 		return err
 	}
 	wcService := service.NewWordCloudService(context.Background())
+	globalSettings, err := service.NewGlobalSettingsService(context.Background()).GetGlobalSettings()
+	if err != nil {
+		log.Printf("获取全局设置失败: %v", err)
+		return err
+	}
 	settings, err := service.NewChatRoomSettingsService(context.Background()).GetAllEnableChatRank()
 	if err != nil {
 		log.Printf("获取群聊设置失败: %v", err)
@@ -54,7 +59,15 @@ func (cron *WordCloudDailyCron) Cron() error {
 			log.Printf("[词云] 群聊 %s 未开启群聊排行榜，跳过处理\n", setting.ChatRoomID)
 			continue
 		}
-		imageData, err := wcService.WordCloudDaily(setting.ChatRoomID, yesterdayStartTimestamp, todayStartTimestamp)
+		// AI触发词，生成词云的时候，去掉这个无意义的触发词
+		var aiTriggerWord string
+		if globalSettings.ChatAITrigger != nil && *globalSettings.ChatAITrigger != "" {
+			aiTriggerWord = *globalSettings.ChatAITrigger
+		}
+		if setting.ChatAITrigger != nil && *setting.ChatAITrigger != "" {
+			aiTriggerWord = *setting.ChatAITrigger
+		}
+		imageData, err := wcService.WordCloudDaily(setting.ChatRoomID, aiTriggerWord, yesterdayStartTimestamp, todayStartTimestamp)
 		if err != nil {
 			log.Printf("[词云] 群聊 %s 生成词云失败: %v\n", setting.ChatRoomID, err)
 			continue

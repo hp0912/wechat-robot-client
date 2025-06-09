@@ -15,12 +15,14 @@ import (
 )
 
 type ContactService struct {
-	ctx context.Context
+	ctx     context.Context
+	ctRespo *repository.Contact
 }
 
 func NewContactService(ctx context.Context) *ContactService {
 	return &ContactService{
-		ctx: ctx,
+		ctx:     ctx,
+		ctRespo: repository.NewContactRepo(ctx, vars.DB),
 	}
 }
 
@@ -35,8 +37,7 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 		return err
 	}
 
-	respo := repository.NewContactRepo(s.ctx, vars.DB)
-	recentChatRoomContacts, err := respo.FindRecentChatRoomContacts()
+	recentChatRoomContacts, err := s.ctRespo.FindRecentChatRoomContacts()
 	if err != nil {
 		return err
 	}
@@ -70,7 +71,6 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 		return true
 	}
 	chunker(processChunk)
-	validContactIds := make([]string, 0)
 	for _, contact := range contacts {
 		if contact.UserName.String == nil {
 			continue
@@ -78,9 +78,8 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 		if strings.TrimSpace(*contact.UserName.String) == "" {
 			continue
 		}
-		validContactIds = append(validContactIds, *contact.UserName.String)
 		// 判断数据库是否存在当前数据，不存在就新建，存在就更新
-		existContact, err := respo.GetContact(*contact.UserName.String)
+		existContact, err := s.ctRespo.GetContact(*contact.UserName.String)
 		if err != nil {
 			log.Printf("获取联系人失败: %v", err)
 			continue
@@ -104,7 +103,7 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 			if contact.BigHeadImgUrl == "" {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
 			}
-			err = respo.Update(&contactPerson)
+			err = s.ctRespo.Update(&contactPerson)
 			if err != nil {
 				log.Printf("更新联系人失败: %v", err)
 				continue
@@ -133,7 +132,7 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 			if strings.HasSuffix(*contact.UserName.String, "@chatroom") {
 				contactPerson.Type = model.ContactTypeChatRoom
 			}
-			err = respo.Create(&contactPerson)
+			err = s.ctRespo.Create(&contactPerson)
 			if err != nil {
 				log.Printf("创建联系人失败: %v", err)
 				continue
@@ -144,17 +143,16 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 }
 
 func (s *ContactService) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
-	respo := repository.NewContactRepo(s.ctx, vars.DB)
-	return respo.GetContacts(req, pager)
+	return s.ctRespo.GetContacts(req, pager)
 }
 
 func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
-	contactRespo := repository.NewContactRepo(s.ctx, vars.DB)
-	existContact, err := contactRespo.GetContact(contactID)
+	existContact, err := s.ctRespo.GetContact(contactID)
 	if err != nil {
 		log.Printf("获取联系人失败: %v", err)
 		return
 	}
+	// 群聊类型的联系人
 	if strings.HasSuffix(contactID, "@chatroom") {
 		if existContact == nil {
 			contactChatRoom := model.Contact{
@@ -163,7 +161,7 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 				CreatedAt: time.Now().Unix(),
 				UpdatedAt: time.Now().Unix(),
 			}
-			err = contactRespo.Create(&contactChatRoom)
+			err = s.ctRespo.Create(&contactChatRoom)
 			if err != nil {
 				log.Printf("创建群聊联系人失败: %v", err)
 				return
@@ -174,21 +172,35 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 				ID:        existContact.ID,
 				UpdatedAt: time.Now().Unix(),
 			}
-			err = contactRespo.Update(&contactChatRoom)
+			err = s.ctRespo.Update(&contactChatRoom)
 			if err != nil {
 				log.Printf("更新群聊联系人失败: %v", err)
 				return
 			}
 		}
+		return
+	}
+	// 好友类型的联系人
+	if existContact == nil {
+		contact := model.Contact{
+			WechatID:  contactID,
+			Type:      model.ContactTypeFriend,
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
+		}
+		err = s.ctRespo.Create(&contact)
+		if err != nil {
+			log.Printf("创建好友失败: %v", err)
+			return
+		}
 	} else {
-		// 普通联系人肯定存在，更新一下活跃时间就好了
 		contact := model.Contact{
 			ID:        existContact.ID,
 			UpdatedAt: time.Now().Unix(),
 		}
-		err = contactRespo.Update(&contact)
+		err = s.ctRespo.Update(&contact)
 		if err != nil {
-			log.Printf("更新联系人活跃时间失败: %v", err)
+			log.Printf("更新好友失败: %v", err)
 			return
 		}
 	}

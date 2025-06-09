@@ -41,4 +41,6 @@ var MusicSearchApi = "https://www.hhlqilongzhu.cn/api/joox/juhe_music.php"
 
 var WordCloudUrl string
 
+var AtAllRegexp = `@所有人(?: | )`
+
 var TrimAtRegexp = `@[^ | ]+?(?: | )`
