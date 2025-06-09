@@ -159,6 +159,12 @@ func (s *AIService) IsAIEnabled() bool {
 
 func (s *AIService) IsAITrigger(message *model.Message) bool {
 	if message.IsAtMe {
+		// 是否是 @所有人
+		atAllRegex := regexp.MustCompile(vars.AtAllRegexp)
+		if atAllRegex.MatchString(message.Content) {
+			// 如果是 @所有人，则不处理
+			return false
+		}
 		re := regexp.MustCompile(vars.TrimAtRegexp)
 		message.Content = re.ReplaceAllString(message.Content, "")
 		return true
