@@ -8,6 +8,7 @@ import (
 	"time"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 
 	"github.com/sashabaranov/go-openai"
@@ -171,8 +172,7 @@ func (s *AIService) IsAITrigger(message *model.Message) bool {
 			// 如果是 @所有人，则不处理
 			return false
 		}
-		re := regexp.MustCompile(vars.TrimAtRegexp)
-		message.Content = re.ReplaceAllString(message.Content, "")
+		message.Content = utils.TrimAt(message.Content)
 		return true
 	}
 	if s.chatRoomSettings == nil {
@@ -184,8 +184,7 @@ func (s *AIService) IsAITrigger(message *model.Message) bool {
 		}
 		isAITrigger := *s.globalSettings.ChatAITrigger != "" && strings.HasPrefix(message.Content, *s.globalSettings.ChatAITrigger)
 		if isAITrigger {
-			re := regexp.MustCompile(regexp.QuoteMeta(*s.globalSettings.ChatAITrigger) + `[\s，,：:]*`)
-			message.Content = re.ReplaceAllString(message.Content, "")
+			message.Content = utils.TrimAITriggerWord(message.Content, *s.globalSettings.ChatAITrigger)
 		}
 		return isAITrigger
 	}
@@ -195,16 +194,14 @@ func (s *AIService) IsAITrigger(message *model.Message) bool {
 	if s.chatRoomSettings.ChatAITrigger != nil && *s.chatRoomSettings.ChatAITrigger != "" {
 		isAITrigger := *s.chatRoomSettings.ChatAITrigger != "" && strings.HasPrefix(message.Content, *s.chatRoomSettings.ChatAITrigger)
 		if isAITrigger {
-			re := regexp.MustCompile(regexp.QuoteMeta(*s.chatRoomSettings.ChatAITrigger) + `[\s，,：:]*`)
-			message.Content = re.ReplaceAllString(message.Content, "")
+			message.Content = utils.TrimAITriggerWord(message.Content, *s.chatRoomSettings.ChatAITrigger)
 		}
 		return isAITrigger
 	}
 	isAITrigger := s.globalSettings != nil && s.globalSettings.ChatAITrigger != nil && *s.globalSettings.ChatAITrigger != "" &&
 		strings.HasPrefix(message.Content, *s.globalSettings.ChatAITrigger)
 	if isAITrigger {
-		re := regexp.MustCompile(regexp.QuoteMeta(*s.globalSettings.ChatAITrigger) + `[\s，,：:]*`)
-		message.Content = re.ReplaceAllString(message.Content, "")
+		message.Content = utils.TrimAITriggerWord(message.Content, *s.globalSettings.ChatAITrigger)
 	}
 	return isAITrigger
 }
