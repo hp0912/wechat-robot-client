@@ -13,18 +13,19 @@ import (
 )
 
 type WordCloudService struct {
-	ctx context.Context
+	ctx      context.Context
+	msgRespo *repository.Message
 }
 
 func NewWordCloudService(ctx context.Context) *WordCloudService {
 	return &WordCloudService{
-		ctx: ctx,
+		ctx:      ctx,
+		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
 	}
 }
 
 func (s *WordCloudService) WordCloudDaily(chatRoomID string, startTime, endTime int64) ([]byte, error) {
-	msgRespo := repository.NewMessageRepo(s.ctx, vars.DB)
-	messages, err := msgRespo.GetMessagesByTimeRange(chatRoomID, startTime, endTime)
+	messages, err := s.msgRespo.GetMessagesByTimeRange(chatRoomID, startTime, endTime)
 	if err != nil {
 		return nil, err
 	}

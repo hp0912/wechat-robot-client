@@ -37,6 +37,9 @@ type AIService struct {
 	chatRoomSettings *model.ChatRoomSettings
 	globalSettings   *model.GlobalSettings
 	friendSettings   *model.FriendSettings
+	gsRespo          *repository.GlobalSettings
+	crsRespo         *repository.ChatRoomSettings
+	fsRespo          *repository.FriendSettings
 }
 
 const defaultTTL = 10 * time.Minute
@@ -59,6 +62,9 @@ func NewAIService(ctx context.Context, message *model.Message) *AIService {
 		globalSettings:   globalSettings,
 		chatRoomSettings: chatRoomSettings,
 		friendSettings:   friendSettings,
+		gsRespo:          gsRespo,
+		crsRespo:         crsRespo,
+		fsRespo:          fsRespo,
 	}
 }
 

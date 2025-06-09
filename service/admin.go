@@ -8,16 +8,17 @@ import (
 )
 
 type AdminService struct {
-	ctx context.Context
+	ctx             context.Context
+	robotAdminRespo *repository.RobotAdmin
 }
 
 func NewAdminService(ctx context.Context) *AdminService {
 	return &AdminService{
-		ctx: ctx,
+		ctx:             ctx,
+		robotAdminRespo: repository.NewRobotAdminRepo(ctx, vars.AdminDB),
 	}
 }
 
 func (s *AdminService) GetRobotByID(robotID int64) (*model.RobotAdmin, error) {
-	robotRespo := repository.NewRobotAdminRepo(s.ctx, vars.AdminDB)
-	return robotRespo.GetByRobotID(robotID)
+	return s.robotAdminRespo.GetByRobotID(robotID)
 }

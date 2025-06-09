@@ -11,18 +11,19 @@ import (
 )
 
 type AttachDownloadService struct {
-	ctx context.Context
+	ctx      context.Context
+	msgRespo *repository.Message
 }
 
 func NewAttachDownloadService(ctx context.Context) *AttachDownloadService {
 	return &AttachDownloadService{
-		ctx: ctx,
+		ctx:      ctx,
+		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
 	}
 }
 
 func (a *AttachDownloadService) DownloadImage(req dto.AttachDownloadRequest) ([]byte, string, string, error) {
-	respo := repository.NewMessageRepo(a.ctx, vars.DB)
-	message, err := respo.GetByID(req.MessageID)
+	message, err := a.msgRespo.GetByID(req.MessageID)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -36,8 +37,7 @@ func (a *AttachDownloadService) DownloadImage(req dto.AttachDownloadRequest) ([]
 }
 
 func (a *AttachDownloadService) DownloadVoice(req dto.AttachDownloadRequest) ([]byte, string, string, error) {
-	respo := repository.NewMessageRepo(a.ctx, vars.DB)
-	message, err := respo.GetByID(req.MessageID)
+	message, err := a.msgRespo.GetByID(req.MessageID)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -51,8 +51,7 @@ func (a *AttachDownloadService) DownloadVoice(req dto.AttachDownloadRequest) ([]
 }
 
 func (a *AttachDownloadService) DownloadFile(req dto.AttachDownloadRequest) (io.ReadCloser, string, error) {
-	respo := repository.NewMessageRepo(a.ctx, vars.DB)
-	message, err := respo.GetByID(req.MessageID)
+	message, err := a.msgRespo.GetByID(req.MessageID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -66,8 +65,7 @@ func (a *AttachDownloadService) DownloadFile(req dto.AttachDownloadRequest) (io.
 }
 
 func (a *AttachDownloadService) DownloadVideo(req dto.AttachDownloadRequest) (io.ReadCloser, string, error) {
-	respo := repository.NewMessageRepo(a.ctx, vars.DB)
-	message, err := respo.GetByID(req.MessageID)
+	message, err := a.msgRespo.GetByID(req.MessageID)
 	if err != nil {
 		return nil, "", err
 	}
