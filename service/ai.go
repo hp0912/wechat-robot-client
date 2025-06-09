@@ -35,6 +35,7 @@ type SongRequestMetadata struct {
 
 type AIService struct {
 	ctx              context.Context
+	message          *model.Message
 	chatRoomSettings *model.ChatRoomSettings
 	globalSettings   *model.GlobalSettings
 	friendSettings   *model.FriendSettings
@@ -60,6 +61,7 @@ func NewAIService(ctx context.Context, message *model.Message) *AIService {
 	}
 	return &AIService{
 		ctx:              ctx,
+		message:          message,
 		globalSettings:   globalSettings,
 		chatRoomSettings: chatRoomSettings,
 		friendSettings:   friendSettings,
@@ -133,18 +135,35 @@ func (s *AIService) GetAIConfig() (baseURL string, apiKey string, model string, 
 			prompt = s.globalSettings.ChatPrompt
 		}
 	}
-	if s.chatRoomSettings != nil {
-		if s.chatRoomSettings.ChatBaseURL != nil && *s.chatRoomSettings.ChatBaseURL != "" {
-			baseURL = *s.chatRoomSettings.ChatBaseURL
+	if s.message.IsChatRoom {
+		if s.chatRoomSettings != nil {
+			if s.chatRoomSettings.ChatBaseURL != nil && *s.chatRoomSettings.ChatBaseURL != "" {
+				baseURL = *s.chatRoomSettings.ChatBaseURL
+			}
+			if s.chatRoomSettings.ChatAPIKey != nil && *s.chatRoomSettings.ChatAPIKey != "" {
+				apiKey = *s.chatRoomSettings.ChatAPIKey
+			}
+			if s.chatRoomSettings.ChatModel != nil && *s.chatRoomSettings.ChatModel != "" {
+				model = *s.chatRoomSettings.ChatModel
+			}
+			if s.chatRoomSettings.ChatPrompt != nil && *s.chatRoomSettings.ChatPrompt != "" {
+				prompt = *s.chatRoomSettings.ChatPrompt
+			}
 		}
-		if s.chatRoomSettings.ChatAPIKey != nil && *s.chatRoomSettings.ChatAPIKey != "" {
-			apiKey = *s.chatRoomSettings.ChatAPIKey
-		}
-		if s.chatRoomSettings.ChatModel != nil && *s.chatRoomSettings.ChatModel != "" {
-			model = *s.chatRoomSettings.ChatModel
-		}
-		if s.chatRoomSettings.ChatPrompt != nil && *s.chatRoomSettings.ChatPrompt != "" {
-			prompt = *s.chatRoomSettings.ChatPrompt
+	} else {
+		if s.friendSettings != nil {
+			if s.friendSettings.ChatBaseURL != nil && *s.friendSettings.ChatBaseURL != "" {
+				baseURL = *s.friendSettings.ChatBaseURL
+			}
+			if s.friendSettings.ChatAPIKey != nil && *s.friendSettings.ChatAPIKey != "" {
+				apiKey = *s.friendSettings.ChatAPIKey
+			}
+			if s.friendSettings.ChatModel != nil && *s.friendSettings.ChatModel != "" {
+				model = *s.friendSettings.ChatModel
+			}
+			if s.friendSettings.ChatPrompt != nil && *s.friendSettings.ChatPrompt != "" {
+				prompt = *s.friendSettings.ChatPrompt
+			}
 		}
 	}
 	baseURL = strings.TrimRight(baseURL, "/")
@@ -155,8 +174,14 @@ func (s *AIService) GetAIConfig() (baseURL string, apiKey string, model string, 
 }
 
 func (s *AIService) IsAIEnabled() bool {
-	if s.friendSettings != nil && s.friendSettings.ChatAIEnabled != nil {
-		return *s.friendSettings.ChatAIEnabled
+	if s.message.IsChatRoom {
+		if s.chatRoomSettings != nil && s.chatRoomSettings.ChatAIEnabled != nil {
+			return *s.chatRoomSettings.ChatAIEnabled
+		}
+	} else {
+		if s.friendSettings != nil && s.friendSettings.ChatAIEnabled != nil {
+			return *s.friendSettings.ChatAIEnabled
+		}
 	}
 	if s.globalSettings != nil && s.globalSettings.ChatAIEnabled != nil {
 		return *s.globalSettings.ChatAIEnabled
@@ -207,7 +232,7 @@ func (s *AIService) IsAITrigger(message *model.Message) bool {
 }
 
 func (s *AIService) ChatIntention(message *model.Message) ChatIntention {
-	baseURL, apiKey, model, _ := s.GetAIConfig()
+	baseURL, apiKey, _, _ := s.GetAIConfig()
 	aiConfig := openai.DefaultConfig(apiKey)
 	aiConfig.BaseURL = baseURL
 
@@ -249,7 +274,7 @@ func (s *AIService) ChatIntention(message *model.Message) ChatIntention {
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    model,
+			Model:    "gpt-4o-mini", // 固定写死，使用更小的模型以提高响应速度和降低成本
 			Messages: aiMessages,
 			ResponseFormat: &openai.ChatCompletionResponseFormat{
 				Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
@@ -275,7 +300,7 @@ func (s *AIService) ChatIntention(message *model.Message) ChatIntention {
 }
 
 func (s *AIService) GetSongRequestTitle(message *model.Message) string {
-	baseURL, apiKey, model, _ := s.GetAIConfig()
+	baseURL, apiKey, _, _ := s.GetAIConfig()
 	aiConfig := openai.DefaultConfig(apiKey)
 	aiConfig.BaseURL = baseURL
 
@@ -308,7 +333,7 @@ func (s *AIService) GetSongRequestTitle(message *model.Message) string {
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    model,
+			Model:    "gpt-4o-mini", // 固定写死，使用更小的模型以提高响应速度和降低成本
 			Messages: aiMessages,
 			ResponseFormat: &openai.ChatCompletionResponseFormat{
 				Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
