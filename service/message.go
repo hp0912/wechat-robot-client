@@ -33,8 +33,7 @@ func NewMessageService(ctx context.Context) *MessageService {
 	}
 }
 
-func (s *MessageService) ProcessAI(message *model.Message) {
-	aiService := NewAIService(s.ctx, message)
+func (s *MessageService) ProcessAI(aiService *AIService, message *model.Message) {
 	chatIntention := aiService.ChatIntention(message)
 	switch chatIntention {
 	case ChatIntentionChat:
@@ -75,8 +74,7 @@ func (s *MessageService) ProcessAI(message *model.Message) {
 }
 
 // ProcessTextMessage 处理文本消息
-func (s *MessageService) ProcessTextMessage(message *model.Message) {
-	aiService := NewAIService(s.ctx, message)
+func (s *MessageService) ProcessTextMessage(aiService *AIService, message *model.Message) {
 	if message.IsChatRoom {
 		if aiService.IsAISessionStart(message) {
 			s.SendTextMessage(message.FromWxID, "AI会话已开始，请输入您的问题。10分钟不说话会话将自动结束，您也可以输入 #退出AI会话 来结束会话。", message.SenderWxID)
@@ -96,11 +94,11 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 			return
 		}
 		if aiService.IsAITrigger(message) {
-			s.ProcessAI(message)
+			s.ProcessAI(aiService, message)
 			return
 		}
 	} else if aiService.IsAIEnabled() {
-		s.ProcessAI(message)
+		s.ProcessAI(aiService, message)
 	}
 }
 
@@ -364,13 +362,27 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 				}
 			}
 		}
+		// 是否是AI上下文，开启了AI聊天且(是艾特我或者包含AI触发词 -> 群聊  或者是私聊)
+		aiService := NewAIService(s.ctx, &m)
+		isAIEnabled := aiService.IsAIEnabled()
+		isAITrigger := aiService.IsAITrigger(&m)
+		IsInAISession, _ := aiService.IsInAISession(&m)
+		if isAIEnabled {
+			if m.IsChatRoom {
+				if isAITrigger || IsInAISession {
+					m.IsAIContext = true
+				}
+			} else {
+				m.IsAIContext = true
+			}
+		}
 		err := s.msgRespo.Create(&m)
 		if err != nil {
 			log.Printf("入库消息失败: %v", err)
 		}
 		switch m.Type {
 		case model.MsgTypeText:
-			go s.ProcessTextMessage(&m)
+			go s.ProcessTextMessage(aiService, &m)
 		case model.MsgTypeImage:
 			go s.ProcessImageMessage(&m)
 		case model.MsgTypeVoice:

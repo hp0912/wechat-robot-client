@@ -99,12 +99,11 @@ func (m *Message) GetFriendAIMessageContext(message *model.Message) ([]*model.Me
 
 func (m *Message) GetChatRoomAIMessageContext(message *model.Message) ([]*model.Message, error) {
 	var messages []*model.Message
-	now := time.Now().Unix()
 	tenMinutesAgo := time.Now().Add(-10 * time.Minute).Unix()
 	err := m.DB.WithContext(m.Ctx).Where("id <= ?", message.ID).
 		Where("from_wxid = ?", message.FromWxID).
-		Where("sender_wxid = ? OR reply_wxid = ?", message.SenderWxID, message.SenderWxID).
-		Where("created_at >= ? AND created_at < ?", tenMinutesAgo, now).
+		Where("(sender_wxid = ? AND is_ai_context = 1) OR reply_wxid = ?", message.SenderWxID, message.SenderWxID).
+		Where("created_at >= ?", tenMinutesAgo).
 		Where("`type` in (1, 3) OR (`type` = 49 AND `app_msg_type` = 57)").
 		Find(&messages).
 		Order("id ASC").Error
