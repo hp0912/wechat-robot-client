@@ -86,18 +86,18 @@ func (s *MessageService) ProcessTextMessage(aiService *AIService, message *model
 			return
 		}
 		if isInSession {
-			fmt.Println(isInSession)
+			s.ProcessAI(aiService, message)
 			return
 		}
 		if aiService.IsAISessionEnd(message) {
 			s.SendTextMessage(message.FromWxID, "AI会话已结束，您可以输入 #进入AI会话 来重新开始。", message.SenderWxID)
 			return
 		}
-		if aiService.IsAITrigger(message) {
+		if message.IsAIContext {
 			s.ProcessAI(aiService, message)
 			return
 		}
-	} else if aiService.IsAIEnabled() {
+	} else if message.IsAIContext {
 		s.ProcessAI(aiService, message)
 	}
 }
