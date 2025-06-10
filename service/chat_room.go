@@ -128,9 +128,9 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 		}
 		if len(leavedMembers) > 0 {
 			if len(leavedMembers) <= 10 {
-				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，：%s永远地离开了我们～", strings.Join(leavedMembers, "、")))
+				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，%s退出了群聊～", strings.Join(leavedMembers, "、")))
 			} else {
-				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，又有%d位家人永远地离开了我们～", len(leavedMembers)))
+				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，%s等%d位退出了群聊～", leavedMembers[0], len(leavedMembers)))
 			}
 		}
 	}
