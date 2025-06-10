@@ -22,8 +22,9 @@ import (
 )
 
 type MessageService struct {
-	ctx      context.Context
-	msgRespo *repository.Message
+	ctx       context.Context
+	aiService *AIService
+	msgRespo  *repository.Message
 }
 
 func NewMessageService(ctx context.Context) *MessageService {
@@ -33,8 +34,8 @@ func NewMessageService(ctx context.Context) *MessageService {
 	}
 }
 
-func (s *MessageService) ProcessAI(aiService *AIService, message *model.Message) {
-	chatIntention := aiService.ChatIntention(message)
+func (s *MessageService) ProcessAI(message *model.Message) {
+	chatIntention := s.aiService.ChatIntention(message)
 	switch chatIntention {
 	case ChatIntentionChat:
 		aiContext, err := s.GetAIMessageContext(message)
@@ -42,7 +43,7 @@ func (s *MessageService) ProcessAI(aiService *AIService, message *model.Message)
 			s.SendTextMessage(message.FromWxID, err.Error())
 			return
 		}
-		aiReply, err := aiService.Chat(aiContext)
+		aiReply, err := s.aiService.Chat(aiContext)
 		if err != nil {
 			s.SendTextMessage(message.FromWxID, err.Error())
 			return
@@ -55,7 +56,7 @@ func (s *MessageService) ProcessAI(aiService *AIService, message *model.Message)
 	case ChatIntentionSing:
 		s.SendTextMessage(message.FromWxID, "唱歌功能正在开发中，敬请期待！")
 	case ChatIntentionSongRequest:
-		title := aiService.GetSongRequestTitle(message)
+		title := s.aiService.GetSongRequestTitle(message)
 		if title == "" {
 			s.SendTextMessage(message.FromWxID, "抱歉，我无法识别您想要点的歌曲。")
 			return
@@ -74,31 +75,31 @@ func (s *MessageService) ProcessAI(aiService *AIService, message *model.Message)
 }
 
 // ProcessTextMessage 处理文本消息
-func (s *MessageService) ProcessTextMessage(aiService *AIService, message *model.Message) {
+func (s *MessageService) ProcessTextMessage(message *model.Message) {
 	if message.IsChatRoom {
-		if aiService.IsAISessionStart(message) {
+		if s.aiService.IsAISessionStart(message) {
 			s.SendTextMessage(message.FromWxID, "AI会话已开始，请输入您的问题。10分钟不说话会话将自动结束，您也可以输入 #退出AI会话 来结束会话。", message.SenderWxID)
 			return
 		}
-		isInSession, err := aiService.IsInAISession(message)
+		isInSession, err := s.aiService.IsInAISession(message)
 		if err != nil {
 			log.Printf("检查AI会话失败: %v", err)
 			return
 		}
 		if isInSession {
-			s.ProcessAI(aiService, message)
+			s.ProcessAI(message)
 			return
 		}
-		if aiService.IsAISessionEnd(message) {
+		if s.aiService.IsAISessionEnd(message) {
 			s.SendTextMessage(message.FromWxID, "AI会话已结束，您可以输入 #进入AI会话 来重新开始。", message.SenderWxID)
 			return
 		}
 		if message.IsAIContext {
-			s.ProcessAI(aiService, message)
+			s.ProcessAI(message)
 			return
 		}
 	} else if message.IsAIContext {
-		s.ProcessAI(aiService, message)
+		s.ProcessAI(message)
 	}
 }
 
@@ -380,9 +381,12 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		if err != nil {
 			log.Printf("入库消息失败: %v", err)
 		}
+
+		s.aiService = aiService
+
 		switch m.Type {
 		case model.MsgTypeText:
-			go s.ProcessTextMessage(aiService, &m)
+			go s.ProcessTextMessage(&m)
 		case model.MsgTypeImage:
 			go s.ProcessImageMessage(&m)
 		case model.MsgTypeVoice:
