@@ -213,3 +213,20 @@ func TestSendCDNVideo(t *testing.T) {
 		Content: content,
 	})
 }
+
+func TestContacts(t *testing.T) {
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 3010)))
+	ids, err := client.GetContactList("wxid_7bpstqonj92212")
+	if err != nil {
+		t.Fatalf("获取联系人列表失败: %v", err)
+	}
+	contacts, err := client.GetContactDetail("wxid_7bpstqonj92212", ids)
+	if err != nil {
+		t.Fatalf("获取联系人详情失败: %v", err)
+	}
+	for _, contact := range contacts {
+		if contact.UserName.String != nil {
+			t.Logf("联系人: %s   ", *contact.UserName.String)
+		}
+	}
+}

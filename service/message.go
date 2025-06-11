@@ -380,7 +380,7 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		err := s.msgRespo.Create(&m)
 		if err != nil {
 			log.Printf("入库消息失败: %v", err)
-			return
+			continue
 		}
 
 		s.aiService = aiService

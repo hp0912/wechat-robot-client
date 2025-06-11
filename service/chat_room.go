@@ -48,13 +48,11 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 	// 遍历获取到的群成员列表，如果数据库存在，则更新，数据库不存在则新增
 	if len(chatRoomMembers) > 0 {
 		now := time.Now().Unix()
-
 		// 获取当前成员的微信ID列表，用于后续比对
 		currentMemberIDs := make([]string, 0, len(chatRoomMembers))
 		for _, member := range chatRoomMembers {
 			currentMemberIDs = append(currentMemberIDs, member.UserName)
 		}
-
 		for _, member := range chatRoomMembers {
 			// 检查成员是否已存在
 			existMember, err := s.crmRespo.GetChatRoomMember(chatRoomID, member.UserName)
@@ -66,11 +64,12 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 				// 更新现有成员
 				isLeaved := false
 				updateMember := model.ChatRoomMember{
-					ID:       existMember.ID,
-					Nickname: member.NickName,
-					Avatar:   member.SmallHeadImgUrl,
-					IsLeaved: &isLeaved, // 确保标记为未离开
-					LeavedAt: nil,       // 清除离开时间
+					ID:              existMember.ID,
+					Nickname:        member.NickName,
+					Avatar:          member.SmallHeadImgUrl,
+					InviterWechatID: member.InviterUserName,
+					IsLeaved:        &isLeaved, // 确保标记为未离开
+					LeavedAt:        nil,       // 清除离开时间
 				}
 				// 更新数据库中已有的记录
 				err = s.crmRespo.Update(&updateMember)
@@ -147,13 +146,12 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 		if err != nil {
 			// 处理错误
 			log.Printf("获取联系人详情失败: %v", err)
-			return false
+			return true
 		}
 		newMembers = append(newMembers, c...)
 		return true
 	}
 	chunker(processChunk)
-
 	for _, member := range newMembers {
 		if member.UserName.String == nil {
 			continue

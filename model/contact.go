@@ -6,8 +6,9 @@ import "gorm.io/gorm"
 type ContactType string
 
 const (
-	ContactTypeFriend   ContactType = "friend"
-	ContactTypeChatRoom ContactType = "chat_room"
+	ContactTypeFriend          ContactType = "friend"
+	ContactTypeChatRoom        ContactType = "chat_room"
+	ContactTypeOfficialAccount ContactType = "official_account"
 )
 
 // Contact 表示微信联系人，包括好友和群组
