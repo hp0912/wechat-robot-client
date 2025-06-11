@@ -26,22 +26,34 @@ func NewContactService(ctx context.Context) *ContactService {
 	}
 }
 
+func (s *ContactService) GetContactType(contact model.Contact) model.ContactType {
+	if strings.HasSuffix(contact.WechatID, "@chatroom") {
+		return model.ContactTypeChatRoom
+	}
+	if _, ok := vars.OfficialAccount[contact.WechatID]; ok {
+		return model.ContactTypeOfficialAccount
+	}
+	if strings.HasPrefix(contact.WechatID, "gh_") && contact.Sex == 0 {
+		return model.ContactTypeOfficialAccount
+	}
+	return model.ContactTypeFriend
+}
+
 func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
 		return nil
 	}
-	// 先获取全部id
+	// 先获取全部好友id，没有保存到通讯录的群聊不会在这里
 	var contactIds []string
 	contactIds, err := vars.RobotRuntime.GetContactList()
 	if err != nil {
 		return err
 	}
-
+	// 查询没有保存到通讯录的群聊，只同步一天内活跃的群聊
 	recentChatRoomContacts, err := s.ctRespo.FindRecentChatRoomContacts()
 	if err != nil {
 		return err
 	}
-
 	for _, chatRoomContact := range recentChatRoomContacts {
 		if !slices.Contains(contactIds, chatRoomContact.WechatID) {
 			contactIds = append(contactIds, chatRoomContact.WechatID)
@@ -54,18 +66,26 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 			cmService.SyncChatRoomMember(chatRoomContact.WechatID)
 		}
 	}
+	err = s.SyncContactByContactIDs(contactIds)
+	if err != nil {
+		log.Printf("同步联系人失败: %v", err)
+		return err
+	}
+	return nil
+}
 
+func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 	// 将ids拆分成二十个一个的数组之后再获取详情
 	var contacts = make([]robot.Contact, 0)
-	chunker := slices.Chunk(contactIds, 20)
+	chunker := slices.Chunk(contactIDs, 20)
 	processChunk := func(chunk []string) bool {
 		// 获取昵称等详细信息
 		var c = make([]robot.Contact, 0)
-		c, err = vars.RobotRuntime.GetContactDetail(chunk)
+		c, err := vars.RobotRuntime.GetContactDetail(chunk)
 		if err != nil {
 			// 处理错误
 			log.Printf("获取联系人详情失败: %v", err)
-			return false
+			return true
 		}
 		contacts = append(contacts, c...)
 		return true
@@ -100,6 +120,7 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 				Signature:     contact.Signature,
 				SnsBackground: contact.SnsUserInfo.SnsBgimgId,
 			}
+			contactPerson.Type = s.GetContactType(contactPerson)
 			if contact.BigHeadImgUrl == "" {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
 			}
@@ -114,7 +135,6 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 				Alias:         contact.Alias,
 				Nickname:      contact.NickName.String,
 				Avatar:        contact.BigHeadImgUrl,
-				Type:          model.ContactTypeFriend,
 				Pyinitial:     contact.Pyinitial.String,
 				QuanPin:       contact.QuanPin.String,
 				Sex:           contact.Sex,
@@ -129,9 +149,7 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 			if contact.BigHeadImgUrl == "" {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
 			}
-			if strings.HasSuffix(*contact.UserName.String, "@chatroom") {
-				contactPerson.Type = model.ContactTypeChatRoom
-			}
+			contactPerson.Type = s.GetContactType(contactPerson)
 			err = s.ctRespo.Create(&contactPerson)
 			if err != nil {
 				log.Printf("创建联系人失败: %v", err)
