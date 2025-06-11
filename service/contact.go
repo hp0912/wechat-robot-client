@@ -108,6 +108,7 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 			// 存在，修改
 			contactPerson := model.Contact{
 				ID:            existContact.ID,
+				WechatID:      *contact.UserName.String,
 				Alias:         contact.Alias,
 				Nickname:      contact.NickName.String,
 				Avatar:        contact.BigHeadImgUrl,
