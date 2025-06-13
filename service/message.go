@@ -361,14 +361,18 @@ func (s *MessageService) ProcessMentionedMeMessage(message *model.Message, msgSo
 	}
 }
 
-func (s *MessageService) InitAIServiceByMessage(message *model.Message) {
+func (s *MessageService) InitAIServiceByMessage(message *model.Message) *AIService {
 	var settings Settings
 	if message.IsChatRoom {
 		settings = NewChatRoomSettingsService(s.ctx)
 	} else {
 		settings = NewFriendSettingsService(s.ctx)
 	}
-	settings.InitByMessage(message)
+	err := settings.InitByMessage(message)
+	if err != nil {
+		log.Println("初始化设置失败: ", err)
+		return nil
+	}
 	// 是否是AI上下文，开启了AI聊天且(是艾特我或者包含AI触发词 -> 群聊  或者是私聊)
 	aiService := NewAIService(s.ctx, settings)
 	isAIEnabled := settings.IsAIEnabled()
@@ -383,7 +387,7 @@ func (s *MessageService) InitAIServiceByMessage(message *model.Message) {
 			message.IsAIContext = true
 		}
 	}
-	s.aiService = aiService
+	return aiService
 }
 
 func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
@@ -405,7 +409,11 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 			continue
 		}
 		s.ProcessMentionedMeMessage(&m, message.MsgSource)
-		s.InitAIServiceByMessage(&m)
+		aiService := s.InitAIServiceByMessage(&m)
+		if aiService == nil {
+			continue
+		}
+		s.aiService = aiService
 		err := s.msgRespo.Create(&m)
 		if err != nil {
 			log.Printf("入库消息失败: %v", err)
