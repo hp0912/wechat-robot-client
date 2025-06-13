@@ -3,15 +3,21 @@ package service
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 )
 
 type ChatRoomSettingsService struct {
-	ctx      context.Context
-	gsRespo  *repository.GlobalSettings
-	crsRespo *repository.ChatRoomSettings
+	ctx              context.Context
+	Message          *model.Message
+	gsRespo          *repository.GlobalSettings
+	crsRespo         *repository.ChatRoomSettings
+	globalSettings   *model.GlobalSettings
+	chatRoomSettings *model.ChatRoomSettings
 }
 
 func NewChatRoomSettingsService(ctx context.Context) *ChatRoomSettingsService {
@@ -24,6 +30,110 @@ func NewChatRoomSettingsService(ctx context.Context) *ChatRoomSettingsService {
 
 func (s *ChatRoomSettingsService) GetChatRoomSettings(chatRoomID string) (*model.ChatRoomSettings, error) {
 	return s.crsRespo.GetChatRoomSettings(chatRoomID)
+}
+
+func (s *ChatRoomSettingsService) InitByMessage(message *model.Message) error {
+	s.Message = message
+	globalSettings, err := s.gsRespo.GetGlobalSettings()
+	if err != nil {
+		return err
+	}
+	s.globalSettings = globalSettings
+	chatRoomSettings, err := s.crsRespo.GetChatRoomSettings(message.FromWxID)
+	if err != nil {
+		return err
+	}
+	s.chatRoomSettings = chatRoomSettings
+	return nil
+}
+
+func (s *ChatRoomSettingsService) GetAIConfig() AIConfig {
+	aiConfig := AIConfig{}
+	if s.globalSettings != nil {
+		if s.globalSettings.ChatBaseURL != "" {
+			aiConfig.BaseURL = s.globalSettings.ChatBaseURL
+		}
+		if s.globalSettings.ChatAPIKey != "" {
+			aiConfig.APIKey = s.globalSettings.ChatAPIKey
+		}
+		if s.globalSettings.ChatModel != "" {
+			aiConfig.Model = s.globalSettings.ChatModel
+		}
+		if s.globalSettings.ChatPrompt != "" {
+			aiConfig.Prompt = s.globalSettings.ChatPrompt
+		}
+	}
+	if s.chatRoomSettings != nil {
+		if s.chatRoomSettings.ChatBaseURL != nil && *s.chatRoomSettings.ChatBaseURL != "" {
+			aiConfig.BaseURL = *s.chatRoomSettings.ChatBaseURL
+		}
+		if s.chatRoomSettings.ChatAPIKey != nil && *s.chatRoomSettings.ChatAPIKey != "" {
+			aiConfig.APIKey = *s.chatRoomSettings.ChatAPIKey
+		}
+		if s.chatRoomSettings.ChatModel != nil && *s.chatRoomSettings.ChatModel != "" {
+			aiConfig.Model = *s.chatRoomSettings.ChatModel
+		}
+		if s.chatRoomSettings.ChatPrompt != nil && *s.chatRoomSettings.ChatPrompt != "" {
+			aiConfig.Prompt = *s.chatRoomSettings.ChatPrompt
+		}
+	}
+	aiConfig.BaseURL = strings.TrimRight(aiConfig.BaseURL, "/")
+	if !strings.HasSuffix(aiConfig.BaseURL, "/v1") {
+		aiConfig.BaseURL += "/v1"
+	}
+	return aiConfig
+}
+
+func (s *ChatRoomSettingsService) IsAIEnabled() bool {
+	if s.chatRoomSettings != nil && s.chatRoomSettings.ChatAIEnabled != nil {
+		return *s.chatRoomSettings.ChatAIEnabled
+	}
+	if s.globalSettings != nil && s.globalSettings.ChatAIEnabled != nil {
+		return *s.globalSettings.ChatAIEnabled
+	}
+	return false
+}
+
+func (s *ChatRoomSettingsService) IsAITrigger() bool {
+	if s.Message.IsAtMe {
+		// 是否是 @所有人
+		atAllRegex := regexp.MustCompile(vars.AtAllRegexp)
+		if atAllRegex.MatchString(s.Message.Content) {
+			// 如果是 @所有人，则不处理
+			return false
+		}
+		s.Message.Content = utils.TrimAt(s.Message.Content)
+		return true
+	}
+	if s.chatRoomSettings == nil {
+		if s.globalSettings == nil {
+			return false
+		}
+		if s.globalSettings.ChatAIEnabled == nil || !*s.globalSettings.ChatAIEnabled {
+			return false
+		}
+		isAITrigger := *s.globalSettings.ChatAITrigger != "" && strings.HasPrefix(s.Message.Content, *s.globalSettings.ChatAITrigger)
+		if isAITrigger {
+			s.Message.Content = utils.TrimAITriggerWord(s.Message.Content, *s.globalSettings.ChatAITrigger)
+		}
+		return isAITrigger
+	}
+	if s.chatRoomSettings.ChatAIEnabled == nil || !*s.chatRoomSettings.ChatAIEnabled {
+		return false
+	}
+	if s.chatRoomSettings.ChatAITrigger != nil && *s.chatRoomSettings.ChatAITrigger != "" {
+		isAITrigger := *s.chatRoomSettings.ChatAITrigger != "" && strings.HasPrefix(s.Message.Content, *s.chatRoomSettings.ChatAITrigger)
+		if isAITrigger {
+			s.Message.Content = utils.TrimAITriggerWord(s.Message.Content, *s.chatRoomSettings.ChatAITrigger)
+		}
+		return isAITrigger
+	}
+	isAITrigger := s.globalSettings != nil && s.globalSettings.ChatAITrigger != nil && *s.globalSettings.ChatAITrigger != "" &&
+		strings.HasPrefix(s.Message.Content, *s.globalSettings.ChatAITrigger)
+	if isAITrigger {
+		s.Message.Content = utils.TrimAITriggerWord(s.Message.Content, *s.globalSettings.ChatAITrigger)
+	}
+	return isAITrigger
 }
 
 func (s *ChatRoomSettingsService) GetChatRoomWelcomeConfig(chatRoomID string) (*model.ChatRoomSettings, error) {

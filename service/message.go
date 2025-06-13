@@ -290,6 +290,102 @@ func (s *MessageService) ProcessPromptMessage(message *model.Message) {
 
 }
 
+func (s *MessageService) ProcessMessageSender(message *model.Message) {
+	self := vars.RobotRuntime.WxID
+	// 处理一下自己发的消息
+	// 自己发发到群聊
+	if message.FromWxID == self && strings.HasSuffix(message.ToWxID, "@chatroom") {
+		from := message.FromWxID
+		to := message.ToWxID
+		message.FromWxID = to
+		message.ToWxID = from
+	}
+	// 群聊消息
+	if strings.HasSuffix(message.FromWxID, "@chatroom") {
+		message.IsChatRoom = true
+		splitContents := strings.SplitN(message.Content, ":\n", 2)
+		if len(splitContents) > 1 {
+			message.Content = splitContents[1]
+			message.SenderWxID = splitContents[0]
+		} else {
+			// 绝对是自己发的消息! qwq
+			message.Content = splitContents[0]
+			message.SenderWxID = self
+		}
+	} else {
+		message.IsChatRoom = false
+		message.SenderWxID = message.FromWxID
+		if message.FromWxID == self {
+			message.FromWxID = message.ToWxID
+			message.ToWxID = self
+		}
+	}
+}
+
+func (s *MessageService) ProcessMessageShouldInsertToDB(message *model.Message) bool {
+	if message.Type == model.MsgTypeInit || message.Type == model.MsgTypeUnknow {
+		return false
+	}
+	if message.Type == model.MsgTypeSystem && message.SenderWxID == "weixin" {
+		return false
+	}
+	if message.Type == model.MsgTypeApp {
+		subTypeStr := vars.RobotRuntime.XmlFastDecoder(message.Content, "type")
+		if subTypeStr != "" {
+			subType, err := strconv.Atoi(subTypeStr)
+			if err == nil {
+				message.AppMsgType = model.AppMessageType(subType)
+				if message.AppMsgType == model.AppMsgTypeAttachUploading {
+					// 如果是上传中的应用消息，则不入库
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+// ProcessMentionedMeMessage 处理下艾特我的消息
+func (s *MessageService) ProcessMentionedMeMessage(message *model.Message, msgSource string) {
+	self := vars.RobotRuntime.WxID
+	// 是否艾特我的消息
+	ats := vars.RobotRuntime.XmlFastDecoder(msgSource, "atuserlist")
+	if ats != "" {
+		atMembers := strings.Split(ats, ",")
+		for _, at := range atMembers {
+			if strings.Trim(at, " ") == self {
+				message.IsAtMe = true
+				break
+			}
+		}
+	}
+}
+
+func (s *MessageService) InitAIServiceByMessage(message *model.Message) {
+	var settings Settings
+	if message.IsChatRoom {
+		settings = NewChatRoomSettingsService(s.ctx)
+	} else {
+		settings = NewFriendSettingsService(s.ctx)
+	}
+	settings.InitByMessage(message)
+	// 是否是AI上下文，开启了AI聊天且(是艾特我或者包含AI触发词 -> 群聊  或者是私聊)
+	aiService := NewAIService(s.ctx, settings)
+	isAIEnabled := settings.IsAIEnabled()
+	isAITrigger := settings.IsAITrigger()
+	IsInAISession, _ := aiService.IsInAISession(message)
+	if isAIEnabled {
+		if message.IsChatRoom {
+			if isAITrigger || IsInAISession {
+				message.IsAIContext = true
+			}
+		} else {
+			message.IsAIContext = true
+		}
+	}
+	s.aiService = aiService
+}
+
 func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 	for _, message := range syncResp.AddMsgs {
 		m := model.Message{
@@ -304,87 +400,17 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 			CreatedAt:          message.CreateTime,
 			UpdatedAt:          time.Now().Unix(),
 		}
-		self := vars.RobotRuntime.WxID
-		// 处理一下自己发的消息
-		// 自己发发到群聊
-		if m.FromWxID == self && strings.HasSuffix(m.ToWxID, "@chatroom") {
-			from := m.FromWxID
-			to := m.ToWxID
-			m.FromWxID = to
-			m.ToWxID = from
-		}
-		// 群聊消息
-		if strings.HasSuffix(m.FromWxID, "@chatroom") {
-			m.IsChatRoom = true
-			splitContents := strings.SplitN(m.Content, ":\n", 2)
-			if len(splitContents) > 1 {
-				m.Content = splitContents[1]
-				m.SenderWxID = splitContents[0]
-			} else {
-				// 绝对是自己发的消息! qwq
-				m.Content = splitContents[0]
-				m.SenderWxID = self
-			}
-		} else {
-			m.IsChatRoom = false
-			m.SenderWxID = m.FromWxID
-			if m.FromWxID == self {
-				m.FromWxID = m.ToWxID
-				m.ToWxID = self
-			}
-		}
-		if m.Type == model.MsgTypeInit || m.Type == model.MsgTypeUnknow {
+		s.ProcessMessageSender(&m)
+		if !s.ProcessMessageShouldInsertToDB(&m) {
 			continue
 		}
-		if m.Type == model.MsgTypeSystem && m.SenderWxID == "weixin" {
-			continue
-		}
-		if m.Type == model.MsgTypeApp {
-			subTypeStr := vars.RobotRuntime.XmlFastDecoder(m.Content, "type")
-			if subTypeStr != "" {
-				subType, err := strconv.Atoi(subTypeStr)
-				if err == nil {
-					m.AppMsgType = model.AppMessageType(subType)
-					if m.AppMsgType == model.AppMsgTypeAttachUploading {
-						// 消息不入库
-						continue
-					}
-				}
-			}
-		}
-		// 是否艾特我的消息
-		ats := vars.RobotRuntime.XmlFastDecoder(message.MsgSource, "atuserlist")
-		if ats != "" {
-			atMembers := strings.Split(ats, ",")
-			for _, at := range atMembers {
-				if strings.Trim(at, " ") == self {
-					m.IsAtMe = true
-					break
-				}
-			}
-		}
-		// 是否是AI上下文，开启了AI聊天且(是艾特我或者包含AI触发词 -> 群聊  或者是私聊)
-		aiService := NewAIService(s.ctx, &m)
-		isAIEnabled := aiService.IsAIEnabled()
-		isAITrigger := aiService.IsAITrigger(&m)
-		IsInAISession, _ := aiService.IsInAISession(&m)
-		if isAIEnabled {
-			if m.IsChatRoom {
-				if isAITrigger || IsInAISession {
-					m.IsAIContext = true
-				}
-			} else {
-				m.IsAIContext = true
-			}
-		}
+		s.ProcessMentionedMeMessage(&m, message.MsgSource)
+		s.InitAIServiceByMessage(&m)
 		err := s.msgRespo.Create(&m)
 		if err != nil {
 			log.Printf("入库消息失败: %v", err)
 			continue
 		}
-
-		s.aiService = aiService
-
 		switch m.Type {
 		case model.MsgTypeText:
 			go s.ProcessTextMessage(&m)
