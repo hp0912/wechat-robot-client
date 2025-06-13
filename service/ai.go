@@ -3,12 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"strings"
 	"time"
 	"wechat-robot-client/model"
-	"wechat-robot-client/repository"
-	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 
 	"github.com/sashabaranov/go-openai"
@@ -34,40 +30,16 @@ type SongRequestMetadata struct {
 }
 
 type AIService struct {
-	ctx              context.Context
-	message          *model.Message
-	chatRoomSettings *model.ChatRoomSettings
-	globalSettings   *model.GlobalSettings
-	friendSettings   *model.FriendSettings
-	gsRespo          *repository.GlobalSettings
-	crsRespo         *repository.ChatRoomSettings
-	fsRespo          *repository.FriendSettings
+	ctx    context.Context
+	config Settings
 }
 
 const defaultTTL = 10 * time.Minute
 
-func NewAIService(ctx context.Context, message *model.Message) *AIService {
-	gsRespo := repository.NewGlobalSettingsRepo(ctx, vars.DB)
-	crsRespo := repository.NewChatRoomSettingsRepo(ctx, vars.DB)
-	fsRespo := repository.NewFriendSettingsRepo(ctx, vars.DB)
-	var globalSettings *model.GlobalSettings
-	var chatRoomSettings *model.ChatRoomSettings
-	var friendSettings *model.FriendSettings
-	globalSettings, _ = gsRespo.GetGlobalSettings()
-	if message.IsChatRoom {
-		chatRoomSettings, _ = crsRespo.GetChatRoomSettings(message.FromWxID)
-	} else {
-		friendSettings, _ = fsRespo.GetFriendSettings(message.FromWxID)
-	}
+func NewAIService(ctx context.Context, config Settings) *AIService {
 	return &AIService{
-		ctx:              ctx,
-		message:          message,
-		globalSettings:   globalSettings,
-		chatRoomSettings: chatRoomSettings,
-		friendSettings:   friendSettings,
-		gsRespo:          gsRespo,
-		crsRespo:         crsRespo,
-		fsRespo:          fsRespo,
+		ctx:    ctx,
+		config: config,
 	}
 }
 
@@ -120,123 +92,12 @@ func (s *AIService) IsAISessionEnd(message *model.Message) bool {
 	return false
 }
 
-func (s *AIService) GetAIConfig() (baseURL string, apiKey string, model string, prompt string) {
-	if s.globalSettings != nil {
-		if s.globalSettings.ChatBaseURL != "" {
-			baseURL = s.globalSettings.ChatBaseURL
-		}
-		if s.globalSettings.ChatAPIKey != "" {
-			apiKey = s.globalSettings.ChatAPIKey
-		}
-		if s.globalSettings.ChatModel != "" {
-			model = s.globalSettings.ChatModel
-		}
-		if s.globalSettings.ChatPrompt != "" {
-			prompt = s.globalSettings.ChatPrompt
-		}
-	}
-	if s.message.IsChatRoom {
-		if s.chatRoomSettings != nil {
-			if s.chatRoomSettings.ChatBaseURL != nil && *s.chatRoomSettings.ChatBaseURL != "" {
-				baseURL = *s.chatRoomSettings.ChatBaseURL
-			}
-			if s.chatRoomSettings.ChatAPIKey != nil && *s.chatRoomSettings.ChatAPIKey != "" {
-				apiKey = *s.chatRoomSettings.ChatAPIKey
-			}
-			if s.chatRoomSettings.ChatModel != nil && *s.chatRoomSettings.ChatModel != "" {
-				model = *s.chatRoomSettings.ChatModel
-			}
-			if s.chatRoomSettings.ChatPrompt != nil && *s.chatRoomSettings.ChatPrompt != "" {
-				prompt = *s.chatRoomSettings.ChatPrompt
-			}
-		}
-	} else {
-		if s.friendSettings != nil {
-			if s.friendSettings.ChatBaseURL != nil && *s.friendSettings.ChatBaseURL != "" {
-				baseURL = *s.friendSettings.ChatBaseURL
-			}
-			if s.friendSettings.ChatAPIKey != nil && *s.friendSettings.ChatAPIKey != "" {
-				apiKey = *s.friendSettings.ChatAPIKey
-			}
-			if s.friendSettings.ChatModel != nil && *s.friendSettings.ChatModel != "" {
-				model = *s.friendSettings.ChatModel
-			}
-			if s.friendSettings.ChatPrompt != nil && *s.friendSettings.ChatPrompt != "" {
-				prompt = *s.friendSettings.ChatPrompt
-			}
-		}
-	}
-	baseURL = strings.TrimRight(baseURL, "/")
-	if !strings.HasSuffix(baseURL, "/v1") {
-		baseURL += "/v1"
-	}
-	return
-}
-
-func (s *AIService) IsAIEnabled() bool {
-	if s.message.IsChatRoom {
-		if s.chatRoomSettings != nil && s.chatRoomSettings.ChatAIEnabled != nil {
-			return *s.chatRoomSettings.ChatAIEnabled
-		}
-	} else {
-		if s.friendSettings != nil && s.friendSettings.ChatAIEnabled != nil {
-			return *s.friendSettings.ChatAIEnabled
-		}
-	}
-	if s.globalSettings != nil && s.globalSettings.ChatAIEnabled != nil {
-		return *s.globalSettings.ChatAIEnabled
-	}
-	return false
-}
-
-func (s *AIService) IsAITrigger(message *model.Message) bool {
-	if message.IsAtMe {
-		// 是否是 @所有人
-		atAllRegex := regexp.MustCompile(vars.AtAllRegexp)
-		if atAllRegex.MatchString(message.Content) {
-			// 如果是 @所有人，则不处理
-			return false
-		}
-		message.Content = utils.TrimAt(message.Content)
-		return true
-	}
-	if s.chatRoomSettings == nil {
-		if s.globalSettings == nil {
-			return false
-		}
-		if s.globalSettings.ChatAIEnabled == nil || !*s.globalSettings.ChatAIEnabled {
-			return false
-		}
-		isAITrigger := *s.globalSettings.ChatAITrigger != "" && strings.HasPrefix(message.Content, *s.globalSettings.ChatAITrigger)
-		if isAITrigger {
-			message.Content = utils.TrimAITriggerWord(message.Content, *s.globalSettings.ChatAITrigger)
-		}
-		return isAITrigger
-	}
-	if s.chatRoomSettings.ChatAIEnabled == nil || !*s.chatRoomSettings.ChatAIEnabled {
-		return false
-	}
-	if s.chatRoomSettings.ChatAITrigger != nil && *s.chatRoomSettings.ChatAITrigger != "" {
-		isAITrigger := *s.chatRoomSettings.ChatAITrigger != "" && strings.HasPrefix(message.Content, *s.chatRoomSettings.ChatAITrigger)
-		if isAITrigger {
-			message.Content = utils.TrimAITriggerWord(message.Content, *s.chatRoomSettings.ChatAITrigger)
-		}
-		return isAITrigger
-	}
-	isAITrigger := s.globalSettings != nil && s.globalSettings.ChatAITrigger != nil && *s.globalSettings.ChatAITrigger != "" &&
-		strings.HasPrefix(message.Content, *s.globalSettings.ChatAITrigger)
-	if isAITrigger {
-		message.Content = utils.TrimAITriggerWord(message.Content, *s.globalSettings.ChatAITrigger)
-	}
-	return isAITrigger
-}
-
 func (s *AIService) ChatIntention(message *model.Message) ChatIntention {
-	baseURL, apiKey, _, _ := s.GetAIConfig()
-	aiConfig := openai.DefaultConfig(apiKey)
-	aiConfig.BaseURL = baseURL
+	aiConfig := s.config.GetAIConfig()
+	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
+	openaiConfig.BaseURL = aiConfig.BaseURL
 
-	client := openai.NewClientWithConfig(aiConfig)
+	client := openai.NewClientWithConfig(openaiConfig)
 
 	aiMessages := []openai.ChatCompletionMessage{
 		{
@@ -300,11 +161,11 @@ func (s *AIService) ChatIntention(message *model.Message) ChatIntention {
 }
 
 func (s *AIService) GetSongRequestTitle(message *model.Message) string {
-	baseURL, apiKey, _, _ := s.GetAIConfig()
-	aiConfig := openai.DefaultConfig(apiKey)
-	aiConfig.BaseURL = baseURL
+	aiConfig := s.config.GetAIConfig()
+	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
+	openaiConfig.BaseURL = aiConfig.BaseURL
 
-	client := openai.NewClientWithConfig(aiConfig)
+	client := openai.NewClientWithConfig(openaiConfig)
 
 	aiMessages := []openai.ChatCompletionMessage{
 		{
@@ -359,21 +220,21 @@ func (s *AIService) GetSongRequestTitle(message *model.Message) string {
 }
 
 func (s *AIService) Chat(aiMessages []openai.ChatCompletionMessage) (string, error) {
-	baseURL, apiKey, model, prompt := s.GetAIConfig()
-	if prompt != "" {
+	aiConfig := s.config.GetAIConfig()
+	if aiConfig.Prompt != "" {
 		systemMessage := openai.ChatCompletionMessage{
 			Role:    openai.ChatMessageRoleSystem,
-			Content: prompt,
+			Content: aiConfig.Prompt,
 		}
 		aiMessages = append([]openai.ChatCompletionMessage{systemMessage}, aiMessages...)
 	}
-	aiConfig := openai.DefaultConfig(apiKey)
-	aiConfig.BaseURL = baseURL
-	client := openai.NewClientWithConfig(aiConfig)
+	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
+	openaiConfig.BaseURL = aiConfig.BaseURL
+	client := openai.NewClientWithConfig(openaiConfig)
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    model,
+			Model:    aiConfig.Model,
 			Messages: aiMessages,
 			Stream:   false,
 		},
