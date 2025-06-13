@@ -54,6 +54,12 @@ func (s *FriendSettingsService) GetAIConfig() AIConfig {
 		if s.globalSettings.ChatPrompt != "" {
 			aiConfig.Prompt = s.globalSettings.ChatPrompt
 		}
+		if s.globalSettings.ImageModel != "" {
+			aiConfig.ImageModel = s.globalSettings.ImageModel
+		}
+		if s.globalSettings.ImageAISettings != nil {
+			aiConfig.ImageAISettings = s.globalSettings.ImageAISettings
+		}
 	}
 	if s.friendSettings != nil {
 		if s.friendSettings.ChatBaseURL != nil && *s.friendSettings.ChatBaseURL != "" {
@@ -68,6 +74,12 @@ func (s *FriendSettingsService) GetAIConfig() AIConfig {
 		if s.friendSettings.ChatPrompt != nil && *s.friendSettings.ChatPrompt != "" {
 			aiConfig.Prompt = *s.friendSettings.ChatPrompt
 		}
+		if s.friendSettings.ImageModel != nil && *s.friendSettings.ImageModel != "" {
+			aiConfig.ImageModel = *s.friendSettings.ImageModel
+		}
+		if s.friendSettings.ImageAISettings != nil {
+			aiConfig.ImageAISettings = s.friendSettings.ImageAISettings
+		}
 	}
 	aiConfig.BaseURL = strings.TrimRight(aiConfig.BaseURL, "/")
 	if !strings.HasSuffix(aiConfig.BaseURL, "/v1") {
@@ -76,7 +88,7 @@ func (s *FriendSettingsService) GetAIConfig() AIConfig {
 	return aiConfig
 }
 
-func (s *FriendSettingsService) IsAIEnabled() bool {
+func (s *FriendSettingsService) IsAIChatEnabled() bool {
 	if s.friendSettings != nil && s.friendSettings.ChatAIEnabled != nil {
 		return *s.friendSettings.ChatAIEnabled
 	}
@@ -86,8 +98,18 @@ func (s *FriendSettingsService) IsAIEnabled() bool {
 	return false
 }
 
+func (s *FriendSettingsService) IsAIDrawingEnabled() bool {
+	if s.friendSettings != nil && s.friendSettings.ImageAIEnabled != nil {
+		return *s.friendSettings.ImageAIEnabled
+	}
+	if s.globalSettings != nil && s.globalSettings.ImageAIEnabled != nil {
+		return *s.globalSettings.ImageAIEnabled
+	}
+	return false
+}
+
 func (s *FriendSettingsService) IsAITrigger() bool {
-	return s.IsAIEnabled()
+	return s.IsAIChatEnabled()
 }
 
 func (s *FriendSettingsService) GetFriendSettings(contactID string) (*model.FriendSettings, error) {

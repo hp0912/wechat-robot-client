@@ -62,6 +62,12 @@ func (s *ChatRoomSettingsService) GetAIConfig() AIConfig {
 		if s.globalSettings.ChatPrompt != "" {
 			aiConfig.Prompt = s.globalSettings.ChatPrompt
 		}
+		if s.globalSettings.ImageModel != "" {
+			aiConfig.ImageModel = s.globalSettings.ImageModel
+		}
+		if s.globalSettings.ImageAISettings != nil {
+			aiConfig.ImageAISettings = s.globalSettings.ImageAISettings
+		}
 	}
 	if s.chatRoomSettings != nil {
 		if s.chatRoomSettings.ChatBaseURL != nil && *s.chatRoomSettings.ChatBaseURL != "" {
@@ -76,6 +82,12 @@ func (s *ChatRoomSettingsService) GetAIConfig() AIConfig {
 		if s.chatRoomSettings.ChatPrompt != nil && *s.chatRoomSettings.ChatPrompt != "" {
 			aiConfig.Prompt = *s.chatRoomSettings.ChatPrompt
 		}
+		if s.chatRoomSettings.ImageModel != nil && *s.chatRoomSettings.ImageModel != "" {
+			aiConfig.ImageModel = *s.chatRoomSettings.ImageModel
+		}
+		if s.chatRoomSettings.ImageAISettings != nil {
+			aiConfig.ImageAISettings = s.chatRoomSettings.ImageAISettings
+		}
 	}
 	aiConfig.BaseURL = strings.TrimRight(aiConfig.BaseURL, "/")
 	if !strings.HasSuffix(aiConfig.BaseURL, "/v1") {
@@ -84,12 +96,22 @@ func (s *ChatRoomSettingsService) GetAIConfig() AIConfig {
 	return aiConfig
 }
 
-func (s *ChatRoomSettingsService) IsAIEnabled() bool {
+func (s *ChatRoomSettingsService) IsAIChatEnabled() bool {
 	if s.chatRoomSettings != nil && s.chatRoomSettings.ChatAIEnabled != nil {
 		return *s.chatRoomSettings.ChatAIEnabled
 	}
 	if s.globalSettings != nil && s.globalSettings.ChatAIEnabled != nil {
 		return *s.globalSettings.ChatAIEnabled
+	}
+	return false
+}
+
+func (s *ChatRoomSettingsService) IsAIDrawingEnabled() bool {
+	if s.chatRoomSettings != nil && s.chatRoomSettings.ImageAIEnabled != nil {
+		return *s.chatRoomSettings.ImageAIEnabled
+	}
+	if s.globalSettings != nil && s.globalSettings.ImageAIEnabled != nil {
+		return *s.globalSettings.ImageAIEnabled
 	}
 	return false
 }

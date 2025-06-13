@@ -375,7 +375,7 @@ func (s *MessageService) InitAIServiceByMessage(message *model.Message) *AIServi
 	}
 	// 是否是AI上下文，开启了AI聊天且(是艾特我或者包含AI触发词 -> 群聊  或者是私聊)
 	aiService := NewAIService(s.ctx, settings)
-	isAIEnabled := settings.IsAIEnabled()
+	isAIEnabled := settings.IsAIChatEnabled()
 	isAITrigger := settings.IsAITrigger()
 	IsInAISession, _ := aiService.IsInAISession(message)
 	if isAIEnabled {
