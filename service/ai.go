@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
 	"wechat-robot-client/vars"
 
@@ -31,12 +32,12 @@ type SongRequestMetadata struct {
 
 type AIService struct {
 	ctx    context.Context
-	config Settings
+	config settings.Settings
 }
 
 const defaultTTL = 10 * time.Minute
 
-func NewAIService(ctx context.Context, config Settings) *AIService {
+func NewAIService(ctx context.Context, config settings.Settings) *AIService {
 	return &AIService{
 		ctx:    ctx,
 		config: config,

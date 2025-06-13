@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 	"wechat-robot-client/dto"
+	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
@@ -362,7 +363,7 @@ func (s *MessageService) ProcessMentionedMeMessage(message *model.Message, msgSo
 }
 
 func (s *MessageService) InitAIServiceByMessage(message *model.Message) *AIService {
-	var settings Settings
+	var settings settings.Settings
 	if message.IsChatRoom {
 		settings = NewChatRoomSettingsService(s.ctx)
 	} else {

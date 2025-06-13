@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/utils"
@@ -47,8 +48,8 @@ func (s *ChatRoomSettingsService) InitByMessage(message *model.Message) error {
 	return nil
 }
 
-func (s *ChatRoomSettingsService) GetAIConfig() AIConfig {
-	aiConfig := AIConfig{}
+func (s *ChatRoomSettingsService) GetAIConfig() settings.AIConfig {
+	aiConfig := settings.AIConfig{}
 	if s.globalSettings != nil {
 		if s.globalSettings.ChatBaseURL != "" {
 			aiConfig.BaseURL = s.globalSettings.ChatBaseURL

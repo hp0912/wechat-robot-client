@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"strings"
+	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
@@ -39,8 +40,8 @@ func (s *FriendSettingsService) InitByMessage(message *model.Message) error {
 	return nil
 }
 
-func (s *FriendSettingsService) GetAIConfig() AIConfig {
-	aiConfig := AIConfig{}
+func (s *FriendSettingsService) GetAIConfig() settings.AIConfig {
+	aiConfig := settings.AIConfig{}
 	if s.globalSettings != nil {
 		if s.globalSettings.ChatBaseURL != "" {
 			aiConfig.BaseURL = s.globalSettings.ChatBaseURL
