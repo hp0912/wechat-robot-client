@@ -11,7 +11,7 @@ type AIConfig struct {
 	APIKey          string
 	Model           string
 	Prompt          string
-	ImageModel      string
+	ImageModel      model.ImageModel
 	ImageAISettings datatypes.JSON
 }
 
