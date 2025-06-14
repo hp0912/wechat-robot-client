@@ -24,8 +24,7 @@ var AdminDB *gorm.DB
 // redis实例
 var RedisClient *redis.Client
 
-// 机器人消息处理插件
-var MessageHandler plugin.MessageHandler
+var MessagePlugin *plugin.MessagePlugin
 
 // 机器人启动超时
 var RobotStartTimeout time.Duration

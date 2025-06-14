@@ -219,3 +219,5 @@ func (s *ChatRoomSettingsService) SaveChatRoomSettings(data *model.ChatRoomSetti
 	}
 	return s.crsRespo.Update(data)
 }
+
+var _ settings.Settings = (*ChatRoomSettingsService)(nil)

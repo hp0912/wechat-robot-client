@@ -123,3 +123,5 @@ func (s *FriendSettingsService) SaveFriendSettings(data *model.FriendSettings) e
 	}
 	return s.fsRespo.Update(data)
 }
+
+var _ settings.Settings = (*FriendSettingsService)(nil)

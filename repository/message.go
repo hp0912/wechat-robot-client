@@ -81,13 +81,16 @@ func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) (
 	return messages, total, nil
 }
 
+func (m *Message) SetMessageIsInContext(message *model.Message) error {
+	return m.DB.WithContext(m.Ctx).Where("id = ?", message.ID).Updates(&model.Message{IsAIContext: true}).Error
+}
+
 func (m *Message) GetFriendAIMessageContext(message *model.Message) ([]*model.Message, error) {
 	var messages []*model.Message
-	now := time.Now().Unix()
 	tenMinutesAgo := time.Now().Add(-10 * time.Minute).Unix()
-	err := m.DB.WithContext(m.Ctx).Where("id <= ?", message.ID).
+	err := m.DB.WithContext(m.Ctx).Where("id < ?", message.ID).
 		Where("from_wxid = ?", message.FromWxID).
-		Where("created_at >= ? AND created_at < ?", tenMinutesAgo, now).
+		Where("created_at >= ?", tenMinutesAgo).
 		Where("`type` in (1, 3) OR (`type` = 49 AND `app_msg_type` = 57)").
 		Find(&messages).
 		Order("id ASC").Error
@@ -97,10 +100,19 @@ func (m *Message) GetFriendAIMessageContext(message *model.Message) ([]*model.Me
 	return messages, nil
 }
 
+func (m *Message) ResetFriendAIMessageContext(message *model.Message) error {
+	tenMinutesAgo := time.Now().Add(-10 * time.Minute).Unix()
+	return m.DB.WithContext(m.Ctx).Model(&model.Message{}).
+		Where("id < ?", message.ID).
+		Where("from_wxid = ?", message.FromWxID).
+		Where("created_at >= ?", tenMinutesAgo).
+		Updates(map[string]int{"is_ai_context": 0}).Error
+}
+
 func (m *Message) GetChatRoomAIMessageContext(message *model.Message) ([]*model.Message, error) {
 	var messages []*model.Message
 	tenMinutesAgo := time.Now().Add(-10 * time.Minute).Unix()
-	err := m.DB.WithContext(m.Ctx).Where("id <= ?", message.ID).
+	err := m.DB.WithContext(m.Ctx).Where("id < ?", message.ID).
 		Where("from_wxid = ?", message.FromWxID).
 		Where("(sender_wxid = ? AND is_ai_context = 1) OR reply_wxid = ?", message.SenderWxID, message.SenderWxID).
 		Where("created_at >= ?", tenMinutesAgo).
@@ -111,6 +123,15 @@ func (m *Message) GetChatRoomAIMessageContext(message *model.Message) ([]*model.
 		return nil, err
 	}
 	return messages, nil
+}
+
+func (m *Message) ResetChatRoomAIMessageContext(message *model.Message) error {
+	tenMinutesAgo := time.Now().Add(-10 * time.Minute).Unix()
+	return m.DB.WithContext(m.Ctx).Where("id < ?", message.ID).
+		Where("from_wxid = ?", message.FromWxID).
+		Where("(sender_wxid = ? AND is_ai_context = 1) OR reply_wxid = ?", message.SenderWxID, message.SenderWxID).
+		Where("created_at >= ?", tenMinutesAgo).
+		Updates(map[string]int{"is_ai_context": 0}).Error
 }
 
 func (m *Message) GetMessagesByTimeRange(chatRoomID string, startTime, endTime int64) ([]*dto.TextMessageItem, error) {

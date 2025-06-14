@@ -24,7 +24,7 @@ func main() {
 	}
 	shutdownManager := shutdown.NewShutdownManager(30 * time.Second)
 	// 注册消息处理插件
-	startup.RegisterPlugin()
+	startup.RegisterMessagePlugin()
 	// 初始化微信机器人
 	if err := startup.InitWechatRobot(); err != nil {
 		log.Fatalf("启动微信机器人失败: %v", err)

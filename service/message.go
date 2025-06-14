@@ -8,10 +8,12 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 	"wechat-robot-client/dto"
+	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
@@ -23,9 +25,9 @@ import (
 )
 
 type MessageService struct {
-	ctx       context.Context
-	aiService *AIService
-	msgRespo  *repository.Message
+	ctx      context.Context
+	settings settings.Settings
+	msgRespo *repository.Message
 }
 
 func NewMessageService(ctx context.Context) *MessageService {
@@ -35,72 +37,18 @@ func NewMessageService(ctx context.Context) *MessageService {
 	}
 }
 
-func (s *MessageService) ProcessAI(message *model.Message) {
-	chatIntention := s.aiService.ChatIntention(message)
-	switch chatIntention {
-	case ChatIntentionChat:
-		aiContext, err := s.GetAIMessageContext(message)
-		if err != nil {
-			s.SendTextMessage(message.FromWxID, err.Error())
-			return
-		}
-		aiReply, err := s.aiService.Chat(aiContext)
-		if err != nil {
-			s.SendTextMessage(message.FromWxID, err.Error())
-			return
-		}
-		if message.IsChatRoom {
-			s.SendTextMessage(message.FromWxID, aiReply, message.SenderWxID)
-		} else {
-			s.SendTextMessage(message.FromWxID, aiReply)
-		}
-	case ChatIntentionSing:
-		s.SendTextMessage(message.FromWxID, "唱歌功能正在开发中，敬请期待！")
-	case ChatIntentionSongRequest:
-		title := s.aiService.GetSongRequestTitle(message)
-		if title == "" {
-			s.SendTextMessage(message.FromWxID, "抱歉，我无法识别您想要点的歌曲。")
-			return
-		}
-		err := s.SendMusicMessage(message.FromWxID, title)
-		if err != nil {
-			s.SendTextMessage(message.FromWxID, err.Error())
-		}
-	case ChatIntentionDrawAPicture:
-		s.SendTextMessage(message.FromWxID, "绘画功能正在开发中，敬请期待！")
-	case ChatIntentionEditPictures:
-		s.SendTextMessage(message.FromWxID, "修图功能正在开发中，敬请期待！")
-	default:
-		s.SendTextMessage(message.FromWxID, "更多功能正在开发中，敬请期待！")
-	}
-}
-
 // ProcessTextMessage 处理文本消息
 func (s *MessageService) ProcessTextMessage(message *model.Message) {
-	if message.IsChatRoom {
-		if s.aiService.IsAISessionStart(message) {
-			s.SendTextMessage(message.FromWxID, "AI会话已开始，请输入您的问题。10分钟不说话会话将自动结束，您也可以输入 #退出AI会话 来结束会话。", message.SenderWxID)
+	for _, messagePlugin := range vars.MessagePlugin.Plugins {
+		abort := messagePlugin(&plugin.MessageContext{
+			Context:        s.ctx,
+			Settings:       s.settings,
+			Message:        message,
+			MessageService: s,
+		})
+		if abort {
 			return
 		}
-		isInSession, err := s.aiService.IsInAISession(message)
-		if err != nil {
-			log.Printf("检查AI会话失败: %v", err)
-			return
-		}
-		if isInSession {
-			s.ProcessAI(message)
-			return
-		}
-		if s.aiService.IsAISessionEnd(message) {
-			s.SendTextMessage(message.FromWxID, "AI会话已结束，您可以输入 #进入AI会话 来重新开始。", message.SenderWxID)
-			return
-		}
-		if message.IsAIContext {
-			s.ProcessAI(message)
-			return
-		}
-	} else if message.IsAIContext {
-		s.ProcessAI(message)
 	}
 }
 
@@ -362,8 +310,7 @@ func (s *MessageService) ProcessMentionedMeMessage(message *model.Message, msgSo
 	}
 }
 
-func (s *MessageService) InitAIServiceByMessage(message *model.Message) *AIService {
-	var settings settings.Settings
+func (s *MessageService) InitSettingsByMessage(message *model.Message) (settings settings.Settings) {
 	if message.IsChatRoom {
 		settings = NewChatRoomSettingsService(s.ctx)
 	} else {
@@ -374,21 +321,7 @@ func (s *MessageService) InitAIServiceByMessage(message *model.Message) *AIServi
 		log.Println("初始化设置失败: ", err)
 		return nil
 	}
-	// 是否是AI上下文，开启了AI聊天且(是艾特我或者包含AI触发词 -> 群聊  或者是私聊)
-	aiService := NewAIService(s.ctx, settings)
-	isAIEnabled := settings.IsAIChatEnabled()
-	isAITrigger := settings.IsAITrigger()
-	IsInAISession, _ := aiService.IsInAISession(message)
-	if isAIEnabled {
-		if message.IsChatRoom {
-			if isAITrigger || IsInAISession {
-				message.IsAIContext = true
-			}
-		} else {
-			message.IsAIContext = true
-		}
-	}
-	return aiService
+	return
 }
 
 func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
@@ -410,11 +343,11 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 			continue
 		}
 		s.ProcessMentionedMeMessage(&m, message.MsgSource)
-		aiService := s.InitAIServiceByMessage(&m)
-		if aiService == nil {
+		settings := s.InitSettingsByMessage(&m)
+		if settings == nil {
 			continue
 		}
-		s.aiService = aiService
+		s.settings = settings
 		err := s.msgRespo.Create(&m)
 		if err != nil {
 			log.Printf("入库消息失败: %v", err)
@@ -981,12 +914,25 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 	return aiMessages
 }
 
+func (s *MessageService) SetMessageIsInContext(message *model.Message) error {
+	return s.msgRespo.SetMessageIsInContext(message)
+}
+
 func (s *MessageService) GetFriendAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
 	messages, err := s.msgRespo.GetFriendAIMessageContext(message)
 	if err != nil {
 		return nil, err
 	}
+	if !slices.ContainsFunc(messages, func(m *model.Message) bool {
+		return m.ID == message.ID
+	}) {
+		messages = append(messages, message)
+	}
 	return s.ProcessAIMessageContext(messages), nil
+}
+
+func (s *MessageService) ResetFriendAIMessageContext(message *model.Message) error {
+	return s.msgRespo.ResetFriendAIMessageContext(message)
 }
 
 func (s *MessageService) GetChatRoomAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
@@ -994,7 +940,16 @@ func (s *MessageService) GetChatRoomAIMessageContext(message *model.Message) ([]
 	if err != nil {
 		return nil, err
 	}
+	if !slices.ContainsFunc(messages, func(m *model.Message) bool {
+		return m.ID == message.ID
+	}) {
+		messages = append(messages, message)
+	}
 	return s.ProcessAIMessageContext(messages), nil
+}
+
+func (s *MessageService) ResetChatRoomAIMessageContext(message *model.Message) error {
+	return s.msgRespo.ResetChatRoomAIMessageContext(message)
 }
 
 func (s *MessageService) GetAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
@@ -1015,3 +970,5 @@ func (s *MessageService) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.Chat
 func (s *MessageService) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	return s.msgRespo.GetLastMonthChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
 }
+
+var _ plugin.MessageServiceIface = (*MessageService)(nil)
