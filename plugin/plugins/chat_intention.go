@@ -38,6 +38,12 @@ func OnChatIntention(ctx *plugin.MessageContext, aiChatService *service.AIChatSe
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 		}
 	case service.ChatIntentionDrawAPicture:
+		isAIEnabled := ctx.Settings.IsAIDrawingEnabled()
+		if !isAIEnabled {
+			return
+		}
+		prompt := aiWorkflowService.GetDrawingPrompt(ctx.Message)
+		ctx.Message.Content = prompt
 		OnAIDrawing(ctx)
 	case service.ChatIntentionEditPictures:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "修图功能正在开发中，敬请期待！")

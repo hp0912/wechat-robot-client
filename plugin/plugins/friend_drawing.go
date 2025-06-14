@@ -49,6 +49,7 @@ func OnFriendAIDrawing(ctx *plugin.MessageContext) bool {
 	if isAIEnabled {
 		if isInSession {
 			defer func() {
+				aiDrawingService.RenewAISession(ctx.Message)
 				err := ctx.MessageService.SetMessageIsInContext(ctx.Message)
 				if err != nil {
 					log.Printf("更新消息上下文失败: %v", err)

@@ -26,5 +26,10 @@ func SendDrawingImage(MessageService plugin.MessageServiceIface, toWxID, imageUr
 	if err != nil {
 		return err
 	}
+	// 重置文件指针到开始位置
+	_, err = tempFile.Seek(0, 0)
+	if err != nil {
+		return err
+	}
 	return MessageService.MsgUploadImg(toWxID, tempFile)
 }

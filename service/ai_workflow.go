@@ -28,6 +28,10 @@ type SongRequestMetadata struct {
 	SongTitle string `json:"song_title"`
 }
 
+type DrawingPrompt struct {
+	Prompt string `json:"prompt"`
+}
+
 type AIWorkflowService struct {
 	ctx    context.Context
 	config settings.Settings
@@ -167,4 +171,63 @@ func (s *AIWorkflowService) GetSongRequestTitle(message *model.Message) string {
 	}
 
 	return result.SongTitle
+}
+
+func (s *AIWorkflowService) GetDrawingPrompt(message *model.Message) string {
+	aiConfig := s.config.GetAIConfig()
+	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
+	openaiConfig.BaseURL = aiConfig.BaseURL
+
+	client := openai.NewClientWithConfig(openaiConfig)
+
+	aiMessages := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: `用户现在想画画，请根据用户的输入内容，提取用户画画的提示词。`,
+		},
+		{
+			Role:    openai.ChatMessageRoleUser,
+			Content: message.Content,
+		},
+	}
+
+	var result DrawingPrompt
+	schema := &jsonschema.Definition{
+		Type: jsonschema.Object,
+		Properties: map[string]jsonschema.Definition{
+			"prompt": {
+				Type:        jsonschema.String,
+				Description: "用户画画的提示词",
+			},
+		},
+		Required:             []string{"prompt"},
+		AdditionalProperties: false,
+	}
+
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model:    "gpt-4o-mini", // 固定写死，使用更小的模型以提高响应速度和降低成本
+			Messages: aiMessages,
+			ResponseFormat: &openai.ChatCompletionResponseFormat{
+				Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
+				JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
+					Name:        "prompt",
+					Description: "用户现在想画画，请根据用户的输入内容，提取用户画画的提示词。",
+					Strict:      true,
+					Schema:      schema,
+				},
+			},
+			Stream: false,
+		},
+	)
+	if err != nil {
+		return ""
+	}
+	err = schema.Unmarshal(resp.Choices[0].Message.Content, &result)
+	if err != nil {
+		return ""
+	}
+
+	return result.Prompt
 }
