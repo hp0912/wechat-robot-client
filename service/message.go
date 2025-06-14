@@ -39,13 +39,14 @@ func NewMessageService(ctx context.Context) *MessageService {
 
 // ProcessTextMessage 处理文本消息
 func (s *MessageService) ProcessTextMessage(message *model.Message) {
+	msgCtx := &plugin.MessageContext{
+		Context:        s.ctx,
+		Settings:       s.settings,
+		Message:        message,
+		MessageService: s,
+	}
 	for _, messagePlugin := range vars.MessagePlugin.Plugins {
-		abort := messagePlugin(&plugin.MessageContext{
-			Context:        s.ctx,
-			Settings:       s.settings,
-			Message:        message,
-			MessageService: s,
-		})
+		abort := messagePlugin(msgCtx)
 		if abort {
 			return
 		}
