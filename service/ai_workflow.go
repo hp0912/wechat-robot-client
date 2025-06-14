@@ -2,10 +2,9 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"time"
+	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
-	"wechat-robot-client/vars"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
@@ -29,70 +28,21 @@ type SongRequestMetadata struct {
 	SongTitle string `json:"song_title"`
 }
 
-type AIService struct {
+type AIWorkflowService struct {
 	ctx    context.Context
-	config Settings
+	config settings.Settings
 }
 
 const defaultTTL = 10 * time.Minute
 
-func NewAIService(ctx context.Context, config Settings) *AIService {
-	return &AIService{
+func NewAIWorkflowService(ctx context.Context, config settings.Settings) *AIWorkflowService {
+	return &AIWorkflowService{
 		ctx:    ctx,
 		config: config,
 	}
 }
 
-func (s *AIService) SetAISession(message *model.Message) error {
-	return vars.RedisClient.Set(s.ctx, s.GetSessionID(message), true, defaultTTL).Err()
-}
-
-func (s *AIService) RenewAISession(message *model.Message) error {
-	return vars.RedisClient.Expire(s.ctx, s.GetSessionID(message), defaultTTL).Err()
-}
-
-func (s *AIService) ExpireAISession(message *model.Message) error {
-	return vars.RedisClient.Del(s.ctx, s.GetSessionID(message)).Err()
-}
-
-func (s *AIService) ExpireAllAISessionByChatRoomID(chatRoomID string) error {
-	sessionID := fmt.Sprintf("ai_session_%s:", chatRoomID)
-	keys, err := vars.RedisClient.Keys(s.ctx, sessionID+"*").Result()
-	if err != nil {
-		return err
-	}
-	if len(keys) == 0 {
-		return nil
-	}
-	return vars.RedisClient.Del(s.ctx, keys...).Err()
-}
-
-func (s *AIService) IsInAISession(message *model.Message) (bool, error) {
-	cnt, err := vars.RedisClient.Exists(s.ctx, s.GetSessionID(message)).Result()
-	return cnt == 1, err
-}
-
-func (s *AIService) GetSessionID(message *model.Message) string {
-	return fmt.Sprintf("ai_session_%s:%s", message.FromWxID, message.SenderWxID)
-}
-
-func (s *AIService) IsAISessionStart(message *model.Message) bool {
-	if message.Content == "#进入AI会话" {
-		err := s.SetAISession(message)
-		return err == nil
-	}
-	return false
-}
-
-func (s *AIService) IsAISessionEnd(message *model.Message) bool {
-	if message.Content == "#退出AI会话" {
-		err := s.ExpireAISession(message)
-		return err == nil
-	}
-	return false
-}
-
-func (s *AIService) ChatIntention(message *model.Message) ChatIntention {
+func (s *AIWorkflowService) ChatIntention(message *model.Message) ChatIntention {
 	aiConfig := s.config.GetAIConfig()
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
@@ -160,7 +110,7 @@ func (s *AIService) ChatIntention(message *model.Message) ChatIntention {
 	return result.ClassName
 }
 
-func (s *AIService) GetSongRequestTitle(message *model.Message) string {
+func (s *AIWorkflowService) GetSongRequestTitle(message *model.Message) string {
 	aiConfig := s.config.GetAIConfig()
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
@@ -217,33 +167,4 @@ func (s *AIService) GetSongRequestTitle(message *model.Message) string {
 	}
 
 	return result.SongTitle
-}
-
-func (s *AIService) Chat(aiMessages []openai.ChatCompletionMessage) (string, error) {
-	aiConfig := s.config.GetAIConfig()
-	if aiConfig.Prompt != "" {
-		systemMessage := openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: aiConfig.Prompt,
-		}
-		aiMessages = append([]openai.ChatCompletionMessage{systemMessage}, aiMessages...)
-	}
-	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
-	openaiConfig.BaseURL = aiConfig.BaseURL
-	client := openai.NewClientWithConfig(openaiConfig)
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:    aiConfig.Model,
-			Messages: aiMessages,
-			Stream:   false,
-		},
-	)
-	if err != nil {
-		return "", err
-	}
-	if len(resp.Choices) == 0 || resp.Choices[0].Message.Content == "" {
-		return "", fmt.Errorf("AI返回了空内容，请联系管理员")
-	}
-	return resp.Choices[0].Message.Content, nil
 }
