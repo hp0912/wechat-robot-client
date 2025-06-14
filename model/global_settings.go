@@ -21,6 +21,16 @@ const (
 	NewsTypeImage NewsType = "image" // 图片
 )
 
+type ImageModel string
+
+const (
+	ImageModelDoubao          ImageModel = "doubao"           // 豆包模型
+	ImageModelGLM             ImageModel = "glm"              // 智谱模型
+	ImageModelStableDiffusion ImageModel = "stable-diffusion" // Stable Diffusion 模型
+	ImageModelMidjourney      ImageModel = "midjourney"       // Midjourney 模型
+	ImageModelOpenAI          ImageModel = "openai"           // OpenAI 模型
+)
+
 type GlobalSettings struct {
 	ID                        uint64         `gorm:"column:id;primaryKey;autoIncrement;comment:公共配置表主键ID" json:"id"`
 	ChatAIEnabled             *bool          `gorm:"column:chat_ai_enabled;default:false;comment:是否启用AI聊天功能" json:"chat_ai_enabled"`
@@ -30,7 +40,7 @@ type GlobalSettings struct {
 	ChatModel                 string         `gorm:"column:chat_model;type:varchar(100);default:'';comment:聊天AI使用的模型名称" json:"chat_model"`
 	ChatPrompt                string         `gorm:"column:chat_prompt;type:text;comment:聊天AI系统提示词" json:"chat_prompt"`
 	ImageAIEnabled            *bool          `gorm:"column:image_ai_enabled;default:false;comment:是否启用AI绘图功能" json:"image_ai_enabled"`
-	ImageModel                string         `gorm:"column:image_model;type:varchar(255);default:'';comment:绘图AI模型" json:"image_model"`
+	ImageModel                ImageModel     `gorm:"column:image_model;type:varchar(255);default:'';comment:绘图AI模型" json:"image_model"`
 	ImageAISettings           datatypes.JSON `gorm:"column:image_ai_settings;type:json;comment:绘图AI配置项" json:"image_ai_settings"`
 	WelcomeEnabled            *bool          `gorm:"column:welcome_enabled;default:false;comment:是否启用新成员加群欢迎功能" json:"welcome_enabled"`
 	WelcomeType               WelcomeType    `gorm:"column:welcome_type;type:enum('text','emoji','image','url');default:'text';comment:欢迎方式：text-文本，emoji-表情，image-图片，url-链接" json:"welcome_type"`

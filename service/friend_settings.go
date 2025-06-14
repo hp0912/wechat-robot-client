@@ -21,6 +21,7 @@ type FriendSettingsService struct {
 func NewFriendSettingsService(ctx context.Context) *FriendSettingsService {
 	return &FriendSettingsService{
 		ctx:     ctx,
+		gsRespo: repository.NewGlobalSettingsRepo(ctx, vars.DB),
 		fsRespo: repository.NewFriendSettingsRepo(ctx, vars.DB),
 	}
 }

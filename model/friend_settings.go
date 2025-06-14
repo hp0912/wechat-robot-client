@@ -13,7 +13,7 @@ type FriendSettings struct {
 	ChatModel       *string        `gorm:"column:chat_model;type:varchar(100);default:'';comment:聊天AI使用的模型名称" json:"chat_model"`
 	ChatPrompt      *string        `gorm:"column:chat_prompt;type:text;comment:聊天AI系统提示词" json:"chat_prompt"`
 	ImageAIEnabled  *bool          `gorm:"column:image_ai_enabled;default:false;comment:是否启用AI绘图功能" json:"image_ai_enabled"`
-	ImageModel      *string        `gorm:"column:image_model;type:varchar(255);default:'';comment:绘图AI模型" json:"image_model"`
+	ImageModel      *ImageModel    `gorm:"column:image_model;type:varchar(255);default:'';comment:绘图AI模型" json:"image_model"`
 	ImageAISettings datatypes.JSON `gorm:"column:image_ai_settings;type:json;comment:绘图AI配置项" json:"image_ai_settings"`
 }
 
