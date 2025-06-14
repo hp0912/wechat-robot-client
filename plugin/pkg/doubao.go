@@ -19,6 +19,7 @@ type DoubaoConfig struct {
 	Watermark      bool    `json:"watermark"`
 }
 
+// Doubao 豆包绘图
 func Doubao(config *DoubaoConfig) (string, error) {
 	client := arkruntime.NewClientWithApiKey(config.ApiKey)
 	ctx := context.Background()
@@ -43,6 +44,9 @@ func Doubao(config *DoubaoConfig) (string, error) {
 	imagesResponse, err := client.GenerateImages(ctx, generateReq)
 	if err != nil {
 		return "", fmt.Errorf("generate images error: %v", err)
+	}
+	if imagesResponse.Error != nil {
+		return "", fmt.Errorf("generate images error: %s", imagesResponse.Error.Message)
 	}
 	if len(imagesResponse.Data) == 0 {
 		return "", fmt.Errorf("no images generated")

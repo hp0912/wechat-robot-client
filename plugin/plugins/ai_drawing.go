@@ -21,7 +21,7 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 		doubaoConfig.Prompt = ctx.Message.Content
 		imageUrl, err := pkg.Doubao(&doubaoConfig)
 		if err != nil {
-			log.Printf("生成豆包图像失败: %v", err)
+			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 			return
 		}
 		err = pkg.SendDrawingImage(ctx.MessageService, ctx.Message.FromWxID, imageUrl)
@@ -31,6 +31,22 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 		}
 	case model.ImageModelGLM:
 		// Handle 智谱模型
+		var glmConfig pkg.GLMConfig
+		if err := json.Unmarshal(aiConfig.ImageAISettings, &glmConfig); err != nil {
+			log.Printf("反序列化智谱绘图配置失败: %v", err)
+			return
+		}
+		glmConfig.Prompt = ctx.Message.Content
+		imageUrl, err := pkg.GLM(&glmConfig)
+		if err != nil {
+			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
+			return
+		}
+		err = pkg.SendDrawingImage(ctx.MessageService, ctx.Message.FromWxID, imageUrl)
+		if err != nil {
+			log.Printf("发送智谱图像失败: %v", err)
+			return
+		}
 	case model.ImageModelStableDiffusion:
 		// Handle Stable Diffusion 模型
 	case model.ImageModelMidjourney:
