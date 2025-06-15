@@ -1,0 +1,3680 @@
+swagger: "2.0"
+info:
+  version: "3.0"
+  title: Wechat 08- 算法- 8059最新版基础上再度升级  ---  五端扫码版（ipad、安卓pad、win、mac、car、62 iphone、a16 安卓）
+  description: 可开启自动心跳 - 自动二次登录 - 长连接心跳  （新上线账号尽量 ipad、安卓 pad 加好友发圈。IOS 参数比较全）
+basePath: /api
+paths:
+  /Favor/Del:
+    post:
+      tags:
+      - Favor
+      summary: 删除收藏
+      parameters:
+      - in: body
+        name: body
+        description: FavId在同步收藏中获取
+        required: true
+        schema:
+          $ref: '#/definitions/Favor.DelParam'
+      responses:
+        "200":
+          description: ""
+  /Favor/GetFavInfo:
+    post:
+      tags:
+      - Favor
+      summary: 获取搜藏信息
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录后的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Favor/GetFavItem:
+    post:
+      tags:
+      - Favor
+      summary: 读取收藏内容
+      parameters:
+      - in: body
+        name: body
+        description: FavId在同步收藏中获取
+        required: true
+        schema:
+          $ref: '#/definitions/Favor.GetFavItemParam'
+      responses:
+        "200":
+          description: ""
+  /Favor/Sync:
+    post:
+      tags:
+      - Favor
+      summary: 同步收藏
+      parameters:
+      - in: body
+        name: body
+        description: keybuf:第二次请求需要带上第一次返回的
+        required: true
+        schema:
+          $ref: '#/definitions/Favor.SyncParam'
+      responses:
+        "200":
+          description: ""
+  /Finder/UserPrepare:
+    post:
+      tags:
+      - Finder
+      summary: 用户中心
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输登录后的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Friend/Blacklist:
+    post:
+      tags:
+      - Friend
+      summary: 添加/移除黑名单
+      parameters:
+      - in: body
+        name: body
+        description: Val == 15添加  7移除
+        required: true
+        schema:
+          $ref: '#/definitions/Friend.BlacklistParam'
+      responses:
+        "200":
+          description: ""
+  /Friend/Delete:
+    post:
+      tags:
+      - Friend
+      summary: 删除好友
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Friend.DefaultParam'
+      responses:
+        "200":
+          description: ""
+  /Friend/GetContractDetail:
+    post:
+      tags:
+      - Friend
+      summary: 获取通讯录好友详情
+      parameters:
+      - in: body
+        name: body
+        description: 多个微信请用,隔开(最多20个),ChatRoom请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Friend.GetContractDetailparameter'
+      responses:
+        "200":
+          description: ""
+  /Friend/GetContractList:
+    post:
+      tags:
+      - Friend
+      summary: 获取通讯录好友
+      parameters:
+      - in: body
+        name: body
+        description: CurrentWxcontactSeq和CurrentChatRoomContactSeq没有的情况下请填写0
+        required: true
+        schema:
+          $ref: '#/definitions/Friend.GetContractListparameter'
+      responses:
+        "200":
+          description: ""
+  /Friend/GetFriendstate:
+    post:
+      tags:
+      - Friend
+      summary: 查询好友状态
+      parameters:
+      - in: body
+        name: body
+        description: OpCode == 1
+        required: true
+        schema:
+          $ref: '#/definitions/Friend.FriendRelationParam'
+      responses:
+        "200":
+          description: ""
+  /Friend/GetMFriend:
+    post:
+      tags:
+      - Friend
+      summary: 获取手机通讯录
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录后的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Friend/LbsFind:
+    post:
+      tags:
+      - Friend
+      summary: 附近人
+      parameters:
+      - in: body
+        name: body
+        description: OpCode == 1
+        required: true
+        schema:
+          $ref: '#/definitions/Friend.LbsFindParam'
+      responses:
+        "200":
+          description: ""
+  /Friend/PassVerify:
+    post:
+      tags:
+      - Friend
+      summary: 通过好友请求
+      parameters:
+      - in: body
+        name: body
+        description: Scene：代表来源,请在消息中的xml中获取
+        required: true
+        schema:
+          $ref: '#/definitions/Friend.PassVerifyParam'
+      responses:
+        "200":
+          description: ""
+  /Friend/Search:
+    post:
+      tags:
+      - Friend
+      summary: 搜索联系人
+      parameters:
+      - in: body
+        name: body
+        description: 爆粉情况下特殊通道请自行填写,默认时FromScene=0,SearchScene=1
+        required: true
+        schema:
+          $ref: '#/definitions/Friend.SearchParam'
+      responses:
+        "200":
+          description: ""
+  /Friend/SendRequest:
+    post:
+      tags:
+      - Friend
+      summary: 添加联系人(发送好友请求)
+      parameters:
+      - in: body
+        name: body
+        description: V1 V2是必填项
+        required: true
+        schema:
+          $ref: '#/definitions/Friend.SendRequestParam'
+      responses:
+        "200":
+          description: ""
+  /Friend/SetRemarks:
+    post:
+      tags:
+      - Friend
+      summary: 设置好友备注
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Friend.SetRemarksParam'
+      responses:
+        "200":
+          description: ""
+  /Friend/Upload:
+    post:
+      tags:
+      - Friend
+      summary: 上传通讯录
+      parameters:
+      - in: body
+        name: body
+        description: PhoneNo多个手机号请用,隔开   CurrentPhoneNo自己的手机号  Opcode == 1上传 2删除
+        required: true
+        schema:
+          $ref: '#/definitions/Friend.UploadParam'
+      responses:
+        "200":
+          description: ""
+  /FriendCircle/Comment:
+    post:
+      tags:
+      - FriendCircle
+      summary: 朋友圈点赞/评论
+      parameters:
+      - in: body
+        name: body
+        description: type：1点赞 2：文本 3:消息 4：with 5陌生人点赞 replyCommnetId：回复评论Id
+        required: true
+        schema:
+          $ref: '#/definitions/FriendCircle.CommentParam'
+      responses:
+        "200":
+          description: ""
+  /FriendCircle/GetDetail:
+    post:
+      tags:
+      - FriendCircle
+      summary: 获取特定人朋友圈
+      parameters:
+      - in: body
+        name: body
+        description: 打开首页时：Fristpagemd5留空,Maxid填写0
+        required: true
+        schema:
+          $ref: '#/definitions/FriendCircle.GetDetailparameter'
+      responses:
+        "200":
+          description: ""
+  /FriendCircle/GetIdDetail:
+    post:
+      tags:
+      - FriendCircle
+      summary: 获取特定ID详情内容
+      parameters:
+      - in: body
+        name: body
+        description: Id为当前朋友圈内容的id
+        required: true
+        schema:
+          $ref: '#/definitions/FriendCircle.GetIdDetailParam'
+      responses:
+        "200":
+          description: ""
+  /FriendCircle/DownFriendCircleMedia:
+    post:
+      tags:
+        - FriendCircle
+      summary: 下载朋友圈视频
+      parameters:
+        - in: body
+          name: body
+          description: 下载朋友圈视频
+          required: true
+          schema:
+            $ref: '#/definitions/FriendCircle.DownFriendCircleParam'
+      responses:
+        "200":
+          description: ""
+  /FriendCircle/GetList:
+    post:
+      tags:
+      - FriendCircle
+      summary: 朋友圈首页列表
+      parameters:
+      - in: body
+        name: body
+        description: 打开首页时：Fristpagemd5留空,Maxid填写0
+        required: true
+        schema:
+          $ref: '#/definitions/FriendCircle.GetListParam'
+      responses:
+        "200":
+          description: ""
+  /FriendCircle/Messages:
+    post:
+      tags:
+      - FriendCircle
+      summary: 发布朋友圈
+      parameters:
+      - in: body
+        name: body
+        description: 请自行构造xml内容
+        required: true
+        schema:
+          $ref: '#/definitions/FriendCircle.Messagearameter'
+      responses:
+        "200":
+          description: ""
+  /FriendCircle/MmSnsSync:
+    post:
+      tags:
+      - FriendCircle
+      summary: 朋友圈同步
+      parameters:
+      - in: body
+        name: body
+        description: Synckey可留空
+        required: true
+        schema:
+          $ref: '#/definitions/FriendCircle.MmSnsSyncParam'
+      responses:
+        "200":
+          description: ""
+  /FriendCircle/Operation:
+    post:
+      tags:
+      - FriendCircle
+      summary: 朋友圈操作
+      parameters:
+      - in: body
+        name: body
+        description: type：1删除朋友圈2设为隐私3设为公开4删除评论5取消点赞
+        required: true
+        schema:
+          $ref: '#/definitions/FriendCircle.OperationParam'
+      responses:
+        "200":
+          description: ""
+  /FriendCircle/PrivacySettings:
+    post:
+      tags:
+      - FriendCircle
+      summary: 朋友圈权限设置
+      parameters:
+      - in: body
+        name: body
+        description: 核心参数请联系客服获取代码列表
+        required: true
+        schema:
+          $ref: '#/definitions/FriendCircle.PrivacySettingsParam'
+      responses:
+        "200":
+          description: ""
+  /FriendCircle/Upload:
+    post:
+      tags:
+      - FriendCircle
+      summary: 朋友圈上传
+      parameters:
+      - in: body
+        name: body
+        description: 支持图片和视频
+        required: true
+        schema:
+          $ref: '#/definitions/FriendCircle.SnsUploadParam'
+      responses:
+        "200":
+          description: ""
+  /Group/AddChatRoomMember:
+    post:
+      tags:
+      - Group
+      summary: 增加群成员(40人以内)
+      parameters:
+      - in: body
+        name: body
+        description: ToWxids 多个微信ID用,隔开 ChatRoomName 群ID
+        required: true
+        schema:
+          $ref: '#/definitions/Group.AddChatRoomParam'
+      responses:
+        "200":
+          description: ""
+  /Group/ConsentToJoin:
+    post:
+      tags:
+      - Group
+      summary: 同意进入群聊
+      parameters:
+      - in: body
+        name: body
+        description: Url请在消息内容xml中查找
+        required: true
+        schema:
+          $ref: '#/definitions/Group.ConsentToJoinParam'
+      responses:
+        "200":
+          description: ""
+  /Group/CreateChatRoom:
+    post:
+      tags:
+      - Group
+      summary: 创建群聊
+      parameters:
+      - in: body
+        name: body
+        description: ToWxids 多个微信ID用,隔开 至少三个好友微信ID以上
+        required: true
+        schema:
+          $ref: '#/definitions/Group.FacingCreateChatRoomParam'
+      responses:
+        "200":
+          description: ""
+  /Group/DelChatRoomMember:
+    post:
+      tags:
+      - Group
+      summary: 删除群成员
+      parameters:
+      - in: body
+        name: body
+        description: ToWxids 多个微信ID用,隔开 ChatRoomName 群ID
+        required: true
+        schema:
+          $ref: '#/definitions/Group.AddChatRoomParam'
+      responses:
+        "200":
+          description: ""
+  /Group/GetChatRoomInfo:
+    post:
+      tags:
+      - Group
+      summary: 获取群详情(不带公告内容)
+      parameters:
+      - in: body
+        name: body
+        description: UserNameList == 群ID,多个查询请用,隔开
+        required: true
+        schema:
+          $ref: '#/definitions/Group.GetChatRoomParam'
+      responses:
+        "200":
+          description: ""
+  /Group/GetChatRoomInfoDetail:
+    post:
+      tags:
+      - Group
+      summary: 获取群信息(带公告内容)
+      parameters:
+      - in: body
+        name: body
+        description: QID == 群ID
+        required: true
+        schema:
+          $ref: '#/definitions/Group.GetChatRoomParam'
+      responses:
+        "200":
+          description: ""
+  /Group/GetChatRoomMemberDetail:
+    post:
+      tags:
+      - Group
+      summary: 获取群成员详情
+      parameters:
+      - in: body
+        name: body
+        description: QID == 群ID
+        required: true
+        schema:
+          $ref: '#/definitions/Group.GetChatRoomParam'
+      responses:
+        "200":
+          description: ""
+  /Group/GetQRCode:
+    post:
+      tags:
+      - Group
+      summary: 获取群二维码
+      parameters:
+      - in: body
+        name: body
+        description: QID == 群ID
+        required: true
+        schema:
+          $ref: '#/definitions/Group.GetChatRoomParam'
+      responses:
+        "200":
+          description: ""
+  /Group/InviteChatRoomMember:
+    post:
+      tags:
+      - Group
+      summary: 邀请群成员(40人以上)
+      parameters:
+      - in: body
+        name: body
+        description: ToWxids 多个微信ID用,隔开 ChatRoomName 群ID
+        required: true
+        schema:
+          $ref: '#/definitions/Group.AddChatRoomParam'
+      responses:
+        "200":
+          description: ""
+  /Group/MoveContractList:
+    post:
+      tags:
+      - Group
+      summary: 保存到通讯录
+      parameters:
+      - in: body
+        name: body
+        description: Val == 3添加 2移除
+        required: true
+        schema:
+          $ref: '#/definitions/Group.MoveContractListParam'
+      responses:
+        "200":
+          description: ""
+  /Group/OperateChatRoomAdmin:
+    post:
+      tags:
+      - Group
+      summary: 群管理操作(添加、删除、转让)
+      parameters:
+      - in: body
+        name: body
+        description: ToWxids == 多个wxid用,隔开(仅限于添加/删除管理员) Val == 1添加 2删除 3转让
+        required: true
+        schema:
+          $ref: '#/definitions/Group.OperateChatRoomAdminParam'
+      responses:
+        "200":
+          description: ""
+  /Group/Quit:
+    post:
+      tags:
+      - Group
+      summary: 退出群聊
+      parameters:
+      - in: body
+        name: body
+        description: QID == 群ID
+        required: true
+        schema:
+          $ref: '#/definitions/Group.QuitGroupParam'
+      responses:
+        "200":
+          description: ""
+  /Group/ScanIntoGroup:
+    post:
+      tags:
+      - Group
+      summary: 扫码进群
+      parameters:
+      - in: body
+        name: body
+        description: 只支持url
+        required: true
+        schema:
+          $ref: '#/definitions/Group.ScanIntoGroupParam'
+      responses:
+        "200":
+          description: ""
+  /Group/ScanIntoGroupEnterprise:
+    post:
+      tags:
+      - Group
+      summary: 扫码进群
+      parameters:
+      - in: body
+        name: body
+        description: 只支持url
+        required: true
+        schema:
+          $ref: '#/definitions/Group.ScanIntoGroupParam'
+      responses:
+        "200":
+          description: ""
+  /Group/SetChatRoomAnnouncement:
+    post:
+      tags:
+      - Group
+      summary: 设置群公告
+      parameters:
+      - in: body
+        name: body
+        description: Content == 公告内容
+        required: true
+        schema:
+          $ref: '#/definitions/Group.OperateChatRoomInfoParam'
+      responses:
+        "200":
+          description: ""
+  /Group/SetChatRoomName:
+    post:
+      tags:
+      - Group
+      summary: 设置群名称
+      parameters:
+      - in: body
+        name: body
+        description: Content == 名称
+        required: true
+        schema:
+          $ref: '#/definitions/Group.OperateChatRoomInfoParam'
+      responses:
+        "200":
+          description: ""
+  /Group/SetChatRoomRemarks:
+    post:
+      tags:
+      - Group
+      summary: 设置群备注(仅自己可见)
+      parameters:
+      - in: body
+        name: body
+        description: QID == 群ID
+        required: true
+        schema:
+          $ref: '#/definitions/Group.OperateChatRoomInfoParam'
+      responses:
+        "200":
+          description: ""
+  /Label/Add:
+    post:
+      tags:
+      - Label
+      summary: 添加标签
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Label.AddParam'
+      responses:
+        "200":
+          description: ""
+  /Label/Delete:
+    post:
+      tags:
+      - Label
+      summary: 删除标签
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Label.DeleteParam'
+      responses:
+        "200":
+          description: ""
+  /Label/GetList:
+    post:
+      tags:
+      - Label
+      summary: 获取标签列表
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Label/UpdateList:
+    post:
+      tags:
+      - Label
+      summary: 更新标签列表
+      parameters:
+      - in: body
+        name: body
+        description: ToWxid:多个请用,隔开
+        required: true
+        schema:
+          $ref: '#/definitions/Label.UpdateListParam'
+      responses:
+        "200":
+          description: ""
+  /Label/UpdateName:
+    post:
+      tags:
+      - Label
+      summary: 修改标签
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Label.UpdateNameParam'
+      responses:
+        "200":
+          description: ""
+  /Login/A16Data:
+    post:
+      tags:
+      - Login
+      summary: A16登录(账号或密码) - android == 8.0.57
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.A16LoginParam'
+      responses:
+        "200":
+          description: ""
+  /Login/A16Data1:
+    post:
+      tags:
+      - Login
+      summary: A16登录(账号或密码) - android == 新版云函数
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.A16LoginParam'
+      responses:
+        "200":
+          description: ""
+  /Login/AutoHeartBeat:
+    post:
+      tags:
+      - Login
+      summary: 开启自动心跳, 自动二次登录（linux 长连接，win 短链接）
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/AutoHeartBeatLog:
+    post:
+      tags:
+      - Login
+      summary: 自动心跳日志
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/CloseAutoHeartBeat:
+    post:
+      tags:
+      - Login
+      summary: 关闭自动心跳、自动二次登录
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/Data62Login:
+    post:
+      tags:
+      - Login
+      summary: 62登录(账号或密码)
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.Data62LoginReq'
+      responses:
+        "200":
+          description: ""
+  /Login/Data62QRCodeApply:
+    post:
+      tags:
+      - Login
+      summary: 62登录(账号或密码), 并申请使用二维码验证
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.Data62LoginReq'
+      responses:
+        "200":
+          description: ""
+  /Login/Data62QRCodeVerify:
+    post:
+      tags:
+      - Login
+      summary: 62登录(账号或密码), 二维码验证校验
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.Data62SMSVerifyReq'
+      responses:
+        "200":
+          description: ""
+  /Login/Data62SMSAgain:
+    post:
+      tags:
+      - Login
+      summary: 62登录(账号或密码), 重发验证码
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.Data62SMSAgainReq'
+      responses:
+        "200":
+          description: ""
+  /Login/Data62SMSApply:
+    post:
+      tags:
+      - Login
+      summary: 62登录(账号或密码), 并申请使用SMS验证
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.Data62LoginReq'
+      responses:
+        "200":
+          description: ""
+  /Login/Data62SMSVerify:
+    post:
+      tags:
+      - Login
+      summary: 62登录(账号或密码), 短信验证
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.Data62SMSVerifyReq'
+      responses:
+        "200":
+          description: ""
+  /Login/ExtDeviceLoginConfirmGet:
+    post:
+      tags:
+      - Login
+      summary: 新设备扫码登录
+      parameters:
+      - in: body
+        name: body
+        description: URL == MAC iPad Windows 的微信二维码解析出来的url
+        required: true
+        schema:
+          $ref: '#/definitions/Login.ExtDeviceLoginConfirmParam'
+      responses:
+        "200":
+          description: ""
+  /Login/ExtDeviceLoginConfirmOk:
+    post:
+      tags:
+      - Login
+      summary: 新设备扫码确认登录
+      parameters:
+      - in: body
+        name: body
+        description: URL == MAC iPad Windows 的微信二维码解析出来的url
+        required: true
+        schema:
+          $ref: '#/definitions/Login.ExtDeviceLoginConfirmParam'
+      responses:
+        "200":
+          description: ""
+  /Login/Get62Data:
+    post:
+      tags:
+      - Login
+      summary: 获取62数据
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/GetA16Data:
+    post:
+      tags:
+      - Login
+      summary: 获取A16数据
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/GetCacheInfo:
+    post:
+      tags:
+      - Login
+      summary: 获取登录缓存信息
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/HeartBeat:
+    post:
+      tags:
+      - Login
+      summary: 心跳包
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/HeartBeatLong:
+    post:
+      tags:
+      - Login
+      summary: 心跳包
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/LogOut:
+    post:
+      tags:
+      - Login
+      summary: 退出登录
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/LoginAwaken:
+    post:
+      tags:
+      - Login
+      summary: 唤醒登录(只限扫码登录)
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/LoginCheckQR:
+    post:
+      tags:
+      - Login
+      summary: 检测二维码
+      parameters:
+      - in: query
+        name: uuid
+        description: 请输入取码时返回的UUID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/LoginGetQR:
+    post:
+      tags:
+      - Login
+      summary: 获取二维码(iPad) 8.0.59
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.GetQRReq'
+      responses:
+        "200":
+          description: ""
+  /Login/LoginGetQRCar:
+    post:
+      tags:
+      - Login
+      summary: 获取二维码(Car)
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.GetQRReq'
+      responses:
+        "200":
+          description: ""
+  /Login/LoginGetQRMac:
+    post:
+      tags:
+      - Login
+      summary: 获取二维码(Mac)
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.GetQRReq'
+      responses:
+        "200":
+          description: ""
+  /Login/LoginGetQRPad:
+    post:
+      tags:
+      - Login
+      summary: 获取二维码(安卓Pad)
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.GetQRReq'
+      responses:
+        "200":
+          description: ""
+  /Login/LoginGetQRPadx:
+    post:
+      tags:
+      - Login
+      summary: 获取二维码(安卓Pad-绕过验证码)
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.GetQRReq'
+      responses:
+        "200":
+          description: ""
+  /Login/LoginGetQRWin:
+    post:
+      tags:
+      - Login
+      summary: 获取二维码(Windows)
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.GetQRReq'
+      responses:
+        "200":
+          description: ""
+  /Login/LoginGetQRWinUnified:
+    post:
+      tags:
+      - Login
+      summary: 获取二维码(WinUnified-统一PC版)
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.GetQRReq'
+      responses:
+        "200":
+          description: ""
+  /Login/LoginGetQRWinUwp:
+    post:
+      tags:
+      - Login
+      summary: 获取二维码(WindowsUwp-绕过验证码)
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.GetQRReq'
+      responses:
+        "200":
+          description: ""
+  /Login/LoginGetQRx:
+    post:
+      tags:
+      - Login
+      summary: 获取二维码(iPad-绕过验证码)
+      parameters:
+      - in: body
+        name: body
+        description: 不使用代理请留空
+        required: true
+        schema:
+          $ref: '#/definitions/Login.GetQRReq'
+      responses:
+        "200":
+          description: ""
+  /Login/LoginTwiceAutoAuth:
+    post:
+      tags:
+      - Login
+      summary: 二次登录
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/Newinit:
+    post:
+      tags:
+      - Login
+      summary: 初始化
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录成功的wxid
+        required: true
+        type: string
+      - in: query
+        name: MaxSynckey
+        description: 二次同步需要带入
+        type: string
+      - in: query
+        name: CurrentSynckey
+        description: 二次同步需要带入
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Login/YPayVerificationcode:
+    post:
+      tags:
+      - Login
+      summary: 提交登录验证码
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Login.VerificationcodeParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/Revoke:
+    post:
+      tags:
+      - Msg
+      summary: 撤回消息
+      parameters:
+      - in: body
+        name: body
+        description: 请注意参数
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.RevokeMsgParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/SendApp:
+    post:
+      tags:
+      - Msg
+      summary: 发送App消息
+      parameters:
+      - in: body
+        name: body
+        description: Type请根据场景设置,xml请自行构造
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.SendAppMsgParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/SendCDNFile:
+    post:
+      tags:
+      - Msg
+      summary: 发送文件(转发,并非上传)
+      parameters:
+      - in: body
+        name: body
+        description: Content==收到文件消息xml
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.DefaultParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/SendCDNImg:
+    post:
+      tags:
+      - Msg
+      summary: 发送Cdn图片(转发图片)
+      parameters:
+      - in: body
+        name: body
+        description: Content==消息xml
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.DefaultParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/SendCDNVideo:
+    post:
+      tags:
+      - Msg
+      summary: 发送Cdn视频(转发视频)
+      parameters:
+      - in: body
+        name: body
+        description: Content==消息xml
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.DefaultParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/SendEmoji:
+    post:
+      tags:
+      - Msg
+      summary: 发送Emoji
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Msg.SendEmojiParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/SendTxt:
+    post:
+      tags:
+      - Msg
+      summary: 发送文本消息
+      parameters:
+      - in: body
+        name: body
+        description: Type请填写1 At == 群@,多个wxid请用,隔开
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.SendNewMsgParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/SendVideo:
+    post:
+      tags:
+      - Msg
+      summary: 发送视频
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Msg.SendVideoMsgParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/SendVoice:
+    post:
+      tags:
+      - Msg
+      summary: 发送语音
+      parameters:
+      - in: body
+        name: body
+        description: Type： AMR = 0, MP3 = 2, SILK = 4, SPEEX = 1, WAVE = 3 VoiceTime ：音频长度 1000为一秒
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.SendVoiceMessageParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/ShareCard:
+    post:
+      tags:
+      - Msg
+      summary: 分享名片
+      parameters:
+      - in: body
+        name: body
+        description: ToWxid==接收的微信ID CardWxId==名片wxid CardNickName==名片昵称 CardAlias==名片别名
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.ShareCardParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/ShareLink:
+    post:
+      tags:
+      - Msg
+      summary: 发送分享链接消息
+      parameters:
+      - in: body
+        name: body
+        description: Type==类型 Desc==描述 Xml==发送xml内容 ToWxid==接受者
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.SendAppMsgParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/ShareLocation:
+    post:
+      tags:
+      - Msg
+      summary: 分享位置
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.ShareLocationParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/ShareVideo:
+    post:
+      tags:
+      - Msg
+      summary: 发送分享视频消息
+      parameters:
+      - in: body
+        name: body
+        description: xml：微信返回的视频xml
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.ShareVideoMsgParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/Sync:
+    post:
+      tags:
+      - Msg
+      summary: 同步消息
+      parameters:
+      - in: body
+        name: body
+        description: Scene填写0,Synckey留空
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.SyncParam'
+      responses:
+        "200":
+          description: ""
+  /Msg/UploadImg:
+    post:
+      tags:
+      - Msg
+      summary: 发送图片
+      parameters:
+      - in: body
+        name: body
+        description: 请注意base64格式
+        required: true
+        schema:
+          $ref: '#/definitions/Msg.SendImageMsgParam'
+      responses:
+        "200":
+          description: ""
+  /OfficialAccounts/Follow:
+    post:
+      tags:
+      - OfficialAccounts
+      summary: 关注
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/OfficialAccounts.DefaultParam'
+      responses:
+        "200":
+          description: ""
+  /OfficialAccounts/GetAppMsgExt:
+    post:
+      tags:
+      - OfficialAccounts
+      summary: 阅读文章,返回 分享、看一看、阅读数据
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/OfficialAccounts.ReadParam'
+      responses:
+        "200":
+          description: ""
+  /OfficialAccounts/GetAppMsgExtLike:
+    post:
+      tags:
+      - OfficialAccounts
+      summary: 点赞文章,返回 分享、看一看、阅读数据
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/OfficialAccounts.ReadParam'
+      responses:
+        "200":
+          description: ""
+  /OfficialAccounts/JSAPIPreVerify:
+    post:
+      tags:
+      - OfficialAccounts
+      summary: JSAPIPreVerify
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/OfficialAccounts.GetkeyParam'
+      responses:
+        "200":
+          description: ""
+  /OfficialAccounts/MpGetA8Key:
+    post:
+      tags:
+      - OfficialAccounts
+      summary: MpGetA8Key(获取文章key和uin)
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/OfficialAccounts.ReadParam'
+      responses:
+        "200":
+          description: ""
+  /OfficialAccounts/OauthAuthorize:
+    post:
+      tags:
+      - OfficialAccounts
+      summary: OauthAuthorize
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/OfficialAccounts.GetkeyParam'
+      responses:
+        "200":
+          description: ""
+  /OfficialAccounts/Quit:
+    post:
+      tags:
+      - OfficialAccounts
+      summary: 取消关注
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/OfficialAccounts.DefaultParam'
+      responses:
+        "200":
+          description: ""
+  /QWContact/QWApplyAddContact:
+    post:
+      tags:
+      - QWContact
+      summary: QWApplyAddContact
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/QWContact.QWApplyAddContactParam'
+      responses:
+        "200":
+          description: ""
+  /QWContact/QWContact/QWAddContact:
+    post:
+      tags:
+      - QWContact
+      summary: QWAddContact
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/QWContact.QWAddContactParam'
+      responses:
+        "200":
+          description: ""
+  /QWContact/SearchQWContact:
+    post:
+      tags:
+      - QWContact
+      summary: SearchQWContact
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/QWContact.AddWxAppRecordParam'
+      responses:
+        "200":
+          description: ""
+  /SayHello/Modelv1:
+    post:
+      tags:
+      - SayHello
+      summary: 模式1-扫码
+      parameters:
+      - in: body
+        name: body
+        description: 注意,请先执行1再执行2
+        required: true
+        schema:
+          $ref: '#/definitions/SayHello.Model1Param'
+      responses:
+        "200":
+          description: ""
+  /SayHello/Modelv2:
+    post:
+      tags:
+      - SayHello
+      summary: 模式3-v3\v4打招呼
+      parameters:
+      - in: body
+        name: body
+        description: Scene 招呼通道 v3v4通道，v4可空
+        required: true
+        schema:
+          $ref: '#/definitions/SayHello.SendRequestParam1'
+      responses:
+        "200":
+          description: ""
+  /TenPay/Collectmoney:
+    post:
+      tags:
+      - TenPay
+      summary: 确认收款
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/TenPay.CollectmoneyModel'
+      responses:
+        "200":
+          description: ""
+  /TenPay/GeMaPayQCode:
+    post:
+      tags:
+      - TenPay
+      summary: 自定义个人收款二维码
+      parameters:
+      - in: body
+        name: body
+        description: 注意参数
+        required: true
+        schema:
+          $ref: '#/definitions/TenPay.GeMaPayQCodeParam'
+      responses:
+        "200":
+          description: ""
+  /TenPay/GeMaSkdPayQCode:
+    post:
+      tags:
+      - TenPay
+      summary: 自定义经营个人收款单
+      parameters:
+      - in: body
+        name: body
+        description: 注意参数
+        required: true
+        schema:
+          $ref: '#/definitions/TenPay.GeMaSkdPayQCodeParam'
+      responses:
+        "200":
+          description: ""
+  /TenPay/GetEncryptInfo:
+    post:
+      tags:
+      - TenPay
+      summary: 获取加密信息
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录后的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /TenPay/OpenHongBao:
+    post:
+      tags:
+      - TenPay
+      summary: 抢红包
+      parameters:
+      - in: body
+        name: body
+        description: 注意参数
+        required: true
+        schema:
+          $ref: '#/definitions/TenPay.HongBaoParam'
+      responses:
+        "200":
+          description: ""
+  /TenPay/Openwxhb:
+    post:
+      tags:
+      - TenPay
+      summary: 拆开红包
+      parameters:
+      - in: body
+        name: body
+        description: 请求参数
+        required: true
+        schema:
+          $ref: '#/definitions/TenPay.OpenwxhbParam'
+      responses:
+        "200":
+          description: ""
+  /TenPay/Qrydetailwxhb:
+    post:
+      tags:
+      - TenPay
+      summary: 查看红包
+      parameters:
+      - in: body
+        name: body
+        description: 请求参数
+        required: true
+        schema:
+          $ref: '#/definitions/TenPay.QrydetailwxhbParam'
+      responses:
+        "200":
+          description: ""
+  /TenPay/Receivewxhb:
+    post:
+      tags:
+      - TenPay
+      summary: 打开红包
+      parameters:
+      - in: body
+        name: body
+        description: 请求参数
+        required: true
+        schema:
+          $ref: '#/definitions/TenPay.ReceivewxhbParam'
+      responses:
+        "200":
+          description: ""
+  /TenPay/SjSkdPayQCode:
+    post:
+      tags:
+      - TenPay
+      summary: 自定义商家收款单
+      parameters:
+      - in: body
+        name: body
+        description: 注意参数
+        required: true
+        schema:
+          $ref: '#/definitions/TenPay.SjSkdPayQCodeParam'
+      responses:
+        "200":
+          description: ""
+  /Tools/CdnDownloadImage:
+    post:
+      tags:
+      - Tools
+      summary: CDN下载高清图片
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Tools.CdnDownloadImageParam'
+      responses:
+        "200":
+          description: ""
+  /Tools/DownloadFile:
+    post:
+      tags:
+      - Tools
+      summary: 文件下载
+      parameters:
+      - in: body
+        name: body
+        description: DataLen == 文件大小, xml中获取
+        required: true
+        schema:
+          $ref: '#/definitions/Tools.DownloadAppAttachParam'
+      responses:
+        "200":
+          description: ""
+  /Tools/DownloadImg:
+    post:
+      tags:
+      - Tools
+      summary: 高清图片下载
+      parameters:
+      - in: body
+        name: body
+        description: DataLen == 图片大小, xml中获取
+        required: true
+        schema:
+          $ref: '#/definitions/Tools.DownloadParam'
+      responses:
+        "200":
+          description: ""
+  /Tools/DownloadVideo:
+    post:
+      tags:
+      - Tools
+      summary: 视频下载
+      parameters:
+      - in: body
+        name: body
+        description: DataLen == 视频大小, xml中获取
+        required: true
+        schema:
+          $ref: '#/definitions/Tools.DownloadParam'
+      responses:
+        "200":
+          description: ""
+  /Tools/DownloadVoice:
+    post:
+      tags:
+      - Tools
+      summary: 语音下载
+      parameters:
+      - in: body
+        name: body
+        description: 注意参数
+        required: true
+        schema:
+          $ref: '#/definitions/Tools.DownloadVoiceParam'
+      responses:
+        "200":
+          description: ""
+  /Tools/GeneratePayQCode:
+    get:
+      tags:
+      - Tools
+      summary: 生成支付二维码
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录后的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Tools/GetA8Key:
+    post:
+      tags:
+      - Tools
+      summary: GetA8Key
+      parameters:
+      - in: body
+        name: body
+        description: OpCode == 2 Scene == 4 CodeType == 19 CodeVersion == 5 以上是默认参数,如有需求自行修改
+        required: true
+        schema:
+          $ref: '#/definitions/Tools.GetA8KeyParam'
+      responses:
+        "200":
+          description: ""
+  /Tools/GetBandCardList:
+    post:
+      tags:
+      - Tools
+      summary: 获取余额以及银行卡信息
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录后的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Tools/GetBoundHardDevices:
+    post:
+      tags:
+      - Tools
+      summary: GetBoundHardDevices
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录后的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Tools/GetCdnDns:
+    post:
+      tags:
+      - Tools
+      summary: 获取CDN服务器dns信息
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录后的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /Tools/OauthSdkApp:
+    post:
+      tags:
+      - Tools
+      summary: OauthSdkApp
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Tools.OauthSdkAppParam'
+      responses:
+        "200":
+          description: ""
+  /Tools/ThirdAppGrant:
+    post:
+      tags:
+      - Tools
+      summary: 第三方APP授权
+      parameters:
+      - in: body
+        name: body
+        description: 注意参数
+        required: true
+        schema:
+          $ref: '#/definitions/Tools.ThirdAppGrantParam'
+      responses:
+        "200":
+          description: ""
+  /Tools/UpdateStepNumberApi:
+    post:
+      tags:
+      - Tools
+      summary: 修改微信步数
+      parameters:
+      - in: body
+        name: body
+        description: 步数，最高支持98000
+        required: true
+        schema:
+          $ref: '#/definitions/Tools.SetStepParam'
+      responses:
+        "200":
+          description: ""
+  /Tools/setproxy:
+    post:
+      tags:
+      - Tools
+      summary: 设置/删除代理IP
+      parameters:
+      - in: body
+        name: body
+        description: 删除代理ip时直接留空即可
+        required: true
+        schema:
+          $ref: '#/definitions/Tools.SetProxyParam'
+      responses:
+        "200":
+          description: ""
+  /User/BindQQ:
+    post:
+      tags:
+      - User
+      summary: 绑定QQ
+      parameters:
+      - in: body
+        name: body
+        description: Account == QQ账号 Password == QQ密码
+        required: true
+        schema:
+          $ref: '#/definitions/User.BindQQParam'
+      responses:
+        "200":
+          description: ""
+  /User/BindingEmail:
+    post:
+      tags:
+      - User
+      summary: 绑定邮箱
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/User.EmailParam'
+      responses:
+        "200":
+          description: ""
+  /User/BindingMobile:
+    post:
+      tags:
+      - User
+      summary: 换绑手机号
+      parameters:
+      - in: body
+        name: body
+        description: Mobile == 格式：+8617399999999 Verifycode == 验证码请先通过(发送手机验证码)获取
+        required: true
+        schema:
+          $ref: '#/definitions/User.BindMobileParam'
+      responses:
+        "200":
+          description: ""
+  /User/DelSafetyInfo:
+    post:
+      tags:
+      - User
+      summary: 删除登录设备
+      parameters:
+      - in: body
+        name: body
+        description: UUID请在登录设备管理中获取
+        required: true
+        schema:
+          $ref: '#/definitions/User.DelSafetyInfoParam'
+      responses:
+        "200":
+          description: ""
+  /User/GetContractProfile:
+    post:
+      tags:
+      - User
+      summary: 取个人信息
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录后的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /User/GetQRCode:
+    post:
+      tags:
+      - User
+      summary: 取个人二维码
+      parameters:
+      - in: body
+        name: body
+        description: Style == 二维码样式(请自行探索) 8默认
+        required: true
+        schema:
+          $ref: '#/definitions/User.GetQRCodeParam'
+      responses:
+        "200":
+          description: ""
+  /User/GetSafetyInfo:
+    post:
+      tags:
+      - User
+      summary: 登录设备管理
+      parameters:
+      - in: query
+        name: wxid
+        description: 请输入登录后的wxid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+  /User/PrivacySettings:
+    post:
+      tags:
+      - User
+      summary: 隐私设置
+      parameters:
+      - in: body
+        name: body
+        description: 核心参数请联系客服获取代码列表
+        required: true
+        schema:
+          $ref: '#/definitions/User.PrivacySettingsParam'
+      responses:
+        "200":
+          description: ""
+  /User/ReportMotion:
+    post:
+      tags:
+      - User
+      summary: ReportMotion
+      parameters:
+      - in: body
+        name: body
+        description: 具体用法请联系客服
+        required: true
+        schema:
+          $ref: '#/definitions/User.ReportMotionParam'
+      responses:
+        "200":
+          description: ""
+  /User/SendVerifyMobile:
+    post:
+      tags:
+      - User
+      summary: 发送手机验证码
+      parameters:
+      - in: body
+        name: body
+        description: Opcode == 场景(18代表绑手机号) Mobile == 格式：+8617399999999
+        required: true
+        schema:
+          $ref: '#/definitions/User.SendVerifyMobileParam'
+      responses:
+        "200":
+          description: ""
+  /User/SetAlisa:
+    post:
+      tags:
+      - User
+      summary: 设置微信号
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/User.SetAlisaParam'
+      responses:
+        "200":
+          description: ""
+  /User/SetPasswd:
+    post:
+      tags:
+      - User
+      summary: 修改密码
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/User.NewSetPasswdParam'
+      responses:
+        "200":
+          description: ""
+  /User/UpdateProfile:
+    post:
+      tags:
+      - User
+      summary: 修改个人信息
+      parameters:
+      - in: body
+        name: body
+        description: NickName ==名称  Sex == 性别（1:男 2：女） Country == 国家,例如：CH Province == 省份 例如:WuHan Signature == 个性签名
+        required: true
+        schema:
+          $ref: '#/definitions/User.UpdateProfileParam'
+      responses:
+        "200":
+          description: ""
+  /User/UploadHeadImage:
+    post:
+      tags:
+      - User
+      summary: 修改头像
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/User.UploadHeadImageParam'
+      responses:
+        "200":
+          description: ""
+  /User/VerifyPasswd:
+    post:
+      tags:
+      - User
+      summary: 验证密码
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/User.NewVerifyPasswdParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/AddAvatar:
+    post:
+      tags:
+      - Wxapp
+      summary: AddAvatar
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.AddAvatarParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/AddMobile:
+    post:
+      tags:
+      - Wxapp
+      summary: 小程序绑定增加手机号
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.CheckVerifyCodeData'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/AddWxAppRecord:
+    post:
+      tags:
+      - Wxapp
+      summary: 新增小程序记录
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Wxapp.AddWxAppRecordParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/CloudCallFunction:
+    post:
+      tags:
+      - Wxapp
+      summary: 小程序云函数
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.CloudCallParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/DelMobile:
+    post:
+      tags:
+      - Wxapp
+      summary: 小程序删除手机号
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.DelMobileData'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/GetAllMobile:
+    post:
+      tags:
+      - Wxapp
+      summary: GetAllMobile
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.JSOperateWxParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/GetRandomAvatar:
+    post:
+      tags:
+      - Wxapp
+      summary: GetRandomAvatar
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.DefaultParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/GetUserOpenId:
+    post:
+      tags:
+      - Wxapp
+      summary: GetUserOpenId
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.GetUserOpenIdParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/JSGetSessionid:
+    post:
+      tags:
+      - Wxapp
+      summary: 获取小程序支付sessionid
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.DefaultParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/JSGetSessionidQRcode:
+    post:
+      tags:
+      - Wxapp
+      summary: 获取付小程序款二维码
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Wxapp.SessionidQRParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/JSLogin:
+    post:
+      tags:
+      - Wxapp
+      summary: 授权小程序(返回授权后的code)
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.DefaultParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/JSOperateWxData:
+    post:
+      tags:
+      - Wxapp
+      summary: 小程序操作
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.JSOperateWxParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/QrcodeAuthLogin:
+    post:
+      tags:
+      - Wxapp
+      summary: 扫码授权登录app或网页
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Wxapp.QrcodeAuthLoginParam'
+      responses:
+        "200":
+          description: ""
+  /Wxapp/UploadAvatarImg:
+    post:
+      tags:
+      - Wxapp
+      summary: UploadAvatarImg
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/Wxapp.AddAvatarImgParam'
+      responses:
+        "200":
+          description: ""
+definitions:
+  Favor.DelParam:
+    title: DelParam
+    type: object
+    properties:
+      FavId:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Favor.GetFavItemParam:
+    title: GetFavItemParam
+    type: object
+    properties:
+      FavId:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Favor.SyncParam:
+    title: SyncParam
+    type: object
+    properties:
+      Keybuf:
+        type: string
+      Wxid:
+        type: string
+  Friend.BlacklistParam:
+    title: BlacklistParam
+    type: object
+    properties:
+      ToWxid:
+        type: string
+      Val:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Friend.DefaultParam:
+    title: DefaultParam
+    type: object
+    properties:
+      ToWxid:
+        type: string
+      Wxid:
+        type: string
+  Friend.FriendRelationParam:
+    title: FriendRelationParam
+    type: object
+    properties:
+      UserName:
+        type: string
+      Wxid:
+        type: string
+  Friend.GetContractDetailparameter:
+    title: GetContractDetailparameter
+    type: object
+    properties:
+      ChatRoom:
+        type: string
+      Towxids:
+        type: string
+      Wxid:
+        type: string
+  Friend.GetContractListparameter:
+    title: GetContractListparameter
+    type: object
+    properties:
+      CurrentChatRoomContactSeq:
+        type: integer
+        format: int32
+      CurrentWxcontactSeq:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Friend.LbsFindParam:
+    title: LbsFindParam
+    type: object
+    properties:
+      Latitude:
+        type: number
+        format: float
+      Longitude:
+        type: number
+        format: float
+      OpCode:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Friend.PassVerifyParam:
+    title: PassVerifyParam
+    type: object
+    properties:
+      Scene:
+        type: integer
+        format: int64
+      V1:
+        type: string
+      V2:
+        type: string
+      Wxid:
+        type: string
+  Friend.SearchParam:
+    title: SearchParam
+    type: object
+    properties:
+      FromScene:
+        type: integer
+        format: int32
+      SearchScene:
+        type: integer
+        format: int32
+      ToUserName:
+        type: string
+      Wxid:
+        type: string
+  Friend.SendRequestParam:
+    title: SendRequestParam
+    type: object
+    properties:
+      Opcode:
+        type: integer
+        format: int32
+      Scene:
+        type: integer
+        format: int64
+      V1:
+        type: string
+      V2:
+        type: string
+      VerifyContent:
+        type: string
+      Wxid:
+        type: string
+  Friend.SetRemarksParam:
+    title: SetRemarksParam
+    type: object
+    properties:
+      Remarks:
+        type: string
+      ToWxid:
+        type: string
+      Wxid:
+        type: string
+  Friend.UploadParam:
+    title: UploadParam
+    type: object
+    properties:
+      CurrentPhoneNo:
+        type: string
+      Opcode:
+        type: integer
+        format: int32
+      PhoneNo:
+        type: string
+      Wxid:
+        type: string
+  FriendCircle.CommentParam:
+    title: CommentParam
+    type: object
+    properties:
+      Content:
+        type: string
+      Id:
+        type: string
+      ReplyCommnetId:
+        type: integer
+        format: int32
+      Type:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  FriendCircle.GetDetailparameter:
+    title: GetDetailparameter
+    type: object
+    properties:
+      Fristpagemd5:
+        type: string
+      Maxid:
+        type: integer
+        format: int64
+      Towxid:
+        type: string
+      Wxid:
+        type: string
+  FriendCircle.GetIdDetailParam:
+    title: GetIdDetailParam
+    type: object
+    properties:
+      Id:
+        type: integer
+        format: int64
+      Towxid:
+        type: string
+      Wxid:
+        type: string
+  FriendCircle.DownFriendCircleParam:
+    title: DownFriendCircleParam
+    type: object
+    properties:
+      Url:
+        type: string
+      Key:
+        type: string
+      Wxid:
+        type: string
+  FriendCircle.GetListParam:
+    title: GetListParam
+    type: object
+    properties:
+      Fristpagemd5:
+        type: string
+      Maxid:
+        type: integer
+        format: int64
+      Wxid:
+        type: string
+  FriendCircle.Messagearameter:
+    title: Messagearameter
+    type: object
+    properties:
+      BlackList:
+        type: string
+      Content:
+        type: string
+      WithUserList:
+        type: string
+      Wxid:
+        type: string
+  FriendCircle.MmSnsSyncParam:
+    title: MmSnsSyncParam
+    type: object
+    properties:
+      Synckey:
+        type: string
+      Wxid:
+        type: string
+  FriendCircle.OperationParam:
+    title: OperationParam
+    type: object
+    properties:
+      CommnetId:
+        type: integer
+        format: int32
+      Id:
+        type: string
+      Type:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  FriendCircle.PrivacySettingsParam:
+    title: PrivacySettingsParam
+    type: object
+    properties:
+      Function:
+        type: integer
+        format: int32
+      Value:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  FriendCircle.SnsUploadParam:
+    title: SnsUploadParam
+    type: object
+    properties:
+      Base64:
+        type: string
+      Wxid:
+        type: string
+  Group.AddChatRoomParam:
+    title: AddChatRoomParam
+    type: object
+    properties:
+      ChatRoomName:
+        type: string
+      ToWxids:
+        type: string
+      Wxid:
+        type: string
+  Group.ConsentToJoinParam:
+    title: ConsentToJoinParam
+    type: object
+    properties:
+      Url:
+        type: string
+      Wxid:
+        type: string
+  Group.CreateChatRoomParam:
+    title: CreateChatRoomParam
+    type: object
+    properties:
+      ToWxids:
+        type: string
+      Wxid:
+        type: string
+  Group.FacingCreateChatRoomParam:
+    title: FacingCreateChatRoomParam
+    type: object
+    properties:
+      Latitude:
+        type: number
+        format: float
+      Longitude:
+        type: number
+        format: float
+      OpCode:
+        type: integer
+        format: int32
+      Password:
+        type: string
+      Wxid:
+        type: string
+  Group.GetChatRoomParam:
+    title: GetChatRoomParam
+    type: object
+    properties:
+      QID:
+        type: string
+      Wxid:
+        type: string
+  Group.MoveContractListParam:
+    title: MoveContractListParam
+    type: object
+    properties:
+      QID:
+        type: string
+      Val:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Group.OperateChatRoomAdminParam:
+    title: OperateChatRoomAdminParam
+    type: object
+    properties:
+      QID:
+        type: string
+      ToWxids:
+        type: string
+      Val:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Group.OperateChatRoomInfoParam:
+    title: OperateChatRoomInfoParam
+    type: object
+    properties:
+      Content:
+        type: string
+      QID:
+        type: string
+      Wxid:
+        type: string
+  Group.QuitGroupParam:
+    title: QuitGroupParam
+    type: object
+    properties:
+      QID:
+        type: string
+      Wxid:
+        type: string
+  Group.ScanIntoGroupParam:
+    title: ScanIntoGroupParam
+    type: object
+    properties:
+      Url:
+        type: string
+      Wxid:
+        type: string
+  Label.AddParam:
+    title: AddParam
+    type: object
+    properties:
+      LabelName:
+        type: string
+      Wxid:
+        type: string
+  Label.DeleteParam:
+    title: DeleteParam
+    type: object
+    properties:
+      LabelID:
+        type: string
+      Wxid:
+        type: string
+  Label.UpdateListParam:
+    title: UpdateListParam
+    type: object
+    properties:
+      LabelID:
+        type: string
+      ToWxids:
+        type: string
+      Wxid:
+        type: string
+  Label.UpdateNameParam:
+    title: UpdateNameParam
+    type: object
+    properties:
+      LabelID:
+        type: integer
+        format: int32
+      NewName:
+        type: string
+      Wxid:
+        type: string
+  Login.A16LoginParam:
+    title: A16LoginParam
+    type: object
+    properties:
+      A16:
+        type: string
+      DeviceName:
+        type: string
+      Password:
+        type: string
+      Proxy:
+        $ref: '#/definitions/models.ProxyInfo'
+      UserName:
+        type: string
+  Login.Data62LoginReq:
+    title: Data62LoginReq
+    type: object
+    properties:
+      Data62:
+        type: string
+      DeviceName:
+        type: string
+      Password:
+        type: string
+      Proxy:
+        $ref: '#/definitions/models.ProxyInfo'
+      UserName:
+        type: string
+  Login.Data62SMSAgainReq:
+    title: Data62SMSAgainReq
+    type: object
+    properties:
+      Cookie:
+        type: string
+      Proxy:
+        $ref: '#/definitions/models.ProxyInfo'
+      Url:
+        type: string
+  Login.Data62SMSVerifyReq:
+    title: Data62SMSVerifyReq
+    type: object
+    properties:
+      Cookie:
+        type: string
+      Proxy:
+        $ref: '#/definitions/models.ProxyInfo'
+      Sms:
+        type: string
+      Url:
+        type: string
+  Login.ExtDeviceLoginConfirmParam:
+    title: ExtDeviceLoginConfirmParam
+    type: object
+    properties:
+      Url:
+        type: string
+      Wxid:
+        type: string
+  Login.GetQRReq:
+    title: GetQRReq
+    type: object
+    properties:
+      DeviceID:
+        type: string
+      DeviceName:
+        type: string
+      Proxy:
+        $ref: '#/definitions/models.ProxyInfo'
+  Login.VerificationcodeParam:
+    title: VerificationcodeParam
+    type: object
+    properties:
+      Code:
+        type: string
+      Data62:
+        type: string
+      Ticket:
+        type: string
+      Uuid:
+        type: string
+  Msg.DefaultParam:
+    title: DefaultParam
+    type: object
+    properties:
+      Content:
+        type: string
+      ToWxid:
+        type: string
+      Wxid:
+        type: string
+  Msg.RevokeMsgParam:
+    title: RevokeMsgParam
+    type: object
+    properties:
+      ClientMsgId:
+        type: integer
+        format: int64
+      CreateTime:
+        type: integer
+        format: int64
+      NewMsgId:
+        type: integer
+        format: int64
+      ToUserName:
+        type: string
+      Wxid:
+        type: string
+  Msg.SendAppMsgParam:
+    title: SendAppMsgParam
+    type: object
+    properties:
+      ToWxid:
+        type: string
+      Type:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+      Xml:
+        type: string
+  Msg.SendEmojiParam:
+    title: SendEmojiParam
+    type: object
+    properties:
+      Md5:
+        type: string
+      ToWxid:
+        type: string
+      TotalLen:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Msg.SendImageMsgParam:
+    title: SendImageMsgParam
+    type: object
+    properties:
+      Base64:
+        type: string
+      ToWxid:
+        type: string
+      Wxid:
+        type: string
+  Msg.SendNewMsgParam:
+    title: SendNewMsgParam
+    type: object
+    properties:
+      At:
+        type: string
+      Content:
+        type: string
+      ToWxid:
+        type: string
+      Type:
+        type: integer
+        format: int64
+      Wxid:
+        type: string
+  Msg.SendVideoMsgParam:
+    title: SendVideoMsgParam
+    type: object
+    properties:
+      Base64:
+        type: string
+      ImageBase64:
+        type: string
+      PlayLength:
+        type: integer
+        format: int32
+      ToWxid:
+        type: string
+      Wxid:
+        type: string
+  Msg.SendVoiceMessageParam:
+    title: SendVoiceMessageParam
+    type: object
+    properties:
+      Base64:
+        type: string
+      ToWxid:
+        type: string
+      Type:
+        type: integer
+        format: int32
+      VoiceTime:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Msg.ShareCardParam:
+    title: ShareCardParam
+    type: object
+    properties:
+      CardAlias:
+        type: string
+      CardNickName:
+        type: string
+      CardWxId:
+        type: string
+      ToWxid:
+        type: string
+      Wxid:
+        type: string
+  Msg.ShareLocationParam:
+    title: ShareLocationParam
+    type: object
+    properties:
+      Infourl:
+        type: string
+      Label:
+        type: string
+      Poiname:
+        type: string
+      Scale:
+        type: number
+        format: double
+      ToWxid:
+        type: string
+      Wxid:
+        type: string
+      X:
+        type: number
+        format: double
+      "Y":
+        type: number
+        format: double
+  Msg.ShareVideoMsgParam:
+    title: ShareVideoMsgParam
+    type: object
+    properties:
+      ToWxid:
+        type: string
+      Wxid:
+        type: string
+      Xml:
+        type: string
+  Msg.SyncParam:
+    title: SyncParam
+    type: object
+    properties:
+      Scene:
+        type: integer
+        format: int32
+      Synckey:
+        type: string
+      Wxid:
+        type: string
+  OfficialAccounts.DefaultParam:
+    title: DefaultParam
+    type: object
+    properties:
+      Appid:
+        type: string
+      Wxid:
+        type: string
+  OfficialAccounts.GetkeyParam:
+    title: GetkeyParam
+    type: object
+    properties:
+      Appid:
+        type: string
+      Url:
+        type: string
+      Wxid:
+        type: string
+  OfficialAccounts.ReadParam:
+    title: ReadParam
+    type: object
+    properties:
+      Url:
+        type: string
+      Wxid:
+        type: string
+  QWContact.AddWxAppRecordParam:
+    title: AddWxAppRecordParam
+    type: object
+    properties:
+      Username:
+        type: string
+      Wxid:
+        type: string
+  QWContact.QWAddContactParam:
+    title: QWAddContactParam
+    type: object
+    properties:
+      Username:
+        type: string
+      V1:
+        type: string
+      Wxid:
+        type: string
+  QWContact.QWApplyAddContactParam:
+    title: QWApplyAddContactParam
+    type: object
+    properties:
+      Context:
+        type: string
+      Username:
+        type: string
+      V1:
+        type: string
+      Wxid:
+        type: string
+  SayHello.Model1Param:
+    title: Model1Param
+    type: object
+    properties:
+      Url:
+        type: string
+      VerifyContent:
+        type: string
+      Wxid:
+        type: string
+  SayHello.Model2Param:
+    title: Model2Param
+    type: object
+    properties:
+      Content:
+        type: string
+      FromScene:
+        type: integer
+        format: int32
+      Scene:
+        type: integer
+        format: int64
+      SearchScene:
+        type: integer
+        format: int32
+      ToUserName:
+        type: string
+      Wxid:
+        type: string
+  SayHello.SendRequestParam1:
+    title: SendRequestParam1
+    type: object
+    properties:
+      Scene:
+        type: integer
+        format: int64
+      V3:
+        type: string
+      V4:
+        type: string
+      VerifyContent:
+        type: string
+      Wxid:
+        type: string
+  TenPay.CollectmoneyModel:
+    title: CollectmoneyModel
+    type: object
+    properties:
+      InvalidTime:
+        type: string
+      ToUserName:
+        type: string
+      TransFerId:
+        type: string
+      TransactionId:
+        type: string
+      Wxid:
+        type: string
+  TenPay.GeMaPayQCodeParam:
+    title: GeMaPayQCodeParam
+    type: object
+    properties:
+      Money:
+        type: string
+      Name:
+        type: string
+      Wxid:
+        type: string
+  TenPay.GeMaSkdPayQCodeParam:
+    title: GeMaSkdPayQCodeParam
+    type: object
+    properties:
+      Money:
+        type: string
+      Name:
+        type: string
+      Remark:
+        type: string
+      Wxid:
+        type: string
+  TenPay.HongBaoParam:
+    title: HongBaoParam
+    type: object
+    properties:
+      SendUserName:
+        type: string
+      Wxid:
+        type: string
+      Xml:
+        type: string
+  TenPay.OpenwxhbParam:
+    title: OpenwxhbParam
+    type: object
+    properties:
+      Encrypt_key:
+        type: string
+      Encrypt_userinfo:
+        type: string
+      SendUserName:
+        type: string
+      TimingIdentifier:
+        type: string
+      Wxid:
+        type: string
+      Xml:
+        type: string
+  TenPay.QrydetailwxhbParam:
+    title: QrydetailwxhbParam
+    type: object
+    properties:
+      Encrypt_key:
+        type: string
+      Encrypt_userinfo:
+        type: string
+      Wxid:
+        type: string
+      Xml:
+        type: string
+  TenPay.ReceivewxhbParam:
+    title: ReceivewxhbParam
+    type: object
+    properties:
+      Encrypt_key:
+        type: string
+      Encrypt_userinfo:
+        type: string
+      InWay:
+        type: string
+      Wxid:
+        type: string
+      Xml:
+        type: string
+  TenPay.SjSkdPayQCodeParam:
+    title: SjSkdPayQCodeParam
+    type: object
+    properties:
+      Money:
+        type: string
+      Name:
+        type: string
+      Remark:
+        type: string
+      Wxid:
+        type: string
+  Tools.CdnDownloadImageParam:
+    title: CdnDownloadImageParam
+    type: object
+    properties:
+      FileAesKey:
+        type: string
+      FileNo:
+        type: string
+      Wxid:
+        type: string
+  Tools.DownloadAppAttachParam:
+    title: DownloadAppAttachParam
+    type: object
+    properties:
+      AppID:
+        type: string
+      AttachId:
+        type: string
+      DataLen:
+        type: integer
+        format: int64
+      Section:
+        $ref: '#/definitions/Tools.Section'
+      UserName:
+        type: string
+      Wxid:
+        type: string
+  Tools.DownloadParam:
+    title: DownloadParam
+    type: object
+    properties:
+      CompressType:
+        type: integer
+        format: int64
+      DataLen:
+        type: integer
+        format: int64
+      MsgId:
+        type: integer
+        format: int32
+      Section:
+        $ref: '#/definitions/Tools.Section'
+      ToWxid:
+        type: string
+      Wxid:
+        type: string
+  Tools.DownloadVoiceParam:
+    title: DownloadVoiceParam
+    type: object
+    properties:
+      Bufid:
+        type: string
+      FromUserName:
+        type: string
+      Length:
+        type: integer
+        format: int64
+      MsgId:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Tools.GetA8KeyParam:
+    title: GetA8KeyParam
+    type: object
+    properties:
+      CodeType:
+        type: integer
+        format: int32
+      CodeVersion:
+        type: integer
+        format: int32
+      CookieBase64:
+        type: string
+      Flag:
+        type: integer
+        format: int32
+      NetType:
+        type: string
+      OpCode:
+        type: integer
+        format: int32
+      ReqUrl:
+        type: string
+      Scene:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  Tools.OauthSdkAppParam:
+    title: OauthSdkAppParam
+    type: object
+    properties:
+      Appid:
+        type: string
+      AvatarId:
+        type: integer
+        format: int32
+      Opt:
+        type: integer
+        format: int32
+      State:
+        type: string
+      Wxid:
+        type: string
+      packageName:
+        type: string
+      sdkName:
+        type: string
+  Tools.Section:
+    title: Section
+    type: object
+    properties:
+      DataLen:
+        type: integer
+        format: int32
+      StartPos:
+        type: integer
+        format: int32
+  Tools.SetProxyParam:
+    title: SetProxyParam
+    type: object
+    properties:
+      Proxy:
+        $ref: '#/definitions/models.ProxyInfo'
+      Wxid:
+        type: string
+  Tools.SetStepParam:
+    title: SetStepParam
+    type: object
+    properties:
+      Number:
+        type: integer
+        format: int64
+      Wxid:
+        type: string
+  Tools.ThirdAppGrantParam:
+    title: ThirdAppGrantParam
+    type: object
+    properties:
+      Appid:
+        type: string
+      Url:
+        type: string
+      Wxid:
+        type: string
+  User.BindMobileParam:
+    title: BindMobileParam
+    type: object
+    properties:
+      Mobile:
+        type: string
+      Verifycode:
+        type: string
+      Wxid:
+        type: string
+  User.BindQQParam:
+    title: BindQQParam
+    type: object
+    properties:
+      Account:
+        type: integer
+        format: int32
+      Password:
+        type: string
+      Wxid:
+        type: string
+  User.DelSafetyInfoParam:
+    title: DelSafetyInfoParam
+    type: object
+    properties:
+      Uuid:
+        type: string
+      Wxid:
+        type: string
+  User.EmailParam:
+    title: EmailParam
+    type: object
+    properties:
+      Email:
+        type: string
+      Wxid:
+        type: string
+  User.GetQRCodeParam:
+    title: GetQRCodeParam
+    type: object
+    properties:
+      Style:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  User.NewSetPasswdParam:
+    title: NewSetPasswdParam
+    type: object
+    properties:
+      NewPassword:
+        type: string
+      Ticket:
+        type: string
+      Wxid:
+        type: string
+  User.NewVerifyPasswdParam:
+    title: NewVerifyPasswdParam
+    type: object
+    properties:
+      Password:
+        type: string
+      Wxid:
+        type: string
+  User.PrivacySettingsParam:
+    title: PrivacySettingsParam
+    type: object
+    properties:
+      Function:
+        type: integer
+        format: int32
+      Value:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  User.ReportMotionParam:
+    title: ReportMotionParam
+    type: object
+    properties:
+      DeviceId:
+        type: string
+      DeviceType:
+        type: string
+      StepCount:
+        type: integer
+        format: int64
+      Wxid:
+        type: string
+  User.SendVerifyMobileParam:
+    title: SendVerifyMobileParam
+    type: object
+    properties:
+      Mobile:
+        type: string
+      Opcode:
+        type: integer
+        format: int32
+      Wxid:
+        type: string
+  User.SetAlisaParam:
+    title: SetAlisaParam
+    type: object
+    properties:
+      Alisa:
+        type: string
+      Wxid:
+        type: string
+  User.UpdateProfileParam:
+    title: UpdateProfileParam
+    type: object
+    properties:
+      City:
+        type: string
+      Country:
+        type: string
+      NickName:
+        type: string
+      Province:
+        type: string
+      Sex:
+        type: integer
+        format: int32
+      Signature:
+        type: string
+      Wxid:
+        type: string
+  User.UploadHeadImageParam:
+    title: UploadHeadImageParam
+    type: object
+    properties:
+      Base64:
+        type: string
+      Wxid:
+        type: string
+  Wxapp.AddAvatarImgParam:
+    title: AddAvatarImgParam
+    type: object
+    properties:
+      Appid:
+        type: string
+      JPGlink:
+        type: string
+      Wxid:
+        type: string
+  Wxapp.AddAvatarParam:
+    title: AddAvatarParam
+    type: object
+    properties:
+      AFilekey:
+        type: string
+      Appid:
+        type: string
+      NickName:
+        type: string
+      Wxid:
+        type: string
+  Wxapp.AddWxAppRecordParam:
+    title: AddWxAppRecordParam
+    type: object
+    properties:
+      Username:
+        type: string
+      Wxid:
+        type: string
+  Wxapp.CheckVerifyCodeData:
+    title: CheckVerifyCodeData
+    type: object
+    properties:
+      Appid:
+        type: string
+      Mobile:
+        type: string
+      VerifyCode:
+        type: string
+      Wxid:
+        type: string
+  Wxapp.CloudCallParam:
+    title: CloudCallParam
+    type: object
+    properties:
+      Appid:
+        type: string
+      Data:
+        type: string
+      Wxid:
+        type: string
+  Wxapp.DefaultParam:
+    title: DefaultParam
+    type: object
+    properties:
+      Appid:
+        type: string
+      Wxid:
+        type: string
+  Wxapp.DelMobileData:
+    title: DelMobileData
+    type: object
+    properties:
+      Appid:
+        type: string
+      Mobile:
+        type: string
+      Opcode:
+        type: integer
+        format: int64
+      Wxid:
+        type: string
+  Wxapp.GetUserOpenIdParam:
+    title: GetUserOpenIdParam
+    type: object
+    properties:
+      Appid:
+        type: string
+      ToWxId:
+        type: string
+      Wxid:
+        type: string
+  Wxapp.JSOperateWxParam:
+    title: JSOperateWxParam
+    type: object
+    properties:
+      Appid:
+        type: string
+      Data:
+        type: string
+      Opt:
+        type: integer
+        format: int64
+      Wxid:
+        type: string
+  Wxapp.QrcodeAuthLoginParam:
+    title: QrcodeAuthLoginParam
+    type: object
+    properties:
+      Url:
+        type: string
+      Wxid:
+        type: string
+  Wxapp.SessionidQRParam:
+    title: SessionidQRParam
+    type: object
+    properties:
+      Appid:
+        type: string
+      Package:
+        type: string
+      PaySign:
+        type: string
+      Sessionid:
+        type: string
+      Wxid:
+        type: string
+      nonceStr:
+        type: string
+      timeStamp:
+        type: string
+  models.ProxyInfo:
+    title: ProxyInfo
+    type: object
+    properties:
+      ProxyIp:
+        type: string
+      ProxyPassword:
+        type: string
+      ProxyUser:
+        type: string
+tags:
+- name: Login
+  description: |
+    登录模块 支持二次 唤醒 62数据登录(注意：代理必须使用SOCKS)
+- name: Msg
+  description: |
+    消息模块
+- name: Friend
+  description: |
+    朋友模块
+- name: Finder
+  description: |
+    视频号模块
+- name: FriendCircle
+  description: |
+    朋友圈模块
+- name: Favor
+  description: |
+    收藏模块
+- name: Group
+  description: |
+    群组模块
+- name: Label
+  description: |
+    标签模块
+- name: User
+  description: |
+    微信号管理模块
+- name: Wxapp
+  description: |
+    微信小程序模块
+- name: QWContact
+  description: |
+    企业联系人操作
+- name: OfficialAccounts
+  description: |
+    公众号模块
+- name: SayHello
+  description: |
+    打招呼模块
+- name: Tools
+  description: |
+    工具箱模块
