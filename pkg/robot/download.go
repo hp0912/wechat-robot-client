@@ -156,6 +156,7 @@ type DownloadVideoRequest struct {
 type DownloadVoiceRequest struct {
 	Wxid         string `json:"Wxid"`
 	MsgId        int64  `json:"MsgId"`
+	Offset       int64  `json:"Offset"`
 	Length       int64  `json:"Length"`
 	FromUserName string `json:"FromUserName"`
 	Bufid        string `json:"Bufid"`
