@@ -286,18 +286,29 @@ func (r *Robot) DownloadVoice(ctx context.Context, message model.Message) ([]byt
 		return nil, "", "", ctx.Err()
 	}
 
+	var voiceDataStr strings.Builder
 	var base64Data string
-	base64Data, err = r.Client.DownloadVoice(DownloadVoiceRequest{
-		Wxid:         r.WxID,
-		MsgId:        message.ClientMsgId,
-		Bufid:        voiceXml.Voicemsg.BufID,
-		FromUserName: voiceXml.Voicemsg.FromUsername,
-		Length:       voiceXml.Voicemsg.Length,
-	})
-	if err != nil {
-		return nil, "", "", err
+	totalLen := voiceXml.Voicemsg.Length
+	const chunkSize = int64(60 * 1024) // 60 KB
+	for startPos := int64(0); startPos < totalLen; startPos += chunkSize {
+		currentChunkSize := chunkSize
+		if startPos+currentChunkSize > totalLen {
+			currentChunkSize = totalLen - startPos
+		}
+		base64Data, err = r.Client.DownloadVoice(DownloadVoiceRequest{
+			Wxid:         r.WxID,
+			MsgId:        message.MsgId,
+			Bufid:        voiceXml.Voicemsg.BufID,
+			FromUserName: voiceXml.Voicemsg.FromUsername,
+			Offset:       startPos,
+			Length:       currentChunkSize,
+		})
+		if err != nil {
+			return nil, "", "", err
+		}
+		voiceDataStr.WriteString(base64Data)
 	}
-	silkData, err := base64.StdEncoding.DecodeString(base64Data)
+	silkData, err := base64.StdEncoding.DecodeString(voiceDataStr.String())
 	if err != nil {
 		return nil, "", "", fmt.Errorf("将silk base64编码转成字节数组错误: %w", err)
 	}
