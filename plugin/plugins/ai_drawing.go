@@ -47,6 +47,24 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 			log.Printf("发送智谱图像失败: %v", err)
 			return
 		}
+	case model.ImageModelHunyuan:
+		// Handle 混元模型
+		var hunyuanConfig pkg.HunyuanConfig
+		if err := json.Unmarshal(aiConfig.ImageAISettings, &hunyuanConfig); err != nil {
+			log.Printf("反序列化混元绘图配置失败: %v", err)
+			return
+		}
+		hunyuanConfig.Prompt = ctx.Message.Content
+		imageUrl, err := pkg.SubmitHunyuan(&hunyuanConfig)
+		if err != nil {
+			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
+			return
+		}
+		err = pkg.SendDrawingImage(ctx.MessageService, ctx.Message.FromWxID, imageUrl)
+		if err != nil {
+			log.Printf("发送混元图像失败: %v", err)
+			return
+		}
 	case model.ImageModelStableDiffusion:
 		// Handle Stable Diffusion 模型
 	case model.ImageModelMidjourney:
