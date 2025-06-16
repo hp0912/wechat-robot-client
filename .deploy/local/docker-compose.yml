@@ -1,0 +1,100 @@
+services:
+  wechat-admin-redis:
+    image: "${REGISTRY:-docker.io}/redis:latest"
+    container_name: wechat-admin-redis
+    restart: always
+    networks:
+      - wechat-robot
+    environment:
+      REDIS_PASSWORD: r12345678 # 自行修改
+    command: [ "redis-server", "/etc/redis/redis.conf", "--requirepass", "r12345678" ] # 自行修改
+    volumes:
+      - ./wechat_admin_redis_data:/var/lib/redis
+      - ./redis.conf:/etc/redis/redis.conf
+
+  wechat-admin-mysql:
+    image: "${REGISTRY:-docker.io}/mysql:8.2.0"
+    restart: always
+    container_name: wechat-admin-mysql
+    networks:
+      - wechat-robot
+    volumes:
+      - ./wechat_admin_mysql_data:/var/lib/mysql # 挂载目录，持久化存储
+      - ./my.cnf:/etc/my.cnf
+    environment:
+      TZ: Asia/Shanghai # 设置时区
+      MYSQL_ROOT_PASSWORD: 'mroot12345678' # 设置 root 用户的密码 # 自行修改
+      MYSQL_USER: wechat # 创建专用用户
+      MYSQL_PASSWORD: 'mwechat12345678' # 设置专用用户密码 # 自行修改
+      MYSQL_DATABASE: robot_admin # 自动创建数据库
+
+  nginx:
+    image: "${REGISTRY:-docker.io}/nginx:latest"
+    container_name: wechat-nginx
+    restart: always
+    ports:
+      - "8080:9000"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - wechat-robot
+
+  wechat-server:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-server:latest
+    container_name: wechat-server
+    restart: always
+    ports:
+      - "8090:3000"
+    networks:
+      - wechat-robot
+    volumes:
+      - ./wechat-server/data:/data
+
+  word-cloud-server:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/word-cloud-server:latest
+    container_name: word-cloud-server
+    restart: always
+    networks:
+      - wechat-robot
+
+  wechat-robot-admin-frontend:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-frontend:latest
+    container_name: wechat-robot-admin-frontend
+    restart: always
+    networks:
+      - wechat-robot
+
+  wechat-robot-admin-backend:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-backend:latest
+    container_name: wechat-robot-admin-backend
+    restart: always
+    networks:
+      - wechat-robot
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      GIN_MODE: release
+      DOCKER_NETWORK: wechat-robot
+      SESSION_SECRET: sessionid_123456 # 可自行修改 随便设置个uuid即可
+      OPENAI_API_KEY: sk-123456 # 自行修改
+      WECHAT_SERVER_ADDRESS: http://wechat-server:3000
+      WECHAT_SERVER_TOKEN: w123456 # 自行修改
+      WECHAT_OFFICIAL_ACCOUNT_AUTH_URL: https://img.houhoukang.com/uranus/qrcode_for_gh.jpg # 自行修改
+      MYSQL_DRIVER: mysql
+      MYSQL_HOST: wechat-admin-mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: mroot12345678
+      MYSQL_DB: robot_admin
+      MYSQL_SCHEMA: public
+      REDIS_HOST: wechat-admin-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: r12345678
+      THIRD_PARTY_API_KEY: t123456 # 自行修改 AI语音合成的 key
+    depends_on:
+      - wechat-admin-redis
+      - wechat-admin-mysql
+
+networks:
+  wechat-robot:
+    external: true
