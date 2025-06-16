@@ -28,12 +28,23 @@ services:
       MYSQL_PASSWORD: 'mwechat12345678' # 设置专用用户密码
       MYSQL_DATABASE: robot_admin # 自动创建数据库
 
+  nginx:
+    image: "${REGISTRY:-docker.io}/nginx:latest"
+    container_name: wechat-nginx
+    restart: always
+    ports:
+      - "8080:9000"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - wechat-robot
+
   wechat-server:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-server:latest
     container_name: wechat-server
     restart: always
     ports:
-      - "8080:3000"
+      - "8090:3000"
     networks:
       - wechat-robot
     volumes:
