@@ -82,7 +82,19 @@ docker-compose up -d
 
 #### 配置公众号认证服务
 
+访问 http://127.0.0.1:8090 **微信服务器**
+
+如何配置，前往 [https://github.com/hp0912/wechat-server](https://github.com/hp0912/wechat-server) 查看详细教程。
+
+在**微信服务器** `设置` `个人设置` `生成访问令牌`生成的令牌，填入`docker-compose.yml`的`WECHAT_SERVER_TOKEN`的环境变量中，将你自己的公众号二维码链接填入`WECHAT_OFFICIAL_ACCOUNT_AUTH_URL`环境变量中。
+
+重启服务
+
+```
+docker compose up -d
+docker-compose up -d
+```
+
 ### 进阶篇
 
-```yml
-```
+TODO
