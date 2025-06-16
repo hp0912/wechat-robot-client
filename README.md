@@ -24,6 +24,12 @@
 
   - 机器人服务端 **(源代码不公开)** [接口文档](ipad.swagger.yml)
 
+- 公共服务
+
+  - 公众号认证服务: [https://github.com/hp0912/wechat-server](https://github.com/hp0912/wechat-server) fork的项目，微信公众号的后端，为其他系统提供微信登录验证功能
+
+  - 词云服务: [https://github.com/hp0912/word-cloud-server](https://github.com/hp0912/word-cloud-server) golang写的词云效果不太好，用python写了一个单独的服务
+
 > 服务端采用iPad协议，可以去马老板开的动物园淘一淘
 
 ## 项目概览
@@ -56,12 +62,15 @@
 >
 > - 你得有自己的公众号，本项目只集成了公众号扫码登录
 >
-> - 自己会安装 Docker
+> - 自己会安装 docker 和 docker-compose
 
 ### 基础篇
 
-TODO
+```yml
+
+```
 
 ### 进阶篇
 
-TODO
+```yml
+```
