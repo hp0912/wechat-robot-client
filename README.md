@@ -98,3 +98,7 @@ docker-compose up -d
 ### 进阶篇
 
 TODO
+
+## 官方交流群
+
+![官方交流群](.deploy/asserts/group-chat.jpg)
