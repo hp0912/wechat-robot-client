@@ -66,9 +66,21 @@
 
 ### 基础篇
 
-```yml
+#### 启动服务
 
+```vim
+# 克隆本项目
+git clone git@github.com:hp0912/wechat-robot-client.git
+
+# 进入部署目录
+cd ./wechat-robot-client/.deploy/local
+
+# 通过docker-compose启动容器，下面两个命令，哪个能用就用哪个
+docker compose up -d
+docker-compose up -d
 ```
+
+#### 配置公众号认证服务
 
 ### 进阶篇
 

@@ -6,8 +6,8 @@ services:
     networks:
       - wechat-robot
     environment:
-      REDIS_PASSWORD: r12345678
-    command: [ "redis-server", "/etc/redis/redis.conf", "--requirepass", "r12345678" ]
+      REDIS_PASSWORD: r12345678 # 自行修改
+    command: [ "redis-server", "/etc/redis/redis.conf", "--requirepass", "r12345678" ] # 自行修改
     volumes:
       - ./wechat_admin_redis_data:/var/lib/redis
       - ./redis.conf:/etc/redis/redis.conf
@@ -23,9 +23,9 @@ services:
       - ./my.cnf:/etc/my.cnf
     environment:
       TZ: Asia/Shanghai # 设置时区
-      MYSQL_ROOT_PASSWORD: 'mroot12345678' # 设置 root 用户的密码
+      MYSQL_ROOT_PASSWORD: 'mroot12345678' # 设置 root 用户的密码 # 自行修改
       MYSQL_USER: wechat # 创建专用用户
-      MYSQL_PASSWORD: 'mwechat12345678' # 设置专用用户密码
+      MYSQL_PASSWORD: 'mwechat12345678' # 设置专用用户密码 # 自行修改
       MYSQL_DATABASE: robot_admin # 自动创建数据库
 
   nginx:
@@ -75,7 +75,7 @@ services:
     environment:
       GIN_MODE: release
       DOCKER_NETWORK: wechat-robot
-      SESSION_SECRET: sessionid_123456 # 可自行修改
+      SESSION_SECRET: sessionid_123456 # 可自行修改 随便设置个uuid即可
       OPENAI_API_KEY: sk-123456 # 自行修改
       WECHAT_SERVER_ADDRESS: http://wechat-server:3000
       WECHAT_SERVER_TOKEN: w123456 # 自行修改
@@ -89,7 +89,7 @@ services:
       REDIS_HOST: wechat-admin-redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: r12345678
-      THIRD_PARTY_API_KEY: t123456 # AI语音合成的 key
+      THIRD_PARTY_API_KEY: t123456 # 自行修改 AI语音合成的 key
     depends_on:
       - wechat-admin-redis
       - wechat-admin-mysql
