@@ -101,4 +101,4 @@ TODO
 
 ## 官方交流群
 
-![官方交流群](.deploy/asserts/group-chat.jpg)
+<img src=".deploy/asserts/group-chat.jpg" alt="官方交流群" width="300">
