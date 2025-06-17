@@ -257,7 +257,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		chatRoomName = *chatRoom.Nickname
 	}
 
-	messages, err := s.msgRespo.GetMessagesByTimeRange(setting.ChatRoomID, startTime, endTime)
+	messages, err := s.msgRespo.GetMessagesByTimeRange(vars.RobotRuntime.WxID, setting.ChatRoomID, startTime, endTime)
 	if err != nil {
 		return err
 	}

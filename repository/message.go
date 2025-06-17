@@ -134,7 +134,7 @@ func (m *Message) ResetChatRoomAIMessageContext(message *model.Message) error {
 		Updates(map[string]int{"is_ai_context": 0}).Error
 }
 
-func (m *Message) GetMessagesByTimeRange(chatRoomID string, startTime, endTime int64) ([]*dto.TextMessageItem, error) {
+func (m *Message) GetMessagesByTimeRange(self, chatRoomID string, startTime, endTime int64) ([]*dto.TextMessageItem, error) {
 	var messages []*dto.TextMessageItem
 	// APP消息类型
 	appMsgList := []string{"57", "4", "5", "6"}
@@ -159,8 +159,7 @@ func (m *Message) GetMessagesByTimeRange(chatRoomID string, startTime, endTime i
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where(`(messages.type = 1 OR ( messages.type = 49 AND EXTRACTVALUE ( messages.content, "/msg/appmsg/type" ) IN (?) ))`, appMsgList).
-		Where("messages.content NOT LIKE '#昨日水群排行榜%'").
-		Where("messages.content NOT LIKE '#昨日消息总结%'").
+		Where("messages.sender_wxid != ?", self).
 		Where("messages.created_at >= ?", startTime).
 		Where("messages.created_at < ?", endTime).
 		Order("messages.created_at ASC")
