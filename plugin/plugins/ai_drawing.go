@@ -3,6 +3,7 @@ package plugins
 import (
 	"encoding/json"
 	"log"
+	"strings"
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/model"
 	"wechat-robot-client/plugin/pkg"
@@ -28,6 +29,30 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 		if err != nil {
 			log.Printf("发送豆包图像失败: %v", err)
 			return
+		}
+	case model.ImageModelJimeng:
+		// Handle 即梦模型
+		var jimengConfig pkg.JimengConfig
+		if err := json.Unmarshal(aiConfig.ImageAISettings, &jimengConfig); err != nil {
+			log.Printf("反序列化即梦绘图配置失败: %v", err)
+			return
+		}
+		jimengConfig.Prompt = ctx.Message.Content
+		imageUrl, err := pkg.Jimeng(&jimengConfig)
+		if err != nil {
+			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
+			return
+		}
+		imageUrls := strings.Split(imageUrl, "\n")
+		for _, imgurl := range imageUrls {
+			if imgurl == "" {
+				continue
+			}
+			err = pkg.SendDrawingImage(ctx.MessageService, ctx.Message.FromWxID, imgurl)
+			if err != nil {
+				log.Printf("发送即梦图像失败: %v", err)
+				return
+			}
 		}
 	case model.ImageModelGLM:
 		// Handle 智谱模型
