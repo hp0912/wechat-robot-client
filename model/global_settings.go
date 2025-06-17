@@ -25,6 +25,7 @@ type ImageModel string
 
 const (
 	ImageModelDoubao          ImageModel = "doubao"           // 豆包模型
+	ImageModelJimeng          ImageModel = "jimeng"           // 即梦模型
 	ImageModelGLM             ImageModel = "glm"              // 智谱模型
 	ImageModelHunyuan         ImageModel = "hunyuan"          // 腾讯混元模型
 	ImageModelStableDiffusion ImageModel = "stable-diffusion" // Stable Diffusion 模型
