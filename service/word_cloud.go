@@ -25,7 +25,7 @@ func NewWordCloudService(ctx context.Context) *WordCloudService {
 }
 
 func (s *WordCloudService) WordCloudDaily(chatRoomID, aiTriggerWord string, startTime, endTime int64) ([]byte, error) {
-	messages, err := s.msgRespo.GetMessagesByTimeRange(chatRoomID, startTime, endTime)
+	messages, err := s.msgRespo.GetMessagesByTimeRange(vars.RobotRuntime.WxID, chatRoomID, startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
