@@ -58,13 +58,21 @@
 
 ## 使用方式
 
-> 使用前的准备
+**自部署**
+
+> 自部署前的准备
 >
-> - 你得有自己的公众号，本项目只集成了公众号扫码登录
+> - 你得有自己的公众号，用来集成公众号扫码登录，本项目只集成了公众号扫码登录
 >
 > - 自己会安装 docker 和 docker-compose
 
-### 基础篇
+**直接使用现成系统**
+
+> 访问 [https://wechat-sz.houhoukang.com/](https://wechat-sz.houhoukang.com/) 使用微信扫码登录管理后台，进入后台后创建微信机器人实例。使用微信扫码登录机器人（iPad）。
+>
+> 风险提示：本机器人服务器在广东，非广东地区的慎重使用，微信异地登陆有概率被风控。
+
+### 自部署基础篇
 
 #### 启动服务
 
@@ -103,9 +111,64 @@ docker-compose up -d
 
 6. 新建机器人
 
-### 进阶篇
+### 自部署进阶篇
 
-TODO
+**部署在远程服务器**
+
+> 自部署前的准备 (跟本地部署一样，只不过服务器安装docker有点门槛)
+>
+> - 你得有自己的公众号，用来集成公众号扫码登录，本项目只集成了公众号扫码登录
+>
+> - 服务器安装 docker 和 docker-compose
+>
+> - 服务器安装 nginx
+>
+> - 域名解析，将你的自定义域名解析到你自己的服务器(有公网IP)
+
+```vim
+# 克隆本项目
+git clone git@github.com:hp0912/wechat-robot-client.git
+
+# 进入部署目录
+cd ./wechat-robot-client/.deploy/server
+
+# 通过docker-compose启动容器，下面两个命令，哪个能用就用哪个
+docker compose up -d
+docker-compose up -d
+```
+
+**修改nginx配置**
+
+> `.deploy/server/nginx.conf`这个文件配置了服务转发规则，`wechat-server.xxx.com`(改成你自己的域名) 域名转发到3000端口，也就是`docker-compose.yml`里面的`wechat-server`服务。
+>
+>`wechat-robot.xxx.com`(改成你自己的域名) 域名，`api/v1`开头的路由转发到3002端口，也就是`docker-compose.yml`里面的`wechat-robot-admin-backend`服务，剩下路由转发到3001端口，也就是`docker-compose.yml`里面的`wechat-robot-admin-fontend`服务
+>
+> 将这个文件覆盖服务器上的 `/etc/nginx/sites-available/default`
+
+**重启nginx服务**
+
+```
+sudo service nginx restart
+```
+
+**使用 Let's Encrypt 的 certbot 配置 HTTPS**
+
+> 需要先配置好域名解析
+
+```
+# Ubuntu 安装 certbot：
+sudo snap install --classic certbot
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
+# 生成证书 & 修改 Nginx 配置
+sudo certbot --nginx
+# 根据指示进行操作
+# 重启 Nginx
+sudo service nginx restart
+```
+
+**配置微信服务器，获取`WECHAT_SERVER_TOKEN`参考本地部署**
+
+**其他，参考本地部署**
 
 ## 官方交流群
 
