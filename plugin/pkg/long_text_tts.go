@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type JimengRequest struct {
+type LongTextTTSRequest struct {
 	BaseURL        string  `json:"base_url"`
 	Model          string  `json:"model"`
 	Prompt         string  `json:"prompt"`
@@ -20,19 +20,19 @@ type JimengRequest struct {
 	SampleStrength float64 `json:"sample_strength"`
 }
 
-type JimengConfig struct {
+type LongTextTTSConfig struct {
 	SessionID []string `json:"sessionid"`
-	JimengRequest
+	LongTextTTSRequest
 }
 
-type JimengResponse struct {
+type LongTextTTSResponse struct {
 	Created int64 `json:"created"`
 	Data    []struct {
 		URL string `json:"url"`
 	} `json:"data"`
 }
 
-func Jimeng(config *JimengConfig) (string, error) {
+func LongTextTTS(config *LongTextTTSConfig) (string, error) {
 	if config.Prompt == "" {
 		return "", fmt.Errorf("绘图提示词为空")
 	}
@@ -54,7 +54,7 @@ func Jimeng(config *JimengConfig) (string, error) {
 	}
 	sessionID := strings.Join(config.SessionID, ",")
 	// 准备请求体
-	requestBody, err := json.Marshal(config.JimengRequest)
+	requestBody, err := json.Marshal(config.LongTextTTSRequest)
 	if err != nil {
 		return "", fmt.Errorf("序列化请求体失败: %v", err)
 	}
@@ -83,7 +83,7 @@ func Jimeng(config *JimengConfig) (string, error) {
 		return "", fmt.Errorf("API请求失败，状态码 %d: %s", resp.StatusCode, string(body))
 	}
 	// 解析响应
-	var jimengResp JimengResponse
+	var jimengResp LongTextTTSResponse
 	if err := json.Unmarshal(body, &jimengResp); err != nil {
 		return "", fmt.Errorf("解析响应失败: %v", err)
 	}

@@ -45,6 +45,8 @@ func OnChatIntention(ctx *plugin.MessageContext, aiChatService *service.AIChatSe
 		prompt := aiWorkflowService.GetDrawingPrompt(ctx.Message)
 		ctx.Message.Content = prompt
 		OnAIDrawing(ctx)
+	case service.ChatIntentionLongTextTTS:
+		return
 	case service.ChatIntentionEditPictures:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "修图功能正在开发中，敬请期待！")
 	default:

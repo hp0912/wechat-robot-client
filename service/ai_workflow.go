@@ -17,6 +17,8 @@ const (
 	ChatIntentionSongRequest  ChatIntention = "song_request"
 	ChatIntentionDrawAPicture ChatIntention = "draw_a_picture"
 	ChatIntentionEditPictures ChatIntention = "edit_pictures"
+	ChatIntentionTTs          ChatIntention = "tts"
+	ChatIntentionLongTextTTS  ChatIntention = "long_text_tts"
 	ChatIntentionChat         ChatIntention = "chat"
 )
 
@@ -63,7 +65,9 @@ func (s *AIWorkflowService) ChatIntention(message *model.Message) ChatIntention 
 2. song_request：用户想要点歌。
 3. draw_a_picture：用户想要画画。
 4. edit_pictures：用户想要编辑图片。
-5. chat：用户想要闲聊。
+5. long_text_tts：用户想要将长文本转换为语音。
+6. tts：用户想要将文本转换为语音，注意区分long_text_tts，如果用户没有明确说明，则默认为tts。
+7. chat：用户想要闲聊。
 如果无法识别意图，那就归类为闲聊：chat。`,
 		},
 		{
@@ -77,8 +81,16 @@ func (s *AIWorkflowService) ChatIntention(message *model.Message) ChatIntention 
 		Type: jsonschema.Object,
 		Properties: map[string]jsonschema.Definition{
 			"class_name": {
-				Type:        jsonschema.String,
-				Enum:        []string{"sing", "song_request", "draw_a_picture", "edit_pictures", "chat"},
+				Type: jsonschema.String,
+				Enum: []string{
+					"sing",
+					"song_request",
+					"draw_a_picture",
+					"edit_pictures",
+					"tts",
+					"long_text_tts",
+					"chat",
+				},
 				Description: "用户意图分类",
 			},
 		},
