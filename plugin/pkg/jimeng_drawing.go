@@ -32,7 +32,7 @@ type JimengResponse struct {
 	} `json:"data"`
 }
 
-func Jimeng(config *JimengConfig) (string, error) {
+func JimengDrawing(config *JimengConfig) (string, error) {
 	if config.Prompt == "" {
 		return "", fmt.Errorf("绘图提示词为空")
 	}

@@ -20,7 +20,7 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 			return
 		}
 		doubaoConfig.Prompt = ctx.Message.Content
-		imageUrl, err := pkg.Doubao(&doubaoConfig)
+		imageUrl, err := pkg.DoubaoDrawing(&doubaoConfig)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 			return
@@ -38,7 +38,7 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 			return
 		}
 		jimengConfig.Prompt = ctx.Message.Content
-		imageUrl, err := pkg.Jimeng(&jimengConfig)
+		imageUrl, err := pkg.JimengDrawing(&jimengConfig)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 			return
@@ -62,7 +62,7 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 			return
 		}
 		glmConfig.Prompt = ctx.Message.Content
-		imageUrl, err := pkg.GLM(&glmConfig)
+		imageUrl, err := pkg.GLMDrawing(&glmConfig)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 			return
@@ -80,7 +80,7 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 			return
 		}
 		hunyuanConfig.Prompt = ctx.Message.Content
-		imageUrl, err := pkg.SubmitHunyuan(&hunyuanConfig)
+		imageUrl, err := pkg.SubmitHunyuanDrawing(&hunyuanConfig)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 			return

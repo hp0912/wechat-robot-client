@@ -88,10 +88,10 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/chat-room-settings", chatRoomSettingsCtl.GetChatRoomSettings)
 	api.POST("/robot/chat-room-settings", chatRoomSettingsCtl.SaveChatRoomSettings)
 
+	api.POST("/robot/ai-callback/voice/doubao-tts", aiCallbackCtl.DoubaoTTS)
+
 	api.POST("/wechat-client/:wechatID/sync-message", wechatServerCallbackCtl.SyncMessageCallback)
 	api.POST("/wechat-client/:wechatID/logout", wechatServerCallbackCtl.LogoutCallback)
-
-	api.POST("/ai-voice/callback/doubao-tts", aiCallbackCtl.DoubaoTTS)
 
 	return nil
 }

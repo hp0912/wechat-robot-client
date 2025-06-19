@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 	"wechat-robot-client/dto"
@@ -26,7 +27,7 @@ func NewAICallbackService(ctx *gin.Context) *AICallbackService {
 	}
 }
 
-func (s *AICallbackService) SendMessage(msgService *MessageService, message *model.Message, msg string) {
+func (s *AICallbackService) SendTextMessage(msgService *MessageService, message *model.Message, msg string) {
 	if message.IsChatRoom {
 		err := msgService.SendTextMessage(message.FromWxID, msg, message.SenderWxID)
 		if err != nil {
@@ -68,19 +69,19 @@ func (s *AICallbackService) DoubaoTTS(req dto.DoubaoTTSCallbackRequest) error {
 	if req.Code == 0 {
 		if req.TaskStatus == 1 {
 			aiTask.AITaskStatus = model.AITaskStatusCompleted
-			s.SendMessage(msgService, message, "任务已完成，正在发送音频消息...")
+			s.SendTextMessage(msgService, message, fmt.Sprintf("任务已完成，音频文件地址：%s，有效期24小时，请及时下载。", req.AudioURL))
 		} else if req.TaskStatus == 2 {
 			aiTask.AITaskStatus = model.AITaskStatusFailed
-			s.SendMessage(msgService, message, req.Message)
+			s.SendTextMessage(msgService, message, req.Message)
 		} else {
 			aiTask.AITaskStatus = model.AITaskStatusProcessing
-			s.SendMessage(msgService, message, "任务处理中，请耐心等待...")
+			s.SendTextMessage(msgService, message, "任务处理中，请耐心等待...")
 		}
 		return s.aiTaskRepo.Update(aiTask)
 	}
 
 	aiTask.AITaskStatus = model.AITaskStatusFailed
-	s.SendMessage(msgService, message, req.Message)
+	s.SendTextMessage(msgService, message, req.Message)
 
 	return s.aiTaskRepo.Update(aiTask)
 }

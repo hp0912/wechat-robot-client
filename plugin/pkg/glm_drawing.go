@@ -31,8 +31,8 @@ type GLMResponse struct {
 	ContentFilter []ContentFilter `json:"content_filter"` // 返回内容安全的相关信息
 }
 
-// GLM 智谱绘图
-func GLM(config *GLMConfig) (string, error) {
+// GLMDrawing 智谱绘图
+func GLMDrawing(config *GLMConfig) (string, error) {
 	var respData GLMResponse
 	client := resty.New()
 	resp, err := client.R().

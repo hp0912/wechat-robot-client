@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type LongTextTTSRequest struct {
+type DoubaoLongTextTTSRequest struct {
 	BaseURL        string  `json:"base_url"`
 	Model          string  `json:"model"`
 	Prompt         string  `json:"prompt"`
@@ -20,19 +20,19 @@ type LongTextTTSRequest struct {
 	SampleStrength float64 `json:"sample_strength"`
 }
 
-type LongTextTTSConfig struct {
+type DoubaoLongTextTTSConfig struct {
 	SessionID []string `json:"sessionid"`
-	LongTextTTSRequest
+	DoubaoLongTextTTSRequest
 }
 
-type LongTextTTSResponse struct {
+type DoubaoLongTextTTSResponse struct {
 	Created int64 `json:"created"`
 	Data    []struct {
 		URL string `json:"url"`
 	} `json:"data"`
 }
 
-func LongTextTTS(config *LongTextTTSConfig) (string, error) {
+func DoubaoLongTextTTS(config *DoubaoLongTextTTSConfig) (string, error) {
 	if config.Prompt == "" {
 		return "", fmt.Errorf("绘图提示词为空")
 	}
@@ -54,7 +54,7 @@ func LongTextTTS(config *LongTextTTSConfig) (string, error) {
 	}
 	sessionID := strings.Join(config.SessionID, ",")
 	// 准备请求体
-	requestBody, err := json.Marshal(config.LongTextTTSRequest)
+	requestBody, err := json.Marshal(config.DoubaoLongTextTTSRequest)
 	if err != nil {
 		return "", fmt.Errorf("序列化请求体失败: %v", err)
 	}
@@ -83,7 +83,7 @@ func LongTextTTS(config *LongTextTTSConfig) (string, error) {
 		return "", fmt.Errorf("API请求失败，状态码 %d: %s", resp.StatusCode, string(body))
 	}
 	// 解析响应
-	var jimengResp LongTextTTSResponse
+	var jimengResp DoubaoLongTextTTSResponse
 	if err := json.Unmarshal(body, &jimengResp); err != nil {
 		return "", fmt.Errorf("解析响应失败: %v", err)
 	}

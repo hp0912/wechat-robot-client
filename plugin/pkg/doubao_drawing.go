@@ -19,8 +19,8 @@ type DoubaoConfig struct {
 	Watermark      bool    `json:"watermark"`
 }
 
-// Doubao 豆包绘图
-func Doubao(config *DoubaoConfig) (string, error) {
+// DoubaoDrawing 豆包绘图
+func DoubaoDrawing(config *DoubaoConfig) (string, error) {
 	client := arkruntime.NewClientWithApiKey(config.ApiKey)
 	ctx := context.Background()
 	format := string(model.GenerateImagesResponseFormatURL)

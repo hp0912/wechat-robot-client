@@ -31,8 +31,8 @@ type HunyuanConfig struct {
 	Prompt    string     `json:"prompt"`
 }
 
-// SubmitHunyuan 腾讯混元绘图
-func SubmitHunyuan(config *HunyuanConfig) (string, error) {
+// SubmitHunyuanDrawing 腾讯混元绘图
+func SubmitHunyuanDrawing(config *HunyuanConfig) (string, error) {
 	credential := common.NewCredential(config.SecretId, config.SecretKey)
 
 	cpf := profile.NewClientProfile()
