@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,6 +34,7 @@ type DoubaoLongTextTTSRequest struct {
 type DoubaoLongTextTTSConfig struct {
 	BaseURL     string `json:"base_url"`
 	AccessToken string `json:"access_token"`
+	TaskID      string `json:"task_id"` // 用于查询任务状态
 	DoubaoLongTextTTSRequest
 }
 
@@ -42,6 +45,40 @@ type DoubaoLongTextTTSResponse struct {
 	TaskID     string `json:"task_id"`
 	TaskStatus int    `json:"task_status"`
 	TextLength int    `json:"text_length"`
+}
+
+type Phoneme struct {
+	Ph    string `form:"ph" json:"ph"`
+	Begin int    `form:"begin" json:"begin"`
+	End   int    `form:"end" json:"end"`
+}
+
+type Word struct {
+	Text     string    `form:"text" json:"text"`
+	Begin    int       `form:"begin" json:"begin"`
+	End      int       `form:"end" json:"end"`
+	Phonemes []Phoneme `form:"phonemes" json:"phonemes"`
+}
+
+type Sentence struct {
+	Text        string `form:"text" json:"text"`
+	OriginText  string `form:"origin_text" json:"origin_text"`
+	ParagraphNo int    `form:"paragraph_no" json:"paragraph_no"`
+	BeginTime   int    `form:"begin_time" json:"begin_time"`
+	EndTime     int    `form:"end_time" json:"end_time"`
+	Emotion     string `form:"emotion" json:"emotion"`
+	Words       []Word `form:"words" json:"words"`
+}
+
+type DoubaoLongTextTTSQueryResponse struct {
+	Code          int        `form:"code" json:"code"`
+	Message       string     `form:"message" json:"message"`
+	TaskID        string     `form:"task_id" json:"task_id"`
+	TaskStatus    int        `form:"task_status" json:"task_status"`
+	TextLength    int        `form:"text_length" json:"text_length"`
+	AudioURL      string     `form:"audio_url" json:"audio_url"`
+	URLExpireTime int        `form:"url_expire_time" json:"url_expire_time"`
+	Sentences     []Sentence `form:"sentences" json:"sentences"`
 }
 
 func DoubaoLongTextTTSSubmit(config *DoubaoLongTextTTSConfig) (string, error) {
@@ -93,6 +130,55 @@ func DoubaoLongTextTTSSubmit(config *DoubaoLongTextTTSConfig) (string, error) {
 	}
 	// 解析响应
 	var ttsResp DoubaoLongTextTTSResponse
+	if err := json.Unmarshal(body, &ttsResp); err != nil {
+		return "", fmt.Errorf("解析响应失败: %v", err)
+	}
+	if ttsResp.Code != 0 || ttsResp.TaskStatus != 0 {
+		return "", fmt.Errorf("合成失败: %s", ttsResp.Message)
+	}
+	return ttsResp.TaskID, nil
+}
+
+func DoubaoLongTextTTSQuery(config *DoubaoLongTextTTSConfig) (string, error) {
+	if config.AppID == "" {
+		return "", fmt.Errorf("应用ID不能为空")
+	}
+	if config.TaskID == "" {
+		return "", fmt.Errorf("任务ID不能为空")
+	}
+	path, err := url.Parse(strings.Replace(config.BaseURL, "/submit", "/query", 1))
+	if err != nil {
+		return "", fmt.Errorf("解析BaseURL失败: %v", err)
+	}
+	params := url.Values{}
+	params.Add("appid", config.AppID)
+	params.Add("task_id", config.TaskID)
+	path.RawQuery = params.Encode()
+	req, err := http.NewRequest(http.MethodGet, path.String(), nil)
+	if err != nil {
+		return "", fmt.Errorf("创建请求失败: %v", err)
+	}
+	// 设置请求头
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer; %s", config.AccessToken))
+	// 发送请求
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("发送请求失败: %v", err)
+	}
+	defer resp.Body.Close()
+	// 读取响应
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("读取响应失败: %v", err)
+	}
+	// 检查HTTP状态码
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("API请求失败，状态码 %d: %s", resp.StatusCode, string(body))
+	}
+	// 解析响应
+	var ttsResp DoubaoLongTextTTSQueryResponse
 	if err := json.Unmarshal(body, &ttsResp); err != nil {
 		return "", fmt.Errorf("解析响应失败: %v", err)
 	}
