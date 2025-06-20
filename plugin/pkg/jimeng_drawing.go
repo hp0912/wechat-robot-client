@@ -11,7 +11,6 @@ import (
 )
 
 type JimengRequest struct {
-	BaseURL        string  `json:"base_url"`
 	Model          string  `json:"model"`
 	Prompt         string  `json:"prompt"`
 	NegativePrompt string  `json:"negative_prompt"`
@@ -21,6 +20,7 @@ type JimengRequest struct {
 }
 
 type JimengConfig struct {
+	BaseURL   string   `json:"base_url"`
 	SessionID []string `json:"sessionid"`
 	JimengRequest
 }
