@@ -44,8 +44,6 @@ func OnTTS(ctx *plugin.MessageContext) {
 	}
 	doubaoConfig.Request.Text = ttsContent
 
-	log.Println("调试日志1：", ttsContent)
-	log.Println("调试日志2：", doubaoConfig)
 	audioBase64, err := pkg.DoubaoTTSSubmit(&doubaoConfig)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("豆包文本转语音请求失败: %v", err), ctx.Message.SenderWxID)
