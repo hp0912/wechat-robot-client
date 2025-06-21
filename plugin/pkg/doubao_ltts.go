@@ -112,6 +112,12 @@ func DoubaoLTTSSubmit(config *DoubaoLTTSConfig) (string, error) {
 	// 设置请求头
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer; %s", config.AccessToken))
+	if strings.Contains(config.BaseURL, "emotion") {
+		// 情感预测版
+		req.Header.Set("Resource-Id", "volc.tts_async.emotion")
+	} else {
+		req.Header.Set("Resource-Id", "volc.tts_async.default")
+	}
 	// 发送请求
 	client := &http.Client{Timeout: 300 * time.Second}
 	resp, err := client.Do(req)
@@ -161,6 +167,12 @@ func DoubaoLTTSQuery(config *DoubaoLTTSConfig) (string, error) {
 	// 设置请求头
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer; %s", config.AccessToken))
+	if strings.Contains(config.BaseURL, "emotion") {
+		// 情感预测版
+		req.Header.Set("Resource-Id", "volc.tts_async.emotion")
+	} else {
+		req.Header.Set("Resource-Id", "volc.tts_async.default")
+	}
 	// 发送请求
 	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)

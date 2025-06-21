@@ -24,6 +24,7 @@ type MessageContext struct {
 	Context        context.Context
 	Settings       settings.Settings
 	Message        *model.Message
+	MessageContent string
 	ReferMessage   *model.Message
 	MessageService MessageServiceIface
 }

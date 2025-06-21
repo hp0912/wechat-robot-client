@@ -45,6 +45,7 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 		Context:        s.ctx,
 		Settings:       s.settings,
 		Message:        message,
+		MessageContent: message.Content,
 		MessageService: s,
 	}
 	for _, messagePlugin := range vars.MessagePlugin.Plugins {
@@ -101,6 +102,7 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 		Context:        s.ctx,
 		Settings:       s.settings,
 		Message:        message,
+		MessageContent: xmlMessage.AppMsg.Title,
 		ReferMessage:   referMessage,
 		MessageService: s,
 	}

@@ -20,7 +20,7 @@ func OnFriendAIChat(ctx *plugin.MessageContext) bool {
 				log.Printf("更新消息上下文失败: %v", err)
 			}
 		}()
-		OnChatIntention(ctx, aiChatService)
+		OnChatIntention(ctx)
 		return true
 	}
 	return false

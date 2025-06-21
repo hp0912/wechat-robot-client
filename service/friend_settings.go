@@ -64,6 +64,12 @@ func (s *FriendSettingsService) GetAIConfig() settings.AIConfig {
 		if s.globalSettings.ImageAISettings != nil {
 			aiConfig.ImageAISettings = s.globalSettings.ImageAISettings
 		}
+		if s.globalSettings.TTSSettings != nil {
+			aiConfig.TTSSettings = s.globalSettings.TTSSettings
+		}
+		if s.globalSettings.LTTSSettings != nil {
+			aiConfig.LTTSSettings = s.globalSettings.LTTSSettings
+		}
 	}
 	if s.friendSettings != nil {
 		if s.friendSettings.ChatBaseURL != nil && *s.friendSettings.ChatBaseURL != "" {
@@ -83,6 +89,12 @@ func (s *FriendSettingsService) GetAIConfig() settings.AIConfig {
 		}
 		if s.friendSettings.ImageAISettings != nil {
 			aiConfig.ImageAISettings = s.friendSettings.ImageAISettings
+		}
+		if s.friendSettings.TTSSettings != nil {
+			aiConfig.TTSSettings = s.friendSettings.TTSSettings
+		}
+		if s.friendSettings.LTTSSettings != nil {
+			aiConfig.LTTSSettings = s.friendSettings.LTTSSettings
 		}
 	}
 	aiConfig.BaseURL = strings.TrimRight(aiConfig.BaseURL, "/")

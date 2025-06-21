@@ -6,10 +6,10 @@ import (
 	"wechat-robot-client/utils"
 )
 
-func OnChatIntention(ctx *plugin.MessageContext, aiChatService *service.AIChatService) {
+func OnChatIntention(ctx *plugin.MessageContext) {
 	aiWorkflowService := service.NewAIWorkflowService(ctx.Context, ctx.Settings)
 	aiTriggerWord := ctx.Settings.GetAITriggerWord()
-	messageContent := ctx.Message.Content
+	messageContent := ctx.MessageContent
 	if ctx.Message.IsChatRoom {
 		// 去除群聊中的AI触发词
 		messageContent = utils.TrimAITriggerAll(messageContent, aiTriggerWord)
@@ -34,6 +34,7 @@ func OnChatIntention(ctx *plugin.MessageContext, aiChatService *service.AIChatSe
 				}
 			}
 		}
+		aiChatService := service.NewAIChatService(ctx.Context, ctx.Settings)
 		aiReply, err := aiChatService.Chat(aiContext)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())

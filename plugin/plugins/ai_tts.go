@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"time"
 	"wechat-robot-client/interface/plugin"
@@ -45,10 +46,16 @@ func OnLTTS(ctx *plugin.MessageContext) {
 		return
 	}
 	defer reader.Close()
-	doubaoConfig.Text = ""
+	// 读取文本内容
+	textBytes, err := io.ReadAll(reader)
+	if err != nil {
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("读取文本文件内容失败: %v", err), ctx.Message.SenderWxID)
+		return
+	}
+	doubaoConfig.Text = string(textBytes)
 
 	lockCtx := context.Background()
-	lock := distributedlock.NewDistributedLock(vars.RedisClient, fmt.Sprintf("doubao_ltts_lock:%s", ctx.Message.FromWxID),
+	lock := distributedlock.NewDistributedLock(vars.RedisClient, fmt.Sprintf("doubao_ltts_lock:%s", ctx.Message.SenderWxID),
 		distributedlock.WithExpiration(10*time.Second),
 		distributedlock.WithMaxRetries(5),
 		distributedlock.WithAutoRenewal(),
