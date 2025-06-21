@@ -43,6 +43,9 @@ func OnTTS(ctx *plugin.MessageContext) {
 		return
 	}
 	doubaoConfig.Request.Text = ttsContent
+
+	log.Println("调试日志1：", ttsContent)
+	log.Println("调试日志2：", doubaoConfig)
 	audioBase64, err := pkg.DoubaoTTSSubmit(&doubaoConfig)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("豆包文本转语音请求失败: %v", err), ctx.Message.SenderWxID)
@@ -59,6 +62,10 @@ func OnTTS(ctx *plugin.MessageContext) {
 
 // OnLTTS 长文本转语音
 func OnLTTS(ctx *plugin.MessageContext) {
+	if ctx.ReferMessage == nil {
+		log.Println("长文本转语音引用消息为空")
+		return
+	}
 	referXml, err := ctx.MessageService.XmlDecoder(ctx.ReferMessage.Content)
 	if err != nil {
 		log.Printf("解析引用消息失败: %v", err)
