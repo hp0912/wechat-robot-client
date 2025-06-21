@@ -1,7 +1,9 @@
 package plugins
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,7 +19,37 @@ import (
 
 // OnTTS 文本转语音
 func OnTTS(ctx *plugin.MessageContext) {
-	// aiConfig := ctx.Settings.GetAIConfig()
+	var ttsContent string
+	if ctx.Message.Type == model.MsgTypeText {
+		aiWorkflowService := service.NewAIWorkflowService(ctx.Context, ctx.Settings)
+		ttsContent = aiWorkflowService.GetTTSText(ctx.MessageContent)
+	}
+	if ctx.Message.Type == model.MsgTypeApp && ctx.Message.AppMsgType == model.AppMsgTypequote && ctx.ReferMessage.Type == model.MsgTypeText {
+		ttsContent = ctx.ReferMessage.Content
+	}
+	if ttsContent == "" {
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "未提前到有效的文本内容", ctx.Message.SenderWxID)
+		return
+	}
+	aiConfig := ctx.Settings.GetAIConfig()
+	var doubaoConfig pkg.DoubaoTTSConfig
+	if err := json.Unmarshal(aiConfig.TTSSettings, &doubaoConfig); err != nil {
+		log.Printf("反序列化豆包文本转语音配置失败: %v", err)
+		return
+	}
+	doubaoConfig.Request.Text = ttsContent
+	audioBase64, err := pkg.DoubaoTTSSubmit(&doubaoConfig)
+	if err != nil {
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("豆包文本转语音请求失败: %v", err), ctx.Message.SenderWxID)
+		return
+	}
+	audioData, err := base64.StdEncoding.DecodeString(audioBase64)
+	if err != nil {
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("音频数据解码失败: %v", err), ctx.Message.SenderWxID)
+		return
+	}
+	audioReader := bytes.NewReader(audioData)
+	ctx.MessageService.MsgSendVoice(ctx.Message.FromWxID, audioReader, fmt.Sprintf(".%s", doubaoConfig.Audio.Encoding))
 }
 
 // OnLTTS 长文本转语音

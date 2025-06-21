@@ -62,16 +62,13 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		if !isAIEnabled {
 			return
 		}
-		prompt := aiWorkflowService.GetDrawingPrompt(messageContent)
-		ctx.Message.Content = prompt
+		ctx.MessageContent = aiWorkflowService.GetDrawingPrompt(messageContent)
 		OnAIDrawing(ctx)
 	case service.ChatIntentionTTS:
 		isTTSEnabled := ctx.Settings.IsTTSEnabled()
 		if !isTTSEnabled {
 			return
 		}
-		text := aiWorkflowService.GetTTSText(messageContent)
-		ctx.Message.Content = text
 		OnTTS(ctx)
 	case service.ChatIntentionLTTS:
 		isTTSEnabled := ctx.Settings.IsTTSEnabled()

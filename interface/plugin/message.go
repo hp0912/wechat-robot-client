@@ -13,6 +13,7 @@ import (
 type MessageServiceIface interface {
 	SendTextMessage(toWxID, content string, at ...string) error
 	MsgUploadImg(toWxID string, image io.Reader) error
+	MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error
 	SendMusicMessage(toWxID string, songTitle string) error
 	ResetChatRoomAIMessageContext(message *model.Message) error
 	GetAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error)

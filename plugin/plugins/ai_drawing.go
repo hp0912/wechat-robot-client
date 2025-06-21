@@ -19,7 +19,7 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 			log.Printf("反序列化豆包绘图配置失败: %v", err)
 			return
 		}
-		doubaoConfig.Prompt = ctx.Message.Content
+		doubaoConfig.Prompt = ctx.MessageContent
 		imageUrl, err := pkg.DoubaoDrawing(&doubaoConfig)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
@@ -37,7 +37,7 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 			log.Printf("反序列化即梦绘图配置失败: %v", err)
 			return
 		}
-		jimengConfig.Prompt = ctx.Message.Content
+		jimengConfig.Prompt = ctx.MessageContent
 		imageUrl, err := pkg.JimengDrawing(&jimengConfig)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
@@ -61,7 +61,7 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 			log.Printf("反序列化智谱绘图配置失败: %v", err)
 			return
 		}
-		glmConfig.Prompt = ctx.Message.Content
+		glmConfig.Prompt = ctx.MessageContent
 		imageUrl, err := pkg.GLMDrawing(&glmConfig)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
@@ -79,7 +79,7 @@ func OnAIDrawing(ctx *plugin.MessageContext) {
 			log.Printf("反序列化混元绘图配置失败: %v", err)
 			return
 		}
-		hunyuanConfig.Prompt = ctx.Message.Content
+		hunyuanConfig.Prompt = ctx.MessageContent
 		imageUrl, err := pkg.SubmitHunyuanDrawing(&hunyuanConfig)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
