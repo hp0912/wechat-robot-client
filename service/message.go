@@ -83,6 +83,33 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 		log.Printf("解析引用消息失败: %v", err)
 		return
 	}
+	referMessageID, err := strconv.ParseInt(xmlMessage.AppMsg.ReferMsg.SvrID, 10, 64)
+	if err != nil {
+		log.Printf("解析引用消息ID失败: %v", err)
+		return
+	}
+	referMessage, err := s.msgRespo.GetByMsgID(referMessageID)
+	if err != nil {
+		log.Printf("获取引用消息失败: %v", err)
+		return
+	}
+	if referMessage == nil {
+		log.Printf("获取引用消息为空")
+		return
+	}
+	msgCtx := &plugin.MessageContext{
+		Context:        s.ctx,
+		Settings:       s.settings,
+		Message:        message,
+		ReferMessage:   referMessage,
+		MessageService: s,
+	}
+	for _, messagePlugin := range vars.MessagePlugin.Plugins {
+		abort := messagePlugin(msgCtx)
+		if abort {
+			return
+		}
+	}
 }
 
 // ProcessAppMessage 处理应用消息
@@ -417,6 +444,15 @@ func (s *MessageService) SyncMessageStart() {
 			s.SyncMessage()
 		}
 	}
+}
+
+func (s *MessageService) XmlDecoder(content string) (robot.XmlMessage, error) {
+	var xmlMessage robot.XmlMessage
+	err := vars.RobotRuntime.XmlDecoder(content, &xmlMessage)
+	if err != nil {
+		return xmlMessage, err
+	}
+	return xmlMessage, nil
 }
 
 func (s *MessageService) MessageRevoke(req dto.MessageCommonRequest) error {

@@ -50,8 +50,8 @@ func (a *AttachDownloadService) DownloadVoice(req dto.AttachDownloadRequest) ([]
 	return vars.RobotRuntime.DownloadVoice(a.ctx, *message)
 }
 
-func (a *AttachDownloadService) DownloadFile(req dto.AttachDownloadRequest) (io.ReadCloser, string, error) {
-	message, err := a.msgRespo.GetByID(req.MessageID)
+func (a *AttachDownloadService) DownloadFile(messageID int64) (io.ReadCloser, string, error) {
+	message, err := a.msgRespo.GetByID(messageID)
 	if err != nil {
 		return nil, "", err
 	}

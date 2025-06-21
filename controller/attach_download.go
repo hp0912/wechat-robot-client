@@ -88,7 +88,7 @@ func (a *AttachDownload) DownloadFile(c *gin.Context) {
 		return
 	}
 
-	reader, filename, err := service.NewAttachDownloadService(c).DownloadFile(req)
+	reader, filename, err := service.NewAttachDownloadService(c).DownloadFile(req.MessageID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError,
 			gin.H{"message": err.Error()})

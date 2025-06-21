@@ -21,6 +21,16 @@ func OnTTS(ctx *plugin.MessageContext) {
 
 // OnLTTS 长文本转语音
 func OnLTTS(ctx *plugin.MessageContext) {
+	referXml, err := ctx.MessageService.XmlDecoder(ctx.ReferMessage.Content)
+	if err != nil {
+		log.Printf("解析引用消息失败: %v", err)
+		return
+	}
+	if referXml.AppMsg.Type != 6 || referXml.AppMsg.AppAttach.FileExt != "txt" {
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "请使用TXT文本文件进行长文本转语音", ctx.Message.SenderWxID)
+		return
+	}
+
 	aiConfig := ctx.Settings.GetAIConfig()
 	var doubaoConfig pkg.DoubaoLTTSConfig
 	if err := json.Unmarshal(aiConfig.LTTSSettings, &doubaoConfig); err != nil {
@@ -28,7 +38,13 @@ func OnLTTS(ctx *plugin.MessageContext) {
 		return
 	}
 
-	// 解析引用消息
+	// 解析引用消息的文本文件内容
+	reader, _, err := service.NewAttachDownloadService(ctx.Context).DownloadFile(ctx.ReferMessage.ID)
+	if err != nil {
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("下载引用消息的文本文件失败: %v", err), ctx.Message.SenderWxID)
+		return
+	}
+	defer reader.Close()
 	doubaoConfig.Text = ""
 
 	lockCtx := context.Background()
@@ -75,7 +91,7 @@ func OnLTTS(ctx *plugin.MessageContext) {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("创建长文本转语音任务失败: %v", err), ctx.Message.SenderWxID)
 		return
 	}
-
+	ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "您的长文本转语音任务已提交，请耐心等待。", ctx.Message.SenderWxID)
 	doubaoConfig.TaskID = taskID
 
 	go func() {
