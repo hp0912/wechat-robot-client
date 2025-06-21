@@ -118,6 +118,16 @@ func (s *ChatRoomSettingsService) IsAIDrawingEnabled() bool {
 	return false
 }
 
+func (s *ChatRoomSettingsService) IsTTSEnabled() bool {
+	if s.chatRoomSettings != nil && s.chatRoomSettings.TTSEnabled != nil {
+		return *s.chatRoomSettings.TTSEnabled
+	}
+	if s.globalSettings != nil && s.globalSettings.TTSEnabled != nil {
+		return *s.globalSettings.TTSEnabled
+	}
+	return false
+}
+
 func (s *ChatRoomSettingsService) IsAITrigger() bool {
 	if s.Message.IsAtMe {
 		// 是否是 @所有人

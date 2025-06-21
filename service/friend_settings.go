@@ -112,6 +112,16 @@ func (s *FriendSettingsService) IsAIDrawingEnabled() bool {
 	return false
 }
 
+func (s *FriendSettingsService) IsTTSEnabled() bool {
+	if s.friendSettings != nil && s.friendSettings.TTSEnabled != nil {
+		return *s.friendSettings.TTSEnabled
+	}
+	if s.globalSettings != nil && s.globalSettings.TTSEnabled != nil {
+		return *s.globalSettings.TTSEnabled
+	}
+	return false
+}
+
 func (s *FriendSettingsService) IsAITrigger() bool {
 	return s.IsAIChatEnabled()
 }

@@ -13,6 +13,8 @@ type AIConfig struct {
 	Prompt          string
 	ImageModel      model.ImageModel
 	ImageAISettings datatypes.JSON
+	TTSSettings     datatypes.JSON
+	LTTSSettings    datatypes.JSON
 }
 
 type Settings interface {
@@ -20,6 +22,7 @@ type Settings interface {
 	GetAIConfig() AIConfig
 	IsAIChatEnabled() bool
 	IsAIDrawingEnabled() bool
+	IsTTSEnabled() bool
 	IsAITrigger() bool
 	GetAITriggerWord() string
 }

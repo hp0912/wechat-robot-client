@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type DoubaoLongTextTTSRequest struct {
+type DoubaoLTTSRequest struct {
 	AppID            string   `json:"appid"`
 	ReqID            string   `json:"reqid"`  // Request ID，不可重复，长度20～64，建议使用uuid
 	Text             string   `json:"text"`   // 合成文本，长度小于10万字符，支持SSML
@@ -31,14 +31,14 @@ type DoubaoLongTextTTSRequest struct {
 	CallbackURL      *string  `json:"callback_url"`
 }
 
-type DoubaoLongTextTTSConfig struct {
+type DoubaoLTTSConfig struct {
 	BaseURL     string `json:"base_url"`
 	AccessToken string `json:"access_token"`
 	TaskID      string `json:"task_id"` // 用于查询任务状态
-	DoubaoLongTextTTSRequest
+	DoubaoLTTSRequest
 }
 
-type DoubaoLongTextTTSResponse struct {
+type DoubaoLTTSResponse struct {
 	Code       int    `json:"code"`
 	Message    string `json:"message"`
 	ReqID      string `json:"reqid"`
@@ -70,7 +70,7 @@ type Sentence struct {
 	Words       []Word `form:"words" json:"words"`
 }
 
-type DoubaoLongTextTTSQueryResponse struct {
+type DoubaoLTTSQueryResponse struct {
 	Code          int        `form:"code" json:"code"`
 	Message       string     `form:"message" json:"message"`
 	TaskID        string     `form:"task_id" json:"task_id"`
@@ -81,7 +81,7 @@ type DoubaoLongTextTTSQueryResponse struct {
 	Sentences     []Sentence `form:"sentences" json:"sentences"`
 }
 
-func DoubaoLongTextTTSSubmit(config *DoubaoLongTextTTSConfig) (string, error) {
+func DoubaoLTTSSubmit(config *DoubaoLTTSConfig) (string, error) {
 	if config.Text == "" {
 		return "", fmt.Errorf("合成文本为空")
 	}
@@ -100,7 +100,7 @@ func DoubaoLongTextTTSSubmit(config *DoubaoLongTextTTSConfig) (string, error) {
 		config.VoiceType = "BV104_streaming" // 温柔淑女
 	}
 	// 准备请求体
-	requestBody, err := json.Marshal(config.DoubaoLongTextTTSRequest)
+	requestBody, err := json.Marshal(config.DoubaoLTTSRequest)
 	if err != nil {
 		return "", fmt.Errorf("序列化请求体失败: %v", err)
 	}
@@ -129,7 +129,7 @@ func DoubaoLongTextTTSSubmit(config *DoubaoLongTextTTSConfig) (string, error) {
 		return "", fmt.Errorf("API请求失败，状态码 %d: %s", resp.StatusCode, string(body))
 	}
 	// 解析响应
-	var ttsResp DoubaoLongTextTTSResponse
+	var ttsResp DoubaoLTTSResponse
 	if err := json.Unmarshal(body, &ttsResp); err != nil {
 		return "", fmt.Errorf("解析响应失败: %v", err)
 	}
@@ -139,7 +139,7 @@ func DoubaoLongTextTTSSubmit(config *DoubaoLongTextTTSConfig) (string, error) {
 	return ttsResp.TaskID, nil
 }
 
-func DoubaoLongTextTTSQuery(config *DoubaoLongTextTTSConfig) (string, error) {
+func DoubaoLTTSQuery(config *DoubaoLTTSConfig) (string, error) {
 	if config.AppID == "" {
 		return "", fmt.Errorf("应用ID不能为空")
 	}
@@ -178,7 +178,7 @@ func DoubaoLongTextTTSQuery(config *DoubaoLongTextTTSConfig) (string, error) {
 		return "", fmt.Errorf("API请求失败，状态码 %d: %s", resp.StatusCode, string(body))
 	}
 	// 解析响应
-	var ttsResp DoubaoLongTextTTSQueryResponse
+	var ttsResp DoubaoLTTSQueryResponse
 	if err := json.Unmarshal(body, &ttsResp); err != nil {
 		return "", fmt.Errorf("解析响应失败: %v", err)
 	}

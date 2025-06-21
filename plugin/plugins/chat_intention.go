@@ -64,8 +64,20 @@ func OnChatIntention(ctx *plugin.MessageContext, aiChatService *service.AIChatSe
 		prompt := aiWorkflowService.GetDrawingPrompt(messageContent)
 		ctx.Message.Content = prompt
 		OnAIDrawing(ctx)
-	case service.ChatIntentionLongTextTTS:
-		return
+	case service.ChatIntentionTTS:
+		isTTSEnabled := ctx.Settings.IsTTSEnabled()
+		if !isTTSEnabled {
+			return
+		}
+		text := aiWorkflowService.GetTTSText(messageContent)
+		ctx.Message.Content = text
+		OnTTS(ctx)
+	case service.ChatIntentionLTTS:
+		isTTSEnabled := ctx.Settings.IsTTSEnabled()
+		if !isTTSEnabled {
+			return
+		}
+		OnLTTS(ctx)
 	case service.ChatIntentionEditPictures:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "修图功能正在开发中，敬请期待！")
 	default:
