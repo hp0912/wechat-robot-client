@@ -16,6 +16,8 @@ type AIChatService struct {
 	config settings.Settings
 }
 
+var _ ai.AIService = (*AIChatService)(nil)
+
 func NewAIChatService(ctx context.Context, config settings.Settings) *AIChatService {
 	return &AIChatService{
 		ctx:    ctx,
@@ -108,5 +110,3 @@ func (s *AIChatService) Chat(aiMessages []openai.ChatCompletionMessage) (string,
 	}
 	return resp.Choices[0].Message.Content, nil
 }
-
-var _ ai.AIService = (*AIChatService)(nil)

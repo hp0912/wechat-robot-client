@@ -20,6 +20,7 @@ type JimengRequest struct {
 }
 
 type JimengConfig struct {
+	BaseURL   string   `json:"base_url"`
 	SessionID []string `json:"sessionid"`
 	JimengRequest
 }
@@ -31,7 +32,7 @@ type JimengResponse struct {
 	} `json:"data"`
 }
 
-func Jimeng(config *JimengConfig) (string, error) {
+func JimengDrawing(config *JimengConfig) (string, error) {
 	if config.Prompt == "" {
 		return "", fmt.Errorf("绘图提示词为空")
 	}
@@ -58,7 +59,7 @@ func Jimeng(config *JimengConfig) (string, error) {
 		return "", fmt.Errorf("序列化请求体失败: %v", err)
 	}
 	// 创建HTTP请求
-	req, err := http.NewRequest("POST", "http://jimeng-free-api:9000/v1/images/generations", bytes.NewBuffer(requestBody))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/images/generations", config.BaseURL), bytes.NewBuffer(requestBody))
 	if err != nil {
 		return "", fmt.Errorf("创建请求失败: %v", err)
 	}

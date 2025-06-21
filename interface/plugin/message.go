@@ -5,6 +5,7 @@ import (
 	"io"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/robot"
 
 	"github.com/sashabaranov/go-openai"
 )
@@ -12,16 +13,20 @@ import (
 type MessageServiceIface interface {
 	SendTextMessage(toWxID, content string, at ...string) error
 	MsgUploadImg(toWxID string, image io.Reader) error
+	MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error
 	SendMusicMessage(toWxID string, songTitle string) error
 	ResetChatRoomAIMessageContext(message *model.Message) error
 	GetAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error)
 	SetMessageIsInContext(message *model.Message) error
+	XmlDecoder(content string) (robot.XmlMessage, error)
 }
 
 type MessageContext struct {
 	Context        context.Context
 	Settings       settings.Settings
 	Message        *model.Message
+	MessageContent string
+	ReferMessage   *model.Message
 	MessageService MessageServiceIface
 }
 

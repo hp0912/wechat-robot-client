@@ -7,8 +7,8 @@ import (
 	"strings"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
-	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 )
 
@@ -20,6 +20,8 @@ type ChatRoomSettingsService struct {
 	globalSettings   *model.GlobalSettings
 	chatRoomSettings *model.ChatRoomSettings
 }
+
+var _ settings.Settings = (*ChatRoomSettingsService)(nil)
 
 func NewChatRoomSettingsService(ctx context.Context) *ChatRoomSettingsService {
 	return &ChatRoomSettingsService{
@@ -69,6 +71,12 @@ func (s *ChatRoomSettingsService) GetAIConfig() settings.AIConfig {
 		if s.globalSettings.ImageAISettings != nil {
 			aiConfig.ImageAISettings = s.globalSettings.ImageAISettings
 		}
+		if s.globalSettings.TTSSettings != nil {
+			aiConfig.TTSSettings = s.globalSettings.TTSSettings
+		}
+		if s.globalSettings.LTTSSettings != nil {
+			aiConfig.LTTSSettings = s.globalSettings.LTTSSettings
+		}
 	}
 	if s.chatRoomSettings != nil {
 		if s.chatRoomSettings.ChatBaseURL != nil && *s.chatRoomSettings.ChatBaseURL != "" {
@@ -88,6 +96,12 @@ func (s *ChatRoomSettingsService) GetAIConfig() settings.AIConfig {
 		}
 		if s.chatRoomSettings.ImageAISettings != nil {
 			aiConfig.ImageAISettings = s.chatRoomSettings.ImageAISettings
+		}
+		if s.chatRoomSettings.TTSSettings != nil {
+			aiConfig.TTSSettings = s.chatRoomSettings.TTSSettings
+		}
+		if s.chatRoomSettings.LTTSSettings != nil {
+			aiConfig.LTTSSettings = s.chatRoomSettings.LTTSSettings
 		}
 	}
 	aiConfig.BaseURL = strings.TrimRight(aiConfig.BaseURL, "/")
@@ -117,15 +131,31 @@ func (s *ChatRoomSettingsService) IsAIDrawingEnabled() bool {
 	return false
 }
 
+func (s *ChatRoomSettingsService) IsTTSEnabled() bool {
+	if s.chatRoomSettings != nil && s.chatRoomSettings.TTSEnabled != nil {
+		return *s.chatRoomSettings.TTSEnabled
+	}
+	if s.globalSettings != nil && s.globalSettings.TTSEnabled != nil {
+		return *s.globalSettings.TTSEnabled
+	}
+	return false
+}
+
 func (s *ChatRoomSettingsService) IsAITrigger() bool {
+	messageContent := s.Message.Content
+	if s.Message.AppMsgType == model.AppMsgTypequote {
+		var xmlMessage robot.XmlMessage
+		if err := vars.RobotRuntime.XmlDecoder(messageContent, &xmlMessage); err == nil {
+			messageContent = xmlMessage.AppMsg.Title
+		}
+	}
 	if s.Message.IsAtMe {
 		// 是否是 @所有人
 		atAllRegex := regexp.MustCompile(vars.AtAllRegexp)
-		if atAllRegex.MatchString(s.Message.Content) {
+		if atAllRegex.MatchString(messageContent) {
 			// 如果是 @所有人，则不处理
 			return false
 		}
-		s.Message.Content = utils.TrimAt(s.Message.Content)
 		return true
 	}
 	if s.chatRoomSettings == nil {
@@ -135,28 +165,26 @@ func (s *ChatRoomSettingsService) IsAITrigger() bool {
 		if s.globalSettings.ChatAIEnabled == nil || !*s.globalSettings.ChatAIEnabled {
 			return false
 		}
-		isAITrigger := *s.globalSettings.ChatAITrigger != "" && strings.HasPrefix(s.Message.Content, *s.globalSettings.ChatAITrigger)
-		if isAITrigger {
-			s.Message.Content = utils.TrimAITriggerWord(s.Message.Content, *s.globalSettings.ChatAITrigger)
-		}
-		return isAITrigger
+		return *s.globalSettings.ChatAITrigger != "" && strings.HasPrefix(messageContent, *s.globalSettings.ChatAITrigger)
 	}
 	if s.chatRoomSettings.ChatAIEnabled == nil || !*s.chatRoomSettings.ChatAIEnabled {
 		return false
 	}
 	if s.chatRoomSettings.ChatAITrigger != nil && *s.chatRoomSettings.ChatAITrigger != "" {
-		isAITrigger := *s.chatRoomSettings.ChatAITrigger != "" && strings.HasPrefix(s.Message.Content, *s.chatRoomSettings.ChatAITrigger)
-		if isAITrigger {
-			s.Message.Content = utils.TrimAITriggerWord(s.Message.Content, *s.chatRoomSettings.ChatAITrigger)
-		}
-		return isAITrigger
+		return *s.chatRoomSettings.ChatAITrigger != "" && strings.HasPrefix(messageContent, *s.chatRoomSettings.ChatAITrigger)
 	}
-	isAITrigger := s.globalSettings != nil && s.globalSettings.ChatAITrigger != nil && *s.globalSettings.ChatAITrigger != "" &&
-		strings.HasPrefix(s.Message.Content, *s.globalSettings.ChatAITrigger)
-	if isAITrigger {
-		s.Message.Content = utils.TrimAITriggerWord(s.Message.Content, *s.globalSettings.ChatAITrigger)
+	return s.globalSettings != nil && s.globalSettings.ChatAITrigger != nil && *s.globalSettings.ChatAITrigger != "" &&
+		strings.HasPrefix(messageContent, *s.globalSettings.ChatAITrigger)
+}
+
+func (s *ChatRoomSettingsService) GetAITriggerWord() string {
+	if s.chatRoomSettings != nil && s.chatRoomSettings.ChatAITrigger != nil && *s.chatRoomSettings.ChatAITrigger != "" {
+		return *s.chatRoomSettings.ChatAITrigger
 	}
-	return isAITrigger
+	if s.globalSettings != nil && s.globalSettings.ChatAITrigger != nil && *s.globalSettings.ChatAITrigger != "" {
+		return *s.globalSettings.ChatAITrigger
+	}
+	return ""
 }
 
 func (s *ChatRoomSettingsService) GetChatRoomWelcomeConfig(chatRoomID string) (*model.ChatRoomSettings, error) {
@@ -219,5 +247,3 @@ func (s *ChatRoomSettingsService) SaveChatRoomSettings(data *model.ChatRoomSetti
 	}
 	return s.crsRespo.Update(data)
 }
-
-var _ settings.Settings = (*ChatRoomSettingsService)(nil)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 	"wechat-robot-client/interface/settings"
-	"wechat-robot-client/model"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
@@ -17,6 +16,8 @@ const (
 	ChatIntentionSongRequest  ChatIntention = "song_request"
 	ChatIntentionDrawAPicture ChatIntention = "draw_a_picture"
 	ChatIntentionEditPictures ChatIntention = "edit_pictures"
+	ChatIntentionTTS          ChatIntention = "tts"
+	ChatIntentionLTTS         ChatIntention = "ltts"
 	ChatIntentionChat         ChatIntention = "chat"
 )
 
@@ -30,6 +31,10 @@ type SongRequestMetadata struct {
 
 type DrawingPrompt struct {
 	Prompt string `json:"prompt"`
+}
+
+type TTSText struct {
+	Text string `json:"text"`
 }
 
 type AIWorkflowService struct {
@@ -46,7 +51,7 @@ func NewAIWorkflowService(ctx context.Context, config settings.Settings) *AIWork
 	}
 }
 
-func (s *AIWorkflowService) ChatIntention(message *model.Message) ChatIntention {
+func (s *AIWorkflowService) ChatIntention(message string) ChatIntention {
 	aiConfig := s.config.GetAIConfig()
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
@@ -63,12 +68,14 @@ func (s *AIWorkflowService) ChatIntention(message *model.Message) ChatIntention 
 2. song_request：用户想要点歌。
 3. draw_a_picture：用户想要画画。
 4. edit_pictures：用户想要编辑图片。
-5. chat：用户想要闲聊。
+5. ltts：用户想要将长文本转换为语音。
+6. tts：用户想要将文本转换为语音，注意区分ltts，如果用户没有明确说明，则默认为tts。
+7. chat：用户想要闲聊。
 如果无法识别意图，那就归类为闲聊：chat。`,
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: message.Content,
+			Content: message,
 		},
 	}
 
@@ -77,8 +84,16 @@ func (s *AIWorkflowService) ChatIntention(message *model.Message) ChatIntention 
 		Type: jsonschema.Object,
 		Properties: map[string]jsonschema.Definition{
 			"class_name": {
-				Type:        jsonschema.String,
-				Enum:        []string{"sing", "song_request", "draw_a_picture", "edit_pictures", "chat"},
+				Type: jsonschema.String,
+				Enum: []string{
+					"sing",
+					"song_request",
+					"draw_a_picture",
+					"edit_pictures",
+					"tts",
+					"ltts",
+					"chat",
+				},
 				Description: "用户意图分类",
 			},
 		},
@@ -114,7 +129,7 @@ func (s *AIWorkflowService) ChatIntention(message *model.Message) ChatIntention 
 	return result.ClassName
 }
 
-func (s *AIWorkflowService) GetSongRequestTitle(message *model.Message) string {
+func (s *AIWorkflowService) GetSongRequestTitle(message string) string {
 	aiConfig := s.config.GetAIConfig()
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
@@ -128,7 +143,7 @@ func (s *AIWorkflowService) GetSongRequestTitle(message *model.Message) string {
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: message.Content,
+			Content: message,
 		},
 	}
 
@@ -173,7 +188,7 @@ func (s *AIWorkflowService) GetSongRequestTitle(message *model.Message) string {
 	return result.SongTitle
 }
 
-func (s *AIWorkflowService) GetDrawingPrompt(message *model.Message) string {
+func (s *AIWorkflowService) GetDrawingPrompt(message string) string {
 	aiConfig := s.config.GetAIConfig()
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
@@ -187,7 +202,7 @@ func (s *AIWorkflowService) GetDrawingPrompt(message *model.Message) string {
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: message.Content,
+			Content: message,
 		},
 	}
 
@@ -212,7 +227,7 @@ func (s *AIWorkflowService) GetDrawingPrompt(message *model.Message) string {
 			ResponseFormat: &openai.ChatCompletionResponseFormat{
 				Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
 				JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
-					Name:        "prompt",
+					Name:        "drawing_prompt",
 					Description: "用户现在想画画，请根据用户的输入内容，提取用户画画的提示词。",
 					Strict:      true,
 					Schema:      schema,
@@ -230,4 +245,63 @@ func (s *AIWorkflowService) GetDrawingPrompt(message *model.Message) string {
 	}
 
 	return result.Prompt
+}
+
+func (s *AIWorkflowService) GetTTSText(message string) string {
+	aiConfig := s.config.GetAIConfig()
+	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
+	openaiConfig.BaseURL = aiConfig.BaseURL
+
+	client := openai.NewClientWithConfig(openaiConfig)
+
+	aiMessages := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: `用户现在想文本转语音，根据用户输入的内容，提取用户想要将转换成语音的那部份内容。`,
+		},
+		{
+			Role:    openai.ChatMessageRoleUser,
+			Content: message,
+		},
+	}
+
+	var result TTSText
+	schema := &jsonschema.Definition{
+		Type: jsonschema.Object,
+		Properties: map[string]jsonschema.Definition{
+			"text": {
+				Type:        jsonschema.String,
+				Description: "用户想要转换的文本",
+			},
+		},
+		Required:             []string{"text"},
+		AdditionalProperties: false,
+	}
+
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model:    "gpt-4o-mini", // 固定写死，使用更小的模型以提高响应速度和降低成本
+			Messages: aiMessages,
+			ResponseFormat: &openai.ChatCompletionResponseFormat{
+				Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
+				JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
+					Name:        "tts_text",
+					Description: "用户现在想文本转语音，根据用户输入的内容，提取用户想要将转换成语音的那部份内容。",
+					Strict:      true,
+					Schema:      schema,
+				},
+			},
+			Stream: false,
+		},
+	)
+	if err != nil {
+		return ""
+	}
+	err = schema.Unmarshal(resp.Choices[0].Message.Content, &result)
+	if err != nil {
+		return ""
+	}
+
+	return result.Text
 }

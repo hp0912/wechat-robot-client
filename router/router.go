@@ -17,6 +17,7 @@ var globalSettingsCtl *controller.GlobalSettings
 var friendSettingsCtl *controller.FriendSettings
 var chatRoomSettingsCtl *controller.ChatRoomSettings
 var wechatServerCallbackCtl *controller.WechatServerCallback
+var aiCallbackCtl *controller.AICallback
 var probeCtl *controller.Probe
 
 func initController() {
@@ -30,6 +31,7 @@ func initController() {
 	friendSettingsCtl = controller.NewFriendSettingsController()
 	chatRoomSettingsCtl = controller.NewChatRoomSettingsController()
 	wechatServerCallbackCtl = controller.NewWechatServerCallbackController()
+	aiCallbackCtl = controller.NewAICallbackController()
 	probeCtl = controller.NewProbeController()
 }
 
@@ -85,6 +87,8 @@ func RegisterRouter(r *gin.Engine) error {
 
 	api.GET("/robot/chat-room-settings", chatRoomSettingsCtl.GetChatRoomSettings)
 	api.POST("/robot/chat-room-settings", chatRoomSettingsCtl.SaveChatRoomSettings)
+
+	api.POST("/robot/ai-callback/voice/doubao-tts", aiCallbackCtl.DoubaoTTS)
 
 	api.POST("/wechat-client/:wechatID/sync-message", wechatServerCallbackCtl.SyncMessageCallback)
 	api.POST("/wechat-client/:wechatID/logout", wechatServerCallbackCtl.LogoutCallback)

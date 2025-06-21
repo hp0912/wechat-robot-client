@@ -30,6 +30,8 @@ type MessageService struct {
 	msgRespo *repository.Message
 }
 
+var _ plugin.MessageServiceIface = (*MessageService)(nil)
+
 func NewMessageService(ctx context.Context) *MessageService {
 	return &MessageService{
 		ctx:      ctx,
@@ -43,6 +45,7 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 		Context:        s.ctx,
 		Settings:       s.settings,
 		Message:        message,
+		MessageContent: message.Content,
 		MessageService: s,
 	}
 	for _, messagePlugin := range vars.MessagePlugin.Plugins {
@@ -80,6 +83,34 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 	if err != nil {
 		log.Printf("解析引用消息失败: %v", err)
 		return
+	}
+	referMessageID, err := strconv.ParseInt(xmlMessage.AppMsg.ReferMsg.SvrID, 10, 64)
+	if err != nil {
+		log.Printf("解析引用消息ID失败: %v", err)
+		return
+	}
+	referMessage, err := s.msgRespo.GetByMsgID(referMessageID)
+	if err != nil {
+		log.Printf("获取引用消息失败: %v", err)
+		return
+	}
+	if referMessage == nil {
+		log.Printf("获取引用消息为空")
+		return
+	}
+	msgCtx := &plugin.MessageContext{
+		Context:        s.ctx,
+		Settings:       s.settings,
+		Message:        message,
+		MessageContent: xmlMessage.AppMsg.Title,
+		ReferMessage:   referMessage,
+		MessageService: s,
+	}
+	for _, messagePlugin := range vars.MessagePlugin.Plugins {
+		abort := messagePlugin(msgCtx)
+		if abort {
+			return
+		}
 	}
 }
 
@@ -415,6 +446,15 @@ func (s *MessageService) SyncMessageStart() {
 			s.SyncMessage()
 		}
 	}
+}
+
+func (s *MessageService) XmlDecoder(content string) (robot.XmlMessage, error) {
+	var xmlMessage robot.XmlMessage
+	err := vars.RobotRuntime.XmlDecoder(content, &xmlMessage)
+	if err != nil {
+		return xmlMessage, err
+	}
+	return xmlMessage, nil
 }
 
 func (s *MessageService) MessageRevoke(req dto.MessageCommonRequest) error {
@@ -971,5 +1011,3 @@ func (s *MessageService) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.Chat
 func (s *MessageService) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	return s.msgRespo.GetLastMonthChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
 }
-
-var _ plugin.MessageServiceIface = (*MessageService)(nil)
