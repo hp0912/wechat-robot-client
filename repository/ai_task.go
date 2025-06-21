@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 	"wechat-robot-client/model"
 
 	"gorm.io/gorm"
@@ -29,6 +30,16 @@ func (repo *AITask) GetByID(id int64) (*model.AITask, error) {
 		return nil, err
 	}
 	return &task, nil
+}
+
+func (repo *AITask) GetOngoingByWeChatID(wxID string) ([]*model.AITask, error) {
+	var tasks []*model.AITask
+	// 查询进行中的任务，状态为Pending或Processing，并且创建时间在3小时内
+	err := repo.DB.WithContext(repo.Ctx).Where("contact_id = ? AND ai_task_status in (?) AND created_at > ?", wxID, []model.AITaskStatus{model.AITaskStatusPending, model.AITaskStatusProcessing}, time.Now().Add(-3*time.Hour)).Find(&tasks).Error
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }
 
 func (repo *AITask) GetByMessageID(id int64) (*model.AITask, error) {

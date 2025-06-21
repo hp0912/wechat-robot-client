@@ -20,7 +20,7 @@ const (
 
 type AITask struct {
 	ID               int64          `gorm:"column:id;primaryKey;autoIncrement;comment:主键ID" json:"id"`
-	ContactID        string         `gorm:"column:contact_id;type:varchar(64);not null;index:idx_contact_id;comment:联系人ID，私聊时为好友微信ID，群聊时为群聊ID + 下划线 +  群聊成员微信ID" json:"contact_id"`
+	ContactID        string         `gorm:"column:contact_id;type:varchar(64);not null;index:idx_contact_id;comment:联系人ID" json:"contact_id"`
 	MessageID        int64          `gorm:"column:message_id;not null;comment:消息ID，关联messages表的msg_id" json:"message_id"`
 	AIProviderTaskID string         `gorm:"column:ai_provider_task_id;type:varchar(64);index:idx_ai_provider_task_id;comment:AI服务商任务ID" json:"ai_provider_task_id"`
 	AITaskType       AITaskType     `gorm:"column:ai_task_type;type:enum('tts', 'ltts');not null;comment:ltts-长文本转语音" json:"ai_task_type"`

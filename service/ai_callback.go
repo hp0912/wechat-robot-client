@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -9,17 +10,15 @@ import (
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
-
-	"github.com/gin-gonic/gin"
 )
 
 type AICallbackService struct {
-	ctx        *gin.Context
+	ctx        context.Context
 	aiTaskRepo *repository.AITask
 	msgRespo   *repository.Message
 }
 
-func NewAICallbackService(ctx *gin.Context) *AICallbackService {
+func NewAICallbackService(ctx context.Context) *AICallbackService {
 	return &AICallbackService{
 		ctx:        ctx,
 		aiTaskRepo: repository.NewAITaskRepo(ctx, vars.DB),
@@ -67,13 +66,14 @@ func (s *AICallbackService) DoubaoTTS(req dto.DoubaoTTSCallbackRequest) error {
 	msgService := NewMessageService(s.ctx)
 	aiTask.UpdatedAt = time.Now().Unix()
 	if req.Code == 0 {
-		if req.TaskStatus == 1 {
+		switch req.TaskStatus {
+		case 1:
 			aiTask.AITaskStatus = model.AITaskStatusCompleted
-			s.SendTextMessage(msgService, message, fmt.Sprintf("任务已完成，音频文件地址：%s，有效期24小时，请及时下载。", req.AudioURL))
-		} else if req.TaskStatus == 2 {
+			s.SendTextMessage(msgService, message, fmt.Sprintf("豆包长文本转语音任务完成，有效期24小时，请及时下载，音频地址: %s", req.AudioURL))
+		case 2:
 			aiTask.AITaskStatus = model.AITaskStatusFailed
 			s.SendTextMessage(msgService, message, req.Message)
-		} else {
+		default:
 			aiTask.AITaskStatus = model.AITaskStatusProcessing
 			s.SendTextMessage(msgService, message, "任务处理中，请耐心等待...")
 		}
