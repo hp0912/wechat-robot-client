@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"time"
+	"unicode/utf8"
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/distributedlock"
@@ -29,6 +30,10 @@ func OnTTS(ctx *plugin.MessageContext) {
 	}
 	if ttsContent == "" {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "未提前到有效的文本内容", ctx.Message.SenderWxID)
+		return
+	}
+	if utf8.RuneCountInString(ttsContent) > 260 {
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "你要说的也太多了，要不你还是说点别的吧。", ctx.Message.SenderWxID)
 		return
 	}
 	aiConfig := ctx.Settings.GetAIConfig()
