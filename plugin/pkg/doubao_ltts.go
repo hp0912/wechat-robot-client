@@ -182,8 +182,14 @@ func DoubaoLTTSQuery(config *DoubaoLTTSConfig) (string, error) {
 	if err := json.Unmarshal(body, &ttsResp); err != nil {
 		return "", fmt.Errorf("解析响应失败: %v", err)
 	}
-	if ttsResp.Code != 0 || ttsResp.TaskStatus != 0 {
+	if ttsResp.Code != 0 {
 		return "", fmt.Errorf("合成失败: %s", ttsResp.Message)
 	}
-	return ttsResp.TaskID, nil
+	if ttsResp.TaskStatus == 0 {
+		return "", nil
+	}
+	if ttsResp.TaskStatus == 2 {
+		return "", fmt.Errorf("合成失败: %s", ttsResp.Message)
+	}
+	return ttsResp.AudioURL, nil
 }
