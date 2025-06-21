@@ -21,4 +21,5 @@ type Settings interface {
 	IsAIChatEnabled() bool
 	IsAIDrawingEnabled() bool
 	IsAITrigger() bool
+	GetAITriggerWord() string
 }

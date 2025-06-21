@@ -30,6 +30,8 @@ type MessageService struct {
 	msgRespo *repository.Message
 }
 
+var _ plugin.MessageServiceIface = (*MessageService)(nil)
+
 func NewMessageService(ctx context.Context) *MessageService {
 	return &MessageService{
 		ctx:      ctx,
@@ -971,5 +973,3 @@ func (s *MessageService) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.Chat
 func (s *MessageService) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	return s.msgRespo.GetLastMonthChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
 }
-
-var _ plugin.MessageServiceIface = (*MessageService)(nil)

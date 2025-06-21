@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 	"wechat-robot-client/interface/settings"
-	"wechat-robot-client/model"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
@@ -48,7 +47,7 @@ func NewAIWorkflowService(ctx context.Context, config settings.Settings) *AIWork
 	}
 }
 
-func (s *AIWorkflowService) ChatIntention(message *model.Message) ChatIntention {
+func (s *AIWorkflowService) ChatIntention(message string) ChatIntention {
 	aiConfig := s.config.GetAIConfig()
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
@@ -72,7 +71,7 @@ func (s *AIWorkflowService) ChatIntention(message *model.Message) ChatIntention 
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: message.Content,
+			Content: message,
 		},
 	}
 
@@ -126,7 +125,7 @@ func (s *AIWorkflowService) ChatIntention(message *model.Message) ChatIntention 
 	return result.ClassName
 }
 
-func (s *AIWorkflowService) GetSongRequestTitle(message *model.Message) string {
+func (s *AIWorkflowService) GetSongRequestTitle(message string) string {
 	aiConfig := s.config.GetAIConfig()
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
@@ -140,7 +139,7 @@ func (s *AIWorkflowService) GetSongRequestTitle(message *model.Message) string {
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: message.Content,
+			Content: message,
 		},
 	}
 
@@ -185,7 +184,7 @@ func (s *AIWorkflowService) GetSongRequestTitle(message *model.Message) string {
 	return result.SongTitle
 }
 
-func (s *AIWorkflowService) GetDrawingPrompt(message *model.Message) string {
+func (s *AIWorkflowService) GetDrawingPrompt(message string) string {
 	aiConfig := s.config.GetAIConfig()
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
@@ -199,7 +198,7 @@ func (s *AIWorkflowService) GetDrawingPrompt(message *model.Message) string {
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: message.Content,
+			Content: message,
 		},
 	}
 

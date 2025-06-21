@@ -15,6 +15,9 @@ type FriendSettings struct {
 	ImageAIEnabled  *bool          `gorm:"column:image_ai_enabled;default:false;comment:是否启用AI绘图功能" json:"image_ai_enabled"`
 	ImageModel      *ImageModel    `gorm:"column:image_model;type:varchar(255);default:'';comment:绘图AI模型" json:"image_model"`
 	ImageAISettings datatypes.JSON `gorm:"column:image_ai_settings;type:json;comment:绘图AI配置项" json:"image_ai_settings"`
+	TTSEnabled      *bool          `gorm:"column:tts_enabled;default:false;comment:是否启用AI文本转语音功能" json:"tts_enabled"`
+	TTSSettings     datatypes.JSON `gorm:"column:tts_settings;type:json;comment:文本转语音配置项" json:"tts_settings"`
+	LTTSSettings    datatypes.JSON `gorm:"column:ltts_settings;type:json;comment:长文本转语音配置项" json:"ltts_settings"`
 }
 
 // TableName 设置表名

@@ -14,6 +14,8 @@ type AIDrawingService struct {
 	config settings.Settings
 }
 
+var _ ai.AIService = (*AIDrawingService)(nil)
+
 func NewAIDrawingService(ctx context.Context, config settings.Settings) *AIDrawingService {
 	return &AIDrawingService{
 		ctx:    ctx,
@@ -77,5 +79,3 @@ func (s *AIDrawingService) IsAISessionEnd(message *model.Message) bool {
 func (s *AIDrawingService) GetAISessionEndTips() string {
 	return "AI绘图已结束，您可以输入 #进入AI绘图 来重新开始。"
 }
-
-var _ ai.AIService = (*AIDrawingService)(nil)

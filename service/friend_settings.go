@@ -18,6 +18,8 @@ type FriendSettingsService struct {
 	friendSettings *model.FriendSettings
 }
 
+var _ settings.Settings = (*FriendSettingsService)(nil)
+
 func NewFriendSettingsService(ctx context.Context) *FriendSettingsService {
 	return &FriendSettingsService{
 		ctx:     ctx,
@@ -114,6 +116,10 @@ func (s *FriendSettingsService) IsAITrigger() bool {
 	return s.IsAIChatEnabled()
 }
 
+func (s *FriendSettingsService) GetAITriggerWord() string {
+	return ""
+}
+
 func (s *FriendSettingsService) GetFriendSettings(contactID string) (*model.FriendSettings, error) {
 	return s.fsRespo.GetFriendSettings(contactID)
 }
@@ -124,5 +130,3 @@ func (s *FriendSettingsService) SaveFriendSettings(data *model.FriendSettings) e
 	}
 	return s.fsRespo.Update(data)
 }
-
-var _ settings.Settings = (*FriendSettingsService)(nil)
