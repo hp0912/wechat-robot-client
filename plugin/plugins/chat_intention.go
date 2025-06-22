@@ -15,36 +15,11 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		messageContent = utils.TrimAITriggerAll(messageContent, aiTriggerWord)
 	}
 
-	chatIntention := aiWorkflowService.ChatIntention(messageContent)
+	chatIntention := aiWorkflowService.ChatIntention(messageContent, ctx.ReferMessage)
 
 	switch chatIntention {
 	case service.ChatIntentionChat:
-		aiContext, err := ctx.MessageService.GetAIMessageContext(ctx.Message)
-		if err != nil {
-			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-			return
-		}
-		if ctx.Message.IsChatRoom {
-			for index := range aiContext {
-				// 去除群聊中的AI触发词
-				aiContext[index].Content = utils.TrimAITriggerAll(aiContext[index].Content, aiTriggerWord)
-				for index2 := range aiContext[index].MultiContent {
-					// 去除群聊中的AI触发词
-					aiContext[index].MultiContent[index2].Text = utils.TrimAITriggerAll(aiContext[index].MultiContent[index2].Text, aiTriggerWord)
-				}
-			}
-		}
-		aiChatService := service.NewAIChatService(ctx.Context, ctx.Settings)
-		aiReply, err := aiChatService.Chat(aiContext)
-		if err != nil {
-			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-			return
-		}
-		if ctx.Message.IsChatRoom {
-			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, aiReply, ctx.Message.SenderWxID)
-		} else {
-			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, aiReply)
-		}
+		OnAIChat(ctx)
 	case service.ChatIntentionSing:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "唱歌功能正在开发中，敬请期待！")
 	case service.ChatIntentionSongRequest:
@@ -64,6 +39,9 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		}
 		ctx.MessageContent = aiWorkflowService.GetDrawingPrompt(messageContent)
 		OnAIDrawing(ctx)
+	case service.ChatIntentionImageRecognizer:
+		// 如果AI闲聊已经开启，则AI图片识别默认开启，AI聊天模型要支持多模态
+		OnAIImageRecognizer(ctx)
 	case service.ChatIntentionTTS:
 		isTTSEnabled := ctx.Settings.IsTTSEnabled()
 		if !isTTSEnabled {

@@ -22,8 +22,8 @@ func NewAttachDownloadService(ctx context.Context) *AttachDownloadService {
 	}
 }
 
-func (a *AttachDownloadService) DownloadImage(req dto.AttachDownloadRequest) ([]byte, string, string, error) {
-	message, err := a.msgRespo.GetByID(req.MessageID)
+func (a *AttachDownloadService) DownloadImage(messageID int64) ([]byte, string, string, error) {
+	message, err := a.msgRespo.GetByID(messageID)
 	if err != nil {
 		return nil, "", "", err
 	}

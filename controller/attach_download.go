@@ -27,7 +27,7 @@ func (a *AttachDownload) DownloadImage(c *gin.Context) {
 		})
 		return
 	}
-	imageData, contentType, extension, err := service.NewAttachDownloadService(c).DownloadImage(req)
+	imageData, contentType, extension, err := service.NewAttachDownloadService(c).DownloadImage(req.MessageID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": err.Error(),

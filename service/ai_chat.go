@@ -82,7 +82,7 @@ func (s *AIChatService) GetAISessionEndTips() string {
 	return "AI会话已结束，您可以输入 #进入AI会话 来重新开始。"
 }
 
-func (s *AIChatService) Chat(aiMessages []openai.ChatCompletionMessage) (string, error) {
+func (s *AIChatService) Chat(aiMessages []openai.ChatCompletionMessage) (openai.ChatCompletionMessage, error) {
 	aiConfig := s.config.GetAIConfig()
 	if aiConfig.Prompt != "" {
 		systemMessage := openai.ChatCompletionMessage{
@@ -103,10 +103,10 @@ func (s *AIChatService) Chat(aiMessages []openai.ChatCompletionMessage) (string,
 		},
 	)
 	if err != nil {
-		return "", err
+		return openai.ChatCompletionMessage{}, err
 	}
-	if len(resp.Choices) == 0 || resp.Choices[0].Message.Content == "" {
-		return "", fmt.Errorf("AI返回了空内容，请联系管理员")
+	if len(resp.Choices) == 0 {
+		return openai.ChatCompletionMessage{}, fmt.Errorf("AI返回了空内容，请联系管理员")
 	}
-	return resp.Choices[0].Message.Content, nil
+	return resp.Choices[0].Message, nil
 }
