@@ -92,9 +92,8 @@ func (s *AIWorkflowService) ChatIntention(message string, referMessage *model.Me
 			systemMessage = `意图分类结果包括以下几种：
 1. image_recognizer：用户想要识别图片内容。
 2. edit_pictures：用户想要编辑图片。
-3. chat：用户想要闲聊。
-前面用户发来了一张图片，请根据当前用户的输入内容，判断用户想干什么，如果无法识别意图，那就归类为闲聊：chat。`
-			enums = []string{"image_recognizer", "edit_pictures", "chat"}
+前面用户发来了一张图片，请根据当前用户的输入内容，判断用户想干什么。`
+			enums = []string{"image_recognizer", "edit_pictures"}
 		case model.MsgTypeApp:
 			if referMessage.AppMsgType == model.AppMsgTypeAttach {
 				systemMessage = `意图分类结果包括以下几种：
