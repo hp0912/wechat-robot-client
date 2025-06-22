@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 	"wechat-robot-client/interface/settings"
+	"wechat-robot-client/model"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
@@ -12,13 +14,14 @@ import (
 type ChatIntention string
 
 const (
-	ChatIntentionSing         ChatIntention = "sing"
-	ChatIntentionSongRequest  ChatIntention = "song_request"
-	ChatIntentionDrawAPicture ChatIntention = "draw_a_picture"
-	ChatIntentionEditPictures ChatIntention = "edit_pictures"
-	ChatIntentionTTS          ChatIntention = "tts"
-	ChatIntentionLTTS         ChatIntention = "ltts"
-	ChatIntentionChat         ChatIntention = "chat"
+	ChatIntentionSing            ChatIntention = "sing"
+	ChatIntentionSongRequest     ChatIntention = "song_request"
+	ChatIntentionDrawAPicture    ChatIntention = "draw_a_picture"
+	ChatIntentionEditPictures    ChatIntention = "edit_pictures"
+	ChatIntentionImageRecognizer ChatIntention = "image_recognizer"
+	ChatIntentionTTS             ChatIntention = "tts"
+	ChatIntentionLTTS            ChatIntention = "ltts"
+	ChatIntentionChat            ChatIntention = "chat"
 )
 
 type ChatCategories struct {
@@ -51,27 +54,67 @@ func NewAIWorkflowService(ctx context.Context, config settings.Settings) *AIWork
 	}
 }
 
-func (s *AIWorkflowService) ChatIntention(message string) ChatIntention {
+func (s *AIWorkflowService) ChatIntention(message string, referMessage *model.Message) ChatIntention {
 	aiConfig := s.config.GetAIConfig()
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
 
 	client := openai.NewClientWithConfig(openaiConfig)
 
-	aiMessages := []openai.ChatCompletionMessage{
-		{
-			Role: openai.ChatMessageRoleSystem,
-			Content: `你现在是一个专业的需求分析师，能够精准的识别用户的需求。
-请根据用户的输入内容，判断用户的意图，并返回意图分类结果。
-意图分类结果包括以下几种：
+	var commonSystemMessage = "你现在是一个专业的需求分析师，能够精准的识别用户的需求。请根据用户的输入内容，判断用户的意图，并返回意图分类结果。"
+	var systemMessage string
+	var enums []string
+
+	if referMessage == nil {
+		systemMessage = `意图分类结果包括以下几种：
 1. sing：用户想要唱歌。
 2. song_request：用户想要点歌。
 3. draw_a_picture：用户想要画画。
 4. edit_pictures：用户想要编辑图片。
-5. ltts：用户想要将长文本转换为语音。
-6. tts：用户想要将文本转换为语音，注意区分ltts，如果用户没有明确说明，则默认为tts。
-7. chat：用户想要闲聊。
-如果无法识别意图，那就归类为闲聊：chat。`,
+5. image_recognizer：用户想要识别图片内容。
+6. ltts：用户想要将长文本转换为语音。
+7. tts：用户想要将文本转换为语音，注意区分ltts，如果用户没有明确说明，则默认为tts。
+8. chat：用户想要闲聊。
+如果无法识别意图，那就归类为闲聊：chat。`
+		enums = []string{"sing", "song_request", "draw_a_picture", "edit_pictures", "image_recognizer", "ltts", "tts", "chat"}
+	} else {
+		switch referMessage.Type {
+		case model.MsgTypeText:
+			systemMessage = `意图分类结果包括以下几种：
+1. sing：用户想要唱歌。
+2. song_request：用户想要点歌。
+3. draw_a_picture：用户想要画画。
+4. tts：用户想要将文本转换为语音，注意区分ltts，如果用户没有明确说明，则默认为tts。
+5. chat：用户想要闲聊。
+前面用户发来了一段文本，请根据当前用户的输入内容，判断用户想干什么，如果无法识别意图，那就归类为闲聊：chat。`
+			enums = []string{"sing", "song_request", "draw_a_picture", "tts", "chat"}
+		case model.MsgTypeImage:
+			systemMessage = `意图分类结果包括以下几种：
+1. image_recognizer：用户想要识别图片内容。
+2. edit_pictures：用户想要编辑图片。
+3. chat：用户想要闲聊。
+前面用户发来了一张图片，请根据当前用户的输入内容，判断用户想干什么，如果无法识别意图，那就归类为闲聊：chat。`
+			enums = []string{"image_recognizer", "edit_pictures", "chat"}
+		case model.MsgTypeApp:
+			if referMessage.AppMsgType == model.AppMsgTypeAttach {
+				systemMessage = `意图分类结果包括以下几种：
+1. ltts：用户想要将长文本转换为语音。
+2. chat：用户想要闲聊。
+前面用户发来了一个文件，请根据当前用户的输入内容，判断用户想干什么，如果无法识别意图，那就归类为闲聊：chat。`
+				enums = []string{"ltts", "chat"}
+			}
+		}
+	}
+
+	if len(enums) == 0 {
+		// 未支持的消息类型
+		return ChatIntentionChat
+	}
+
+	aiMessages := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: fmt.Sprintf("%s\n%s", commonSystemMessage, systemMessage),
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
@@ -84,16 +127,8 @@ func (s *AIWorkflowService) ChatIntention(message string) ChatIntention {
 		Type: jsonschema.Object,
 		Properties: map[string]jsonschema.Definition{
 			"class_name": {
-				Type: jsonschema.String,
-				Enum: []string{
-					"sing",
-					"song_request",
-					"draw_a_picture",
-					"edit_pictures",
-					"tts",
-					"ltts",
-					"chat",
-				},
+				Type:        jsonschema.String,
+				Enum:        enums,
 				Description: "用户意图分类",
 			},
 		},
