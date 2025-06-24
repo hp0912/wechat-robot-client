@@ -75,6 +75,7 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 }
 
 func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
+	now := time.Now().Unix()
 	// 将ids拆分成二十个一个的数组之后再获取详情
 	var contacts = make([]robot.Contact, 0)
 	chunker := slices.Chunk(contactIDs, 20)
@@ -144,8 +145,9 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 				City:          contact.City,
 				Signature:     contact.Signature,
 				SnsBackground: contact.SnsUserInfo.SnsBgimgId,
-				CreatedAt:     time.Now().Unix(),
-				UpdatedAt:     time.Now().Unix(),
+				CreatedAt:     now,
+				LastActiveAt:  now,
+				UpdatedAt:     now,
 			}
 			if contact.BigHeadImgUrl == "" {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
@@ -166,6 +168,7 @@ func (s *ContactService) GetContacts(req dto.ContactListRequest, pager appx.Page
 }
 
 func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
+	now := time.Now().Unix()
 	existContact, err := s.ctRespo.GetContact(contactID)
 	if err != nil {
 		log.Printf("获取联系人失败: %v", err)
@@ -175,10 +178,11 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 	if strings.HasSuffix(contactID, "@chatroom") {
 		if existContact == nil {
 			contactChatRoom := model.Contact{
-				WechatID:  contactID,
-				Type:      model.ContactTypeChatRoom,
-				CreatedAt: time.Now().Unix(),
-				UpdatedAt: time.Now().Unix(),
+				WechatID:     contactID,
+				Type:         model.ContactTypeChatRoom,
+				CreatedAt:    now,
+				LastActiveAt: now,
+				UpdatedAt:    now,
 			}
 			err = s.ctRespo.Create(&contactChatRoom)
 			if err != nil {
@@ -188,8 +192,8 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 		} else {
 			// 存在，更新一下活跃时间
 			contactChatRoom := model.Contact{
-				ID:        existContact.ID,
-				UpdatedAt: time.Now().Unix(),
+				ID:           existContact.ID,
+				LastActiveAt: now,
 			}
 			err = s.ctRespo.Update(&contactChatRoom)
 			if err != nil {
@@ -202,10 +206,11 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 	// 好友类型的联系人
 	if existContact == nil {
 		contact := model.Contact{
-			WechatID:  contactID,
-			Type:      model.ContactTypeFriend,
-			CreatedAt: time.Now().Unix(),
-			UpdatedAt: time.Now().Unix(),
+			WechatID:     contactID,
+			Type:         model.ContactTypeFriend,
+			CreatedAt:    now,
+			LastActiveAt: now,
+			UpdatedAt:    now,
 		}
 		err = s.ctRespo.Create(&contact)
 		if err != nil {
@@ -214,8 +219,8 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 		}
 	} else {
 		contact := model.Contact{
-			ID:        existContact.ID,
-			UpdatedAt: time.Now().Unix(),
+			ID:           existContact.ID,
+			LastActiveAt: now,
 		}
 		err = s.ctRespo.Update(&contact)
 		if err != nil {

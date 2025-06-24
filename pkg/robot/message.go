@@ -103,6 +103,7 @@ type SystemMessage struct {
 	XMLName        xml.Name       `xml:"sysmsg"`
 	Type           string         `xml:"type,attr"`
 	RevokeMsg      RevokeMsg      `xml:"revokemsg"`
+	Pat            Pat            `xml:"pat,omitempty"`
 	SysMsgTemplate SysMsgTemplate `xml:"sysmsgtemplate"`
 }
 
@@ -137,6 +138,16 @@ type Link struct {
 	Separator    string        `xml:"separator,omitempty"`
 	Title        string        `xml:"title,omitempty"`
 	UsernameList *UsernameList `xml:"usernamelist,omitempty"`
+}
+
+type Pat struct {
+	XMLName          xml.Name `xml:"pat"`
+	FromUsername     string   `xml:"fromusername"`
+	ChatUsername     string   `xml:"chatusername"`
+	PattedUsername   string   `xml:"pattedusername"`
+	PatSuffix        string   `xml:"patsuffix"`
+	PatSuffixVersion int      `xml:"patsuffixversion"`
+	Template         string   `xml:"template"`
 }
 
 type MemberList struct {

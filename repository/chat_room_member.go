@@ -137,3 +137,7 @@ func (c *ChatRoomMember) Create(data *model.ChatRoomMember) error {
 func (c *ChatRoomMember) Update(data *model.ChatRoomMember) error {
 	return c.DB.WithContext(c.Ctx).Where("id = ?", data.ID).Updates(data).Error
 }
+
+func (c *ChatRoomMember) UpdateByID(id int64, data map[string]any) error {
+	return c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{}).Where("id = ?", id).Updates(data).Error
+}

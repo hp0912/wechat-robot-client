@@ -150,8 +150,10 @@ func (s *MessageService) ProcessRecalledMessage(message *model.Message, msgXml r
 }
 
 // ProcessPatMessage 处理拍一拍消息
-func (s *MessageService) ProcessPatMessage(message *model.Message) {
-
+func (s *MessageService) ProcessPatMessage(message *model.Message, msgXml robot.SystemMessage) {
+	if message.IsChatRoom && msgXml.Pat.PattedUsername == vars.RobotRuntime.WxID {
+		// TODO: 处理拍一拍消息
+	}
 }
 
 func (s *MessageService) ProcessNewChatRoomMemberMessage(message *model.Message, msgXml robot.SystemMessage) {
@@ -252,7 +254,7 @@ func (s *MessageService) ProcessSystemMessage(message *model.Message) {
 		return
 	}
 	if msgXml.Type == "pat" {
-		s.ProcessPatMessage(message)
+		s.ProcessPatMessage(message, msgXml)
 		return
 	}
 	if msgXml.Type == "sysmsgtemplate" && strings.Contains(msgXml.SysMsgTemplate.ContentTemplate.Template, "加入了群聊") {
