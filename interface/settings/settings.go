@@ -7,14 +7,15 @@ import (
 )
 
 type AIConfig struct {
-	BaseURL         string
-	APIKey          string
-	Model           string
-	Prompt          string
-	ImageModel      model.ImageModel
-	ImageAISettings datatypes.JSON
-	TTSSettings     datatypes.JSON
-	LTTSSettings    datatypes.JSON
+	BaseURL             string
+	APIKey              string
+	Model               string
+	Prompt              string
+	MaxCompletionTokens int
+	ImageModel          model.ImageModel
+	ImageAISettings     datatypes.JSON
+	TTSSettings         datatypes.JSON
+	LTTSSettings        datatypes.JSON
 }
 
 type Settings interface {
