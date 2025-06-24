@@ -89,6 +89,9 @@ func (s *AIChatService) Chat(aiMessages []openai.ChatCompletionMessage) (openai.
 			Role:    openai.ChatMessageRoleSystem,
 			Content: aiConfig.Prompt,
 		}
+		if aiConfig.MaxCompletionTokens > 0 {
+			systemMessage.Content += fmt.Sprintf("\n\n请注意，每次回答不能超过%d个汉字。", aiConfig.MaxCompletionTokens)
+		}
 		aiMessages = append([]openai.ChatCompletionMessage{systemMessage}, aiMessages...)
 	}
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
