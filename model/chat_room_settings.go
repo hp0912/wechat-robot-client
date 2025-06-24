@@ -19,6 +19,10 @@ type ChatRoomSettings struct {
 	TTSEnabled                *bool          `gorm:"column:tts_enabled;default:false;comment:是否启用AI文本转语音功能" json:"tts_enabled"`
 	TTSSettings               datatypes.JSON `gorm:"column:tts_settings;type:json;comment:文本转语音配置项" json:"tts_settings"`
 	LTTSSettings              datatypes.JSON `gorm:"column:ltts_settings;type:json;comment:长文本转语音配置项" json:"ltts_settings"`
+	PatEnabled                *bool          `gorm:"column:pat_enabled;default:false;comment:是否启用拍一拍功能" json:"pat_enabled"`
+	PatType                   PatType        `gorm:"column:pat_type;type:enum('text','voice');default:'text';comment:拍一拍方式：text-文本，voice-语音" json:"pat_type"`
+	PatText                   string         `gorm:"column:pat_text;type:varchar(255);default:'';comment:拍一拍的文本" json:"pat_text"`
+	PatVoiceTimbre            string         `gorm:"column:pat_voice_timbre;type:varchar(255);default:'';comment:拍一拍的音色" json:"pat_voice_timbre"`
 	WelcomeEnabled            *bool          `gorm:"column:welcome_enabled;default:false;comment:是否启用新成员加群欢迎功能" json:"welcome_enabled"`
 	WelcomeType               WelcomeType    `gorm:"column:welcome_type;type:enum('text','emoji','image','url');default:'text';comment:欢迎方式：text-文本，emoji-表情，image-图片，url-链接" json:"welcome_type"`
 	WelcomeText               string         `gorm:"column:welcome_text;type:varchar(255);default:'';comment:欢迎新成员的文本" json:"welcome_text"`

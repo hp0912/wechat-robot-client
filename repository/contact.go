@@ -41,7 +41,7 @@ func (c *Contact) DeleteByWeChatIDNotIn(wechatIDs []string) error {
 func (c *Contact) FindRecentChatRoomContacts() ([]*model.Contact, error) {
 	oneDayAgo := time.Now().Add(-24 * time.Hour).Unix()
 	var contacts []*model.Contact
-	query := c.DB.WithContext(c.Ctx).Where("type = ? AND updated_at >= ?", model.ContactTypeChatRoom, oneDayAgo)
+	query := c.DB.WithContext(c.Ctx).Where("type = ? AND last_active_at >= ?", model.ContactTypeChatRoom, oneDayAgo)
 	if err := query.Find(&contacts).Error; err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (c *Contact) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	query = query.Order("updated_at DESC").Order("id DESC")
+	query = query.Order("last_active_at DESC").Order("id DESC")
 	if err := query.Offset(pager.OffSet).Limit(pager.PageSize).Find(&contacts).Error; err != nil {
 		return nil, 0, err
 	}

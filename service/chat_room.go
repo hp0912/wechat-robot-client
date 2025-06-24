@@ -63,16 +63,19 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 			if existMember != nil {
 				// 更新现有成员
 				isLeaved := false
-				updateMember := model.ChatRoomMember{
-					ID:              existMember.ID,
-					Nickname:        member.NickName,
-					Avatar:          member.SmallHeadImgUrl,
-					InviterWechatID: member.InviterUserName,
-					IsLeaved:        &isLeaved, // 确保标记为未离开
-					LeavedAt:        nil,       // 清除离开时间
+				updateMember := map[string]any{
+					"nickname":          member.NickName,
+					"avatar":            member.SmallHeadImgUrl,
+					"inviter_wechat_id": member.InviterUserName,
+					"is_leaved":         &isLeaved, // 确保标记为未离开
+					"leaved_at":         nil,       // 清除离开时间
+				}
+				// 已经离开，重新加入群聊的人
+				if existMember.IsLeaved != nil && *existMember.IsLeaved {
+					updateMember["joined_at"] = now
 				}
 				// 更新数据库中已有的记录
-				err = s.crmRespo.Update(&updateMember)
+				err = s.crmRespo.UpdateByID(existMember.ID, updateMember)
 				if err != nil {
 					log.Printf("更新群[%s]成员[%s]失败: %v", chatRoomID, member.UserName, err)
 					continue
