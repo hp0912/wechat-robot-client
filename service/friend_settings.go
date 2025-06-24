@@ -58,6 +58,9 @@ func (s *FriendSettingsService) GetAIConfig() settings.AIConfig {
 		if s.globalSettings.ChatPrompt != "" {
 			aiConfig.Prompt = s.globalSettings.ChatPrompt
 		}
+		if s.globalSettings.MaxCompletionTokens != nil {
+			aiConfig.MaxCompletionTokens = *s.globalSettings.MaxCompletionTokens
+		}
 		if s.globalSettings.ImageModel != "" {
 			aiConfig.ImageModel = s.globalSettings.ImageModel
 		}
@@ -83,6 +86,9 @@ func (s *FriendSettingsService) GetAIConfig() settings.AIConfig {
 		}
 		if s.friendSettings.ChatPrompt != nil && *s.friendSettings.ChatPrompt != "" {
 			aiConfig.Prompt = *s.friendSettings.ChatPrompt
+		}
+		if s.friendSettings.MaxCompletionTokens != nil {
+			aiConfig.MaxCompletionTokens = *s.friendSettings.MaxCompletionTokens
 		}
 		if s.friendSettings.ImageModel != nil && *s.friendSettings.ImageModel != "" {
 			aiConfig.ImageModel = *s.friendSettings.ImageModel

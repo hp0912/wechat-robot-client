@@ -65,6 +65,9 @@ func (s *ChatRoomSettingsService) GetAIConfig() settings.AIConfig {
 		if s.globalSettings.ChatPrompt != "" {
 			aiConfig.Prompt = s.globalSettings.ChatPrompt
 		}
+		if s.globalSettings.MaxCompletionTokens != nil {
+			aiConfig.MaxCompletionTokens = *s.globalSettings.MaxCompletionTokens
+		}
 		if s.globalSettings.ImageModel != "" {
 			aiConfig.ImageModel = s.globalSettings.ImageModel
 		}
@@ -90,6 +93,9 @@ func (s *ChatRoomSettingsService) GetAIConfig() settings.AIConfig {
 		}
 		if s.chatRoomSettings.ChatPrompt != nil && *s.chatRoomSettings.ChatPrompt != "" {
 			aiConfig.Prompt = *s.chatRoomSettings.ChatPrompt
+		}
+		if s.chatRoomSettings.MaxCompletionTokens != nil {
+			aiConfig.MaxCompletionTokens = *s.chatRoomSettings.MaxCompletionTokens
 		}
 		if s.chatRoomSettings.ImageModel != nil && *s.chatRoomSettings.ImageModel != "" {
 			aiConfig.ImageModel = *s.chatRoomSettings.ImageModel

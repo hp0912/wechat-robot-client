@@ -94,14 +94,15 @@ func (s *AIChatService) Chat(aiMessages []openai.ChatCompletionMessage) (openai.
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
 	client := openai.NewClientWithConfig(openaiConfig)
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:    aiConfig.Model,
-			Messages: aiMessages,
-			Stream:   false,
-		},
-	)
+	req := openai.ChatCompletionRequest{
+		Model:    aiConfig.Model,
+		Messages: aiMessages,
+		Stream:   false,
+	}
+	if aiConfig.MaxCompletionTokens > 0 {
+		req.MaxCompletionTokens = aiConfig.MaxCompletionTokens
+	}
+	resp, err := client.CreateChatCompletion(context.Background(), req)
 	if err != nil {
 		return openai.ChatCompletionMessage{}, err
 	}
