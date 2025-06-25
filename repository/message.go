@@ -56,12 +56,12 @@ func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) (
 		// 群聊，需要关联 chat_room_members 以获取发送者昵称和头像
 		query = query.
 			Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
-			Select("messages.*, chat_room_members.nickname AS sender_nickname, chat_room_members.avatar AS sender_avatar")
+			Select("messages.*, IF(chat_room_members.remark != '' AND chat_room_members.remark IS NOT NULL, chat_room_members.remark, chat_room_members.nickname) AS sender_nickname, chat_room_members.avatar AS sender_avatar")
 	} else {
 		// 好友，需要关联 contacts 表
 		query = query.
 			Joins("LEFT JOIN contacts ON contacts.wechat_id = messages.sender_wxid").
-			Select("messages.*, contacts.nickname AS sender_nickname, contacts.avatar AS sender_avatar")
+			Select("messages.*, IF(contacts.remark != '' AND contacts.remark IS NOT NULL, contacts.remark, contacts.nickname) AS sender_nickname, contacts.avatar AS sender_avatar")
 	}
 	query = query.Where("from_wxid = ?", req.ContactID)
 	if req.Keyword != "" {
@@ -155,7 +155,7 @@ func (m *Message) GetMessagesByTimeRange(self, chatRoomID string, startTime, end
 		END ELSE messages.content
 	END`
 	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
-	query = query.Select("chat_room_members.nickname", selectStr+" AS message", "messages.created_at").
+	query = query.Select("IF(chat_room_members.remark != '' AND chat_room_members.remark IS NOT NULL, chat_room_members.remark, chat_room_members.nickname) AS nickname", selectStr+" AS message", "messages.created_at").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where(`(messages.type = 1 OR ( messages.type = 49 AND EXTRACTVALUE ( messages.content, "/msg/appmsg/type" ) IN (?) ))`, appMsgList).
@@ -203,14 +203,14 @@ func (m *Message) GetYesterdayChatRommRank(self, chatRoomID string) ([]*dto.Chat
 	yesterdayStartTimestamp := yesterdayStart.Unix()
 	todayStartTimestamp := todayStart.Unix()
 	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
-	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
+	query = query.Select("messages.sender_wxid", "IF(chat_room_members.remark != '' AND chat_room_members.remark IS NOT NULL, chat_room_members.remark, chat_room_members.nickname) AS chat_room_member_nickname", "count( 1 ) AS `count`").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where("messages.type < 10000").
 		Where("messages.sender_wxid != ?", self).
 		Where("messages.created_at >= ?", yesterdayStartTimestamp).
 		Where("messages.created_at < ?", todayStartTimestamp).
-		Group("messages.sender_wxid, chat_room_members.nickname").
+		Group("messages.sender_wxid, chat_room_member_nickname").
 		Order("`count` DESC")
 	if err := query.Find(&chatRoomRank).Error; err != nil {
 		return chatRoomRank, err
@@ -231,14 +231,14 @@ func (m *Message) GetLastWeekChatRommRank(self, chatRoomID string) ([]*dto.ChatR
 	lastWeekStartTimestamp := lastMondayStart.Unix()
 	thisWeekStartTimestamp := thisWeekStart.Unix()
 	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
-	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
+	query = query.Select("messages.sender_wxid", "IF(chat_room_members.remark != '' AND chat_room_members.remark IS NOT NULL, chat_room_members.remark, chat_room_members.nickname) AS chat_room_member_nickname", "count( 1 ) AS `count`").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where("messages.type < 10000").
 		Where("messages.sender_wxid != ?", self).
 		Where("messages.created_at >= ?", lastWeekStartTimestamp).
 		Where("messages.created_at < ?", thisWeekStartTimestamp).
-		Group("messages.sender_wxid, chat_room_members.nickname").
+		Group("messages.sender_wxid, chat_room_member_nickname").
 		Order("`count` DESC")
 	if err := query.Find(&chatRoomRank).Error; err != nil {
 		return chatRoomRank, err
@@ -258,14 +258,14 @@ func (m *Message) GetLastMonthChatRommRank(self, chatRoomID string) ([]*dto.Chat
 	lastMonthStartTimestamp := lastMonthStart.Unix()
 	thisMonthStartTimestamp := thisMonthStart.Unix()
 	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
-	query = query.Select("messages.sender_wxid", "chat_room_members.nickname", "count( 1 ) AS `count`").
+	query = query.Select("messages.sender_wxid", "IF(chat_room_members.remark != '' AND chat_room_members.remark IS NOT NULL, chat_room_members.remark, chat_room_members.nickname) AS chat_room_member_nickname", "count( 1 ) AS `count`").
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where("messages.type < 10000").
 		Where("messages.sender_wxid != ?", self).
 		Where("messages.created_at >= ?", lastMonthStartTimestamp).
 		Where("messages.created_at < ?", thisMonthStartTimestamp).
-		Group("messages.sender_wxid, chat_room_members.nickname").
+		Group("messages.sender_wxid, chat_room_member_nickname").
 		Order("`count` DESC")
 	if err := query.Find(&chatRoomRank).Error; err != nil {
 		return chatRoomRank, err

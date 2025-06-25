@@ -68,9 +68,7 @@ func (c *Contact) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*
 		query = query.Where("type = ?", req.Type)
 	}
 	if req.Keyword != "" {
-		query = query.Where("nickname LIKE ?", "%"+req.Keyword+"%").
-			Or("alias LIKE ?", "%"+req.Keyword+"%").
-			Or("wechat_id LIKE ?", "%"+req.Keyword+"%")
+		query = query.Where("nickname LIKE ?", "%"+req.Keyword+"%").Or("remark LIKE ?", "%"+req.Keyword+"%")
 	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
