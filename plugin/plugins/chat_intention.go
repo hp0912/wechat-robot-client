@@ -19,7 +19,8 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 
 	switch chatIntention {
 	case service.ChatIntentionChat:
-		OnAIChat(ctx)
+		aiChat := NewAIChatPlugin()
+		aiChat.Run(ctx)
 	case service.ChatIntentionSing:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "唱歌功能正在开发中，敬请期待！")
 	case service.ChatIntentionSongRequest:
@@ -38,22 +39,26 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 			return
 		}
 		ctx.MessageContent = aiWorkflowService.GetDrawingPrompt(messageContent)
-		OnAIDrawing(ctx)
+		aiDrawing := NewAIDrawingPlugin()
+		aiDrawing.Run(ctx)
 	case service.ChatIntentionImageRecognizer:
 		// 如果AI闲聊已经开启，则AI图片识别默认开启，AI聊天模型要支持多模态
-		OnAIImageRecognizer(ctx)
+		aImageRecognizer := NewAImageRecognizerPlugin()
+		aImageRecognizer.Run(ctx)
 	case service.ChatIntentionTTS:
 		isTTSEnabled := ctx.Settings.IsTTSEnabled()
 		if !isTTSEnabled {
 			return
 		}
-		OnTTS(ctx)
+		aiTTS := NewAITTSPlugin()
+		aiTTS.Run(ctx)
 	case service.ChatIntentionLTTS:
 		isTTSEnabled := ctx.Settings.IsTTSEnabled()
 		if !isTTSEnabled {
 			return
 		}
-		OnLTTS(ctx)
+		aiLTTS := NewAILTTSPlugin()
+		aiLTTS.Run(ctx)
 	case service.ChatIntentionEditPictures:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "修图功能正在开发中，敬请期待！")
 	default:

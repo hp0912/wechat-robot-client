@@ -9,13 +9,35 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-func OnAIImageRecognizer(ctx *plugin.MessageContext) {
+type AImageRecognizerPlugin struct{}
+
+func NewAImageRecognizerPlugin() plugin.MessageHandler {
+	return &AImageRecognizerPlugin{}
+}
+
+func (p *AImageRecognizerPlugin) GetName() string {
+	return "AImageRecognizer"
+}
+
+func (p *AImageRecognizerPlugin) GetLabels() []string {
+	return []string{"internal", "chat"}
+}
+
+func (p *AImageRecognizerPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *AImageRecognizerPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *AImageRecognizerPlugin) Run(ctx *plugin.MessageContext) bool {
 	// 下载引用的图片
 	attachDownloadService := service.NewAttachDownloadService(ctx.Context)
 	imageBytes, contentType, _, err := attachDownloadService.DownloadImage(ctx.ReferMessage.ID)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-		return
+		return true
 	}
 	base64Image := base64.StdEncoding.EncodeToString(imageBytes)
 	dataURL := fmt.Sprintf("data:%s;base64,%s", contentType, base64Image)
@@ -40,7 +62,7 @@ func OnAIImageRecognizer(ctx *plugin.MessageContext) {
 	aiReply, err := aiChatService.Chat(aiContext)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-		return
+		return true
 	}
 	// 当前场景只会返回文本，因此只提取文本
 	var aiReplyText string
@@ -57,4 +79,5 @@ func OnAIImageRecognizer(ctx *plugin.MessageContext) {
 	} else {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, aiReplyText)
 	}
+	return true
 }

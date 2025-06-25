@@ -6,12 +6,34 @@ import (
 	"wechat-robot-client/utils"
 )
 
-func OnAIChat(ctx *plugin.MessageContext) {
+type AIChatPlugin struct{}
+
+func NewAIChatPlugin() plugin.MessageHandler {
+	return &AIChatPlugin{}
+}
+
+func (p *AIChatPlugin) GetName() string {
+	return "AIChat"
+}
+
+func (p *AIChatPlugin) GetLabels() []string {
+	return []string{"internal", "chat"}
+}
+
+func (p *AIChatPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *AIChatPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 	aiTriggerWord := ctx.Settings.GetAITriggerWord()
 	aiContext, err := ctx.MessageService.GetAIMessageContext(ctx.Message)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-		return
+		return true
 	}
 	if ctx.Message.IsChatRoom {
 		for index := range aiContext {
@@ -27,7 +49,7 @@ func OnAIChat(ctx *plugin.MessageContext) {
 	aiReply, err := aiChatService.Chat(aiContext)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-		return
+		return true
 	}
 	var aiReplyText string
 	if aiReply.Content != "" {
@@ -45,4 +67,5 @@ func OnAIChat(ctx *plugin.MessageContext) {
 	} else {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, aiReplyText)
 	}
+	return true
 }

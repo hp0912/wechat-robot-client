@@ -6,7 +6,29 @@ import (
 	"wechat-robot-client/service"
 )
 
-func OnChatRoomAIDrawingSessionStart(ctx *plugin.MessageContext) bool {
+type ChatRoomAIDrawingSessionStartPlugin struct{}
+
+func NewChatRoomAIDrawingSessionStartPlugin() plugin.MessageHandler {
+	return &ChatRoomAIDrawingSessionStartPlugin{}
+}
+
+func (p *ChatRoomAIDrawingSessionStartPlugin) GetName() string {
+	return "ChatRoomAIDrawingSessionStart"
+}
+
+func (p *ChatRoomAIDrawingSessionStartPlugin) GetLabels() []string {
+	return []string{"drawing"}
+}
+
+func (p *ChatRoomAIDrawingSessionStartPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *ChatRoomAIDrawingSessionStartPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *ChatRoomAIDrawingSessionStartPlugin) Run(ctx *plugin.MessageContext) bool {
 	if !ctx.Message.IsChatRoom {
 		return false
 	}
@@ -29,7 +51,29 @@ func OnChatRoomAIDrawingSessionStart(ctx *plugin.MessageContext) bool {
 	return false
 }
 
-func OnChatRoomAIDrawingSessionEnd(ctx *plugin.MessageContext) bool {
+type ChatRoomAIDrawingSessionEndPlugin struct{}
+
+func NewChatRoomAIDrawingSessionEndPlugin() plugin.MessageHandler {
+	return &ChatRoomAIDrawingSessionEndPlugin{}
+}
+
+func (p *ChatRoomAIDrawingSessionEndPlugin) GetName() string {
+	return "ChatRoomAIDrawingSessionEnd"
+}
+
+func (p *ChatRoomAIDrawingSessionEndPlugin) GetLabels() []string {
+	return []string{"drawing"}
+}
+
+func (p *ChatRoomAIDrawingSessionEndPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *ChatRoomAIDrawingSessionEndPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *ChatRoomAIDrawingSessionEndPlugin) Run(ctx *plugin.MessageContext) bool {
 	if !ctx.Message.IsChatRoom {
 		return false
 	}
@@ -41,7 +85,29 @@ func OnChatRoomAIDrawingSessionEnd(ctx *plugin.MessageContext) bool {
 	return false
 }
 
-func OnChatRoomAIDrawing(ctx *plugin.MessageContext) bool {
+type ChatRoomAIDrawingPlugin struct{}
+
+func NewChatRoomAIDrawingPlugin() plugin.MessageHandler {
+	return &ChatRoomAIDrawingPlugin{}
+}
+
+func (p *ChatRoomAIDrawingPlugin) GetName() string {
+	return "ChatRoomAIDrawing"
+}
+
+func (p *ChatRoomAIDrawingPlugin) GetLabels() []string {
+	return []string{"drawing"}
+}
+
+func (p *ChatRoomAIDrawingPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *ChatRoomAIDrawingPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *ChatRoomAIDrawingPlugin) Run(ctx *plugin.MessageContext) bool {
 	if !ctx.Message.IsChatRoom {
 		return false
 	}
@@ -61,7 +127,8 @@ func OnChatRoomAIDrawing(ctx *plugin.MessageContext) bool {
 					log.Printf("更新消息上下文失败: %v", err)
 				}
 			}()
-			OnAIDrawing(ctx)
+			aiDrawing := NewAIDrawingPlugin()
+			aiDrawing.Run(ctx)
 			return true
 		}
 	}

@@ -6,7 +6,29 @@ import (
 	"wechat-robot-client/service"
 )
 
-func OnChatRoomAIChatSessionStart(ctx *plugin.MessageContext) bool {
+type ChatRoomAIChatSessionStartPlugin struct{}
+
+func NewChatRoomAIChatSessionStartPlugin() plugin.MessageHandler {
+	return &ChatRoomAIChatSessionStartPlugin{}
+}
+
+func (p *ChatRoomAIChatSessionStartPlugin) GetName() string {
+	return "ChatRoomAIChatSessionStart"
+}
+
+func (p *ChatRoomAIChatSessionStartPlugin) GetLabels() []string {
+	return []string{"chat"}
+}
+
+func (p *ChatRoomAIChatSessionStartPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *ChatRoomAIChatSessionStartPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *ChatRoomAIChatSessionStartPlugin) Run(ctx *plugin.MessageContext) bool {
 	if !ctx.Message.IsChatRoom {
 		return false
 	}
@@ -29,7 +51,29 @@ func OnChatRoomAIChatSessionStart(ctx *plugin.MessageContext) bool {
 	return false
 }
 
-func OnChatRoomAIChatSessionEnd(ctx *plugin.MessageContext) bool {
+type ChatRoomAIChatSessionEndPlugin struct{}
+
+func NewChatRoomAIChatSessionEndPlugin() plugin.MessageHandler {
+	return &ChatRoomAIChatSessionEndPlugin{}
+}
+
+func (p *ChatRoomAIChatSessionEndPlugin) GetName() string {
+	return "ChatRoomAIChatSessionEnd"
+}
+
+func (p *ChatRoomAIChatSessionEndPlugin) GetLabels() []string {
+	return []string{"chat"}
+}
+
+func (p *ChatRoomAIChatSessionEndPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *ChatRoomAIChatSessionEndPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *ChatRoomAIChatSessionEndPlugin) Run(ctx *plugin.MessageContext) bool {
 	if !ctx.Message.IsChatRoom {
 		return false
 	}
@@ -41,7 +85,29 @@ func OnChatRoomAIChatSessionEnd(ctx *plugin.MessageContext) bool {
 	return false
 }
 
-func OnChatRoomAIChat(ctx *plugin.MessageContext) bool {
+type ChatRoomAIChatPlugin struct{}
+
+func NewChatRoomAIChatPlugin() plugin.MessageHandler {
+	return &ChatRoomAIChatPlugin{}
+}
+
+func (p *ChatRoomAIChatPlugin) GetName() string {
+	return "ChatRoomAIChat"
+}
+
+func (p *ChatRoomAIChatPlugin) GetLabels() []string {
+	return []string{"chat"}
+}
+
+func (p *ChatRoomAIChatPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *ChatRoomAIChatPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *ChatRoomAIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 	if !ctx.Message.IsChatRoom {
 		return false
 	}
