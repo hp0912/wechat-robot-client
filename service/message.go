@@ -160,9 +160,11 @@ func (s *MessageService) ProcessPatMessage(message *model.Message, msgXml robot.
 			MessageService: s,
 		}
 		for _, messagePlugin := range vars.MessagePlugin.Plugins {
-			abort := messagePlugin.Run(msgCtx)
-			if abort {
-				return
+			if slices.Contains(messagePlugin.GetLabels(), "pat") {
+				abort := messagePlugin.Run(msgCtx)
+				if abort {
+					return
+				}
 			}
 		}
 	}

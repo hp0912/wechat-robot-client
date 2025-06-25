@@ -18,6 +18,12 @@ type AIConfig struct {
 	LTTSSettings        datatypes.JSON
 }
 
+type PatConfig struct {
+	PatEnabled bool
+	PatType    model.PatType
+	PatText    string
+}
+
 type Settings interface {
 	InitByMessage(message *model.Message) error
 	GetAIConfig() AIConfig
@@ -26,4 +32,5 @@ type Settings interface {
 	IsTTSEnabled() bool
 	IsAITrigger() bool
 	GetAITriggerWord() string
+	GetPatConfig() PatConfig
 }
