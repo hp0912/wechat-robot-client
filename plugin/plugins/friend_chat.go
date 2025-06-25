@@ -6,7 +6,29 @@ import (
 	"wechat-robot-client/service"
 )
 
-func OnFriendAIChat(ctx *plugin.MessageContext) bool {
+type FriendAIChatPlugin struct{}
+
+func NewFriendAIChatPlugin() plugin.MessageHandler {
+	return &FriendAIChatPlugin{}
+}
+
+func (p *FriendAIChatPlugin) GetName() string {
+	return "FriendAIChat"
+}
+
+func (p *FriendAIChatPlugin) GetLabels() []string {
+	return []string{"chat"}
+}
+
+func (p *FriendAIChatPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *FriendAIChatPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *FriendAIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 	if ctx.Message.IsChatRoom {
 		return false
 	}

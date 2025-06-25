@@ -49,7 +49,7 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 		MessageService: s,
 	}
 	for _, messagePlugin := range vars.MessagePlugin.Plugins {
-		abort := messagePlugin(msgCtx)
+		abort := messagePlugin.Run(msgCtx)
 		if abort {
 			return
 		}
@@ -107,7 +107,7 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 		MessageService: s,
 	}
 	for _, messagePlugin := range vars.MessagePlugin.Plugins {
-		abort := messagePlugin(msgCtx)
+		abort := messagePlugin.Run(msgCtx)
 		if abort {
 			return
 		}
@@ -160,9 +160,11 @@ func (s *MessageService) ProcessPatMessage(message *model.Message, msgXml robot.
 			MessageService: s,
 		}
 		for _, messagePlugin := range vars.MessagePlugin.Plugins {
-			abort := messagePlugin(msgCtx)
-			if abort {
-				return
+			if slices.Contains(messagePlugin.GetLabels(), "pat") {
+				abort := messagePlugin.Run(msgCtx)
+				if abort {
+					return
+				}
 			}
 		}
 	}

@@ -30,4 +30,10 @@ type MessageContext struct {
 	MessageService MessageServiceIface
 }
 
-type MessageHandler func(ctx *MessageContext) bool
+type MessageHandler interface {
+	GetName() string
+	GetLabels() []string
+	PreAction(ctx *MessageContext) bool
+	PostAction(ctx *MessageContext)
+	Run(ctx *MessageContext) bool
+}

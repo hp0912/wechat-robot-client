@@ -6,7 +6,29 @@ import (
 	"wechat-robot-client/service"
 )
 
-func OnFriendAIDrawingSessionStart(ctx *plugin.MessageContext) bool {
+type FriendAIDrawingSessionStartPlugin struct{}
+
+func NewFriendAIDrawingSessionStartPlugin() plugin.MessageHandler {
+	return &FriendAIDrawingSessionStartPlugin{}
+}
+
+func (p *FriendAIDrawingSessionStartPlugin) GetName() string {
+	return "FriendAIDrawingSessionStart"
+}
+
+func (p *FriendAIDrawingSessionStartPlugin) GetLabels() []string {
+	return []string{"drawing"}
+}
+
+func (p *FriendAIDrawingSessionStartPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *FriendAIDrawingSessionStartPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *FriendAIDrawingSessionStartPlugin) Run(ctx *plugin.MessageContext) bool {
 	if ctx.Message.IsChatRoom {
 		return false
 	}
@@ -23,7 +45,29 @@ func OnFriendAIDrawingSessionStart(ctx *plugin.MessageContext) bool {
 	return false
 }
 
-func OnFriendAIDrawingSessionEnd(ctx *plugin.MessageContext) bool {
+type FriendAIDrawingSessionEndPlugin struct{}
+
+func NewFriendAIDrawingSessionEndPlugin() plugin.MessageHandler {
+	return &FriendAIDrawingSessionEndPlugin{}
+}
+
+func (p *FriendAIDrawingSessionEndPlugin) GetName() string {
+	return "FriendAIDrawingSessionEnd"
+}
+
+func (p *FriendAIDrawingSessionEndPlugin) GetLabels() []string {
+	return []string{"drawing"}
+}
+
+func (p *FriendAIDrawingSessionEndPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *FriendAIDrawingSessionEndPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *FriendAIDrawingSessionEndPlugin) Run(ctx *plugin.MessageContext) bool {
 	if ctx.Message.IsChatRoom {
 		return false
 	}
@@ -35,7 +79,29 @@ func OnFriendAIDrawingSessionEnd(ctx *plugin.MessageContext) bool {
 	return false
 }
 
-func OnFriendAIDrawing(ctx *plugin.MessageContext) bool {
+type FriendAIDrawingPlugin struct{}
+
+func NewFriendAIDrawingPlugin() plugin.MessageHandler {
+	return &FriendAIDrawingPlugin{}
+}
+
+func (p *FriendAIDrawingPlugin) GetName() string {
+	return "FriendAIDrawing"
+}
+
+func (p *FriendAIDrawingPlugin) GetLabels() []string {
+	return []string{"drawing"}
+}
+
+func (p *FriendAIDrawingPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *FriendAIDrawingPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *FriendAIDrawingPlugin) Run(ctx *plugin.MessageContext) bool {
 	if ctx.Message.IsChatRoom {
 		return false
 	}
@@ -55,7 +121,8 @@ func OnFriendAIDrawing(ctx *plugin.MessageContext) bool {
 					log.Printf("更新消息上下文失败: %v", err)
 				}
 			}()
-			OnAIDrawing(ctx)
+			aiDrawing := NewAIDrawingPlugin()
+			aiDrawing.Run(ctx)
 			return true
 		}
 	}

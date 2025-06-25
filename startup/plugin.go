@@ -9,17 +9,17 @@ import (
 func RegisterMessagePlugin() {
 	vars.MessagePlugin = plugin.NewMessagePlugin()
 	// 群聊聊天插件
-	vars.MessagePlugin.Register(plugins.OnChatRoomAIChatSessionStart)
-	vars.MessagePlugin.Register(plugins.OnChatRoomAIChatSessionEnd)
-	vars.MessagePlugin.Register(plugins.OnChatRoomAIChat)
+	vars.MessagePlugin.Register(plugins.NewChatRoomAIChatSessionStartPlugin())
+	vars.MessagePlugin.Register(plugins.NewChatRoomAIChatSessionEndPlugin())
+	vars.MessagePlugin.Register(plugins.NewChatRoomAIChatPlugin())
 	// 群聊绘画插件
-	vars.MessagePlugin.Register(plugins.OnChatRoomAIDrawingSessionStart)
-	vars.MessagePlugin.Register(plugins.OnChatRoomAIDrawingSessionEnd)
-	vars.MessagePlugin.Register(plugins.OnChatRoomAIDrawing)
+	vars.MessagePlugin.Register(plugins.NewChatRoomAIDrawingSessionStartPlugin())
+	vars.MessagePlugin.Register(plugins.NewChatRoomAIDrawingSessionEndPlugin())
+	vars.MessagePlugin.Register(plugins.NewChatRoomAIDrawingPlugin())
 	// 朋友聊天插件
-	vars.MessagePlugin.Register(plugins.OnFriendAIChat)
+	vars.MessagePlugin.Register(plugins.NewFriendAIChatPlugin())
 	// 朋友绘画插件
-	vars.MessagePlugin.Register(plugins.OnFriendAIDrawingSessionStart)
-	vars.MessagePlugin.Register(plugins.OnFriendAIDrawingSessionEnd)
-	vars.MessagePlugin.Register(plugins.OnFriendAIDrawing)
+	vars.MessagePlugin.Register(plugins.NewFriendAIDrawingSessionStartPlugin())
+	vars.MessagePlugin.Register(plugins.NewFriendAIDrawingSessionEndPlugin())
+	vars.MessagePlugin.Register(plugins.NewFriendAIDrawingPlugin())
 }

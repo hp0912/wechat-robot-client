@@ -18,8 +18,29 @@ import (
 	"wechat-robot-client/vars"
 )
 
-// OnTTS 文本转语音
-func OnTTS(ctx *plugin.MessageContext) {
+type AITTSPlugin struct{}
+
+func NewAITTSPlugin() plugin.MessageHandler {
+	return &AITTSPlugin{}
+}
+
+func (p *AITTSPlugin) GetName() string {
+	return "AITTS"
+}
+
+func (p *AITTSPlugin) GetLabels() []string {
+	return []string{"internal", "voice"}
+}
+
+func (p *AITTSPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *AITTSPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *AITTSPlugin) Run(ctx *plugin.MessageContext) bool {
 	var ttsContent string
 	if ctx.Message.Type == model.MsgTypeText {
 		aiWorkflowService := service.NewAIWorkflowService(ctx.Context, ctx.Settings)
@@ -30,69 +51,92 @@ func OnTTS(ctx *plugin.MessageContext) {
 	}
 	if ttsContent == "" {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "未提前到有效的文本内容", ctx.Message.SenderWxID)
-		return
+		return true
 	}
 	if utf8.RuneCountInString(ttsContent) > 260 {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "你要说的也太多了，要不你还是说点别的吧。", ctx.Message.SenderWxID)
-		return
+		return true
 	}
 	aiConfig := ctx.Settings.GetAIConfig()
 	var doubaoConfig pkg.DoubaoTTSConfig
 	if err := json.Unmarshal(aiConfig.TTSSettings, &doubaoConfig); err != nil {
 		log.Printf("反序列化豆包文本转语音配置失败: %v", err)
-		return
+		return true
 	}
 	doubaoConfig.Request.Text = ttsContent
 
 	audioBase64, err := pkg.DoubaoTTSSubmit(&doubaoConfig)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("豆包文本转语音请求失败: %v", err), ctx.Message.SenderWxID)
-		return
+		return true
 	}
 	audioData, err := base64.StdEncoding.DecodeString(audioBase64)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("音频数据解码失败: %v", err), ctx.Message.SenderWxID)
-		return
+		return true
 	}
 	audioReader := bytes.NewReader(audioData)
 	ctx.MessageService.MsgSendVoice(ctx.Message.FromWxID, audioReader, fmt.Sprintf(".%s", doubaoConfig.Audio.Encoding))
+
+	return true
 }
 
-// OnLTTS 长文本转语音
-func OnLTTS(ctx *plugin.MessageContext) {
+type AILTTSPlugin struct{}
+
+func NewAILTTSPlugin() plugin.MessageHandler {
+	return &AILTTSPlugin{}
+}
+
+func (p *AILTTSPlugin) GetName() string {
+	return "AILTTS"
+}
+
+func (p *AILTTSPlugin) GetLabels() []string {
+	return []string{"internal", "voice"}
+}
+
+func (p *AILTTSPlugin) PreAction(ctx *plugin.MessageContext) bool {
+	return true
+}
+
+func (p *AILTTSPlugin) PostAction(ctx *plugin.MessageContext) {
+
+}
+
+func (p *AILTTSPlugin) Run(ctx *plugin.MessageContext) bool {
 	if ctx.ReferMessage == nil {
 		log.Println("长文本转语音引用消息为空")
-		return
+		return true
 	}
 	referXml, err := ctx.MessageService.XmlDecoder(ctx.ReferMessage.Content)
 	if err != nil {
 		log.Printf("解析引用消息失败: %v", err)
-		return
+		return true
 	}
 	if referXml.AppMsg.Type != 6 || referXml.AppMsg.AppAttach.FileExt != "txt" {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "请使用TXT文本文件进行长文本转语音", ctx.Message.SenderWxID)
-		return
+		return true
 	}
 
 	aiConfig := ctx.Settings.GetAIConfig()
 	var doubaoConfig pkg.DoubaoLTTSConfig
 	if err := json.Unmarshal(aiConfig.LTTSSettings, &doubaoConfig); err != nil {
 		log.Printf("反序列化豆包长文本转语音配置失败: %v", err)
-		return
+		return true
 	}
 
 	// 解析引用消息的文本文件内容
 	reader, _, err := service.NewAttachDownloadService(ctx.Context).DownloadFile(ctx.ReferMessage.ID)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("下载引用消息的文本文件失败: %v", err), ctx.Message.SenderWxID)
-		return
+		return true
 	}
 	defer reader.Close()
 	// 读取文本内容
 	textBytes, err := io.ReadAll(reader)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("读取文本文件内容失败: %v", err), ctx.Message.SenderWxID)
-		return
+		return true
 	}
 	doubaoConfig.Text = string(textBytes)
 
@@ -104,7 +148,7 @@ func OnLTTS(ctx *plugin.MessageContext) {
 	)
 	if err := lock.Lock(lockCtx); err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "操作太快了，休息一下吧", ctx.Message.SenderWxID)
-		return
+		return true
 	}
 	defer lock.Unlock(lockCtx)
 
@@ -113,17 +157,17 @@ func OnLTTS(ctx *plugin.MessageContext) {
 	existingTask, err := aiTaskService.GetOngoingByWeChatID(ctx.Message.FromWxID)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("查询进行中的长文本转语音任务失败: %v", err), ctx.Message.SenderWxID)
-		return
+		return true
 	}
 	if len(existingTask) > 0 {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "您有进行中的长文本转语音任务，请等待任务完成后再提交新的任务", ctx.Message.SenderWxID)
-		return
+		return true
 	}
 
 	taskID, err := pkg.DoubaoLTTSSubmit(&doubaoConfig)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("豆包长文本转语音任务提交失败: %v", err), ctx.Message.SenderWxID)
-		return
+		return true
 	}
 	aiTask := model.AITask{
 		ContactID:        ctx.Message.FromWxID,
@@ -138,7 +182,7 @@ func OnLTTS(ctx *plugin.MessageContext) {
 	err = aiTaskService.CreateAITask(&aiTask)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("创建长文本转语音任务失败: %v", err), ctx.Message.SenderWxID)
-		return
+		return true
 	}
 	ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "您的长文本转语音任务已提交，请耐心等待。", ctx.Message.SenderWxID)
 	doubaoConfig.TaskID = taskID
@@ -183,4 +227,6 @@ func OnLTTS(ctx *plugin.MessageContext) {
 			time.Sleep(pollInterval)
 		}
 	}()
+
+	return true
 }

@@ -219,6 +219,28 @@ func (s *ChatRoomSettingsService) GetChatRoomWelcomeConfig(chatRoomID string) (*
 	return chatRoomSetting, nil
 }
 
+func (s *ChatRoomSettingsService) GetPatConfig() settings.PatConfig {
+	if s.chatRoomSettings != nil {
+		if s.chatRoomSettings.PatEnabled != nil {
+			return settings.PatConfig{
+				PatEnabled: *s.chatRoomSettings.PatEnabled,
+				PatType:    s.chatRoomSettings.PatType,
+				PatText:    s.chatRoomSettings.PatText,
+			}
+		}
+	}
+	if s.globalSettings != nil {
+		if s.globalSettings.PatEnabled != nil {
+			return settings.PatConfig{
+				PatEnabled: *s.globalSettings.PatEnabled,
+				PatType:    s.globalSettings.PatType,
+				PatText:    s.globalSettings.PatText,
+			}
+		}
+	}
+	return settings.PatConfig{}
+}
+
 func (s *ChatRoomSettingsService) GetAllEnableChatRank() ([]*model.ChatRoomSettings, error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
 		return []*model.ChatRoomSettings{}, nil

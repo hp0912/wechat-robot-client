@@ -110,6 +110,10 @@ func (s *FriendSettingsService) GetAIConfig() settings.AIConfig {
 	return aiConfig
 }
 
+func (s *FriendSettingsService) GetPatConfig() settings.PatConfig {
+	return settings.PatConfig{}
+}
+
 func (s *FriendSettingsService) IsAIChatEnabled() bool {
 	if s.friendSettings != nil && s.friendSettings.ChatAIEnabled != nil {
 		return *s.friendSettings.ChatAIEnabled
