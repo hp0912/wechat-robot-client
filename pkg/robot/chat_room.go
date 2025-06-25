@@ -1,13 +1,13 @@
 package robot
 
 type ChatRoomMember struct {
-	BigHeadImgUrl      string `json:"BigHeadImgUrl"`
-	ChatroomMemberFlag int    `json:"ChatroomMemberFlag"`
-	DisplayName        string `json:"DisplayName"`
-	InviterUserName    string `json:"InviterUserName"`
-	NickName           string `json:"NickName"`
-	SmallHeadImgUrl    string `json:"SmallHeadImgUrl"`
-	UserName           string `json:"UserName"`
+	BigHeadImgUrl      string  `json:"BigHeadImgUrl"`
+	ChatroomMemberFlag int     `json:"ChatroomMemberFlag"`
+	DisplayName        *string `json:"DisplayName"`
+	InviterUserName    string  `json:"InviterUserName"`
+	NickName           string  `json:"NickName"`
+	SmallHeadImgUrl    string  `json:"SmallHeadImgUrl"`
+	UserName           string  `json:"UserName"`
 }
 
 type NewChatroomData struct {
