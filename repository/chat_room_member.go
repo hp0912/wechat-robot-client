@@ -28,9 +28,7 @@ func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager ap
 	query := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{})
 	query = query.Where("chat_room_id = ?", req.ChatRoomID)
 	if req.Keyword != "" {
-		query = query.Where("nickname LIKE ?", "%"+req.Keyword+"%").
-			Or("alias LIKE ?", "%"+req.Keyword+"%").
-			Or("wechat_id LIKE ?", "%"+req.Keyword+"%")
+		query = query.Where("nickname LIKE ?", "%"+req.Keyword+"%").Or("remark LIKE ?", "%"+req.Keyword+"%")
 	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err

@@ -474,7 +474,7 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 			if i >= 10 {
 				break
 			}
-			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.SenderWxID, r.Count)
+			log.Printf("账号: %s[%s] -> %d", r.ChatRoomMemberNickname, r.SenderWxID, r.Count)
 			badge := "🏆"
 			switch i {
 			case 0:
@@ -484,7 +484,7 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 			case 2:
 				badge = "🥉"
 			}
-			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.Nickname, r.Count))
+			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.ChatRoomMemberNickname, r.Count))
 		}
 		notifyMsgs = append(notifyMsgs, " \n🎉感谢以上群友昨日对群活跃做出的卓越贡献，也请未上榜的群友多多反思。")
 		msgService.SendTextMessage(setting.ChatRoomID, strings.Join(notifyMsgs, "\n"))
@@ -570,7 +570,7 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 			if i >= 10 {
 				break
 			}
-			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.SenderWxID, r.Count)
+			log.Printf("账号: %s[%s] -> %d", r.ChatRoomMemberNickname, r.SenderWxID, r.Count)
 			badge := "🏆"
 			switch i {
 			case 0:
@@ -580,7 +580,7 @@ func (s *ChatRoomService) ChatRoomRankingWeekly() error {
 			case 2:
 				badge = "🥉"
 			}
-			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.Nickname, r.Count))
+			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.ChatRoomMemberNickname, r.Count))
 		}
 		notifyMsgs = append(notifyMsgs, " \n🎉感谢以上群友上周对群活跃做出的卓越贡献，也请未上榜的群友多多反思。")
 		msgService.SendTextMessage(setting.ChatRoomID, strings.Join(notifyMsgs, "\n"))
@@ -651,7 +651,7 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 			if i >= 10 {
 				break
 			}
-			log.Printf("账号: %s[%s] -> %d", r.Nickname, r.SenderWxID, r.Count)
+			log.Printf("账号: %s[%s] -> %d", r.ChatRoomMemberNickname, r.SenderWxID, r.Count)
 			badge := "🏆"
 			switch i {
 			case 0:
@@ -661,7 +661,7 @@ func (s *ChatRoomService) ChatRoomRankingMonthly() error {
 			case 2:
 				badge = "🥉"
 			}
-			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.Nickname, r.Count))
+			notifyMsgs = append(notifyMsgs, fmt.Sprintf("%s %s -> %d条", badge, r.ChatRoomMemberNickname, r.Count))
 		}
 		notifyMsgs = append(notifyMsgs, fmt.Sprintf(" \n🎉感谢以上群友%s对群活跃做出的卓越贡献，也请未上榜的群友多多反思。", monthStr))
 		msgService.SendTextMessage(setting.ChatRoomID, strings.Join(notifyMsgs, "\n"))
