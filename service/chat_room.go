@@ -70,6 +70,9 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					"is_leaved":         &isLeaved, // 确保标记为未离开
 					"leaved_at":         nil,       // 清除离开时间
 				}
+				if member.DisplayName != nil && *member.DisplayName != "" {
+					updateMember["remark"] = *member.DisplayName
+				}
 				// 已经离开，重新加入群聊的人
 				if existMember.IsLeaved != nil && *existMember.IsLeaved {
 					updateMember["joined_at"] = now
@@ -92,6 +95,9 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					IsLeaved:        &isLeaved,
 					JoinedAt:        now,
 					LastActiveAt:    now,
+				}
+				if member.DisplayName != nil && *member.DisplayName != "" {
+					newMember.Remark = *member.DisplayName
 				}
 				err = s.crmRespo.Create(&newMember)
 				if err != nil {
@@ -139,6 +145,7 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 }
 
 func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID string, memberWeChatIDs []string) ([]*model.ChatRoomMember, error) {
+	now := time.Now().Unix()
 	// 将ids拆分成二十个一个的数组之后再获取详情
 	var newMembers = make([]robot.Contact, 0)
 	chunker := slices.Chunk(memberWeChatIDs, 20)
@@ -172,16 +179,19 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 		if existMember != nil {
 			// 更新现有成员
 			isLeaved := false
-			updateMember := model.ChatRoomMember{
-				ID:       existMember.ID,
-				WechatID: memberUserName,
-				Nickname: *member.NickName.String,
-				Avatar:   member.SmallHeadImgUrl,
-				IsLeaved: &isLeaved, // 确保标记为未离开
-				LeavedAt: nil,       // 清除离开时间
+			updateMember := map[string]any{
+				"wechat_id": memberUserName,
+				"alias":     member.Alias,
+				"nickname":  *member.NickName.String,
+				"avatar":    member.SmallHeadImgUrl,
+				"is_leaved": &isLeaved, // 确保标记为未离开
+				"leaved_at": nil,       // 清除离开时间
+			}
+			if member.Remark.String != nil {
+				updateMember["remark"] = *member.Remark.String
 			}
 			// 更新数据库中已有的记录
-			err = s.crmRespo.Update(&updateMember)
+			err = s.crmRespo.UpdateByID(existMember.ID, updateMember)
 			if err != nil {
 				log.Printf("更新群[%s]成员[%s]失败: %v", chatRoomID, memberUserName, err)
 				continue
@@ -192,12 +202,16 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 			newMember := model.ChatRoomMember{
 				ChatRoomID:      chatRoomID,
 				WechatID:        memberUserName,
+				Alias:           member.Alias,
 				Nickname:        *member.NickName.String,
 				Avatar:          member.SmallHeadImgUrl,
 				InviterWechatID: "",
 				IsLeaved:        &isLeaved,
-				JoinedAt:        time.Now().Unix(),
-				LastActiveAt:    time.Now().Unix(),
+				JoinedAt:        now,
+				LastActiveAt:    now,
+			}
+			if member.Remark.String != nil {
+				newMember.Remark = *member.Remark.String
 			}
 			err = s.crmRespo.Create(&newMember)
 			if err != nil {
