@@ -22,4 +22,6 @@ func RegisterMessagePlugin() {
 	vars.MessagePlugin.Register(plugins.NewFriendAIDrawingSessionStartPlugin())
 	vars.MessagePlugin.Register(plugins.NewFriendAIDrawingSessionEndPlugin())
 	vars.MessagePlugin.Register(plugins.NewFriendAIDrawingPlugin())
+	// 群聊拍一拍交互插件
+	vars.MessagePlugin.Register(plugins.NewPatPlugin())
 }
