@@ -218,6 +218,7 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 			LastActiveAt: now,
 			UpdatedAt:    now,
 		}
+		contact.Type = s.GetContactType(contact)
 		err = s.ctRespo.Create(&contact)
 		if err != nil {
 			log.Printf("创建好友失败: %v", err)
