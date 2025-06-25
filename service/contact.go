@@ -122,6 +122,9 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 				Signature:     contact.Signature,
 				SnsBackground: contact.SnsUserInfo.SnsBgimgId,
 			}
+			if contact.Remark.String != nil && *contact.Remark.String != "" {
+				contactPerson.Remark = *contact.Remark.String
+			}
 			contactPerson.Type = s.GetContactType(contactPerson)
 			if contact.BigHeadImgUrl == "" {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
@@ -151,6 +154,9 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 			}
 			if contact.BigHeadImgUrl == "" {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
+			}
+			if contact.Remark.String != nil && *contact.Remark.String != "" {
+				contactPerson.Remark = *contact.Remark.String
 			}
 			contactPerson.Type = s.GetContactType(contactPerson)
 			err = s.ctRespo.Create(&contactPerson)
