@@ -34,6 +34,9 @@ func (p *PatPlugin) PostAction(ctx *plugin.MessageContext) {
 }
 
 func (p *PatPlugin) Run(ctx *plugin.MessageContext) bool {
+	if !ctx.Pat {
+		return false
+	}
 	patConfig := ctx.Settings.GetPatConfig()
 	if !patConfig.PatEnabled {
 		return true

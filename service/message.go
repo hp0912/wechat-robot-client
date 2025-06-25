@@ -151,20 +151,19 @@ func (s *MessageService) ProcessRecalledMessage(message *model.Message, msgXml r
 
 // ProcessPatMessage 处理拍一拍消息
 func (s *MessageService) ProcessPatMessage(message *model.Message, msgXml robot.SystemMessage) {
-	if message.IsChatRoom && msgXml.Pat.PattedUsername == vars.RobotRuntime.WxID {
-		msgCtx := &plugin.MessageContext{
-			Context:        s.ctx,
-			Settings:       s.settings,
-			Message:        message,
-			MessageContent: message.Content,
-			MessageService: s,
-		}
-		for _, messagePlugin := range vars.MessagePlugin.Plugins {
-			if slices.Contains(messagePlugin.GetLabels(), "pat") {
-				abort := messagePlugin.Run(msgCtx)
-				if abort {
-					return
-				}
+	msgCtx := &plugin.MessageContext{
+		Context:        s.ctx,
+		Settings:       s.settings,
+		Message:        message,
+		MessageContent: message.Content,
+		Pat:            message.IsChatRoom && msgXml.Pat.PattedUsername == vars.RobotRuntime.WxID,
+		MessageService: s,
+	}
+	for _, messagePlugin := range vars.MessagePlugin.Plugins {
+		if slices.Contains(messagePlugin.GetLabels(), "pat") {
+			abort := messagePlugin.Run(msgCtx)
+			if abort {
+				return
 			}
 		}
 	}

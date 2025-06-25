@@ -26,6 +26,7 @@ type MessageContext struct {
 	Settings       settings.Settings
 	Message        *model.Message
 	MessageContent string
+	Pat            bool
 	ReferMessage   *model.Message
 	MessageService MessageServiceIface
 }
