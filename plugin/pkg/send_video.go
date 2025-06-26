@@ -1,8 +1,11 @@
 package pkg
 
 import (
+	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"strings"
 	"wechat-robot-client/interface/plugin"
 
 	"github.com/go-resty/resty/v2"
@@ -31,5 +34,17 @@ func SendVideoByURL(MessageService plugin.MessageServiceIface, toWxID, videoUrl 
 	if err != nil {
 		return err
 	}
-	return MessageService.MsgSendVideo(toWxID, tempFile, ".mp4")
+	u, err := url.Parse(videoUrl)
+	if err != nil {
+		return err
+	}
+	videoExt := ".mp4"
+	queryParams := u.Query()
+	if queryParams.Get("mime_type") != "" {
+		extStrs := strings.Split(queryParams.Get("mime_type"), "_")
+		if len(extStrs) > 0 {
+			videoExt = fmt.Sprintf(".%s", extStrs[len(extStrs)-1])
+		}
+	}
+	return MessageService.MsgSendVideo(toWxID, tempFile, videoExt)
 }
