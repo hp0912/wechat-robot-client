@@ -21,6 +21,7 @@ const (
 	ChatIntentionImageRecognizer ChatIntention = "image_recognizer"
 	ChatIntentionTTS             ChatIntention = "tts"
 	ChatIntentionLTTS            ChatIntention = "ltts"
+	ChatIntentionDYVideoParse    ChatIntention = "dy_video_parse"
 	ChatIntentionChat            ChatIntention = "chat"
 )
 
@@ -84,10 +85,11 @@ func (s *AIWorkflowService) ChatIntention(message string, referMessage *model.Me
 1. sing：用户想要唱歌。
 2. song_request：用户想要点歌。
 3. draw_a_picture：用户想要画画。
-4. tts：用户想要将文本转换为语音，注意区分ltts，如果用户没有明确说明，则默认为tts。
-5. chat：用户想要闲聊。
+4. tts：用户想要将文本转换为语音。
+5. dy_video_parse: 用户想要解析抖音视频链接，下载抖音视频，解析抖音视频，解析抖音链接。
+6. chat：用户想要闲聊。
 前面用户发来了一段文本，请根据当前用户的输入内容，判断用户想干什么，如果无法识别意图，那就归类为闲聊：chat。`
-			enums = []string{"sing", "song_request", "draw_a_picture", "tts", "chat"}
+			enums = []string{"sing", "song_request", "draw_a_picture", "tts", "dy_video_parse", "chat"}
 		case model.MsgTypeImage:
 			systemMessage = `意图分类结果包括以下几种：
 1. image_recognizer：用户想要识别图片内容。
