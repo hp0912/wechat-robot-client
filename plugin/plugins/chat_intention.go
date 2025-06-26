@@ -59,6 +59,10 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		}
 		aiLTTS := NewAILTTSPlugin()
 		aiLTTS.Run(ctx)
+	case service.ChatIntentionDYVideoParse:
+		// 抖音视频短链接解析
+		douyinVideoParse := NewDouyinVideoParsePlugin()
+		douyinVideoParse.Run(ctx)
 	case service.ChatIntentionEditPictures:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "修图功能正在开发中，敬请期待！")
 	default:

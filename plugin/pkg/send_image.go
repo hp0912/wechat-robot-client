@@ -8,7 +8,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-func SendDrawingImage(MessageService plugin.MessageServiceIface, toWxID, imageUrl string) error {
+func SendImageByURL(MessageService plugin.MessageServiceIface, toWxID, imageUrl string) error {
 	resp, err := resty.New().R().SetDoNotParseResponse(true).Get(imageUrl)
 	if err != nil {
 		return err

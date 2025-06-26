@@ -45,6 +45,18 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 			}
 		}
 	}
+	// 去除触发词后，剩下的内容如果为空，则不进行AI聊天
+	if len(aiContext) > 0 {
+		lastMessage := aiContext[len(aiContext)-1]
+		if lastMessage.Content == "" && len(lastMessage.MultiContent) == 0 {
+			if ctx.Message.IsChatRoom {
+				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "在呢", ctx.Message.SenderWxID)
+			} else {
+				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "在呢")
+			}
+			return true
+		}
+	}
 	aiChatService := service.NewAIChatService(ctx.Context, ctx.Settings)
 	aiReply, err := aiChatService.Chat(aiContext)
 	if err != nil {
