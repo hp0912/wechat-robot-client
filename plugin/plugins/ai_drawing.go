@@ -47,7 +47,7 @@ func (p *AIDrawingPlugin) Run(ctx *plugin.MessageContext) bool {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 			return true
 		}
-		err = pkg.SendDrawingImage(ctx.MessageService, ctx.Message.FromWxID, imageUrl)
+		err = pkg.SendImageByURL(ctx.MessageService, ctx.Message.FromWxID, imageUrl)
 		if err != nil {
 			log.Printf("发送豆包图像失败: %v", err)
 			return true
@@ -70,7 +70,7 @@ func (p *AIDrawingPlugin) Run(ctx *plugin.MessageContext) bool {
 			if imgurl == "" {
 				continue
 			}
-			err = pkg.SendDrawingImage(ctx.MessageService, ctx.Message.FromWxID, imgurl)
+			err = pkg.SendImageByURL(ctx.MessageService, ctx.Message.FromWxID, imgurl)
 			if err != nil {
 				log.Printf("发送即梦图像失败: %v", err)
 				return true
@@ -89,7 +89,7 @@ func (p *AIDrawingPlugin) Run(ctx *plugin.MessageContext) bool {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 			return true
 		}
-		err = pkg.SendDrawingImage(ctx.MessageService, ctx.Message.FromWxID, imageUrl)
+		err = pkg.SendImageByURL(ctx.MessageService, ctx.Message.FromWxID, imageUrl)
 		if err != nil {
 			log.Printf("发送智谱图像失败: %v", err)
 			return true
@@ -107,7 +107,7 @@ func (p *AIDrawingPlugin) Run(ctx *plugin.MessageContext) bool {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 			return true
 		}
-		err = pkg.SendDrawingImage(ctx.MessageService, ctx.Message.FromWxID, imageUrl)
+		err = pkg.SendImageByURL(ctx.MessageService, ctx.Message.FromWxID, imageUrl)
 		if err != nil {
 			log.Printf("发送混元图像失败: %v", err)
 			return true

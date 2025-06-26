@@ -248,7 +248,7 @@ func (s *MessageService) ProcessNewChatRoomMemberMessage(message *model.Message,
 		} else {
 			shareLinkInfo.Title = "欢迎新成员加入群聊"
 		}
-		err := s.ShareLink(message.FromWxID, shareLinkInfo)
+		err := s.SendWelcomNewMessage(message.FromWxID, shareLinkInfo)
 		if err != nil {
 			log.Println("发送欢迎链接消息失败: ", err)
 		}
@@ -730,8 +730,38 @@ func (s *MessageService) SendEmoji(toWxID string, md5 string, totalLen int32) er
 	return nil
 }
 
-func (s *MessageService) ShareLink(toWxID string, shareLinkInfo robot.ShareLinkInfo) error {
-	message, xmlStr, err := vars.RobotRuntime.ShareLink(toWxID, shareLinkInfo)
+func (s *MessageService) SendWelcomNewMessage(toWxID string, shareLinkInfo robot.ShareLinkInfo) error {
+	message, xmlStr, err := vars.RobotRuntime.SendWelcomNewMessage(toWxID, shareLinkInfo)
+	if err != nil {
+		return err
+	}
+
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.MsgId,
+		Type:               model.MsgTypeApp,
+		Content:            xmlStr,
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	err = s.msgRespo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
+func (s *MessageService) ShareLink(toWxID, xmlStr string) error {
+	message, err := vars.RobotRuntime.ShareLink(toWxID, xmlStr)
 	if err != nil {
 		return err
 	}

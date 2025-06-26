@@ -787,11 +787,11 @@ func (r *Robot) SendEmoji(req SendEmojiRequest) (emojiMessage SendEmojiResponse,
 	return r.Client.SendEmoji(req)
 }
 
-func (r *Robot) ShareLink(toWxID string, shareLinkInfo ShareLinkInfo) (shareLinkMessage ShareLinkResponse, xmlStr string, err error) {
+func (r *Robot) SendWelcomNewMessage(toWxID string, shareLinkInfo ShareLinkInfo) (shareLinkMessage ShareLinkResponse, xmlStr string, err error) {
 	welcomeXmlPath := filepath.Join("xml", "welcome_new.xml")
 	xmlTemplate, err := XmlFolder.ReadFile(welcomeXmlPath)
 	if err != nil {
-		err = fmt.Errorf("读取欢迎XML模板失败: %w", err)
+		err = fmt.Errorf("读取XML模板失败: %w", err)
 		return
 	}
 
@@ -811,6 +811,17 @@ func (r *Robot) ShareLink(toWxID string, shareLinkInfo ShareLinkInfo) (shareLink
 
 	// 发送分享链接消息
 	xmlStr = renderedXml.String()
+	shareLinkMessage, err = r.Client.ShareLink(ShareLinkRequest{
+		ToWxid: toWxID,
+		Wxid:   r.WxID,
+		Type:   5,
+		Xml:    xmlStr,
+	})
+	return
+}
+
+func (r *Robot) ShareLink(toWxID, xmlStr string) (shareLinkMessage ShareLinkResponse, err error) {
+	// 发送分享链接消息
 	shareLinkMessage, err = r.Client.ShareLink(ShareLinkRequest{
 		ToWxid: toWxID,
 		Wxid:   r.WxID,
