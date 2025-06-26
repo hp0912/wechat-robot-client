@@ -223,18 +223,20 @@ func (s *ChatRoomSettingsService) GetPatConfig() settings.PatConfig {
 	if s.chatRoomSettings != nil {
 		if s.chatRoomSettings.PatEnabled != nil {
 			return settings.PatConfig{
-				PatEnabled: *s.chatRoomSettings.PatEnabled,
-				PatType:    s.chatRoomSettings.PatType,
-				PatText:    s.chatRoomSettings.PatText,
+				PatEnabled:     *s.chatRoomSettings.PatEnabled,
+				PatType:        s.chatRoomSettings.PatType,
+				PatText:        s.chatRoomSettings.PatText,
+				PatVoiceTimbre: s.chatRoomSettings.PatVoiceTimbre,
 			}
 		}
 	}
 	if s.globalSettings != nil {
 		if s.globalSettings.PatEnabled != nil {
 			return settings.PatConfig{
-				PatEnabled: *s.globalSettings.PatEnabled,
-				PatType:    s.globalSettings.PatType,
-				PatText:    s.globalSettings.PatText,
+				PatEnabled:     *s.globalSettings.PatEnabled,
+				PatType:        s.globalSettings.PatType,
+				PatText:        s.globalSettings.PatText,
+				PatVoiceTimbre: s.globalSettings.PatVoiceTimbre,
 			}
 		}
 	}
