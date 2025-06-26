@@ -19,9 +19,10 @@ type AIConfig struct {
 }
 
 type PatConfig struct {
-	PatEnabled bool
-	PatType    model.PatType
-	PatText    string
+	PatEnabled     bool
+	PatType        model.PatType
+	PatText        string
+	PatVoiceTimbre string
 }
 
 type Settings interface {
