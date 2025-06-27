@@ -88,3 +88,7 @@ func (c *Contact) Create(data *model.Contact) error {
 func (c *Contact) Update(data *model.Contact) error {
 	return c.DB.WithContext(c.Ctx).Where("id = ?", data.ID).Updates(data).Error
 }
+
+func (c *Contact) DeleteByContactID(contactID string) error {
+	return c.DB.WithContext(c.Ctx).Unscoped().Where("wechat_id = ?", contactID).Delete(&model.Contact{}).Error
+}

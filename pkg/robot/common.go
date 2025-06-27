@@ -108,3 +108,14 @@ type BaseResponse struct {
 func (b BaseResponse) Ok() bool {
 	return b.Ret == 0
 }
+
+type OplogRet struct {
+	Count  *uint32 `json:"count,omitempty"`
+	Ret    []byte  `json:"ret,omitempty"`
+	ErrMsg []byte  `json:"errMsg,omitempty"`
+}
+
+type OplogResponse struct {
+	Ret      *int32    `json:"ret,omitempty"`
+	OplogRet *OplogRet `json:"oplogRet,omitempty"`
+}

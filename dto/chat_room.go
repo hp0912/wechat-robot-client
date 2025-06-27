@@ -13,6 +13,20 @@ type ChatRoomMemberRequest struct {
 	Keyword    string `form:"keyword" json:"keyword"`
 }
 
+type ChatRoomRequestBase struct {
+	ChatRoomID string `form:"chat_room_id" json:"chat_room_id" binding:"required"`
+}
+
+type ChatRoomOperateRequest struct {
+	ChatRoomRequestBase
+	Content string `form:"content" json:"content" binding:"required"`
+}
+
+type DelChatRoomMemberRequest struct {
+	ChatRoomRequestBase
+	MemberIDs []string `form:"member_ids" json:"member_ids" binding:"required"`
+}
+
 // ChatRoomSummary 群动态
 type ChatRoomSummary struct {
 	ChatRoomID       string

@@ -62,8 +62,13 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/contacts", contactCtl.GetContacts)
 	api.POST("/robot/contacts/sync", contactCtl.SyncContact)
 
-	api.GET("/robot/chat-room/members", chatRoomCtl.GetChatRoomMembers)
 	api.POST("/robot/chat-room/members/sync", chatRoomCtl.SyncChatRoomMember)
+	api.GET("/robot/chat-room/members", chatRoomCtl.GetChatRoomMembers)
+	api.POST("/robot/chat-room/name", chatRoomCtl.GroupSetChatRoomName)
+	api.POST("/robot/chat-room/remark", chatRoomCtl.GroupSetChatRoomRemarks)
+	api.POST("/robot/chat-room/announcement", chatRoomCtl.GroupSetChatRoomAnnouncement)
+	api.DELETE("/robot/chat-room/members", chatRoomCtl.GroupDelChatRoomMember)
+	api.DELETE("/robot/chat-room/quit", chatRoomCtl.GroupQuit)
 
 	api.GET("/robot/chat/history", chatHistoryCtl.GetChatHistory)
 

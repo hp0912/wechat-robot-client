@@ -144,6 +144,34 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 	}
 }
 
+func (s *ChatRoomService) GroupSetChatRoomName(chatRoomID, content string) error {
+	return vars.RobotRuntime.GroupSetChatRoomName(chatRoomID, content)
+}
+
+func (s *ChatRoomService) GroupSetChatRoomRemarks(chatRoomID, content string) error {
+	return vars.RobotRuntime.GroupSetChatRoomRemarks(chatRoomID, content)
+}
+
+func (s *ChatRoomService) GroupSetChatRoomAnnouncement(chatRoomID, content string) error {
+	return vars.RobotRuntime.GroupSetChatRoomAnnouncement(chatRoomID, content)
+}
+
+func (s *ChatRoomService) GroupDelChatRoomMember(chatRoomID string, memberIDs []string) error {
+	err := vars.RobotRuntime.GroupDelChatRoomMember(chatRoomID, memberIDs)
+	if err != nil {
+		return err
+	}
+	return s.crmRespo.DeleteChatRoomMembers(memberIDs)
+}
+
+func (s *ChatRoomService) GroupQuit(chatRoomID string) error {
+	err := vars.RobotRuntime.GroupQuit(chatRoomID)
+	if err != nil {
+		return err
+	}
+	return s.ctRespo.DeleteByContactID(chatRoomID)
+}
+
 func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID string, memberWeChatIDs []string) ([]*model.ChatRoomMember, error) {
 	now := time.Now().Unix()
 	// 将ids拆分成二十个一个的数组之后再获取详情
