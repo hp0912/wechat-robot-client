@@ -161,7 +161,9 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					IsLeaved: &isLeaved,
 					LeavedAt: &leaveTime,
 				}
-				if dbMember.Nickname != "" {
+				if dbMember.Remark != "" {
+					leavedMembers = append(leavedMembers, dbMember.Remark)
+				} else if dbMember.Nickname != "" {
 					leavedMembers = append(leavedMembers, dbMember.Nickname)
 				}
 				err = s.crmRespo.Update(&updateMember)
