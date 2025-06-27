@@ -243,6 +243,27 @@ func (s *ChatRoomSettingsService) GetPatConfig() settings.PatConfig {
 	return settings.PatConfig{}
 }
 
+func (s *ChatRoomSettingsService) GetLeaveChatRoomConfig(chatRoomID string) *model.ChatRoomSettings {
+	globalSettings, err := s.gsRespo.GetGlobalSettings()
+	if err != nil {
+		return nil
+	}
+	chatRoomSettings, err := s.crsRespo.GetChatRoomSettings(chatRoomID)
+	if err != nil {
+		return nil
+	}
+	if chatRoomSettings != nil {
+		return chatRoomSettings
+	}
+	if globalSettings != nil {
+		return &model.ChatRoomSettings{
+			LeaveChatRoomAlertEnabled: globalSettings.LeaveChatRoomAlertEnabled,
+			LeaveChatRoomAlertText:    globalSettings.LeaveChatRoomAlertText,
+		}
+	}
+	return nil
+}
+
 func (s *ChatRoomSettingsService) GetAllEnableChatRank() ([]*model.ChatRoomSettings, error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOffline {
 		return []*model.ChatRoomSettings{}, nil
