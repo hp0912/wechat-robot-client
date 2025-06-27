@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
@@ -19,11 +20,20 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+// 防抖逻辑：在 5 秒窗口内同一群聊只同步一次
+const syncChatRoomMemberDebounceInterval = 5 * time.Second
+
+var (
+	syncChatRoomMemberMu     sync.Mutex
+	syncChatRoomMemberTimers = make(map[string]*time.Timer)
+)
+
 type ChatRoomService struct {
 	ctx      context.Context
 	msgRespo *repository.Message
 	ctRespo  *repository.Contact
 	gsRespo  *repository.GlobalSettings
+	crsRespo *repository.ChatRoomSettings
 	crmRespo *repository.ChatRoomMember
 }
 
@@ -33,8 +43,35 @@ func NewChatRoomService(ctx context.Context) *ChatRoomService {
 		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
 		ctRespo:  repository.NewContactRepo(ctx, vars.DB),
 		gsRespo:  repository.NewGlobalSettingsRepo(ctx, vars.DB),
+		crsRespo: repository.NewChatRoomSettingsRepo(ctx, vars.DB),
 		crmRespo: repository.NewChatRoomMemberRepo(ctx, vars.DB),
 	}
+}
+
+func (s *ChatRoomService) DebounceSyncChatRoomMember(chatRoomID string) {
+	syncChatRoomMemberMu.Lock()
+	defer syncChatRoomMemberMu.Unlock()
+
+	if timer, ok := syncChatRoomMemberTimers[chatRoomID]; ok {
+		timer.Stop()
+	}
+
+	var newTimer *time.Timer
+	newTimer = time.AfterFunc(syncChatRoomMemberDebounceInterval, func() {
+		syncChatRoomMemberMu.Lock()
+		currentTimer, ok := syncChatRoomMemberTimers[chatRoomID]
+		if !ok || currentTimer != newTimer {
+			syncChatRoomMemberMu.Unlock()
+			return
+		}
+		delete(syncChatRoomMemberTimers, chatRoomID)
+		syncChatRoomMemberMu.Unlock()
+
+		// 真正执行同步逻辑（放在锁外避免长时间持锁）
+		s.SyncChatRoomMember(chatRoomID)
+	})
+
+	syncChatRoomMemberTimers[chatRoomID] = newTimer
 }
 
 func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
@@ -135,10 +172,23 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 			}
 		}
 		if len(leavedMembers) > 0 {
+			leaveChatRoomConfig := NewChatRoomSettingsService(s.ctx).GetLeaveChatRoomConfig(chatRoomID)
+			if leaveChatRoomConfig == nil || leaveChatRoomConfig.LeaveChatRoomAlertEnabled == nil || !*leaveChatRoomConfig.LeaveChatRoomAlertEnabled {
+				return
+			}
+			if strings.TrimSpace(leaveChatRoomConfig.LeaveChatRoomAlertText) == "" {
+				return
+			}
 			if len(leavedMembers) <= 10 {
-				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，%s退出了群聊～", strings.Join(leavedMembers, "、")))
+				NewMessageService(s.ctx).SendTextMessage(
+					chatRoomID,
+					strings.Replace(leaveChatRoomConfig.LeaveChatRoomAlertText, "{placeholder}", strings.Join(leavedMembers, "、"), 1),
+				)
 			} else {
-				NewMessageService(s.ctx).SendTextMessage(chatRoomID, fmt.Sprintf("阿拉蕾，%s等%d位退出了群聊～", leavedMembers[0], len(leavedMembers)))
+				NewMessageService(s.ctx).SendTextMessage(
+					chatRoomID,
+					strings.Replace(leaveChatRoomConfig.LeaveChatRoomAlertText, "{placeholder}", fmt.Sprintf("%s等%d位", leavedMembers[0], len(leavedMembers)), 1),
+				)
 			}
 		}
 	}

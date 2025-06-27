@@ -493,6 +493,9 @@ func (c *Client) DownloadFile(req DownloadFileRequest) (filebase64 string, err e
 }
 
 func (c *Client) GetChatRoomMemberDetail(wxid, QID string) (chatRoomMember []ChatRoomMember, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[ChatRoomMemberDetail]
 	_, err = c.client.R().
 		SetResult(&result).
