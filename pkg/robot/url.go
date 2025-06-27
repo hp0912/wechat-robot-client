@@ -28,9 +28,15 @@ const (
 	MsgSendCDNImg   = "/Msg/SendCDNImg"
 	MsgSendCDNVideo = "/Msg/SendCDNVideo"
 
-	FriendGetContactList         = "/Friend/GetContractList"
-	FriendGetContactDetail       = "/Friend/GetContractDetail"
+	FriendGetContactList   = "/Friend/GetContractList"
+	FriendGetContactDetail = "/Friend/GetContractDetail"
+
 	GroupGetChatRoomMemberDetail = "/Group/GetChatRoomMemberDetail"
+	GroupSetChatRoomName         = "/Group/SetChatRoomName"
+	GroupSetChatRoomRemarks      = "/Group/SetChatRoomRemarks"
+	GroupSetChatRoomAnnouncement = "/Group/SetChatRoomAnnouncement"
+	GroupDelChatRoomMember       = "/Group/DelChatRoomMember"
+	GroupQuit                    = "/Group/Quit"
 
 	ToolsCdnDownloadImage = "/Tools/CdnDownloadImage"
 	ToolsDownloadVideo    = "/Tools/DownloadVideo"

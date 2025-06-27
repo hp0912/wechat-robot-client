@@ -880,3 +880,23 @@ func (r *Robot) GetContactDetail(requestWxids []string) ([]Contact, error) {
 func (r *Robot) GetChatRoomMemberDetail(QID string) ([]ChatRoomMember, error) {
 	return r.Client.GetChatRoomMemberDetail(r.WxID, QID)
 }
+
+func (r *Robot) GroupSetChatRoomName(QID, Content string) error {
+	return r.Client.GroupSetChatRoomName(r.WxID, QID, Content)
+}
+
+func (r *Robot) GroupSetChatRoomRemarks(QID, Content string) error {
+	return r.Client.GroupSetChatRoomRemarks(r.WxID, QID, Content)
+}
+
+func (r *Robot) GroupSetChatRoomAnnouncement(QID, Content string) error {
+	return r.Client.GroupSetChatRoomAnnouncement(r.WxID, QID, Content)
+}
+
+func (r *Robot) GroupDelChatRoomMember(QID string, ToWxids []string) error {
+	return r.Client.GroupDelChatRoomMember(r.WxID, QID, ToWxids)
+}
+
+func (r *Robot) GroupQuit(QID string) error {
+	return r.Client.GroupQuit(r.WxID, QID)
+}

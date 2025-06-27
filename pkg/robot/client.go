@@ -440,21 +440,6 @@ func (c *Client) GetContactDetail(wxid string, towxids []string) (contactList []
 	return
 }
 
-func (c *Client) GetChatRoomMemberDetail(wxid, QID string) (chatRoomMember []ChatRoomMember, err error) {
-	var result ClientResponse[ChatRoomMemberDetail]
-	_, err = c.client.R().
-		SetResult(&result).
-		SetBody(GetChatRoomMemberDetailRequest{
-			Wxid: wxid,
-			QID:  QID,
-		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupGetChatRoomMemberDetail))
-	if err = result.CheckError(err); err != nil {
-		return
-	}
-	chatRoomMember = result.Data.NewChatroomData.ChatRoomMember
-	return
-}
-
 func (c *Client) CdnDownloadImg(wxid, aeskey, cdnmidimgurl string) (imgbase64 string, err error) {
 	var result ClientResponse[DownloadImageDetail]
 	_, err = c.client.R().
@@ -504,6 +489,95 @@ func (c *Client) DownloadFile(req DownloadFileRequest) (filebase64 string, err e
 		return
 	}
 	filebase64 = result.Data.Data.Buffer
+	return
+}
+
+func (c *Client) GetChatRoomMemberDetail(wxid, QID string) (chatRoomMember []ChatRoomMember, err error) {
+	var result ClientResponse[ChatRoomMemberDetail]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(ChatRoomRequestBase{
+			Wxid: wxid,
+			QID:  QID,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupGetChatRoomMemberDetail))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	chatRoomMember = result.Data.NewChatroomData.ChatRoomMember
+	return
+}
+
+func (c *Client) GroupSetChatRoomName(wxid, QID, Content string) (err error) {
+	var result ClientResponse[OplogResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(OperateChatRoomInfoParam{
+			Wxid:    wxid,
+			QID:     QID,
+			Content: Content,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupSetChatRoomName))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	return
+}
+
+func (c *Client) GroupSetChatRoomRemarks(wxid, QID, Content string) (err error) {
+	var result ClientResponse[OplogResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(OperateChatRoomInfoParam{
+			Wxid:    wxid,
+			QID:     QID,
+			Content: Content,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupSetChatRoomRemarks))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	return
+}
+
+func (c *Client) GroupSetChatRoomAnnouncement(wxid, QID, Content string) (err error) {
+	var result ClientResponse[OplogResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(OperateChatRoomInfoParam{
+			Wxid:    wxid,
+			QID:     QID,
+			Content: Content,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupSetChatRoomAnnouncement))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	return
+}
+
+func (c *Client) GroupDelChatRoomMember(wxid, QID string, ToWxids []string) (err error) {
+	var result ClientResponse[DelChatRoomMemberResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(DelChatRoomMemberRequest{
+			Wxid:         wxid,
+			ChatRoomName: QID,
+			ToWxids:      strings.Join(ToWxids, ","),
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupDelChatRoomMember))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	return
+}
+
+func (c *Client) GroupQuit(wxid, QID string) (err error) {
+	var result ClientResponse[OplogResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(ChatRoomRequestBase{
+			Wxid: wxid,
+			QID:  QID,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupQuit))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
 	return
 }
 

@@ -23,7 +23,29 @@ type ChatRoomMemberDetail struct {
 	NewChatroomData  NewChatroomData `json:"NewChatroomData"`
 }
 
-type GetChatRoomMemberDetailRequest struct {
+type ChatRoomRequestBase struct {
 	Wxid string `json:"Wxid"`
 	QID  string `json:"QID"`
+}
+
+type OperateChatRoomInfoParam struct {
+	Wxid    string
+	QID     string
+	Content string
+}
+
+type DelChatRoomMemberRequest struct {
+	Wxid         string `json:"Wxid"`
+	ChatRoomName string `json:"ChatRoomName"`
+	ToWxids      string `json:"ToWxids"`
+}
+
+type DelMemberResp struct {
+	MemberName *SKBuiltinStringT `json:"MemberName,omitempty"`
+}
+
+type DelChatRoomMemberResponse struct {
+	BaseResponse *BaseResponse    `json:"baseResponse,omitempty"`
+	MemberCount  *uint32          `json:"MemberCount,omitempty"`
+	MemberList   []*DelMemberResp `json:"MemberList,omitempty"`
 }

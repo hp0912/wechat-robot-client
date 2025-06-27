@@ -124,10 +124,6 @@ func (c *ChatRoomMember) GetYesterdayLeaveCount(chatRoomID string) (int64, error
 	return total, nil
 }
 
-func (c *ChatRoomMember) UpdateChatRoomMember(id int64, chatRoomMember any) error {
-	return c.DB.WithContext(c.Ctx).Where("id = ?", id).Updates(chatRoomMember).Error
-}
-
 func (c *ChatRoomMember) Create(data *model.ChatRoomMember) error {
 	return c.DB.WithContext(c.Ctx).Create(data).Error
 }
@@ -138,4 +134,12 @@ func (c *ChatRoomMember) Update(data *model.ChatRoomMember) error {
 
 func (c *ChatRoomMember) UpdateByID(id int64, data map[string]any) error {
 	return c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{}).Where("id = ?", id).Updates(data).Error
+}
+
+func (c *ChatRoomMember) DeleteChatRoomMembers(memberIDs []string) error {
+	return c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{}).
+		Where("wechat_id IN (?)", memberIDs).
+		Update("is_leaved", 1).
+		Update("leaved_at", time.Now().Unix()).
+		Error
 }
