@@ -81,6 +81,14 @@ func (c *Contact) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*
 	return contacts, total, nil
 }
 
+func (c *Contact) UpdateNicknameByContactID(contactID string, nickname string) error {
+	return c.DB.WithContext(c.Ctx).Model(&model.Contact{}).Where("wechat_id = ?", contactID).Update("nickname", nickname).Error
+}
+
+func (c *Contact) UpdateRemarkByContactID(contactID string, remark string) error {
+	return c.DB.WithContext(c.Ctx).Model(&model.Contact{}).Where("wechat_id = ?", contactID).Update("remark", remark).Error
+}
+
 func (c *Contact) Create(data *model.Contact) error {
 	return c.DB.WithContext(c.Ctx).Create(data).Error
 }

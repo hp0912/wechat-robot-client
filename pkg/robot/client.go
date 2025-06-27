@@ -559,7 +559,7 @@ func (c *Client) GroupDelChatRoomMember(wxid, QID string, ToWxids []string) (err
 		SetBody(DelChatRoomMemberRequest{
 			Wxid:         wxid,
 			ChatRoomName: QID,
-			ToWxids:      ToWxids,
+			ToWxids:      strings.Join(ToWxids, ","),
 		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupDelChatRoomMember))
 	if err = result.CheckError(err); err != nil {
 		return

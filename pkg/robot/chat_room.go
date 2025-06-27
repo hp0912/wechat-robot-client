@@ -35,9 +35,9 @@ type OperateChatRoomInfoParam struct {
 }
 
 type DelChatRoomMemberRequest struct {
-	Wxid         string   `json:"Wxid"`
-	ChatRoomName string   `json:"ChatRoomName"`
-	ToWxids      []string `json:"ToWxids"`
+	Wxid         string `json:"Wxid"`
+	ChatRoomName string `json:"ChatRoomName"`
+	ToWxids      string `json:"ToWxids"`
 }
 
 type DelMemberResp struct {

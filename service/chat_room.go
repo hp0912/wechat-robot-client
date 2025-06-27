@@ -145,11 +145,19 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 }
 
 func (s *ChatRoomService) GroupSetChatRoomName(chatRoomID, content string) error {
-	return vars.RobotRuntime.GroupSetChatRoomName(chatRoomID, content)
+	err := vars.RobotRuntime.GroupSetChatRoomName(chatRoomID, content)
+	if err != nil {
+		return err
+	}
+	return s.ctRespo.UpdateNicknameByContactID(chatRoomID, content)
 }
 
 func (s *ChatRoomService) GroupSetChatRoomRemarks(chatRoomID, content string) error {
-	return vars.RobotRuntime.GroupSetChatRoomRemarks(chatRoomID, content)
+	err := vars.RobotRuntime.GroupSetChatRoomRemarks(chatRoomID, content)
+	if err != nil {
+		return err
+	}
+	return s.ctRespo.UpdateRemarkByContactID(chatRoomID, content)
 }
 
 func (s *ChatRoomService) GroupSetChatRoomAnnouncement(chatRoomID, content string) error {

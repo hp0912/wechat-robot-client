@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"unicode/utf8"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
@@ -50,6 +51,11 @@ func (cr *ChatRoom) GroupSetChatRoomName(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
+
+	if utf8.RuneCountInString(req.Content) > 30 {
+		resp.ToErrorResponse(errors.New("群名称不能超过30个字符"))
+		return
+	}
 	err := service.NewChatRoomService(c).GroupSetChatRoomName(req.ChatRoomID, req.Content)
 	if err != nil {
 		resp.ToErrorResponse(err)
@@ -63,6 +69,10 @@ func (cr *ChatRoom) GroupSetChatRoomRemarks(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
 		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	if utf8.RuneCountInString(req.Content) > 30 {
+		resp.ToErrorResponse(errors.New("群备注不能超过30个字符"))
 		return
 	}
 	err := service.NewChatRoomService(c).GroupSetChatRoomRemarks(req.ChatRoomID, req.Content)
