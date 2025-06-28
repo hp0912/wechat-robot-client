@@ -38,6 +38,17 @@ const (
 	GroupDelChatRoomMember       = "/Group/DelChatRoomMember"
 	GroupQuit                    = "/Group/Quit"
 
+	FriendCircleComment               = "/FriendCircle/Comment"
+	FriendCircleGetDetail             = "/FriendCircle/GetDetail"
+	FriendCircleGetIdDetail           = "/FriendCircle/GetIdDetail"
+	FriendCircleDownFriendCircleMedia = "/FriendCircle/DownFriendCircleMedia"
+	FriendCircleGetList               = "/FriendCircle/GetList"
+	FriendCircleMessages              = "/FriendCircle/Messages"
+	FriendCircleMmSnsSync             = "/FriendCircle/MmSnsSync"
+	FriendCircleOperation             = "/FriendCircle/Operation"
+	FriendCirclePrivacySettings       = "/FriendCircle/PrivacySettings"
+	FriendCircleUpload                = "/FriendCircle/Upload"
+
 	ToolsCdnDownloadImage = "/Tools/CdnDownloadImage"
 	ToolsDownloadVideo    = "/Tools/DownloadVideo"
 	ToolsDownloadVoice    = "/Tools/DownloadVoice"

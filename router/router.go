@@ -18,6 +18,7 @@ var friendSettingsCtl *controller.FriendSettings
 var chatRoomSettingsCtl *controller.ChatRoomSettings
 var wechatServerCallbackCtl *controller.WechatServerCallback
 var aiCallbackCtl *controller.AICallback
+var momentsCtl *controller.Moments
 var probeCtl *controller.Probe
 
 func initController() {
@@ -32,6 +33,7 @@ func initController() {
 	chatRoomSettingsCtl = controller.NewChatRoomSettingsController()
 	wechatServerCallbackCtl = controller.NewWechatServerCallbackController()
 	aiCallbackCtl = controller.NewAICallbackController()
+	momentsCtl = controller.NewMomentsController()
 	probeCtl = controller.NewProbeController()
 }
 
@@ -92,6 +94,10 @@ func RegisterRouter(r *gin.Engine) error {
 
 	api.GET("/robot/chat-room-settings", chatRoomSettingsCtl.GetChatRoomSettings)
 	api.POST("/robot/chat-room-settings", chatRoomSettingsCtl.SaveChatRoomSettings)
+
+	// 朋友圈接口
+	api.GET("/robot/moments/list", momentsCtl.FriendCircleGetList)
+	api.GET("/robot/moments/down-media", momentsCtl.FriendCircleDownFriendCircleMedia)
 
 	api.POST("/robot/ai-callback/voice/doubao-tts", aiCallbackCtl.DoubaoTTS)
 

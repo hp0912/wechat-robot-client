@@ -584,4 +584,37 @@ func (c *Client) GroupQuit(wxid, QID string) (err error) {
 	return
 }
 
+// 朋友圈接口
+func (c *Client) FriendCircleGetList(wxid, Fristpagemd5 string, Maxid int64) (Moments GetListResponse, err error) {
+	var result ClientResponse[GetListResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(GetListRequest{
+			Wxid:         wxid,
+			Fristpagemd5: Fristpagemd5,
+			Maxid:        Maxid,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleGetList))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	Moments = result.Data
+	return
+}
+
+func (c *Client) FriendCircleDownFriendCircleMedia(wxid, Url, Key string) (mediaBase64 string, err error) {
+	var result ClientResponse[string]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(DownFriendCircleMediaRequest{
+			Wxid: wxid,
+			Url:  Url,
+			Key:  Key,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleDownFriendCircleMedia))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	mediaBase64 = result.Data
+	return
+}
+
 // TODO 通过好友请求
