@@ -16,7 +16,7 @@ func NewMomentsService(ctx context.Context) *MomentsService {
 	}
 }
 
-func (s *MomentsService) FriendCircleGetList(fristpagemd5 string, maxID int64) (robot.GetListResponse, error) {
+func (s *MomentsService) FriendCircleGetList(fristpagemd5 string, maxID string) (robot.GetListResponse, error) {
 	return vars.RobotRuntime.FriendCircleGetList(fristpagemd5, maxID)
 }
 
