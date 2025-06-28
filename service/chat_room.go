@@ -275,9 +275,6 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 				"is_leaved": &isLeaved, // 确保标记为未离开
 				"leaved_at": nil,       // 清除离开时间
 			}
-			if member.Remark.String != nil {
-				updateMember["remark"] = *member.Remark.String
-			}
 			// 更新数据库中已有的记录
 			err = s.crmRespo.UpdateByID(existMember.ID, updateMember)
 			if err != nil {
@@ -297,9 +294,6 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 				IsLeaved:        &isLeaved,
 				JoinedAt:        now,
 				LastActiveAt:    now,
-			}
-			if member.Remark.String != nil {
-				newMember.Remark = *member.Remark.String
 			}
 			err = s.crmRespo.Create(&newMember)
 			if err != nil {

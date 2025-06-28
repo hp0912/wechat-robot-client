@@ -429,32 +429,18 @@ func (r *Robot) MessageRevoke(message model.Message) error {
 	})
 }
 
-func (r *Robot) SendTextMessage(toWxID, content string, at ...string) (SendTextMessageResponse, string, error) {
-	atMsg := ""
-	if len(at) > 0 {
-		for _, wxid := range at {
-			contacts, err := r.GetContactDetail([]string{wxid})
-			if err != nil || len(contacts) == 0 {
-				continue
-			}
-			if contacts[0].NickName.String == nil {
-				continue
-			}
-			atMsg += fmt.Sprintf("@%s%s", *contacts[0].NickName.String, "\u2005")
-		}
-	}
-	newMessageContent := atMsg + content
-	newMessages, err := r.Client.SendTextMessage(SendTextMessageRequest{
+func (r *Robot) SendTextMessage(toWxID, content string, at ...string) (SendTextMessageResponse, error) {
+	textMessage, err := r.Client.SendTextMessage(SendTextMessageRequest{
 		Wxid:    r.WxID,
 		Type:    1,
 		ToWxid:  toWxID,
-		Content: newMessageContent,
+		Content: content,
 		At:      strings.Join(at, ","),
 	})
 	if err != nil {
-		return SendTextMessageResponse{}, "", err
+		return SendTextMessageResponse{}, err
 	}
-	return newMessages, newMessageContent, nil
+	return textMessage, nil
 }
 
 func (r *Robot) MsgUploadImg(toWxID string, image []byte) (MsgUploadImgResponse, error) {
@@ -899,4 +885,12 @@ func (r *Robot) GroupDelChatRoomMember(QID string, ToWxids []string) error {
 
 func (r *Robot) GroupQuit(QID string) error {
 	return r.Client.GroupQuit(r.WxID, QID)
+}
+
+func (r *Robot) FriendCircleGetList(Fristpagemd5 string, Maxid int64) (GetListResponse, error) {
+	return r.Client.FriendCircleGetList(r.WxID, Fristpagemd5, Maxid)
+}
+
+func (r *Robot) FriendCircleDownFriendCircleMedia(Url, Key string) (string, error) {
+	return r.Client.FriendCircleDownFriendCircleMedia(r.WxID, Url, Key)
 }
