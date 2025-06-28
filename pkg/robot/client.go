@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 
@@ -585,14 +586,21 @@ func (c *Client) GroupQuit(wxid, QID string) (err error) {
 }
 
 // 朋友圈接口
-func (c *Client) FriendCircleGetList(wxid, Fristpagemd5 string, Maxid int64) (Moments GetListResponse, err error) {
+func (c *Client) FriendCircleGetList(wxid, Fristpagemd5 string, Maxid string) (Moments GetListResponse, err error) {
 	var result ClientResponse[GetListResponse]
+	var maxID uint64
+
+	maxID, err = strconv.ParseUint(Maxid, 10, 64)
+	if err != nil {
+		return
+	}
+
 	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(GetListRequest{
 			Wxid:         wxid,
 			Fristpagemd5: Fristpagemd5,
-			Maxid:        Maxid,
+			Maxid:        maxID,
 		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleGetList))
 	if err = result.CheckError(err); err != nil {
 		return

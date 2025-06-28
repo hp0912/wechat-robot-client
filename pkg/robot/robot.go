@@ -887,7 +887,7 @@ func (r *Robot) GroupQuit(QID string) error {
 	return r.Client.GroupQuit(r.WxID, QID)
 }
 
-func (r *Robot) FriendCircleGetList(Fristpagemd5 string, Maxid int64) (GetListResponse, error) {
+func (r *Robot) FriendCircleGetList(Fristpagemd5 string, Maxid string) (GetListResponse, error) {
 	return r.Client.FriendCircleGetList(r.WxID, Fristpagemd5, Maxid)
 }
 
