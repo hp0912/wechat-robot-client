@@ -28,6 +28,7 @@ type MessageService struct {
 	ctx      context.Context
 	settings settings.Settings
 	msgRespo *repository.Message
+	crmRespo *repository.ChatRoomMember
 }
 
 var _ plugin.MessageServiceIface = (*MessageService)(nil)
@@ -36,6 +37,7 @@ func NewMessageService(ctx context.Context) *MessageService {
 	return &MessageService{
 		ctx:      ctx,
 		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
+		crmRespo: repository.NewChatRoomMemberRepo(ctx, vars.DB),
 	}
 }
 
@@ -494,7 +496,52 @@ func (s *MessageService) MessageRevoke(req dto.MessageCommonRequest) error {
 }
 
 func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) error {
-	newMessages, newMessageContent, err := vars.RobotRuntime.SendTextMessage(toWxID, content, at...)
+	atContent := ""
+	if len(at) > 0 {
+		// 手动拼接上 @ 符号和昵称
+		for _, wxid := range at {
+			var targetNickname string
+
+			if strings.HasPrefix(wxid, "@chatroom") {
+				// 群聊消息，昵称优先取群备注，备注取不到或者取失败了，再去取联系人的昵称
+				chatRoomMember, err := s.crmRespo.GetChatRoomMember(toWxID, wxid)
+				if err != nil || chatRoomMember == nil {
+					contacts, err := vars.RobotRuntime.GetContactDetail([]string{wxid})
+					if err != nil || len(contacts) == 0 {
+						continue
+					}
+					if contacts[0].NickName.String == nil {
+						continue
+					}
+					targetNickname = *contacts[0].NickName.String
+				} else {
+					if chatRoomMember.Remark != "" {
+						targetNickname = chatRoomMember.Remark
+					} else {
+						targetNickname = chatRoomMember.Nickname
+					}
+				}
+			} else {
+				// 私聊消息
+				contacts, err := vars.RobotRuntime.GetContactDetail([]string{wxid})
+				if err != nil || len(contacts) == 0 {
+					continue
+				}
+				if contacts[0].NickName.String == nil {
+					continue
+				}
+				targetNickname = *contacts[0].NickName.String
+			}
+
+			if targetNickname == "" {
+				continue
+			}
+
+			atContent += fmt.Sprintf("@%s%s", targetNickname, "\u2005")
+		}
+	}
+	content = atContent + content
+	newMessages, err := vars.RobotRuntime.SendTextMessage(toWxID, content, at...)
 	if err != nil {
 		return err
 	}
@@ -507,7 +554,7 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 					MsgId:              message.NewMsgId,
 					ClientMsgId:        message.ClientMsgid,
 					Type:               model.MsgTypeText,
-					Content:            newMessageContent,
+					Content:            content,
 					DisplayFullContent: "",
 					MessageSource:      "",
 					FromWxID:           toWxID,
