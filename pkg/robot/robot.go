@@ -863,6 +863,10 @@ func (r *Robot) GetContactDetail(requestWxids []string) ([]Contact, error) {
 	return r.Client.GetContactDetail(r.WxID, requestWxids)
 }
 
+func (r *Robot) GroupConsentToJoin(Url string) (string, error) {
+	return r.Client.GroupConsentToJoin(r.WxID, Url)
+}
+
 func (r *Robot) GetChatRoomMemberDetail(QID string) ([]ChatRoomMember, error) {
 	return r.Client.GetChatRoomMemberDetail(r.WxID, QID)
 }

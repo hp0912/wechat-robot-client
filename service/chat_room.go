@@ -196,6 +196,10 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 	}
 }
 
+func (s *ChatRoomService) GroupConsentToJoin(url string) (string, error) {
+	return vars.RobotRuntime.GroupConsentToJoin(url)
+}
+
 func (s *ChatRoomService) GroupSetChatRoomName(chatRoomID, content string) error {
 	err := vars.RobotRuntime.GroupSetChatRoomName(chatRoomID, content)
 	if err != nil {

@@ -49,3 +49,8 @@ type DelChatRoomMemberResponse struct {
 	MemberCount  *uint32          `json:"MemberCount,omitempty"`
 	MemberList   []*DelMemberResp `json:"MemberList,omitempty"`
 }
+
+type ConsentToJoinRequest struct {
+	Wxid string `json:"Wxid"`
+	Url  string `json:"Url"`
+}

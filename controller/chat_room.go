@@ -44,6 +44,21 @@ func (cr *ChatRoom) GetChatRoomMembers(c *gin.Context) {
 	resp.ToResponseList(list, total)
 }
 
+func (cr *ChatRoom) GroupConsentToJoin(c *gin.Context) {
+	var req dto.GroupConsentToJoinRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewChatRoomService(c).GroupConsentToJoin(req.URL)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
 func (cr *ChatRoom) GroupSetChatRoomName(c *gin.Context) {
 	var req dto.ChatRoomOperateRequest
 	resp := appx.NewResponse(c)
