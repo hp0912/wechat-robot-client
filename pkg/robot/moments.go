@@ -64,6 +64,8 @@ type Media struct {
 	UserData        string          `xml:"userData,omitempty"`
 	SubType         string          `xml:"subType,omitempty"`
 	VideoSize       VideoSize       `xml:"videoSize,omitempty"`
+	HD              URL             `xml:"hd"`
+	UHD             URL             `xml:"uhd"`
 	URL             URL             `xml:"url"`
 	Thumb           Thumb           `xml:"thumb"`
 	Size            Size            `xml:"size"`
@@ -150,6 +152,7 @@ type SnsObject struct {
 	Nickname             *string              `json:"Nickname,omitempty"`
 	CreateTime           *uint32              `json:"CreateTime,omitempty"`
 	ObjectDesc           *SKBuiltinString_S   `json:"ObjectDesc,omitempty"`
+	TimelineObject       *TimelineObject      `json:"TimelineObject,omitempty"`
 	LikeFlag             *uint32              `json:"LikeFlag,omitempty"`
 	LikeCount            *uint32              `json:"LikeCount,omitempty"`
 	LikeUserListCount    *uint32              `json:"LikeUserListCount,omitempty"`

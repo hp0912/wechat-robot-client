@@ -888,9 +888,25 @@ func (r *Robot) GroupQuit(QID string) error {
 }
 
 func (r *Robot) FriendCircleGetList(Fristpagemd5 string, Maxid string) (GetListResponse, error) {
-	return r.Client.FriendCircleGetList(r.WxID, Fristpagemd5, Maxid)
+	data, err := r.Client.FriendCircleGetList(r.WxID, Fristpagemd5, Maxid)
+	if err != nil {
+		return GetListResponse{}, err
+	}
+	for index, snsObject := range data.ObjectList {
+		if snsObject.ObjectDesc.Buffer != nil {
+			var timelineObject TimelineObject
+			err := r.XmlDecoder(*snsObject.ObjectDesc.Buffer, &timelineObject)
+			if err != nil {
+				data.ObjectList[index].TimelineObject = &TimelineObject{}
+			} else {
+				data.ObjectList[index].TimelineObject = &timelineObject
+			}
+		}
+	}
+	return data, nil
 }
 
 func (r *Robot) FriendCircleDownFriendCircleMedia(Url, Key string) (string, error) {
-	return r.Client.FriendCircleDownFriendCircleMedia(r.WxID, Url, Key)
+	base64Url := base64.StdEncoding.EncodeToString([]byte(Url))
+	return r.Client.FriendCircleDownFriendCircleMedia(r.WxID, base64Url, Key)
 }
