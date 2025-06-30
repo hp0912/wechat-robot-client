@@ -117,8 +117,13 @@ type FileSecretXml struct {
 }
 
 type AppInfo struct {
-	Version int    `xml:"version"`
-	AppName string `xml:"appname"`
+	ID            string `xml:"id"`
+	Version       string `xml:"version,omitempty"`
+	AppName       string `xml:"appName,omitempty"`
+	InstallUrl    string `xml:"installUrl,omitempty"`
+	FromUrl       string `xml:"fromUrl,omitempty"`
+	IsForceUpdate int    `xml:"isForceUpdate,omitempty"`
+	IsHidden      int    `xml:"isHidden,omitempty"`
 }
 
 type FileMessageXml struct {
