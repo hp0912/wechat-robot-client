@@ -1,5 +1,127 @@
 package robot
 
+import "encoding/xml"
+
+type TimelineObject struct {
+	XMLName                xml.Name      `xml:"TimelineObject"`
+	ID                     string        `xml:"id"`
+	Username               string        `xml:"username"`
+	CreateTime             string        `xml:"createTime"`
+	ContentDesc            string        `xml:"contentDesc"`
+	ContentDescShowType    int           `xml:"contentDescShowType"`
+	ContentDescScene       int           `xml:"contentDescScene"`
+	Private                string        `xml:"private"`
+	SightFolded            int           `xml:"sightFolded,omitempty"`
+	ShowFlag               int           `xml:"showFlag,omitempty"`
+	ContentAttr            string        `xml:"contentattr,omitempty"`
+	SourceUserName         string        `xml:"sourceUserName"`
+	SourceNickName         string        `xml:"sourceNickName"`
+	PublicUserName         string        `xml:"publicUserName"`
+	PublicBrandContactType int           `xml:"publicBrandContactType,omitempty"`
+	StatisticsData         string        `xml:"statisticsData"`
+	StatExtStr             string        `xml:"statExtStr,omitempty"`
+	CanvasInfoXML          string        `xml:"canvasInfoXml,omitempty"`
+	AppInfo                AppInfo       `xml:"appInfo"`
+	WeappInfo              WeappInfo     `xml:"weappInfo,omitempty"`
+	ContentObject          ContentObject `xml:"ContentObject"`
+	ActionInfo             ActionInfo    `xml:"actionInfo"`
+	Location               Location      `xml:"location"`
+	StreamVideo            StreamVideo   `xml:"streamvideo"`
+}
+
+type WeappInfo struct {
+	AppUserName      string `xml:"appUserName"`
+	PagePath         string `xml:"pagePath"`
+	Version          string `xml:"version"`
+	IsHidden         int    `xml:"isHidden"`
+	DebugMode        string `xml:"debugMode"`
+	ShareActionId    string `xml:"shareActionId"`
+	IsGame           string `xml:"isGame"`
+	MessageExtraData string `xml:"messageExtraData"`
+	SubType          string `xml:"subType"`
+	PreloadResources string `xml:"preloadResources"`
+}
+
+type ContentObject struct {
+	ContentStyle    string    `xml:"contentStyle"`
+	ContentSubStyle string    `xml:"contentSubStyle,omitempty"`
+	Title           string    `xml:"title"`
+	Description     string    `xml:"description"`
+	ContentUrl      string    `xml:"contentUrl"`
+	MediaList       MediaList `xml:"mediaList"`
+}
+
+type MediaList struct {
+	Media []Media `xml:"media"`
+}
+
+type Media struct {
+	ID              string          `xml:"id"`
+	Type            string          `xml:"type"`
+	Title           string          `xml:"title"`
+	Description     string          `xml:"description"`
+	Private         string          `xml:"private"`
+	UserData        string          `xml:"userData,omitempty"`
+	SubType         string          `xml:"subType,omitempty"`
+	VideoSize       VideoSize       `xml:"videoSize,omitempty"`
+	URL             URL             `xml:"url"`
+	Thumb           Thumb           `xml:"thumb"`
+	Size            Size            `xml:"size"`
+	VideoDuration   string          `xml:"videoDuration,omitempty"`
+	VideoColdDLRule VideoColdDLRule `xml:"VideoColdDLRule,omitempty"`
+}
+
+type VideoSize struct {
+	Width  string `xml:"width,attr"`
+	Height string `xml:"height,attr"`
+}
+
+type URL struct {
+	Type     string `xml:"type,attr"`
+	MD5      string `xml:"md5,attr"`
+	VideoMD5 string `xml:"videomd5,attr"`
+	Value    string `xml:",chardata"`
+}
+
+type Thumb struct {
+	Type  string `xml:"type,attr"`
+	Value string `xml:",chardata"`
+}
+
+type Size struct {
+	Width     string `xml:"width,attr"`
+	Height    string `xml:"height,attr"`
+	TotalSize string `xml:"totalSize,attr"`
+}
+
+type VideoColdDLRule struct {
+	All string `xml:"All"`
+}
+
+type ActionInfo struct {
+	AppMsg AppMsg `xml:"appMsg"`
+}
+
+type AppMsg struct {
+	MediaTagName  string `xml:"mediaTagName,omitempty"`
+	MessageExt    string `xml:"messageExt,omitempty"`
+	MessageAction string `xml:"messageAction"`
+}
+
+type Location struct {
+	PoiClassifyId   string `xml:"poiClassifyId,attr"`
+	PoiName         string `xml:"poiName,attr"`
+	PoiAddress      string `xml:"poiAddress,attr"`
+	PoiClassifyType string `xml:"poiClassifyType,attr"`
+	City            string `xml:"city,attr"`
+}
+
+type StreamVideo struct {
+	StreamVideoUrl      string `xml:"streamvideourl"`
+	StreamVideoThumbUrl string `xml:"streamvideothumburl"`
+	StreamVideoWebUrl   string `xml:"streamvideoweburl"`
+}
+
 type GetListRequest struct {
 	Wxid         string `json:"Wxid"`
 	Fristpagemd5 string `json:"Fristpagemd5"`
