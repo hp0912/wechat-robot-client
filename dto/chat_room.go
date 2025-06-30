@@ -27,6 +27,10 @@ type DelChatRoomMemberRequest struct {
 	MemberIDs []string `form:"member_ids" json:"member_ids" binding:"required"`
 }
 
+type GroupConsentToJoinRequest struct {
+	URL string `form:"url" json:"url" binding:"required"`
+}
+
 // ChatRoomSummary 群动态
 type ChatRoomSummary struct {
 	ChatRoomID       string

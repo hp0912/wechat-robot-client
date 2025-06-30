@@ -493,6 +493,24 @@ func (c *Client) DownloadFile(req DownloadFileRequest) (filebase64 string, err e
 	return
 }
 
+func (c *Client) GroupConsentToJoin(wxid, Url string) (QID string, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[string]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(ConsentToJoinRequest{
+			Wxid: wxid,
+			Url:  Url,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupConsentToJoin))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	QID = result.Data
+	return
+}
+
 func (c *Client) GetChatRoomMemberDetail(wxid, QID string) (chatRoomMember []ChatRoomMember, err error) {
 	if err = c.limiter.Wait(context.Background()); err != nil {
 		return
