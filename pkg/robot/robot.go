@@ -892,5 +892,6 @@ func (r *Robot) FriendCircleGetList(Fristpagemd5 string, Maxid string) (GetListR
 }
 
 func (r *Robot) FriendCircleDownFriendCircleMedia(Url, Key string) (string, error) {
-	return r.Client.FriendCircleDownFriendCircleMedia(r.WxID, Url, Key)
+	base64Url := base64.StdEncoding.EncodeToString([]byte(Url))
+	return r.Client.FriendCircleDownFriendCircleMedia(r.WxID, base64Url, Key)
 }
