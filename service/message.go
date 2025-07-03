@@ -436,9 +436,14 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		}()
 	}
 	for _, contact := range syncResp.ModContacts {
-		if contact.UserName.String != nil && strings.HasSuffix(*contact.UserName.String, "@chatroom") {
-			// 群成员信息有变化，更新群聊成员（防抖，5 秒内只执行最后一次）
-			NewChatRoomService(context.Background()).DebounceSyncChatRoomMember(*contact.UserName.String)
+		if contact.UserName.String != nil {
+			if strings.HasSuffix(*contact.UserName.String, "@chatroom") {
+				// 群成员信息有变化，更新群聊成员（防抖，5 秒内只执行最后一次）
+				NewChatRoomService(context.Background()).DebounceSyncChatRoomMember(*contact.UserName.String)
+			} else {
+				// 更新联系人信息
+				NewContactService(context.Background()).DebounceSyncContact(*contact.UserName.String)
+			}
 		}
 	}
 	for _, contact := range syncResp.DelContacts {

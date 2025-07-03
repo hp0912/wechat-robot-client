@@ -5,6 +5,7 @@ import (
 	"log"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
@@ -12,6 +13,14 @@ import (
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
+)
+
+// 防抖逻辑：在 5 秒窗口内同一群聊只同步一次
+const syncContactDebounceInterval = 5 * time.Second
+
+var (
+	syncContactMu     sync.Mutex
+	syncContactTimers = make(map[string]*time.Timer)
 )
 
 type ContactService struct {
@@ -72,6 +81,32 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 		return err
 	}
 	return nil
+}
+
+func (s *ContactService) DebounceSyncContact(contactID string) {
+	syncContactMu.Lock()
+	defer syncContactMu.Unlock()
+
+	if timer, ok := syncContactTimers[contactID]; ok {
+		timer.Stop()
+	}
+
+	var newTimer *time.Timer
+	newTimer = time.AfterFunc(syncContactDebounceInterval, func() {
+		syncContactMu.Lock()
+		currentTimer, ok := syncContactTimers[contactID]
+		if !ok || currentTimer != newTimer {
+			syncContactMu.Unlock()
+			return
+		}
+		delete(syncContactTimers, contactID)
+		syncContactMu.Unlock()
+
+		// 真正执行同步逻辑（放在锁外避免长时间持锁）
+		s.SyncContactByContactIDs([]string{contactID})
+	})
+
+	syncContactTimers[contactID] = newTimer
 }
 
 func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
