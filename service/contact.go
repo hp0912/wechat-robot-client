@@ -173,6 +173,10 @@ func (s *ContactService) GetContacts(req dto.ContactListRequest, pager appx.Page
 	return s.ctRespo.GetContacts(req, pager)
 }
 
+func (s *ContactService) DeleteContactByContactID(contactID string) error {
+	return s.ctRespo.DeleteByContactID(contactID)
+}
+
 func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 	now := time.Now().Unix()
 	existContact, err := s.ctRespo.GetContact(contactID)

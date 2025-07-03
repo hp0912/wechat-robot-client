@@ -374,12 +374,6 @@ func (s *MessageService) InitSettingsByMessage(message *model.Message) (settings
 }
 
 func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
-	for _, contact := range syncResp.ModContacts {
-		if contact.UserName.String != nil && strings.HasSuffix(*contact.UserName.String, "@chatroom") {
-			// 群成员信息有变化，更新群聊成员（防抖，5 秒内只执行最后一次）
-			NewChatRoomService(context.Background()).DebounceSyncChatRoomMember(*contact.UserName.String)
-		}
-	}
 	for _, message := range syncResp.AddMsgs {
 		m := model.Message{
 			MsgId:              message.NewMsgId,
@@ -440,6 +434,20 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 			// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 			NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 		}()
+	}
+	for _, contact := range syncResp.ModContacts {
+		if contact.UserName.String != nil && strings.HasSuffix(*contact.UserName.String, "@chatroom") {
+			// 群成员信息有变化，更新群聊成员（防抖，5 秒内只执行最后一次）
+			NewChatRoomService(context.Background()).DebounceSyncChatRoomMember(*contact.UserName.String)
+		}
+	}
+	for _, contact := range syncResp.DelContacts {
+		if contact.UserName.String != nil {
+			err := NewContactService(context.Background()).DeleteContactByContactID(*contact.UserName.String)
+			if err != nil {
+				log.Println("删除联系人失败: ", err)
+			}
+		}
 	}
 }
 

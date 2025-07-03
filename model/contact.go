@@ -14,8 +14,8 @@ const (
 // Contact 表示微信联系人，包括好友和群组
 type Contact struct {
 	ID            int64          `gorm:"primarykey" json:"id"`
-	WechatID      string         `gorm:"column:wechat_id;index:deleted,unique" json:"wechat_id"` // 添加索引长度
-	Alias         string         `gorm:"column:alias" json:"alias"`                              // 微信号
+	WechatID      string         `gorm:"column:wechat_id;index:deleted,unique" json:"wechat_id"` // 微信号
+	Alias         string         `gorm:"column:alias" json:"alias"`                              // 微信号别名
 	Nickname      *string        `gorm:"column:nickname" json:"nickname"`
 	Avatar        string         `gorm:"column:avatar" json:"avatar"`
 	Type          ContactType    `gorm:"column:type" json:"type"`
