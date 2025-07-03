@@ -25,19 +25,21 @@ import (
 )
 
 type MessageService struct {
-	ctx      context.Context
-	settings settings.Settings
-	msgRespo *repository.Message
-	crmRespo *repository.ChatRoomMember
+	ctx         context.Context
+	settings    settings.Settings
+	msgRespo    *repository.Message
+	crmRespo    *repository.ChatRoomMember
+	sysmsgRespo *repository.SystemMessage
 }
 
 var _ plugin.MessageServiceIface = (*MessageService)(nil)
 
 func NewMessageService(ctx context.Context) *MessageService {
 	return &MessageService{
-		ctx:      ctx,
-		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
-		crmRespo: repository.NewChatRoomMemberRepo(ctx, vars.DB),
+		ctx:         ctx,
+		msgRespo:    repository.NewMessageRepo(ctx, vars.DB),
+		crmRespo:    repository.NewChatRoomMemberRepo(ctx, vars.DB),
+		sysmsgRespo: repository.NewSystemMessageRepo(ctx, vars.DB),
 	}
 }
 
@@ -122,6 +124,43 @@ func (s *MessageService) ProcessAppMessage(message *model.Message) {
 		s.ProcessReferMessage(message)
 		return
 	}
+	if message.AppMsgType == model.AppMsgTypeUrl {
+		xmlMessage, err := s.XmlDecoder(message.Content)
+		if err != nil {
+			log.Printf("解析应用消息失败: %v", err)
+			return
+		}
+		if xmlMessage.AppMsg.Title == "邀请你加入群聊" {
+			now := time.Now().Unix()
+			err := s.sysmsgRespo.Create(&model.SystemMessage{
+				MsgID:       message.MsgId,
+				ClientMsgID: message.ClientMsgId,
+				Type:        model.SystemMessageTypeJoinChatRoom,
+				ImageURL:    xmlMessage.AppMsg.ThumbURL,
+				Description: xmlMessage.AppMsg.Des,
+				Content:     message.Content,
+				FromWxid:    message.FromWxID,
+				ToWxid:      message.ToWxID,
+				IsRead:      false,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			})
+			if err != nil {
+				log.Printf("入库邀请进群通知消息失败: %v", err)
+				return
+			}
+			if message.ID > 0 {
+				// 消息已经没什么用了，删除掉
+				err := s.msgRespo.Delete(message)
+				if err != nil {
+					log.Printf("删除消息失败: %v", err)
+					return
+				}
+			}
+			return
+		}
+		return
+	}
 }
 
 // ProcessShareCardMessage 处理分享名片消息
@@ -131,7 +170,32 @@ func (s *MessageService) ProcessShareCardMessage(message *model.Message) {
 
 // ProcessFriendVerifyMessage 处理好友添加请求通知消息
 func (s *MessageService) ProcessFriendVerifyMessage(message *model.Message) {
-
+	now := time.Now().Unix()
+	err := s.sysmsgRespo.Create(&model.SystemMessage{
+		MsgID:       message.MsgId,
+		ClientMsgID: message.ClientMsgId,
+		Type:        model.SystemMessageTypeVerify,
+		ImageURL:    "",
+		Description: "",
+		Content:     message.Content,
+		FromWxid:    message.FromWxID,
+		ToWxid:      message.ToWxID,
+		IsRead:      false,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	})
+	if err != nil {
+		log.Printf("入库好友添加请求通知消息失败: %v", err)
+		return
+	}
+	if message.ID > 0 {
+		// 消息已经没什么用了，删除掉
+		err := s.msgRespo.Delete(message)
+		if err != nil {
+			log.Printf("删除消息失败: %v", err)
+			return
+		}
+	}
 }
 
 // ProcessRecalledMessage 处理撤回消息
