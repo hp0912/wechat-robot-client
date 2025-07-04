@@ -13,6 +13,7 @@ var chatRoomCtl *controller.ChatRoom
 var contactCtl *controller.Contact
 var loginCtl *controller.Login
 var messageCtl *controller.Message
+var systemMessageCtl *controller.SystemMessage
 var globalSettingsCtl *controller.GlobalSettings
 var friendSettingsCtl *controller.FriendSettings
 var chatRoomSettingsCtl *controller.ChatRoomSettings
@@ -28,6 +29,7 @@ func initController() {
 	contactCtl = controller.NewContactController()
 	loginCtl = controller.NewLoginController()
 	messageCtl = controller.NewMessageController()
+	systemMessageCtl = controller.NewSystemMessageController()
 	globalSettingsCtl = controller.NewGlobalSettingsController()
 	friendSettingsCtl = controller.NewFriendSettingsController()
 	chatRoomSettingsCtl = controller.NewChatRoomSettingsController()
@@ -81,6 +83,8 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/message/send/video", messageCtl.SendVideoMessage)
 	api.POST("/robot/message/send/voice", messageCtl.SendVoiceMessage)
 	api.POST("/robot/message/send/music", messageCtl.SendMusicMessage)
+
+	api.GET("/robot/system-messages", systemMessageCtl.GetRecentMonthMessages)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
