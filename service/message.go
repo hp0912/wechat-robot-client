@@ -141,6 +141,7 @@ func (s *MessageService) ProcessAppMessage(message *model.Message) {
 				Content:     message.Content,
 				FromWxid:    message.FromWxID,
 				ToWxid:      message.ToWxID,
+				Status:      0,
 				IsRead:      false,
 				CreatedAt:   now,
 				UpdatedAt:   now,
@@ -171,15 +172,22 @@ func (s *MessageService) ProcessShareCardMessage(message *model.Message) {
 // ProcessFriendVerifyMessage 处理好友添加请求通知消息
 func (s *MessageService) ProcessFriendVerifyMessage(message *model.Message) {
 	now := time.Now().Unix()
-	err := s.sysmsgRespo.Create(&model.SystemMessage{
+	var xmlMessage robot.NewFriendMessage
+	err := vars.RobotRuntime.XmlDecoder(message.Content, &xmlMessage)
+	if err != nil {
+		log.Printf("解析好友添加请求消息失败: %v", err)
+		return
+	}
+	err = s.sysmsgRespo.Create(&model.SystemMessage{
 		MsgID:       message.MsgId,
 		ClientMsgID: message.ClientMsgId,
 		Type:        model.SystemMessageTypeVerify,
-		ImageURL:    "",
-		Description: "",
+		ImageURL:    xmlMessage.BigHeadImgURL,
+		Description: xmlMessage.Content,
 		Content:     message.Content,
 		FromWxid:    message.FromWxID,
 		ToWxid:      message.ToWxID,
+		Status:      0,
 		IsRead:      false,
 		CreatedAt:   now,
 		UpdatedAt:   now,

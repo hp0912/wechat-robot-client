@@ -17,6 +17,7 @@ type SystemMessage struct {
 	Content     string            `gorm:"type:text;column:content" json:"content"`
 	FromWxid    string            `gorm:"type:varchar(64);index:idx_from_wxid;column:from_wxid" json:"from_wxid"`
 	ToWxid      string            `gorm:"type:varchar(64);column:to_wxid" json:"to_wxid"`
+	Status      int               `gorm:"not null;column:status;default:0;comment:'消息状态 0:未处理 1:已处理'" json:"status"`
 	IsRead      bool              `gorm:"column:is_read;default:false;comment:'消息是否已读'" json:"is_read"`
 	CreatedAt   int64             `gorm:"index:idx_created_at;not null;column:created_at" json:"created_at"`
 	UpdatedAt   int64             `gorm:"not null;column:updated_at" json:"updated_at"`

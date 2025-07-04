@@ -49,6 +49,54 @@ type SyncMessageRequest struct {
 	Synckey string `json:"Synckey"`
 }
 
+type NewFriendMessage struct {
+	XMLName           xml.Name  `xml:"msg"`
+	FromUsername      string    `xml:"fromusername,attr"`
+	EncryptUsername   string    `xml:"encryptusername,attr"`
+	FromNickname      string    `xml:"fromnickname,attr"`
+	Content           string    `xml:"content,attr"`
+	FullPy            string    `xml:"fullpy,attr"`
+	ShortPy           string    `xml:"shortpy,attr"`
+	ImageStatus       string    `xml:"imagestatus,attr"`
+	Scene             string    `xml:"scene,attr"`
+	Country           string    `xml:"country,attr"`
+	Province          string    `xml:"province,attr"`
+	City              string    `xml:"city,attr"`
+	Sign              string    `xml:"sign,attr"`
+	PerCard           string    `xml:"percard,attr"`
+	Sex               string    `xml:"sex,attr"`
+	Alias             string    `xml:"alias,attr"`
+	Weibo             string    `xml:"weibo,attr"`
+	AlbumFlag         string    `xml:"albumflag,attr"`
+	AlbumStyle        string    `xml:"albumstyle,attr"`
+	AlbumBgImgID      string    `xml:"albumbgimgid,attr"`
+	SnsFlag           string    `xml:"snsflag,attr"`
+	SnsBgImgID        string    `xml:"snsbgimgid,attr"`
+	SnsBgObjectID     string    `xml:"snsbgobjectid,attr"`
+	MHash             string    `xml:"mhash,attr"`
+	MFullHash         string    `xml:"mfullhash,attr"`
+	BigHeadImgURL     string    `xml:"bigheadimgurl,attr"`
+	SmallHeadImgURL   string    `xml:"smallheadimgurl,attr"`
+	Ticket            string    `xml:"ticket,attr"`
+	OpCode            string    `xml:"opcode,attr"`
+	GoogleContact     string    `xml:"googlecontact,attr"`
+	QrTicket          string    `xml:"qrticket,attr"`
+	ChatroomUsername  string    `xml:"chatroomusername,attr"`
+	SourceUsername    string    `xml:"sourceusername,attr"`
+	SourceNickname    string    `xml:"sourcenickname,attr"`
+	ShareCardUsername string    `xml:"sharecardusername,attr"`
+	ShareCardNickname string    `xml:"sharecardnickname,attr"`
+	CardVersion       string    `xml:"cardversion,attr"`
+	ExtFlag           string    `xml:"extflag,attr"`
+	BrandList         BrandList `xml:"brandlist"`
+}
+
+type BrandList struct {
+	XMLName xml.Name `xml:"brandlist"`
+	Count   string   `xml:"count,attr"`
+	Ver     string   `xml:"ver,attr"`
+}
+
 type XmlMessage struct {
 	XMLName      xml.Name   `xml:"msg"`
 	AppMsg       AppMessage `xml:"appmsg"`
