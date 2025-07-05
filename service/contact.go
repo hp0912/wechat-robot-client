@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -24,15 +26,70 @@ var (
 )
 
 type ContactService struct {
-	ctx     context.Context
-	ctRespo *repository.Contact
+	ctx         context.Context
+	ctRespo     *repository.Contact
+	sysmsgRespo *repository.SystemMessage
 }
 
 func NewContactService(ctx context.Context) *ContactService {
 	return &ContactService{
-		ctx:     ctx,
-		ctRespo: repository.NewContactRepo(ctx, vars.DB),
+		ctx:         ctx,
+		ctRespo:     repository.NewContactRepo(ctx, vars.DB),
+		sysmsgRespo: repository.NewSystemMessageRepo(ctx, vars.DB),
 	}
+}
+
+func (s *ContactService) FriendPassVerify(systemMessageID int64) error {
+	systemMessage, err := s.sysmsgRespo.GetByID(systemMessageID)
+	if err != nil {
+		return err
+	}
+	if systemMessage == nil {
+		return fmt.Errorf("系统消息不存在: %d", systemMessageID)
+	}
+	if systemMessage.Type != model.SystemMessageTypeVerify {
+		return fmt.Errorf("系统消息类型错误: %d", systemMessage.Type)
+	}
+	var xmlMessage robot.NewFriendMessage
+	err = vars.RobotRuntime.XmlDecoder(systemMessage.Content, &xmlMessage)
+	if err != nil {
+		return fmt.Errorf("解析好友添加请求消息失败: %v", err)
+	}
+	scene, err := strconv.Atoi(xmlMessage.Scene)
+	if err != nil {
+		return fmt.Errorf("解析好友添加请求场景失败: %v", err)
+	}
+	userVerify, err := vars.RobotRuntime.FriendPassVerify(robot.FriendPassVerifyRequest{
+		Scene: scene,
+		V1:    xmlMessage.FromUsername,
+		V2:    xmlMessage.Ticket,
+	})
+	if err != nil {
+		return err
+	}
+	if userVerify.Username == nil || *userVerify.Username == "" {
+		return fmt.Errorf("通过好友验证失败: %s，接口返回了空", systemMessage.FromWxid)
+	}
+	s.DebounceSyncContact(*userVerify.Username)
+	err = s.sysmsgRespo.Update(&model.SystemMessage{
+		ID:     systemMessage.ID,
+		IsRead: true,
+		Status: 1,
+	})
+	if err != nil {
+		// 忽略错误
+		log.Println("更新系统消息状态失败:", err)
+	}
+	return nil
+}
+
+func (s *ContactService) FriendDelete(contactID string) error {
+	_, err := vars.RobotRuntime.FriendDelete(contactID)
+	if err != nil {
+		log.Printf("删除好友失败: %v", err)
+		return err
+	}
+	return s.DeleteContactByContactID(contactID)
 }
 
 func (s *ContactService) GetContactType(contact model.Contact) model.ContactType {

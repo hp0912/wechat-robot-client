@@ -57,15 +57,20 @@ func RegisterRouter(r *gin.Engine) error {
 	api := r.Group("/api/v1")
 	api.POST("/probe", probeCtl.Probe)
 
+	// 登录相关接口
 	api.GET("/robot/is-running", loginCtl.IsRunning)
 	api.GET("/robot/is-loggedin", loginCtl.IsLoggedIn)
 	api.POST("/robot/login", loginCtl.Login)
 	api.POST("/robot/login/check", loginCtl.LoginCheck)
 	api.DELETE("/robot/logout", loginCtl.Logout)
 
+	// 联系人相关接口
 	api.GET("/robot/contacts", contactCtl.GetContacts)
+	api.POST("/robot/contact/friend/pass-verify", contactCtl.FriendPassVerify)
 	api.POST("/robot/contacts/sync", contactCtl.SyncContact)
+	api.DELETE("/robot/contact/friend", contactCtl.FriendDelete)
 
+	// 群聊相关接口
 	api.POST("/robot/chat-room/members/sync", chatRoomCtl.SyncChatRoomMember)
 	api.POST("/robot/chat-room/join", chatRoomCtl.GroupConsentToJoin)
 	api.GET("/robot/chat-room/members", chatRoomCtl.GetChatRoomMembers)

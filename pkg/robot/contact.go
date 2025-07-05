@@ -133,3 +133,20 @@ type GetContactDetailRequest struct {
 	Towxids  string `json:"Towxids"`
 	ChatRoom string `json:"ChatRoom"`
 }
+
+type FriendPassVerifyRequest struct {
+	Wxid  string `json:"Wxid"`
+	Scene int    `json:"Scene"`
+	V1    string `json:"V1"`
+	V2    string `json:"V2"`
+}
+
+type VerifyUserResponse struct {
+	BaseResponse *BaseResponse `json:"BaseResponse,omitempty"`
+	Username     *string       `json:"Username,omitempty"`
+}
+
+type FriendDeleteRequest struct {
+	Wxid   string `json:"Wxid"`
+	ToWxid string `json:"ToWxid"`
+}

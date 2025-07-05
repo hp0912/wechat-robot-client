@@ -30,6 +30,8 @@ const (
 
 	FriendGetContactList   = "/Friend/GetContractList"
 	FriendGetContactDetail = "/Friend/GetContractDetail"
+	FriendPassVerify       = "/Friend/PassVerify"
+	FriendDelete           = "/Friend/Delete"
 
 	GroupConsentToJoin           = "/Group/ConsentToJoin"
 	GroupGetChatRoomMemberDetail = "/Group/GetChatRoomMemberDetail"
