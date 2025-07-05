@@ -218,6 +218,15 @@ func (s *MessageService) ProcessRecalledMessage(message *model.Message, msgXml r
 		err = s.msgRespo.Update(oldMsg)
 		if err != nil {
 			log.Printf("标记撤回消息失败: %v", err)
+		} else {
+			if message.ID > 0 {
+				// 消息已经没什么用了，删除掉
+				err := s.msgRespo.Delete(message)
+				if err != nil {
+					log.Printf("删除消息失败: %v", err)
+					return
+				}
+			}
 		}
 		return
 	}
