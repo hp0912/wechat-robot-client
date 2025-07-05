@@ -130,7 +130,7 @@ func (s *MessageService) ProcessAppMessage(message *model.Message) {
 			log.Printf("解析应用消息失败: %v", err)
 			return
 		}
-		if xmlMessage.AppMsg.Title == "邀请你加入群聊" {
+		if xmlMessage.AppMsg.Title == "邀请你加入群聊" || xmlMessage.AppMsg.Title == "Group Chat Invitation" {
 			now := time.Now().Unix()
 			err := s.sysmsgRespo.Create(&model.SystemMessage{
 				MsgID:       message.MsgId,
