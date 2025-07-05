@@ -29,22 +29,24 @@ var (
 )
 
 type ChatRoomService struct {
-	ctx      context.Context
-	msgRespo *repository.Message
-	ctRespo  *repository.Contact
-	gsRespo  *repository.GlobalSettings
-	crsRespo *repository.ChatRoomSettings
-	crmRespo *repository.ChatRoomMember
+	ctx         context.Context
+	msgRespo    *repository.Message
+	ctRespo     *repository.Contact
+	gsRespo     *repository.GlobalSettings
+	crsRespo    *repository.ChatRoomSettings
+	crmRespo    *repository.ChatRoomMember
+	sysmsgRespo *repository.SystemMessage
 }
 
 func NewChatRoomService(ctx context.Context) *ChatRoomService {
 	return &ChatRoomService{
-		ctx:      ctx,
-		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
-		ctRespo:  repository.NewContactRepo(ctx, vars.DB),
-		gsRespo:  repository.NewGlobalSettingsRepo(ctx, vars.DB),
-		crsRespo: repository.NewChatRoomSettingsRepo(ctx, vars.DB),
-		crmRespo: repository.NewChatRoomMemberRepo(ctx, vars.DB),
+		ctx:         ctx,
+		msgRespo:    repository.NewMessageRepo(ctx, vars.DB),
+		ctRespo:     repository.NewContactRepo(ctx, vars.DB),
+		gsRespo:     repository.NewGlobalSettingsRepo(ctx, vars.DB),
+		crsRespo:    repository.NewChatRoomSettingsRepo(ctx, vars.DB),
+		crmRespo:    repository.NewChatRoomMemberRepo(ctx, vars.DB),
+		sysmsgRespo: repository.NewSystemMessageRepo(ctx, vars.DB),
 	}
 }
 
@@ -196,8 +198,42 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 	}
 }
 
-func (s *ChatRoomService) GroupConsentToJoin(url string) (string, error) {
-	return vars.RobotRuntime.GroupConsentToJoin(url)
+func (s *ChatRoomService) GroupConsentToJoin(systemMessageID int64) error {
+	systemMessage, err := s.sysmsgRespo.GetByID(systemMessageID)
+	if err != nil {
+		return err
+	}
+	if systemMessage == nil {
+		return fmt.Errorf("系统消息不存在: %d", systemMessageID)
+	}
+	if systemMessage.Type != model.SystemMessageTypeJoinChatRoom {
+		return fmt.Errorf("系统消息类型错误: %d", systemMessage.Type)
+	}
+	var xmlMessage robot.XmlMessage
+	err = vars.RobotRuntime.XmlDecoder(systemMessage.Content, &xmlMessage)
+	if err != nil {
+		return fmt.Errorf("解析邀请入群请求消息失败: %v", err)
+	}
+	chatRoomID, err := vars.RobotRuntime.GroupConsentToJoin(xmlMessage.AppMsg.URL)
+	if err != nil {
+		return err
+	}
+	if chatRoomID == "" {
+		return fmt.Errorf("加入群聊失败: %s，接口返回了空", systemMessage.FromWxid)
+	}
+	err = s.sysmsgRespo.Update(&model.SystemMessage{
+		ID:     systemMessage.ID,
+		IsRead: true,
+		Status: 1,
+	})
+	if err != nil {
+		// 忽略错误
+		log.Println("更新系统消息状态失败:", err)
+	}
+
+	NewContactService(s.ctx).DebounceSyncContact(chatRoomID)
+
+	return nil
 }
 
 func (s *ChatRoomService) GroupSetChatRoomName(chatRoomID, content string) error {

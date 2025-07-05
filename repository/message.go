@@ -280,3 +280,7 @@ func (m *Message) Create(data *model.Message) error {
 func (m *Message) Update(data *model.Message) error {
 	return m.DB.WithContext(m.Ctx).Where("id = ?", data.ID).Updates(data).Error
 }
+
+func (c *Message) Delete(data *model.Message) error {
+	return c.DB.WithContext(c.Ctx).Unscoped().Delete(data).Error
+}

@@ -863,6 +863,15 @@ func (r *Robot) GetContactDetail(requestWxids []string) ([]Contact, error) {
 	return r.Client.GetContactDetail(r.WxID, requestWxids)
 }
 
+func (r *Robot) FriendPassVerify(req FriendPassVerifyRequest) (VerifyUserResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendPassVerify(req)
+}
+
+func (r *Robot) FriendDelete(ToWxid string) (OplogResponse, error) {
+	return r.Client.FriendDelete(r.WxID, ToWxid)
+}
+
 func (r *Robot) GroupConsentToJoin(Url string) (string, error) {
 	return r.Client.GroupConsentToJoin(r.WxID, Url)
 }

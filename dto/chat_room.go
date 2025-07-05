@@ -28,7 +28,7 @@ type DelChatRoomMemberRequest struct {
 }
 
 type GroupConsentToJoinRequest struct {
-	URL string `form:"url" json:"url" binding:"required"`
+	SystemMessageID int64 `form:"system_message_id" json:"system_message_id"`
 }
 
 // ChatRoomSummary 群动态

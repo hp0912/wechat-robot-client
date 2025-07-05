@@ -441,6 +441,33 @@ func (c *Client) GetContactDetail(wxid string, towxids []string) (contactList []
 	return
 }
 
+func (c *Client) FriendPassVerify(req FriendPassVerifyRequest) (verifyUserResponse VerifyUserResponse, err error) {
+	var result ClientResponse[VerifyUserResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendPassVerify))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	verifyUserResponse = result.Data
+	return
+}
+
+func (c *Client) FriendDelete(Wxid, ToWxid string) (oplogResponse OplogResponse, err error) {
+	var result ClientResponse[OplogResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(FriendDeleteRequest{
+			Wxid:   Wxid,
+			ToWxid: ToWxid,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendDelete))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	oplogResponse = result.Data
+	return
+}
+
 func (c *Client) CdnDownloadImg(wxid, aeskey, cdnmidimgurl string) (imgbase64 string, err error) {
 	var result ClientResponse[DownloadImageDetail]
 	_, err = c.client.R().
