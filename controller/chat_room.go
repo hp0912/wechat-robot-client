@@ -44,6 +44,36 @@ func (cr *ChatRoom) GetChatRoomMembers(c *gin.Context) {
 	resp.ToResponseList(list, total)
 }
 
+func (cr *ChatRoom) GetNotLeftMembers(c *gin.Context) {
+	var req dto.ChatRoomMemberRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	list, err := service.NewChatRoomService(c).GetNotLeftMembers(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(list)
+}
+
+func (cr *ChatRoom) InviteChatRoomMember(c *gin.Context) {
+	var req dto.InviteChatRoomMemberRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	err := service.NewChatRoomService(c).InviteChatRoomMember(req.ChatRoomID, req.ContactIDs)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
+
 func (cr *ChatRoom) GroupConsentToJoin(c *gin.Context) {
 	var req dto.GroupConsentToJoinRequest
 	resp := appx.NewResponse(c)

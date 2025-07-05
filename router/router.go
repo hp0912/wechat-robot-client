@@ -72,8 +72,10 @@ func RegisterRouter(r *gin.Engine) error {
 
 	// 群聊相关接口
 	api.POST("/robot/chat-room/members/sync", chatRoomCtl.SyncChatRoomMember)
-	api.POST("/robot/chat-room/join", chatRoomCtl.GroupConsentToJoin)
 	api.GET("/robot/chat-room/members", chatRoomCtl.GetChatRoomMembers)
+	api.GET("/robot/chat-room/not-left-members", chatRoomCtl.GetNotLeftMembers)
+	api.POST("/robot/chat-room/invite", chatRoomCtl.InviteChatRoomMember)
+	api.POST("/robot/chat-room/join", chatRoomCtl.GroupConsentToJoin)
 	api.POST("/robot/chat-room/name", chatRoomCtl.GroupSetChatRoomName)
 	api.POST("/robot/chat-room/remark", chatRoomCtl.GroupSetChatRoomRemarks)
 	api.POST("/robot/chat-room/announcement", chatRoomCtl.GroupSetChatRoomAnnouncement)

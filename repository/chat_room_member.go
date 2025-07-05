@@ -40,6 +40,19 @@ func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager ap
 	return chatRoomMembers, total, nil
 }
 
+func (c *ChatRoomMember) GetNotLeftMemberByChatRoomID(req dto.ChatRoomMemberRequest) ([]*model.ChatRoomMember, error) {
+	var chatRoomMembers []*model.ChatRoomMember
+	query := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{})
+	query = query.Where("chat_room_id = ? AND is_leaved = 0", req.ChatRoomID)
+	if req.Keyword != "" {
+		query = query.Where("nickname LIKE ?", "%"+req.Keyword+"%").Or("remark LIKE ?", "%"+req.Keyword+"%")
+	}
+	if err := query.Find(&chatRoomMembers).Error; err != nil {
+		return nil, err
+	}
+	return chatRoomMembers, nil
+}
+
 func (c *ChatRoomMember) GetChatRoomMember(chatRoomID, wechatID string) (*model.ChatRoomMember, error) {
 	var chatRoomMember model.ChatRoomMember
 	err := c.DB.WithContext(c.Ctx).Where("chat_room_id = ? AND wechat_id = ?", chatRoomID, wechatID).First(&chatRoomMember).Error

@@ -872,6 +872,16 @@ func (r *Robot) FriendDelete(ToWxid string) (OplogResponse, error) {
 	return r.Client.FriendDelete(r.WxID, ToWxid)
 }
 
+func (r *Robot) GroupAddChatRoomMember(chatRoomName string, contactIDs []string) error {
+	_, err := r.Client.GroupAddChatRoomMember(r.WxID, chatRoomName, contactIDs)
+	return err
+}
+
+func (r *Robot) GroupInviteChatRoomMember(chatRoomName string, contactIDs []string) error {
+	_, err := r.Client.GroupInviteChatRoomMember(r.WxID, chatRoomName, contactIDs)
+	return err
+}
+
 func (r *Robot) GroupConsentToJoin(Url string) (string, error) {
 	return r.Client.GroupConsentToJoin(r.WxID, Url)
 }

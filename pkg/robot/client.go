@@ -520,6 +520,44 @@ func (c *Client) DownloadFile(req DownloadFileRequest) (filebase64 string, err e
 	return
 }
 
+func (c *Client) GroupAddChatRoomMember(wxid, chatRoomName string, contactIDs []string) (memberResp InviteChatRoomMemberResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[InviteChatRoomMemberResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(InviteChatRoomMemberRequest{
+			Wxid:         wxid,
+			ChatRoomName: chatRoomName,
+			ToWxids:      strings.Join(contactIDs, ","),
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupAddChatRoomMember))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	memberResp = result.Data
+	return
+}
+
+func (c *Client) GroupInviteChatRoomMember(wxid, chatRoomName string, contactIDs []string) (memberResp InviteChatRoomMemberResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[InviteChatRoomMemberResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(InviteChatRoomMemberRequest{
+			Wxid:         wxid,
+			ChatRoomName: chatRoomName,
+			ToWxids:      strings.Join(contactIDs, ","),
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupInviteChatRoomMember))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	memberResp = result.Data
+	return
+}
+
 func (c *Client) GroupConsentToJoin(wxid, Url string) (QID string, err error) {
 	if err = c.limiter.Wait(context.Background()); err != nil {
 		return

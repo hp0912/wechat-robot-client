@@ -60,6 +60,15 @@ func (respo *Contact) GetByWechatID(wechatID string) (*model.Contact, error) {
 	return &contact, nil
 }
 
+func (respo *Contact) GetFriendsByWechatIDs(wechatIDs []string) ([]*model.Contact, error) {
+	var contacts []*model.Contact
+	err := respo.DB.WithContext(respo.Ctx).Where("wechat_id IN (?)", wechatIDs).Find(&contacts).Error
+	if err != nil {
+		return nil, err
+	}
+	return contacts, nil
+}
+
 func (c *Contact) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
 	var contacts []*model.Contact
 	var total int64
