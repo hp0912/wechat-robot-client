@@ -198,6 +198,10 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 	}
 }
 
+func (s *ChatRoomService) InviteChatRoomMember(chatRoomID string, contactIDs []string) error {
+	return nil
+}
+
 func (s *ChatRoomService) GroupConsentToJoin(systemMessageID int64) error {
 	systemMessage, err := s.sysmsgRespo.GetByID(systemMessageID)
 	if err != nil {
@@ -347,6 +351,10 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 
 func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
 	return s.crmRespo.GetByChatRoomID(req, pager)
+}
+
+func (s *ChatRoomService) GetNotLeftMembers(req dto.ChatRoomMemberRequest) ([]*model.ChatRoomMember, error) {
+	return s.crmRespo.GetNotLeftMemberByChatRoomID(req)
 }
 
 func (s *ChatRoomService) GetChatRoomMemberCount(chatRoomID string) (int64, error) {
