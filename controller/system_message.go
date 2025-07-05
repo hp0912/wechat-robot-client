@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"errors"
+	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
 
@@ -21,4 +23,18 @@ func (m *SystemMessage) GetRecentMonthMessages(c *gin.Context) {
 		return
 	}
 	resp.ToResponse(data)
+}
+
+func (m *SystemMessage) MarkAsReadBatch(c *gin.Context) {
+	var req dto.MarkAsReadBatchRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	if err := service.NewSystemMessageService(c).MarkAsReadBatch(req.IDs); err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
 }

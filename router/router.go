@@ -89,7 +89,9 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/message/send/voice", messageCtl.SendVoiceMessage)
 	api.POST("/robot/message/send/music", messageCtl.SendMusicMessage)
 
+	// 系统消息相关接口
 	api.GET("/robot/system-messages", systemMessageCtl.GetRecentMonthMessages)
+	api.POST("/robot/system-messages/mark-as-read", systemMessageCtl.MarkAsReadBatch)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)

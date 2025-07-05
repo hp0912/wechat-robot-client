@@ -64,6 +64,14 @@ func (respo *SystemMessage) MarkAsRead(id int64) error {
 	return respo.DB.WithContext(respo.Ctx).Model(&model.SystemMessage{}).Where("id = ?", id).Update("is_read", true).Error
 }
 
+// MarkAsReadBatch 批量标记为已读
+func (respo *SystemMessage) MarkAsReadBatch(ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	return respo.DB.WithContext(respo.Ctx).Model(&model.SystemMessage{}).Where("id IN ?", ids).Update("is_read", true).Error
+}
+
 func (respo *SystemMessage) Create(data *model.SystemMessage) error {
 	return respo.DB.WithContext(respo.Ctx).Create(data).Error
 }
