@@ -199,7 +199,47 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 }
 
 func (s *ChatRoomService) InviteChatRoomMember(chatRoomID string, contactIDs []string) error {
-	return nil
+	if len(contactIDs) == 0 {
+		return fmt.Errorf("无效的联系人ID")
+	}
+	// 重新获取一下群成员
+	contacts, err := s.ctRespo.GetFriendsByWechatIDs(contactIDs)
+	if err != nil {
+		return err
+	}
+	var currentContactIDs []string
+	for _, contact := range contacts {
+		currentContactIDs = append(currentContactIDs, contact.WechatID)
+	}
+	// 当前群成员
+	currentMembers, err := s.GetNotLeftMembers(dto.ChatRoomMemberRequest{ChatRoomID: chatRoomID})
+	if err != nil {
+		return err
+	}
+	// 过滤掉已经在群里的成员
+	var newMembers []string
+	var currentMemberSet = make(map[string]bool, len(currentMembers))
+	for _, member := range currentMembers {
+		currentMemberSet[member.WechatID] = true
+	}
+	for _, contactID := range currentContactIDs {
+		if !currentMemberSet[contactID] {
+			if strings.HasSuffix(contactID, "@chatroom") {
+				return fmt.Errorf("参数异常: %s", contactID)
+			}
+			newMembers = append(newMembers, contactID)
+		}
+	}
+	if len(newMembers) == 0 {
+		return fmt.Errorf("所有联系人都已在群中")
+	}
+	if len(currentMembers)+len(newMembers) > 500 {
+		return fmt.Errorf("群成员数量超过上限")
+	}
+	if len(currentMembers) <= 40 {
+		return vars.RobotRuntime.GroupAddChatRoomMember(chatRoomID, newMembers)
+	}
+	return vars.RobotRuntime.GroupInviteChatRoomMember(chatRoomID, newMembers)
 }
 
 func (s *ChatRoomService) GroupConsentToJoin(systemMessageID int64) error {
