@@ -26,7 +26,7 @@
 
 - 公共服务
 
-  - 公众号认证服务: [https://github.com/hp0912/wechat-server](https://github.com/hp0912/wechat-server) fork的项目，微信公众号的后端，为其他系统提供微信登录验证功能
+  - 公众号认证服务: [https://github.com/hp0912/wechat-server](https://github.com/hp0912/wechat-server) fork的项目，微信公众号的后端，为管理后台(以及其他系统)提供微信登录验证功能
 
   - 词云服务: [https://github.com/hp0912/word-cloud-server](https://github.com/hp0912/word-cloud-server) golang写的词云效果不太好，用python写了一个单独的服务
 
@@ -59,6 +59,10 @@
 - 收藏夹 (待开发)
 
 - 朋友圈，自动评论、点赞 (待开发)
+
+- 手动通过好友验证(已实现)，自动通过好友验证(待开发)
+
+- 手动同意进入群聊(已实现)，自动同意进入群聊(待开发)
 
 ## 使用方式
 
