@@ -33,6 +33,7 @@ const (
 	FriendPassVerify       = "/Friend/PassVerify"
 	FriendDelete           = "/Friend/Delete"
 
+	GroupCreateChatRoom          = "/Group/CreateChatRoom"
 	GroupAddChatRoomMember       = "/Group/AddChatRoomMember"
 	GroupInviteChatRoomMember    = "/Group/InviteChatRoomMember"
 	GroupConsentToJoin           = "/Group/ConsentToJoin"

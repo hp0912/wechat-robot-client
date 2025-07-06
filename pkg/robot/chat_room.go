@@ -55,6 +55,11 @@ type ConsentToJoinRequest struct {
 	Url  string `json:"Url"`
 }
 
+type CreateChatRoomRequest struct {
+	Wxid    string `json:"Wxid"`
+	ToWxids string `json:"ToWxids"`
+}
+
 type InviteChatRoomMemberRequest struct {
 	Wxid         string `json:"Wxid"`
 	ChatRoomName string `json:"ChatRoomName"`
@@ -65,6 +70,19 @@ type InviteChatRoomMemberResponse struct {
 	BaseResponse *BaseResponse `json:"baseResponse,omitempty"`
 	MemberCount  *uint32       `json:"MemberCount,omitempty"`
 	MemberList   []*MemberResp `json:"MemberList,omitempty"`
+}
+
+type CreateChatRoomResponse struct {
+	BaseResponse    *BaseResponse     `json:"baseResponse,omitempty"`
+	Topic           *SKBuiltinStringT `json:"Topic,omitempty"`
+	Pyinitial       *SKBuiltinStringT `json:"Pyinitial,omitempty"`
+	QuanPin         *SKBuiltinStringT `json:"QuanPin,omitempty"`
+	MemberCount     *uint32           `json:"MemberCount,omitempty"`
+	MemberLis       []*MemberResp     `json:"MemberLis,omitempty"`
+	ChatRoomName    *SKBuiltinStringT `json:"ChatRoomName,omitempty"`
+	ImgBuf          *SKBuiltinBufferT `json:"ImgBuf,omitempty"`
+	BigHeadImgUrl   *string           `json:"BigHeadImgUrl,omitempty"`
+	SmallHeadImgUrl *string           `json:"SmallHeadImgUrl,omitempty"`
 }
 
 type MemberResp struct {

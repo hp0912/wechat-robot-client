@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -196,6 +197,18 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 			}
 		}
 	}
+}
+
+func (s *ChatRoomService) CreateChatRoom(contactIDs []string) error {
+	chatRoom, err := vars.RobotRuntime.CreateChatRoom(contactIDs)
+	if err != nil {
+		return err
+	}
+	if chatRoom.ChatRoomName == nil || chatRoom.ChatRoomName.String == nil || *chatRoom.ChatRoomName.String == "" {
+		return errors.New("创建群聊失败，返回了空群聊名称")
+	}
+	NewContactService(s.ctx).DebounceSyncContact(*chatRoom.ChatRoomName.String)
+	return nil
 }
 
 func (s *ChatRoomService) InviteChatRoomMember(chatRoomID string, contactIDs []string) error {

@@ -41,7 +41,7 @@ type Contact struct {
 	ChatRoomBusinessType  int                   `json:"chatRoomBusinessType"`
 	ChatRoomData          string                `json:"ChatRoomData"`
 	ChatRoomNotify        int                   `json:"ChatRoomNotify"`
-	ChatRoomOwner         string                `json:"ChatRoomOwner"`
+	ChatRoomOwner         *string               `json:"ChatRoomOwner"`
 	ChatroomAccessType    int                   `json:"ChatroomAccessType"`
 	ChatroomInfoVersion   int                   `json:"ChatroomInfoVersion"`
 	ChatroomMaxCount      int                   `json:"ChatroomMaxCount"`
