@@ -66,6 +66,10 @@ func RegisterRouter(r *gin.Engine) error {
 
 	// 联系人相关接口
 	api.GET("/robot/contacts", contactCtl.GetContacts)
+	api.POST("/robot/contact/friend/search", contactCtl.FriendSearch)
+	api.POST("/robot/contact/friend/add", contactCtl.FriendSendRequest)
+	api.POST("/robot/contact/friend/add-from-chat-room", contactCtl.FriendSendRequestFromChatRoom)
+	api.POST("/robot/contact/friend/remark", contactCtl.FriendSetRemarks)
 	api.POST("/robot/contact/friend/pass-verify", contactCtl.FriendPassVerify)
 	api.POST("/robot/contacts/sync", contactCtl.SyncContact)
 	api.DELETE("/robot/contact/friend", contactCtl.FriendDelete)

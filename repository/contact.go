@@ -35,7 +35,7 @@ func (c *Contact) GetContact(wechatID string) (*model.Contact, error) {
 }
 
 func (c *Contact) DeleteByWeChatIDNotIn(wechatIDs []string) error {
-	return c.DB.WithContext(c.Ctx).Where("wechat_id NOT IN (?)", wechatIDs).Delete(&model.Contact{}).Error
+	return c.DB.WithContext(c.Ctx).Unscoped().Where("wechat_id NOT IN (?)", wechatIDs).Delete(&model.Contact{}).Error
 }
 
 func (c *Contact) FindRecentChatRoomContacts() ([]*model.Contact, error) {

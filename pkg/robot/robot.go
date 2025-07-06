@@ -856,12 +856,30 @@ func (r *Robot) Heartbeat() error {
 	return r.Client.Heartbeat(r.WxID)
 }
 
+func (r *Robot) FriendGetFriendstate(username string) (MMBizJsApiGetUserOpenIdResponse, error) {
+	return r.Client.FriendGetFriendstate(r.WxID, username)
+}
+
+func (r *Robot) FriendSearch(req FriendSearchRequest) (SearchContactResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendSearch(req)
+}
+
+func (r *Robot) FriendSendRequest(req FriendSendRequestParam) (VerifyUserResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendSendRequest(req)
+}
+
+func (r *Robot) FriendSetRemarks(toWxid, remarks string) (OplogResponse, error) {
+	return r.Client.FriendSetRemarks(r.WxID, toWxid, remarks)
+}
+
 func (r *Robot) GetContactList() ([]string, error) {
 	return r.Client.GetContactList(r.WxID)
 }
 
-func (r *Robot) GetContactDetail(requestWxids []string) ([]Contact, error) {
-	return r.Client.GetContactDetail(r.WxID, requestWxids)
+func (r *Robot) GetContactDetail(chatRoomID string, requestWxids []string) (GetContactResponse, error) {
+	return r.Client.GetContactDetail(r.WxID, chatRoomID, requestWxids)
 }
 
 func (r *Robot) FriendPassVerify(req FriendPassVerifyRequest) (VerifyUserResponse, error) {

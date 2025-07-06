@@ -22,6 +22,18 @@ func NewChatRoomMemberRepo(ctx context.Context, db *gorm.DB) *ChatRoomMember {
 	}
 }
 
+func (c *ChatRoomMember) GetByID(id int64) (*model.ChatRoomMember, error) {
+	var chatRoomMember model.ChatRoomMember
+	err := c.DB.WithContext(c.Ctx).Where("id = ?", id).First(&chatRoomMember).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &chatRoomMember, nil
+}
+
 func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
 	var chatRoomMembers []*model.ChatRoomMember
 	var total int64

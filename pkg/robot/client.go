@@ -405,6 +405,91 @@ func (c *Client) SendCDNVideo(req SendCDNAttachmentRequest) (cdnVideoMessage Sen
 	return
 }
 
+func (c *Client) FriendGetFriendstate(Wxid, UserName string) (resp MMBizJsApiGetUserOpenIdResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[MMBizJsApiGetUserOpenIdResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(map[string]string{
+			"Wxid":     Wxid,
+			"UserName": UserName,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendGetFriendstate))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	if result.Data.BaseResponse != nil && result.Data.BaseResponse.Ret != 0 {
+		if result.Data.BaseResponse.ErrMsg != nil && result.Data.BaseResponse.ErrMsg.String != nil && *result.Data.BaseResponse.ErrMsg.String != "" {
+			err = fmt.Errorf("查询好友状态失败: %s", *result.Data.BaseResponse.ErrMsg.String)
+			return
+		}
+	}
+	resp = result.Data
+	return
+}
+
+func (c *Client) FriendSearch(req FriendSearchRequest) (resp SearchContactResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[SearchContactResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendSearch))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	if result.Data.BaseResponse != nil && result.Data.BaseResponse.Ret != 0 {
+		if result.Data.BaseResponse.ErrMsg != nil && result.Data.BaseResponse.ErrMsg.String != nil && *result.Data.BaseResponse.ErrMsg.String != "" {
+			err = fmt.Errorf("搜索联系人失败: %s", *result.Data.BaseResponse.ErrMsg.String)
+			return
+		}
+	}
+	resp = result.Data
+	return
+}
+
+func (c *Client) FriendSendRequest(req FriendSendRequestParam) (resp VerifyUserResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[VerifyUserResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendSendRequest))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	if result.Data.BaseResponse != nil && result.Data.BaseResponse.Ret != 0 {
+		if result.Data.BaseResponse.ErrMsg != nil && result.Data.BaseResponse.ErrMsg.String != nil && *result.Data.BaseResponse.ErrMsg.String != "" {
+			err = fmt.Errorf("发送好友请求失败: %s", *result.Data.BaseResponse.ErrMsg.String)
+			return
+		}
+	}
+	resp = result.Data
+	return
+}
+
+func (c *Client) FriendSetRemarks(wxid, toWxid, remarks string) (resp OplogResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[OplogResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(FriendSetRemarksRequest{
+			Wxid:    wxid,
+			ToWxid:  toWxid,
+			Remarks: remarks,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendSetRemarks))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	var result ClientResponse[GetContactListResponse]
 	_, err = c.client.R().
@@ -421,7 +506,7 @@ func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	return
 }
 
-func (c *Client) GetContactDetail(wxid string, towxids []string) (contactList []Contact, err error) {
+func (c *Client) GetContactDetail(wxid, chatRoomID string, towxids []string) (resp GetContactResponse, err error) {
 	if len(towxids) > 20 {
 		err = errors.New("一次最多查询20个联系人")
 		return
@@ -432,12 +517,12 @@ func (c *Client) GetContactDetail(wxid string, towxids []string) (contactList []
 		SetBody(GetContactDetailRequest{
 			Wxid:     wxid,
 			Towxids:  strings.Join(towxids, ","),
-			ChatRoom: "",
+			ChatRoom: chatRoomID,
 		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendGetContactDetail))
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	contactList = result.Data.ContactList
+	resp = result.Data
 	return
 }
 
@@ -448,6 +533,12 @@ func (c *Client) FriendPassVerify(req FriendPassVerifyRequest) (verifyUserRespon
 		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendPassVerify))
 	if err = result.CheckError(err); err != nil {
 		return
+	}
+	if result.Data.BaseResponse != nil && result.Data.BaseResponse.Ret != 0 {
+		if result.Data.BaseResponse.ErrMsg != nil && result.Data.BaseResponse.ErrMsg.String != nil && *result.Data.BaseResponse.ErrMsg.String != "" {
+			err = fmt.Errorf("通过好友验证失败: %s", *result.Data.BaseResponse.ErrMsg.String)
+			return
+		}
 	}
 	verifyUserResponse = result.Data
 	return

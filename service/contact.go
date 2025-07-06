@@ -28,6 +28,7 @@ var (
 type ContactService struct {
 	ctx         context.Context
 	ctRespo     *repository.Contact
+	crmRespo    *repository.ChatRoomMember
 	sysmsgRespo *repository.SystemMessage
 }
 
@@ -35,8 +36,94 @@ func NewContactService(ctx context.Context) *ContactService {
 	return &ContactService{
 		ctx:         ctx,
 		ctRespo:     repository.NewContactRepo(ctx, vars.DB),
+		crmRespo:    repository.NewChatRoomMemberRepo(ctx, vars.DB),
 		sysmsgRespo: repository.NewSystemMessageRepo(ctx, vars.DB),
 	}
+}
+
+func (s *ContactService) FriendSearch(req dto.FriendSearchRequest) (dto.FriendSearchResponse, error) {
+	friend, err := vars.RobotRuntime.FriendSearch(robot.FriendSearchRequest{
+		ToUserName:  req.ToUserName,
+		FromScene:   0,
+		SearchScene: 1,
+	})
+	if err != nil {
+		return dto.FriendSearchResponse{}, err
+	}
+	if friend.UserName == nil || friend.UserName.String == nil || *friend.UserName.String == "" {
+		return dto.FriendSearchResponse{}, fmt.Errorf("用户不存在")
+	}
+	if friend.AntispamTicket == nil || *friend.AntispamTicket == "" {
+		return dto.FriendSearchResponse{}, fmt.Errorf("搜索用户失败，可能你们已经是好友了")
+	}
+	resp := dto.FriendSearchResponse{
+		UserName:       *friend.UserName.String,
+		NickName:       *friend.NickName.String,
+		Avatar:         *friend.BigHeadImgUrl,
+		AntispamTicket: *friend.AntispamTicket,
+	}
+	if friend.BigHeadImgUrl != nil && *friend.BigHeadImgUrl != "" {
+		resp.Avatar = *friend.BigHeadImgUrl
+	} else if friend.SmallHeadImgUrl != nil && *friend.SmallHeadImgUrl != "" {
+		resp.Avatar = *friend.SmallHeadImgUrl
+	}
+	return resp, nil
+}
+
+func (s *ContactService) FriendSendRequest(req dto.FriendSendRequestRequest) error {
+	_, err := vars.RobotRuntime.FriendSendRequest(robot.FriendSendRequestParam{
+		Opcode:        2,
+		V1:            req.V1,
+		V2:            req.V2,
+		VerifyContent: req.VerifyContent,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ContactService) FriendSendRequestFromChatRoom(req dto.FriendSendRequestFromChatRoomRequest) error {
+	chatRoomMember, err := s.crmRespo.GetByID(req.ChatRoomMemberID)
+	if err != nil {
+		return fmt.Errorf("获取群成员信息失败: %v", err)
+	}
+	if chatRoomMember == nil {
+		return fmt.Errorf("群成员不存在: %d", req.ChatRoomMemberID)
+	}
+	contact, err := s.ctRespo.GetContact(chatRoomMember.WechatID)
+	if err != nil {
+		return fmt.Errorf("获取联系人信息失败: %v", err)
+	}
+	if contact != nil {
+		return fmt.Errorf("你们已经是好友了: %s", contact.WechatID)
+	}
+	c, err := vars.RobotRuntime.GetContactDetail(chatRoomMember.ChatRoomID, []string{chatRoomMember.WechatID})
+	if err != nil {
+		return fmt.Errorf("获取联系人详情失败: %v", err)
+	}
+	if len(c.Ticket) == 0 || c.Ticket[0].AntispamTicket == nil || *c.Ticket[0].AntispamTicket == "" {
+		return fmt.Errorf("获取联系人密钥失败: %s", chatRoomMember.WechatID)
+	}
+	_, err = vars.RobotRuntime.FriendSendRequest(robot.FriendSendRequestParam{
+		Opcode:        2,
+		Scene:         14,
+		V1:            *c.Ticket[0].Username,
+		V2:            *c.Ticket[0].AntispamTicket,
+		VerifyContent: req.VerifyContent,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ContactService) FriendSetRemarks(req dto.FriendSetRemarksRequest) error {
+	_, err := vars.RobotRuntime.FriendSetRemarks(req.ToWxid, req.Remarks)
+	if err != nil {
+		return err
+	}
+	return s.ctRespo.UpdateRemarkByContactID(req.ToWxid, req.Remarks)
 }
 
 func (s *ContactService) FriendPassVerify(systemMessageID int64) error {
@@ -173,14 +260,13 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 	chunker := slices.Chunk(contactIDs, 20)
 	processChunk := func(chunk []string) bool {
 		// 获取昵称等详细信息
-		var c = make([]robot.Contact, 0)
-		c, err := vars.RobotRuntime.GetContactDetail(chunk)
+		r, err := vars.RobotRuntime.GetContactDetail("", chunk)
 		if err != nil {
 			// 处理错误
 			log.Printf("获取联系人详情失败: %v", err)
 			return true
 		}
-		contacts = append(contacts, c...)
+		contacts = append(contacts, r.ContactList...)
 		return true
 	}
 	chunker(processChunk)

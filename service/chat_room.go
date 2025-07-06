@@ -336,14 +336,14 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 	chunker := slices.Chunk(memberWeChatIDs, 20)
 	processChunk := func(chunk []string) bool {
 		// 获取昵称等详细信息
-		var c = make([]robot.Contact, 0)
-		c, err := vars.RobotRuntime.GetContactDetail(chunk)
+		var r robot.GetContactResponse
+		r, err := vars.RobotRuntime.GetContactDetail("", chunk)
 		if err != nil {
 			// 处理错误
 			log.Printf("获取联系人详情失败: %v", err)
 			return true
 		}
-		newMembers = append(newMembers, c...)
+		newMembers = append(newMembers, r.ContactList...)
 		return true
 	}
 	chunker(processChunk)
