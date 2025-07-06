@@ -600,14 +600,14 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 				// 群聊消息，昵称优先取群备注，备注取不到或者取失败了，再去取联系人的昵称
 				chatRoomMember, err := s.crmRespo.GetChatRoomMember(toWxID, wxid)
 				if err != nil || chatRoomMember == nil {
-					contacts, err := vars.RobotRuntime.GetContactDetail([]string{wxid})
-					if err != nil || len(contacts) == 0 {
+					r, err := vars.RobotRuntime.GetContactDetail([]string{wxid})
+					if err != nil || len(r.ContactList) == 0 {
 						continue
 					}
-					if contacts[0].NickName.String == nil {
+					if r.ContactList[0].NickName.String == nil {
 						continue
 					}
-					targetNickname = *contacts[0].NickName.String
+					targetNickname = *r.ContactList[0].NickName.String
 				} else {
 					if chatRoomMember.Remark != "" {
 						targetNickname = chatRoomMember.Remark
@@ -617,14 +617,14 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 				}
 			} else {
 				// 私聊消息
-				contacts, err := vars.RobotRuntime.GetContactDetail([]string{wxid})
-				if err != nil || len(contacts) == 0 {
+				r, err := vars.RobotRuntime.GetContactDetail([]string{wxid})
+				if err != nil || len(r.ContactList) == 0 {
 					continue
 				}
-				if contacts[0].NickName.String == nil {
+				if r.ContactList[0].NickName.String == nil {
 					continue
 				}
-				targetNickname = *contacts[0].NickName.String
+				targetNickname = *r.ContactList[0].NickName.String
 			}
 
 			if targetNickname == "" {

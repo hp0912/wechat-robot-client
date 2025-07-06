@@ -12,17 +12,24 @@ type FriendSearchRequest struct {
 	SearchScene int    `form:"search_scene" json:"search_scene"`
 }
 
+type FriendSearchResponse struct {
+	UserName       string `json:"username"`
+	NickName       string `json:"nickname"`
+	Avatar         string `json:"avatar"`
+	AntispamTicket string `json:"antispam_ticket"`
+}
+
 type FriendSendRequestRequest struct {
 	V1            string `form:"v1" json:"V1" binding:"required"`
-	V2            string `form:"v2" json:"V2" binding:"required"`
+	V2            string `form:"v2" json:"V2"`
 	Opcode        int    `form:"opcode" json:"Opcode"`
 	Scene         int    `form:"scene" json:"Scene"`
-	VerifyContent string `form:"verify_content" json:"VerifyContent"`
+	VerifyContent string `form:"verify_content" json:"verify_content"`
 }
 
 type FriendSendRequestFromChatRoomRequest struct {
 	ChatRoomMemberID string `form:"chat_room_member_id" json:"chat_room_member_id" binding:"required"`
-	VerifyContent    string `form:"verify_content" json:"VerifyContent"`
+	VerifyContent    string `form:"verify_content" json:"verify_content"`
 }
 
 type FriendSetRemarksRequest struct {

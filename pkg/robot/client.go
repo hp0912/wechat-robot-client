@@ -405,7 +405,28 @@ func (c *Client) SendCDNVideo(req SendCDNAttachmentRequest) (cdnVideoMessage Sen
 	return
 }
 
+func (c *Client) FriendGetFriendstate(Wxid, UserName string) (resp MMBizJsApiGetUserOpenIdResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[MMBizJsApiGetUserOpenIdResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(map[string]string{
+			"Wxid":     Wxid,
+			"UserName": UserName,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendGetFriendstate))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
 func (c *Client) FriendSearch(req FriendSearchRequest) (resp SearchContactResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SearchContactResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -418,6 +439,9 @@ func (c *Client) FriendSearch(req FriendSearchRequest) (resp SearchContactRespon
 }
 
 func (c *Client) FriendSendRequest(req FriendSendRequestParam) (resp VerifyUserResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[VerifyUserResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -430,6 +454,9 @@ func (c *Client) FriendSendRequest(req FriendSendRequestParam) (resp VerifyUserR
 }
 
 func (c *Client) FriendSetRemarks(wxid, toWxid, remarks string) (resp OplogResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[OplogResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -461,7 +488,7 @@ func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	return
 }
 
-func (c *Client) GetContactDetail(wxid string, towxids []string) (contactList []Contact, err error) {
+func (c *Client) GetContactDetail(wxid string, towxids []string) (resp GetContactResponse, err error) {
 	if len(towxids) > 20 {
 		err = errors.New("一次最多查询20个联系人")
 		return
@@ -477,7 +504,7 @@ func (c *Client) GetContactDetail(wxid string, towxids []string) (contactList []
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	contactList = result.Data.ContactList
+	resp = result.Data
 	return
 }
 

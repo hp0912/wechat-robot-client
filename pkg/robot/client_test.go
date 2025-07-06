@@ -224,7 +224,7 @@ func TestContacts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("获取联系人详情失败: %v", err)
 	}
-	for _, contact := range contacts {
+	for _, contact := range contacts.ContactList {
 		if contact.UserName.String != nil {
 			t.Logf("联系人: %s   ", *contact.UserName.String)
 		}

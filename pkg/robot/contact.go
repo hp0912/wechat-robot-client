@@ -102,6 +102,18 @@ type DelContact struct {
 	UserName          SKBuiltinStringT `json:"UserName"`
 }
 
+type MMBizJsApiGetUserOpenIdResponse struct {
+	BaseResponse         *BaseResponse `json:"BaseResponse,omitempty"`
+	Openid               *string       `json:"Openid,omitempty"`
+	NickName             *string       `json:"NickName,omitempty"`
+	HeadImgUrl           *string       `json:"HeadImgUrl,omitempty"`
+	Sign                 *string       `json:"Sign,omitempty"`
+	FriendRelation       *uint32       `json:"FriendRelation,omitempty"` // 1//删除 4/自己拉黑 5/被拉黑 0/正常
+	XXX_NoUnkeyedLiteral *string       `json:"XXX_NoUnkeyedLiteral,omitempty"`
+	XXXUnrecognized      *string       `json:"XXX_unrecognized,omitempty"`
+	XXXSizecache         *string       `json:"XXX_sizecache,omitempty"`
+}
+
 type FriendSearchRequest struct {
 	Wxid        string `json:"Wxid"`
 	ToUserName  string `json:"ToUserName"`
@@ -203,8 +215,8 @@ type OpenIMContactCustomInfo struct {
 
 type FriendSendRequestParam struct {
 	Wxid          string `json:"Wxid"`
-	Opcode        int    `json:"Opcode"`
-	Scene         int    `json:"Scene"`
+	Opcode        int    `json:"Opcode"` // 1免验证发送请求, 2发送验证申请, 3通过好友验证
+	Scene         int    `json:"Scene"`  // 1来源QQ，2来源邮箱，3来源微信号，14群聊，15手机号，18附近的人，25漂流瓶，29摇一摇，30二维码，13来源通讯录
 	V1            string `json:"V1"`
 	V2            string `json:"V2"`
 	VerifyContent string `json:"VerifyContent"`
@@ -230,8 +242,8 @@ type GetContactResponse struct {
 	ContactList  []Contact    `json:"ContactList"`
 	Ret          []int        `json:"Ret"`
 	Ticket       []struct {
-		AntispamTicket string `json:"Antispamticket"`
-		Username       string `json:"Username"`
+		AntispamTicket *string `json:"Antispamticket"`
+		Username       *string `json:"Username"`
 	} `json:"Ticket"`
 	SendMsgTicketList [][]int `json:"sendMsgTicketList"`
 }
