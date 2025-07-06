@@ -874,11 +874,11 @@ func (r *Robot) FriendDelete(ToWxid string) (OplogResponse, error) {
 }
 
 func (r *Robot) CreateChatRoom(contactIDs []string) (CreateChatRoomResponse, error) {
-	if !slices.Contains(contactIDs, r.WxID) {
-		contactIDs = append(contactIDs, r.WxID)
+	if slices.Contains(contactIDs, r.WxID) {
+		return CreateChatRoomResponse{}, errors.New("不能将自己添加到群聊中")
 	}
-	if len(contactIDs) < 3 {
-		return CreateChatRoomResponse{}, errors.New("发起群聊至少需要3个成员")
+	if len(contactIDs) < 2 {
+		return CreateChatRoomResponse{}, errors.New("发起群聊至少需要2个成员")
 	}
 	chatRoom, err := r.Client.CreateChatRoom(r.WxID, contactIDs)
 	if err != nil {
