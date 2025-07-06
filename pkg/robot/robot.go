@@ -878,8 +878,8 @@ func (r *Robot) GetContactList() ([]string, error) {
 	return r.Client.GetContactList(r.WxID)
 }
 
-func (r *Robot) GetContactDetail(requestWxids []string) (GetContactResponse, error) {
-	return r.Client.GetContactDetail(r.WxID, requestWxids)
+func (r *Robot) GetContactDetail(chatRoomID string, requestWxids []string) (GetContactResponse, error) {
+	return r.Client.GetContactDetail(r.WxID, chatRoomID, requestWxids)
 }
 
 func (r *Robot) FriendPassVerify(req FriendPassVerifyRequest) (VerifyUserResponse, error) {

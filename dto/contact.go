@@ -28,7 +28,7 @@ type FriendSendRequestRequest struct {
 }
 
 type FriendSendRequestFromChatRoomRequest struct {
-	ChatRoomMemberID string `form:"chat_room_member_id" json:"chat_room_member_id" binding:"required"`
+	ChatRoomMemberID int64  `form:"chat_room_member_id" json:"chat_room_member_id" binding:"required"`
 	VerifyContent    string `form:"verify_content" json:"verify_content"`
 }
 

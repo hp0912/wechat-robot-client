@@ -600,7 +600,7 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 				// 群聊消息，昵称优先取群备注，备注取不到或者取失败了，再去取联系人的昵称
 				chatRoomMember, err := s.crmRespo.GetChatRoomMember(toWxID, wxid)
 				if err != nil || chatRoomMember == nil {
-					r, err := vars.RobotRuntime.GetContactDetail([]string{wxid})
+					r, err := vars.RobotRuntime.GetContactDetail("", []string{wxid})
 					if err != nil || len(r.ContactList) == 0 {
 						continue
 					}
@@ -617,7 +617,7 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 				}
 			} else {
 				// 私聊消息
-				r, err := vars.RobotRuntime.GetContactDetail([]string{wxid})
+				r, err := vars.RobotRuntime.GetContactDetail("", []string{wxid})
 				if err != nil || len(r.ContactList) == 0 {
 					continue
 				}

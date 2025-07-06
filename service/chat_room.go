@@ -337,7 +337,7 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 	processChunk := func(chunk []string) bool {
 		// 获取昵称等详细信息
 		var r robot.GetContactResponse
-		r, err := vars.RobotRuntime.GetContactDetail(chunk)
+		r, err := vars.RobotRuntime.GetContactDetail("", chunk)
 		if err != nil {
 			// 处理错误
 			log.Printf("获取联系人详情失败: %v", err)
