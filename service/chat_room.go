@@ -198,6 +198,10 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 	}
 }
 
+func (s *ChatRoomService) CreateChatRoom(contactIDs []string) error {
+	return vars.RobotRuntime.CreateChatRoom(contactIDs)
+}
+
 func (s *ChatRoomService) InviteChatRoomMember(chatRoomID string, contactIDs []string) error {
 	if len(contactIDs) == 0 {
 		return fmt.Errorf("无效的联系人ID")

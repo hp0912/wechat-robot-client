@@ -520,6 +520,24 @@ func (c *Client) DownloadFile(req DownloadFileRequest) (filebase64 string, err e
 	return
 }
 
+func (c *Client) CreateChatRoom(wxid string, contactIDs []string) (createChatRoomResp CreateChatRoomResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[CreateChatRoomResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(CreateChatRoomRequest{
+			Wxid:    wxid,
+			ToWxids: strings.Join(contactIDs, ","),
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), GroupCreateChatRoom))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	createChatRoomResp = result.Data
+	return
+}
+
 func (c *Client) GroupAddChatRoomMember(wxid, chatRoomName string, contactIDs []string) (memberResp InviteChatRoomMemberResponse, err error) {
 	if err = c.limiter.Wait(context.Background()); err != nil {
 		return

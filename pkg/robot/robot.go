@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"text/template"
@@ -870,6 +871,17 @@ func (r *Robot) FriendPassVerify(req FriendPassVerifyRequest) (VerifyUserRespons
 
 func (r *Robot) FriendDelete(ToWxid string) (OplogResponse, error) {
 	return r.Client.FriendDelete(r.WxID, ToWxid)
+}
+
+func (r *Robot) CreateChatRoom(contactIDs []string) error {
+	if !slices.Contains(contactIDs, r.WxID) {
+		contactIDs = append(contactIDs, r.WxID)
+	}
+	if len(contactIDs) < 3 {
+		return errors.New("发起群聊至少需要3个成员")
+	}
+	_, err := r.Client.CreateChatRoom(r.WxID, contactIDs)
+	return err
 }
 
 func (r *Robot) GroupAddChatRoomMember(chatRoomName string, contactIDs []string) error {

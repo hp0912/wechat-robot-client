@@ -221,6 +221,11 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 			if contact.BigHeadImgUrl == "" {
 				contactPerson.Avatar = contact.SmallHeadImgUrl
 			}
+			if contactPerson.Type == model.ContactTypeChatRoom {
+				if contact.ChatRoomOwner != nil && *contact.ChatRoomOwner != "" {
+					contactPerson.ChatRoomOwner = *contact.ChatRoomOwner
+				}
+			}
 			err = s.ctRespo.Update(&contactPerson)
 			if err != nil {
 				log.Printf("更新联系人失败: %v", err)
@@ -251,6 +256,11 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 				contactPerson.Remark = *contact.Remark.String
 			}
 			contactPerson.Type = s.GetContactType(contactPerson)
+			if contactPerson.Type == model.ContactTypeChatRoom {
+				if contact.ChatRoomOwner != nil && *contact.ChatRoomOwner != "" {
+					contactPerson.ChatRoomOwner = *contact.ChatRoomOwner
+				}
+			}
 			err = s.ctRespo.Create(&contactPerson)
 			if err != nil {
 				log.Printf("创建联系人失败: %v", err)
