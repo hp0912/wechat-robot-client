@@ -856,6 +856,20 @@ func (r *Robot) Heartbeat() error {
 	return r.Client.Heartbeat(r.WxID)
 }
 
+func (r *Robot) FriendSearch(req FriendSearchRequest) (SearchContactResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendSearch(req)
+}
+
+func (r *Robot) FriendSendRequest(req FriendSendRequestParam) (VerifyUserResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendSendRequest(req)
+}
+
+func (r *Robot) FriendSetRemarks(toWxid, remarks string) (OplogResponse, error) {
+	return r.Client.FriendSetRemarks(r.WxID, toWxid, remarks)
+}
+
 func (r *Robot) GetContactList() ([]string, error) {
 	return r.Client.GetContactList(r.WxID)
 }

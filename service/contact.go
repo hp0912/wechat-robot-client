@@ -39,6 +39,18 @@ func NewContactService(ctx context.Context) *ContactService {
 	}
 }
 
+func (s *ContactService) FriendSearch(req dto.FriendSearchRequest) error {
+	return nil
+}
+
+func (s *ContactService) FriendSendRequest(req dto.FriendSendRequestRequest) error {
+	return nil
+}
+
+func (s *ContactService) FriendSetRemarks(req dto.FriendSetRemarksRequest) error {
+	return nil
+}
+
 func (s *ContactService) FriendPassVerify(systemMessageID int64) error {
 	systemMessage, err := s.sysmsgRespo.GetByID(systemMessageID)
 	if err != nil {

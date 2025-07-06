@@ -28,6 +28,9 @@ const (
 	MsgSendCDNImg   = "/Msg/SendCDNImg"
 	MsgSendCDNVideo = "/Msg/SendCDNVideo"
 
+	FriendSearch           = "/Friend/Search"
+	FriendSendRequest      = "/Friend/SendRequest"
+	FriendSetRemarks       = "/Friend/SetRemarks"
 	FriendGetContactList   = "/Friend/GetContractList"
 	FriendGetContactDetail = "/Friend/GetContractDetail"
 	FriendPassVerify       = "/Friend/PassVerify"

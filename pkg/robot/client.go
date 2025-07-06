@@ -405,6 +405,46 @@ func (c *Client) SendCDNVideo(req SendCDNAttachmentRequest) (cdnVideoMessage Sen
 	return
 }
 
+func (c *Client) FriendSearch(req FriendSearchRequest) (resp SearchContactResponse, err error) {
+	var result ClientResponse[SearchContactResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendSearch))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+func (c *Client) FriendSendRequest(req FriendSendRequestParam) (resp VerifyUserResponse, err error) {
+	var result ClientResponse[VerifyUserResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendSendRequest))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+func (c *Client) FriendSetRemarks(wxid, toWxid, remarks string) (resp OplogResponse, err error) {
+	var result ClientResponse[OplogResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(FriendSetRemarksRequest{
+			Wxid:    wxid,
+			ToWxid:  toWxid,
+			Remarks: remarks,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendSetRemarks))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
 func (c *Client) GetContactList(wxid string) (wxids []string, err error) {
 	var result ClientResponse[GetContactListResponse]
 	_, err = c.client.R().
