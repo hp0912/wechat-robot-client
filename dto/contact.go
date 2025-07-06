@@ -20,6 +20,11 @@ type FriendSendRequestRequest struct {
 	VerifyContent string `form:"verify_content" json:"VerifyContent"`
 }
 
+type FriendSendRequestFromChatRoomRequest struct {
+	ChatRoomMemberID string `form:"chat_room_member_id" json:"chat_room_member_id" binding:"required"`
+	VerifyContent    string `form:"verify_content" json:"VerifyContent"`
+}
+
 type FriendSetRemarksRequest struct {
 	ToWxid  string `form:"to_wxid" json:"to_wxid" binding:"required"`
 	Remarks string `form:"remarks" json:"remarks" binding:"required"`

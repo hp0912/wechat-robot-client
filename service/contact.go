@@ -47,6 +47,10 @@ func (s *ContactService) FriendSendRequest(req dto.FriendSendRequestRequest) err
 	return nil
 }
 
+func (s *ContactService) FriendSendRequestFromChatRoom(req dto.FriendSendRequestFromChatRoomRequest) error {
+	return nil
+}
+
 func (s *ContactService) FriendSetRemarks(req dto.FriendSetRemarksRequest) error {
 	return nil
 }

@@ -72,6 +72,21 @@ func (ct *Contact) FriendSendRequest(c *gin.Context) {
 	resp.ToResponse(nil)
 }
 
+func (ct *Contact) FriendSendRequestFromChatRoom(c *gin.Context) {
+	var req dto.FriendSendRequestFromChatRoomRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	err := service.NewContactService(c).FriendSendRequestFromChatRoom(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
+
 func (ct *Contact) FriendSetRemarks(c *gin.Context) {
 	var req dto.FriendSetRemarksRequest
 	resp := appx.NewResponse(c)
