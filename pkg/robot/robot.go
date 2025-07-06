@@ -873,15 +873,18 @@ func (r *Robot) FriendDelete(ToWxid string) (OplogResponse, error) {
 	return r.Client.FriendDelete(r.WxID, ToWxid)
 }
 
-func (r *Robot) CreateChatRoom(contactIDs []string) error {
+func (r *Robot) CreateChatRoom(contactIDs []string) (CreateChatRoomResponse, error) {
 	if !slices.Contains(contactIDs, r.WxID) {
 		contactIDs = append(contactIDs, r.WxID)
 	}
 	if len(contactIDs) < 3 {
-		return errors.New("发起群聊至少需要3个成员")
+		return CreateChatRoomResponse{}, errors.New("发起群聊至少需要3个成员")
 	}
-	_, err := r.Client.CreateChatRoom(r.WxID, contactIDs)
-	return err
+	chatRoom, err := r.Client.CreateChatRoom(r.WxID, contactIDs)
+	if err != nil {
+		return CreateChatRoomResponse{}, err
+	}
+	return chatRoom, nil
 }
 
 func (r *Robot) GroupAddChatRoomMember(chatRoomName string, contactIDs []string) error {
