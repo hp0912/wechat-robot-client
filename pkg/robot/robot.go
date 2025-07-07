@@ -966,3 +966,7 @@ func (r *Robot) FriendCircleDownFriendCircleMedia(Url, Key string) (string, erro
 	base64Url := base64.StdEncoding.EncodeToString([]byte(Url))
 	return r.Client.FriendCircleDownFriendCircleMedia(r.WxID, base64Url, Key)
 }
+
+func (r *Robot) WxappQrcodeAuthLogin(URL string) error {
+	return r.Client.WxappQrcodeAuthLogin(r.WxID, URL)
+}

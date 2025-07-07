@@ -63,6 +63,8 @@ const (
 	ToolsDownloadVideo    = "/Tools/DownloadVideo"
 	ToolsDownloadVoice    = "/Tools/DownloadVoice"
 	ToolsDownloadFile     = "/Tools/DownloadFile"
+
+	WxappQrcodeAuthLogin = "/Wxapp/QrcodeAuthLogin"
 )
 
 type WechatDomain string

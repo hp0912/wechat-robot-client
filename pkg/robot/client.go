@@ -817,4 +817,16 @@ func (c *Client) FriendCircleDownFriendCircleMedia(wxid, Url, Key string) (media
 	return
 }
 
-// TODO 通过好友请求
+func (c *Client) WxappQrcodeAuthLogin(wxid, Url string) (err error) {
+	var result ClientResponse[struct{}]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(map[string]string{
+			"Wxid": wxid,
+			"Url":  Url,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), WxappQrcodeAuthLogin))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	return
+}

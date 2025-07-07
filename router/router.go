@@ -118,10 +118,15 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/moments/list", momentsCtl.FriendCircleGetList)
 	api.GET("/robot/moments/down-media", momentsCtl.FriendCircleDownFriendCircleMedia)
 
+	// 豆包AI回调相关接口
 	api.POST("/robot/ai-callback/voice/doubao-tts", aiCallbackCtl.DoubaoTTS)
 
+	// 微信服务端回调相关接口
 	api.POST("/wechat-client/:wechatID/sync-message", wechatServerCallbackCtl.SyncMessageCallback)
 	api.POST("/wechat-client/:wechatID/logout", wechatServerCallbackCtl.LogoutCallback)
+
+	// 微信小程序相关接口
+	api.POST("/robot/wxapp/qrcode-auth-login", controller.NewWXAppController().WxappQrcodeAuthLogin)
 
 	return nil
 }
