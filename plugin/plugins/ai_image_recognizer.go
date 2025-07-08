@@ -32,6 +32,10 @@ func (p *AImageRecognizerPlugin) PostAction(ctx *plugin.MessageContext) {
 }
 
 func (p *AImageRecognizerPlugin) Run(ctx *plugin.MessageContext) bool {
+	if ctx.ReferMessage == nil {
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "你需要引用一条图片消息。")
+		return true
+	}
 	// 下载引用的图片
 	attachDownloadService := service.NewAttachDownloadService(ctx.Context)
 	imageBytes, contentType, _, err := attachDownloadService.DownloadImage(ctx.ReferMessage.ID)
