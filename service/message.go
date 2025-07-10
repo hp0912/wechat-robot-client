@@ -353,7 +353,8 @@ func (s *MessageService) ProcessSystemMessage(message *model.Message) {
 		s.ProcessPatMessage(message, msgXml)
 		return
 	}
-	if msgXml.Type == "sysmsgtemplate" && strings.Contains(msgXml.SysMsgTemplate.ContentTemplate.Template, "加入了群聊") {
+	if msgXml.Type == "sysmsgtemplate" &&
+		(strings.Contains(msgXml.SysMsgTemplate.ContentTemplate.Template, "加入了群聊") || strings.Contains(msgXml.SysMsgTemplate.ContentTemplate.Template, "分享的二维码加入群聊")) {
 		s.ProcessNewChatRoomMemberMessage(message, msgXml)
 		return
 	}
