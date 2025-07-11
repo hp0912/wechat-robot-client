@@ -178,9 +178,6 @@ func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
 }
 
 func (c *Client) LoginYPayVerificationcode(uuid, code, ticket string) (err error) {
-	if uuid != "" {
-		return errors.New("uuid 不能为空")
-	}
 	var result ClientResponse[struct{}]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
