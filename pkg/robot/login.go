@@ -49,5 +49,13 @@ type CheckUuid struct {
 	ExpiredTime             int              `json:"expiredTime"`  // 过期时间(秒)
 	HeadImgUrl              string           `json:"headImgUrl"`   // 头像
 	NickName                string           `json:"nickName"`     // 昵称
+	Ticket                  string           `json:"ticket"`       // 登录票据
 	AcctSectResp            AcctSectRespData `json:"acctSectResp"` // 账号信息-登录成功之后才有
+}
+
+type VerificationCodeRequest struct {
+	Uuid   string
+	Data62 string
+	Code   string
+	Ticket string
 }

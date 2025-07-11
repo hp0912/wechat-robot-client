@@ -3,15 +3,16 @@ package robot
 import "fmt"
 
 const (
-	LoginGetCacheInfo  = "/Login/GetCacheInfo"
-	LoginTwiceAutoAuth = "/Login/LoginTwiceAutoAuth"
-	LoginAwaken        = "/Login/LoginAwaken"
-	LoginGetQR         = "/Login/LoginGetQRx"
-	LoginCheckQR       = "/Login/LoginCheckQR"
-	AutoHeartBeat      = "/Login/AutoHeartBeat"
-	CloseAutoHeartBeat = "/Login/CloseAutoHeartBeat"
-	LoginHeartBeat     = "/Login/HeartBeat"
-	LoginLogout        = "/Login/LogOut"
+	LoginGetCacheInfo         = "/Login/GetCacheInfo"
+	LoginTwiceAutoAuth        = "/Login/LoginTwiceAutoAuth"
+	LoginAwaken               = "/Login/LoginAwaken"
+	LoginGetQR                = "/Login/LoginGetQRx"
+	LoginCheckQR              = "/Login/LoginCheckQR"
+	LoginYPayVerificationcode = "/Login/YPayVerificationcode"
+	AutoHeartBeat             = "/Login/AutoHeartBeat"
+	CloseAutoHeartBeat        = "/Login/CloseAutoHeartBeat"
+	LoginHeartBeat            = "/Login/HeartBeat"
+	LoginLogout               = "/Login/LogOut"
 
 	UserGetContactProfile = "/User/GetContractProfile"
 

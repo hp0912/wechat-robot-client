@@ -192,6 +192,10 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 	return
 }
 
+func (s *LoginService) LoginYPayVerificationcode(uuid, code, ticket string) (err error) {
+	return vars.RobotRuntime.LoginYPayVerificationcode(uuid, code, ticket)
+}
+
 func (r *LoginService) Logout() (err error) {
 	err = r.Offline()
 	if err != nil {
