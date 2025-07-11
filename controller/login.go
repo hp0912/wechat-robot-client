@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
 
@@ -54,6 +55,21 @@ func (lg *Login) LoginCheck(c *gin.Context) {
 		return
 	}
 	resp.ToResponse(data)
+}
+
+func (lg *Login) LoginYPayVerificationcode(c *gin.Context) {
+	var req dto.TFARequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	err := service.NewLoginService(c).LoginYPayVerificationcode(req.Uuid, req.Code, req.Ticket)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
 }
 
 func (lg *Login) Logout(c *gin.Context) {

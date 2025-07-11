@@ -837,6 +837,10 @@ func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {
 	return r.Client.CheckLoginUuid(uuid)
 }
 
+func (r *Robot) LoginYPayVerificationcode(uuid, code, ticket string) error {
+	return r.Client.LoginYPayVerificationcode(uuid, code, ticket)
+}
+
 func (r *Robot) Logout() error {
 	if r.WxID == "" {
 		return errors.New("您还未登陆")

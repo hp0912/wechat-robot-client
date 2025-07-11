@@ -2,6 +2,7 @@ package robot
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -152,7 +153,7 @@ func (c *Client) GetQrCode(deviceId, deviceName string) (resp GetQRCode, err err
 }
 
 func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
-	var result ClientResponse[CheckUuid]
+	var result ClientResponse[any]
 	_, err = c.client.R().
 		SetResult(&result).
 		SetQueryParam("uuid", uuid).
@@ -160,7 +161,39 @@ func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	resp = result.Data
+	if checkUuid, ok := result.Data.(string); ok {
+		resp = CheckUuid{Uuid: uuid, Ticket: checkUuid}
+	} else {
+		jsonData, err2 := json.Marshal(result.Data)
+		if err2 != nil {
+			err = err2
+			return
+		}
+		err = json.Unmarshal(jsonData, &resp)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (c *Client) LoginYPayVerificationcode(uuid, code, ticket string) (err error) {
+	if uuid != "" {
+		return errors.New("uuid 不能为空")
+	}
+	var result ClientResponse[struct{}]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(VerificationCodeRequest{
+			Uuid:   uuid,
+			Code:   code,
+			Ticket: ticket,
+		}).
+		SetResult(&result).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginYPayVerificationcode))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
 	return
 }
 
