@@ -235,3 +235,38 @@ type DownFriendCircleMediaRequest struct {
 	Url  string `json:"Url"`
 	Key  string `json:"Key"`
 }
+
+type FriendCircleUploadRequest struct {
+	Wxid   string `json:"Wxid"`
+	Base64 string `json:"Base64"`
+}
+
+type FriendCircleUploadResponse struct {
+	BaseResponse  *BaseResponse   `json:"BaseResponse,omitempty"`
+	StartPos      *uint32         `json:"StartPos,omitempty"`
+	TotalLen      *uint32         `json:"TotalLen,omitempty"`
+	ClientId      *string         `json:"ClientId,omitempty"`
+	BufferUrl     *SnsBufferUrl   `json:"BufferUrl,omitempty"`
+	ThumbUrlCount *uint32         `json:"ThumbUrlCount,omitempty"`
+	ThumbUrls     []*SnsBufferUrl `json:"ThumbUrls,omitempty"`
+	Id            *uint64         `json:"Id,omitempty"`
+	Type          *uint32         `json:"Type,omitempty"`
+}
+
+type SnsBufferUrl struct {
+	Url  *string `json:"Url,omitempty"`
+	Type *uint32 `json:"Type,omitempty"`
+}
+
+type FriendCircleMessagesRequest struct {
+	Wxid         string `json:"Wxid"`
+	BlackList    string `json:"BlackList"`
+	WithUserList string `json:"WithUserList"`
+	Content      string `json:"Content"`
+}
+
+type FriendCircleMessagesResponse struct {
+	BaseResponse *BaseResponse `json:"BaseResponse,omitempty"`
+	SnsObject    *SnsObject    `json:"SnsObject,omitempty"`
+	SpamTips     *string       `json:"SpamTips,omitempty"`
+}

@@ -971,6 +971,15 @@ func (r *Robot) FriendCircleDownFriendCircleMedia(Url, Key string) (string, erro
 	return r.Client.FriendCircleDownFriendCircleMedia(r.WxID, base64Url, Key)
 }
 
+func (r *Robot) FriendCircleUpload(base64 string) (FriendCircleUploadResponse, error) {
+	return r.Client.FriendCircleUpload(r.WxID, base64)
+}
+
+func (r *Robot) FriendCircleMessages(req FriendCircleMessagesRequest) (FriendCircleMessagesResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendCircleMessages(req)
+}
+
 func (r *Robot) WxappQrcodeAuthLogin(URL string) error {
 	return r.Client.WxappQrcodeAuthLogin(r.WxID, URL)
 }
