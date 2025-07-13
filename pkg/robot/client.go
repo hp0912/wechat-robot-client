@@ -100,6 +100,16 @@ func (c *Client) GetCachedInfo(wxid string) (resp LoginData, err error) {
 	return
 }
 
+func (c *Client) BaseResponseErrCheck(baseResponse *BaseResponse) (err error) {
+	if baseResponse != nil && baseResponse.Ret != 0 {
+		if baseResponse.ErrMsg != nil && baseResponse.ErrMsg.String != nil && *baseResponse.ErrMsg.String != "" {
+			err = fmt.Errorf(*baseResponse.ErrMsg.String)
+			return
+		}
+	}
+	return
+}
+
 func (c *Client) LoginTwiceAutoAuth(wxid string) (err error) {
 	var result ClientResponse[UnifyAuthResponse]
 	_, err = c.client.R().
@@ -449,11 +459,9 @@ func (c *Client) FriendGetFriendstate(Wxid, UserName string) (resp MMBizJsApiGet
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	if result.Data.BaseResponse != nil && result.Data.BaseResponse.Ret != 0 {
-		if result.Data.BaseResponse.ErrMsg != nil && result.Data.BaseResponse.ErrMsg.String != nil && *result.Data.BaseResponse.ErrMsg.String != "" {
-			err = fmt.Errorf("查询好友状态失败: %s", *result.Data.BaseResponse.ErrMsg.String)
-			return
-		}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
+		return
 	}
 	resp = result.Data
 	return
@@ -470,11 +478,9 @@ func (c *Client) FriendSearch(req FriendSearchRequest) (resp SearchContactRespon
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	if result.Data.BaseResponse != nil && result.Data.BaseResponse.Ret != 0 {
-		if result.Data.BaseResponse.ErrMsg != nil && result.Data.BaseResponse.ErrMsg.String != nil && *result.Data.BaseResponse.ErrMsg.String != "" {
-			err = fmt.Errorf("搜索联系人失败: %s", *result.Data.BaseResponse.ErrMsg.String)
-			return
-		}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
+		return
 	}
 	resp = result.Data
 	return
@@ -491,11 +497,9 @@ func (c *Client) FriendSendRequest(req FriendSendRequestParam) (resp VerifyUserR
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	if result.Data.BaseResponse != nil && result.Data.BaseResponse.Ret != 0 {
-		if result.Data.BaseResponse.ErrMsg != nil && result.Data.BaseResponse.ErrMsg.String != nil && *result.Data.BaseResponse.ErrMsg.String != "" {
-			err = fmt.Errorf("发送好友请求失败: %s", *result.Data.BaseResponse.ErrMsg.String)
-			return
-		}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
+		return
 	}
 	resp = result.Data
 	return
@@ -564,11 +568,9 @@ func (c *Client) FriendPassVerify(req FriendPassVerifyRequest) (verifyUserRespon
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	if result.Data.BaseResponse != nil && result.Data.BaseResponse.Ret != 0 {
-		if result.Data.BaseResponse.ErrMsg != nil && result.Data.BaseResponse.ErrMsg.String != nil && *result.Data.BaseResponse.ErrMsg.String != "" {
-			err = fmt.Errorf("通过好友验证失败: %s", *result.Data.BaseResponse.ErrMsg.String)
-			return
-		}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
+		return
 	}
 	verifyUserResponse = result.Data
 	return
@@ -808,6 +810,7 @@ func (c *Client) GroupQuit(wxid, QID string) (err error) {
 }
 
 // 朋友圈接口
+// FriendCircleGetList 获取朋友圈列表
 func (c *Client) FriendCircleGetList(wxid, Fristpagemd5 string, Maxid string) (Moments GetListResponse, err error) {
 	var result ClientResponse[GetListResponse]
 	var maxID uint64
@@ -831,6 +834,7 @@ func (c *Client) FriendCircleGetList(wxid, Fristpagemd5 string, Maxid string) (M
 	return
 }
 
+// FriendCircleDownFriendCircleMedia 下载朋友圈视频
 func (c *Client) FriendCircleDownFriendCircleMedia(wxid, Url, Key string) (mediaBase64 string, err error) {
 	var result ClientResponse[string]
 	_, err = c.client.R().
@@ -844,6 +848,43 @@ func (c *Client) FriendCircleDownFriendCircleMedia(wxid, Url, Key string) (media
 		return
 	}
 	mediaBase64 = result.Data
+	return
+}
+
+// 朋友圈图片/视频上传
+func (c *Client) FriendCircleUpload(wxid, base64 string) (resp FriendCircleUploadResponse, err error) {
+	var result ClientResponse[FriendCircleUploadResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(FriendCircleUploadRequest{
+			Wxid:   wxid,
+			Base64: base64,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleUpload))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+// 发布朋友圈
+func (c *Client) FriendCircleMessages(req FriendCircleMessagesRequest) (resp FriendCircleMessagesResponse, err error) {
+	var result ClientResponse[FriendCircleMessagesResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleMessages))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
+		return
+	}
 	return
 }
 

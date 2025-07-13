@@ -1,5 +1,7 @@
 package dto
 
+import "wechat-robot-client/pkg/robot"
+
 type FriendCircleGetListRequest struct {
 	FristPageMd5 string `form:"frist_page_md5" json:"frist_page_md5"`
 	MaxID        string `form:"max_id" json:"max_id" binding:"required"`
@@ -8,4 +10,13 @@ type FriendCircleGetListRequest struct {
 type DownFriendCircleMediaRequest struct {
 	Url string `form:"url" json:"url" binding:"required"`
 	Key string `form:"key" json:"key"`
+}
+
+type MomentPostRequest struct {
+	Content    string                             `form:"content" json:"content"`
+	MediaList  []robot.FriendCircleUploadResponse `form:"media_list" json:"media_list"`
+	ShareType  string                             `form:"share_type" json:"share_type" binding:"required"`
+	Range      string                             `form:"range" json:"range"`
+	ShareWith  []string                           `form:"share_with" json:"share_with"`
+	DoNotShare []string                           `form:"donot_share" json:"donot_share"`
 }
