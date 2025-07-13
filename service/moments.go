@@ -80,11 +80,27 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 	}
 
 	momentTimeline := robot.TimelineObject{
-		Username:   vars.RobotRuntime.WxID,
-		CreateTime: strconv.FormatInt(time.Now().Unix(), 10),
+		ID:          nil,
+		Username:    vars.RobotRuntime.WxID,
+		Private:     0,
+		SightFolded: 0,
+		ShowFlag:    0,
+		CreateTime:  strconv.FormatInt(time.Now().Unix(), 10),
+		AppInfo: robot.AppInfo{
+			IsForceUpdate: 0,
+			IsHidden:      0,
+		},
+		ContentDescShowType:    0,
+		PublicBrandContactType: 0,
+		ContentObject: robot.ContentObject{
+			ContentStyle: 2,
+		},
 	}
 	if req.Content != "" {
 		momentTimeline.ContentDesc = req.Content
+	}
+	if req.Content != "" || len(req.MediaList) == 0 {
+		momentTimeline.ContentDescScene = 3
 	}
 	if len(req.MediaList) > 0 {
 		for mediaIndex, mediaReq := range req.MediaList {

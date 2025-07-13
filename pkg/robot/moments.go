@@ -4,20 +4,20 @@ import "encoding/xml"
 
 type TimelineObject struct {
 	XMLName                xml.Name      `xml:"TimelineObject"`
-	ID                     string        `xml:"id"`
+	ID                     *uint64       `xml:"id"`
 	Username               string        `xml:"username"`
 	CreateTime             string        `xml:"createTime"`
 	ContentDesc            string        `xml:"contentDesc"`
 	ContentDescShowType    int           `xml:"contentDescShowType"`
 	ContentDescScene       int           `xml:"contentDescScene"`
-	Private                string        `xml:"private"`
-	SightFolded            int           `xml:"sightFolded,omitempty"`
-	ShowFlag               int           `xml:"showFlag,omitempty"`
+	Private                int           `xml:"private"`
+	SightFolded            int           `xml:"sightFolded"`
+	ShowFlag               int           `xml:"showFlag"`
 	ContentAttr            string        `xml:"contentattr,omitempty"`
 	SourceUserName         string        `xml:"sourceUserName"`
 	SourceNickName         string        `xml:"sourceNickName"`
 	PublicUserName         string        `xml:"publicUserName"`
-	PublicBrandContactType int           `xml:"publicBrandContactType,omitempty"`
+	PublicBrandContactType int           `xml:"publicBrandContactType"`
 	StatisticsData         string        `xml:"statisticsData"`
 	StatExtStr             string        `xml:"statExtStr,omitempty"`
 	CanvasInfoXML          string        `xml:"canvasInfoXml,omitempty"`
@@ -43,7 +43,7 @@ type WeappInfo struct {
 }
 
 type ContentObject struct {
-	ContentStyle    string    `xml:"contentStyle"`
+	ContentStyle    int       `xml:"contentStyle"`
 	ContentSubStyle string    `xml:"contentSubStyle,omitempty"`
 	Title           string    `xml:"title"`
 	Description     string    `xml:"description"`
