@@ -4,20 +4,20 @@ import "encoding/xml"
 
 type TimelineObject struct {
 	XMLName                xml.Name      `xml:"TimelineObject"`
-	ID                     *uint64       `xml:"id"`
+	ID                     uint64        `xml:"id"`
 	Username               string        `xml:"username"`
-	CreateTime             string        `xml:"createTime"`
+	CreateTime             uint32        `xml:"createTime"`
 	ContentDesc            string        `xml:"contentDesc"`
-	ContentDescShowType    int           `xml:"contentDescShowType"`
-	ContentDescScene       int           `xml:"contentDescScene"`
-	Private                int           `xml:"private"`
-	SightFolded            int           `xml:"sightFolded"`
-	ShowFlag               int           `xml:"showFlag"`
+	ContentDescShowType    uint32        `xml:"contentDescShowType"`
+	ContentDescScene       uint32        `xml:"contentDescScene"`
+	Private                uint32        `xml:"private"`
+	SightFolded            uint32        `xml:"sightFolded"`
+	ShowFlag               uint32        `xml:"showFlag"`
 	ContentAttr            string        `xml:"contentattr,omitempty"`
 	SourceUserName         string        `xml:"sourceUserName"`
 	SourceNickName         string        `xml:"sourceNickName"`
 	PublicUserName         string        `xml:"publicUserName"`
-	PublicBrandContactType int           `xml:"publicBrandContactType"`
+	PublicBrandContactType uint32        `xml:"publicBrandContactType"`
 	StatisticsData         string        `xml:"statisticsData"`
 	StatExtStr             string        `xml:"statExtStr,omitempty"`
 	CanvasInfoXML          string        `xml:"canvasInfoXml,omitempty"`
@@ -33,7 +33,7 @@ type WeappInfo struct {
 	AppUserName      string `xml:"appUserName"`
 	PagePath         string `xml:"pagePath"`
 	Version          string `xml:"version"`
-	IsHidden         int    `xml:"isHidden"`
+	IsHidden         uint32 `xml:"isHidden"`
 	DebugMode        string `xml:"debugMode"`
 	ShareActionId    string `xml:"shareActionId"`
 	IsGame           string `xml:"isGame"`
@@ -43,7 +43,7 @@ type WeappInfo struct {
 }
 
 type ContentObject struct {
-	ContentStyle    int       `xml:"contentStyle"`
+	ContentStyle    uint32    `xml:"contentStyle"`
 	ContentSubStyle string    `xml:"contentSubStyle,omitempty"`
 	Title           string    `xml:"title"`
 	Description     string    `xml:"description"`
@@ -260,8 +260,10 @@ type SnsBufferUrl struct {
 
 type FriendCircleMessagesRequest struct {
 	Wxid         string `json:"Wxid"`
-	BlackList    string `json:"BlackList"`
+	Privacy      uint32 `json:"Privacy"`
 	WithUserList string `json:"WithUserList"`
+	GroupUser    string `json:"GroupUser"`
+	BlackList    string `json:"BlackList"`
 	Content      string `json:"Content"`
 }
 

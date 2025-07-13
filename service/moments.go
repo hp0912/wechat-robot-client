@@ -41,6 +41,9 @@ func (s *MomentsService) FriendCircleUpload(media io.Reader) (robot.FriendCircle
 
 func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.FriendCircleMessagesResponse, error) {
 	var momentMessage robot.FriendCircleMessagesRequest
+	// 暂时先写死
+	momentMessage.Privacy = 0
+	momentMessage.GroupUser = ""
 
 	if req.Content == "" && len(req.MediaList) == 0 {
 		return robot.FriendCircleMessagesResponse{}, fmt.Errorf("朋友圈内容不能为空")
@@ -80,12 +83,13 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 	}
 
 	momentTimeline := robot.TimelineObject{
-		ID:          nil,
-		Username:    vars.RobotRuntime.WxID,
+		ID:       0,
+		Username: vars.RobotRuntime.WxID,
+		// 暂时先写死
 		Private:     0,
 		SightFolded: 0,
 		ShowFlag:    0,
-		CreateTime:  strconv.FormatInt(time.Now().Unix(), 10),
+		CreateTime:  uint32(time.Now().Unix()),
 		AppInfo: robot.AppInfo{
 			IsForceUpdate: 0,
 			IsHidden:      0,
@@ -93,14 +97,12 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 		ContentDescShowType:    0,
 		PublicBrandContactType: 0,
 		ContentObject: robot.ContentObject{
+			// 暂时先写死
 			ContentStyle: 2,
 		},
 	}
 	if req.Content != "" {
 		momentTimeline.ContentDesc = req.Content
-	}
-	if req.Content != "" || len(req.MediaList) == 0 {
-		momentTimeline.ContentDescScene = 3
 	}
 	if len(req.MediaList) > 0 {
 		for mediaIndex, mediaReq := range req.MediaList {

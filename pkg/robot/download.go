@@ -122,8 +122,8 @@ type AppInfo struct {
 	AppName       string `xml:"appName,omitempty"`
 	InstallUrl    string `xml:"installUrl,omitempty"`
 	FromUrl       string `xml:"fromUrl,omitempty"`
-	IsForceUpdate int    `xml:"isForceUpdate"`
-	IsHidden      int    `xml:"isHidden"`
+	IsForceUpdate uint32 `xml:"isForceUpdate"`
+	IsHidden      uint32 `xml:"isHidden"`
 }
 
 type FileMessageXml struct {
