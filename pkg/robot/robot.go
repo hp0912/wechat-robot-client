@@ -971,8 +971,9 @@ func (r *Robot) FriendCircleDownFriendCircleMedia(Url, Key string) (string, erro
 	return r.Client.FriendCircleDownFriendCircleMedia(r.WxID, base64Url, Key)
 }
 
-func (r *Robot) FriendCircleUpload(base64 string) (FriendCircleUploadResponse, error) {
-	return r.Client.FriendCircleUpload(r.WxID, base64)
+func (r *Robot) FriendCircleUpload(mediaBytes []byte) (FriendCircleUploadResponse, error) {
+	base64Str := base64.StdEncoding.EncodeToString(mediaBytes)
+	return r.Client.FriendCircleUpload(r.WxID, base64Str)
 }
 
 func (r *Robot) FriendCircleMessages(req FriendCircleMessagesRequest) (FriendCircleMessagesResponse, error) {
