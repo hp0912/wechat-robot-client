@@ -163,7 +163,7 @@ func (c *Client) GetQrCode(deviceId, deviceName string) (resp GetQRCode, err err
 }
 
 func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
-	var result ClientResponse[any]
+	var result ClientResponse[json.RawMessage]
 	_, err = c.client.R().
 		SetResult(&result).
 		SetQueryParam("uuid", uuid).
@@ -171,19 +171,16 @@ func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
 	if err = result.CheckError(err); err != nil {
 		return
 	}
-	if checkUuid, ok := result.Data.(string); ok {
-		resp = CheckUuid{Uuid: uuid, Ticket: checkUuid}
-	} else {
-		jsonData, err2 := json.Marshal(result.Data)
-		if err2 != nil {
-			err = err2
-			return
-		}
-		err = json.Unmarshal(jsonData, &resp)
-		if err != nil {
-			return
-		}
+	// 先尝试解析为 CheckUuid 结构体（协议有时候直接返回无规则字符串 ticket）
+	if err = json.Unmarshal(result.Data, &resp); err == nil {
+		return
 	}
+	var ticket string
+	if err = json.Unmarshal(result.Data, &ticket); err == nil {
+		resp = CheckUuid{Uuid: uuid, Ticket: ticket}
+		return
+	}
+	err = fmt.Errorf("无法解析响应数据: %s", string(result.Data))
 	return
 }
 
