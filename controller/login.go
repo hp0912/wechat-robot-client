@@ -4,6 +4,7 @@ import (
 	"errors"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/appx"
+	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/service"
 
 	"github.com/gin-gonic/gin"
@@ -28,16 +29,12 @@ func (lg *Login) IsLoggedIn(c *gin.Context) {
 
 func (lg *Login) Login(c *gin.Context) {
 	resp := appx.NewResponse(c)
-	uuid, awkenLogin, autoLogin, err := service.NewLoginService(c).Login()
+	data, err := service.NewLoginService(c).Login()
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
-	resp.ToResponse(gin.H{
-		"uuid":        uuid,
-		"awken_login": awkenLogin,
-		"auto_login":  autoLogin,
-	})
+	resp.ToResponse(data)
 }
 
 func (lg *Login) LoginCheck(c *gin.Context) {
@@ -64,7 +61,12 @@ func (lg *Login) LoginYPayVerificationcode(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	err := service.NewLoginService(c).LoginYPayVerificationcode(req.Uuid, req.Code, req.Ticket)
+	err := service.NewLoginService(c).LoginYPayVerificationcode(robot.VerificationCodeRequest{
+		Uuid:   req.Uuid,
+		Code:   req.Code,
+		Ticket: req.Ticket,
+		Data62: req.Data62,
+	})
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

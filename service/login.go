@@ -121,14 +121,14 @@ func (s *LoginService) HeartbeatStart() {
 	}
 }
 
-func (s *LoginService) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
+func (s *LoginService) Login() (loginData robot.LoginResponse, err error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOnline {
 		err := s.Logout()
 		if err != nil {
 			log.Printf("登出失败: %v\n", err)
 		}
 	}
-	uuid, awkenLogin, autoLogin, err = vars.RobotRuntime.Login()
+	loginData, err = vars.RobotRuntime.Login()
 	return
 }
 
@@ -192,8 +192,8 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 	return
 }
 
-func (s *LoginService) LoginYPayVerificationcode(uuid, code, ticket string) (err error) {
-	return vars.RobotRuntime.LoginYPayVerificationcode(uuid, code, ticket)
+func (s *LoginService) LoginYPayVerificationcode(req robot.VerificationCodeRequest) (err error) {
+	return vars.RobotRuntime.LoginYPayVerificationcode(req)
 }
 
 func (r *LoginService) Logout() (err error) {

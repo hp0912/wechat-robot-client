@@ -11,6 +11,7 @@ type GetQRCode struct {
 	Uuid         string `json:"Uuid"`
 	QRCodeURL    string `json:"QRCodeURL"`
 	QRCodeBase64 string `json:"QRCodeBase64"`
+	Data62       string `json:"Data62"`
 	ExpiredTime  string `json:"ExpiredTime"`
 }
 
@@ -51,6 +52,13 @@ type CheckUuid struct {
 	NickName                string           `json:"nickName"`     // 昵称
 	Ticket                  string           `json:"ticket"`       // 登录票据
 	AcctSectResp            AcctSectRespData `json:"acctSectResp"` // 账号信息-登录成功之后才有
+}
+
+type LoginResponse struct {
+	Uuid       string `json:"uuid"`
+	Data62     string `json:"data62"`
+	AwkenLogin bool   `json:"awken_login"`
+	AutoLogin  bool   `json:"auto_login"`
 }
 
 type VerificationCodeRequest struct {

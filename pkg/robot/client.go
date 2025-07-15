@@ -158,6 +158,7 @@ func (c *Client) GetQrCode(deviceId, deviceName string) (resp GetQRCode, err err
 	if err = result.CheckError(err); err != nil {
 		return
 	}
+	result.Data.Data62 = result.Data62
 	resp = result.Data
 	return
 }
@@ -184,15 +185,11 @@ func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
 	return
 }
 
-func (c *Client) LoginYPayVerificationcode(uuid, code, ticket string) (err error) {
+func (c *Client) LoginYPayVerificationcode(req VerificationCodeRequest) (err error) {
 	var result ClientResponse[struct{}]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(VerificationCodeRequest{
-			Uuid:   uuid,
-			Code:   code,
-			Ticket: ticket,
-		}).
+		SetBody(req).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginYPayVerificationcode))
 	if err = result.CheckError(err); err != nil {

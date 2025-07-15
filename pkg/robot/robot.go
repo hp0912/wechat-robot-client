@@ -74,14 +74,15 @@ func (r *Robot) IsLoggedIn() bool {
 	return err == nil
 }
 
-func (r *Robot) GetQrCode() (uuid string, err error) {
+func (r *Robot) GetQrCode() (loginData LoginResponse, err error) {
 	var resp GetQRCode
 	resp, err = r.Client.GetQrCode(r.DeviceID, r.DeviceName)
 	if err != nil {
 		return
 	}
 	if resp.Uuid != "" {
-		uuid = resp.Uuid
+		loginData.Uuid = resp.Uuid
+		loginData.Data62 = resp.Data62
 		return
 	}
 	err = errors.New("获取二维码失败")
@@ -92,14 +93,14 @@ func (r *Robot) GetProfile(wxid string) (GetProfileResponse, error) {
 	return r.Client.GetProfile(wxid)
 }
 
-func (r *Robot) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
+func (r *Robot) Login() (loginData LoginResponse, err error) {
 	// 尝试唤醒登陆
 	var cachedInfo LoginData
 	cachedInfo, err = r.Client.GetCachedInfo(r.WxID)
 	if err == nil && cachedInfo.Wxid != "" {
 		err = r.LoginTwiceAutoAuth()
 		if err == nil {
-			autoLogin = true
+			loginData.AutoLogin = true
 			return
 		}
 		// 唤醒登陆
@@ -107,21 +108,21 @@ func (r *Robot) Login() (uuid string, awkenLogin, autoLogin bool, err error) {
 		resp, err = r.Client.AwakenLogin(r.WxID)
 		if err != nil {
 			// 如果唤醒失败，尝试获取二维码
-			uuid, err = r.GetQrCode()
+			loginData, err = r.GetQrCode()
 			return
 		}
 		if resp.Uuid == "" {
 			// 如果唤醒失败，尝试获取二维码
-			uuid, err = r.GetQrCode()
+			loginData, err = r.GetQrCode()
 			return
 		}
 		// 唤醒登陆成功
-		uuid = resp.Uuid
-		awkenLogin = true
+		loginData.Uuid = resp.Uuid
+		loginData.AwkenLogin = true
 		return
 	}
 	// 二维码登陆
-	uuid, err = r.GetQrCode()
+	loginData, err = r.GetQrCode()
 	return
 }
 
@@ -837,8 +838,8 @@ func (r *Robot) CheckLoginUuid(uuid string) (CheckUuid, error) {
 	return r.Client.CheckLoginUuid(uuid)
 }
 
-func (r *Robot) LoginYPayVerificationcode(uuid, code, ticket string) error {
-	return r.Client.LoginYPayVerificationcode(uuid, code, ticket)
+func (r *Robot) LoginYPayVerificationcode(req VerificationCodeRequest) error {
+	return r.Client.LoginYPayVerificationcode(req)
 }
 
 func (r *Robot) Logout() error {
