@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -41,30 +42,68 @@ func (s *MomentsService) FriendCircleUpload(media io.Reader) (robot.FriendCircle
 
 func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.FriendCircleMessagesResponse, error) {
 	var momentMessage robot.FriendCircleMessagesRequest
-	// 暂时先写死
-	momentMessage.Privacy = 0
-	momentMessage.GroupUser = ""
 
 	if req.Content == "" && len(req.MediaList) == 0 {
 		return robot.FriendCircleMessagesResponse{}, fmt.Errorf("朋友圈内容不能为空")
 	}
-	if req.ShareType == "range" {
-		if req.Range == "" {
-			return robot.FriendCircleMessagesResponse{}, fmt.Errorf("朋友圈范围不能为空")
+
+	if len(req.WithUserList) > 0 {
+		if slices.Contains(req.WithUserList, vars.RobotRuntime.WxID) {
+			return robot.FriendCircleMessagesResponse{}, fmt.Errorf("提醒谁看列表不能包含自己")
 		}
-		if req.Range == "share_with" {
-			if len(req.ShareWith) == 0 {
-				return robot.FriendCircleMessagesResponse{}, fmt.Errorf("分享对象不能为空")
-			}
-			momentMessage.WithUserList = strings.Join(req.ShareWith, ",")
+		momentMessage.WithUserList = strings.Join(req.WithUserList, ",")
+	}
+
+	switch req.ShareType {
+	case "public":
+		momentMessage.GroupUser = ""
+		momentMessage.BlackList = ""
+		momentMessage.Privacy = 0
+	case "private":
+		momentMessage.GroupUser = ""
+		momentMessage.BlackList = ""
+		momentMessage.Privacy = 1
+	case "share_with":
+		momentMessage.Privacy = 0
+		if len(req.ShareWith) == 0 {
+			return robot.FriendCircleMessagesResponse{}, fmt.Errorf("分享对象不能为空")
 		}
-		if req.Range == "donot_share" {
-			if len(req.DoNotShare) == 0 {
-				return robot.FriendCircleMessagesResponse{}, fmt.Errorf("不分享对象不能为空")
+		if slices.Contains(req.ShareWith, vars.RobotRuntime.WxID) {
+			return robot.FriendCircleMessagesResponse{}, fmt.Errorf("分享对象列表不能包含自己")
+		}
+		momentMessage.GroupUser = strings.Join(req.ShareWith, ",")
+		momentMessage.BlackList = ""
+	case "donot_share":
+		momentMessage.Privacy = 0
+		if len(req.DoNotShare) == 0 {
+			return robot.FriendCircleMessagesResponse{}, fmt.Errorf("黑名单列表不能为空")
+		}
+		if slices.Contains(req.DoNotShare, vars.RobotRuntime.WxID) {
+			return robot.FriendCircleMessagesResponse{}, fmt.Errorf("黑名单列表不能包含自己")
+		}
+		momentMessage.GroupUser = ""
+		momentMessage.BlackList = strings.Join(req.DoNotShare, ",")
+	default:
+		return robot.FriendCircleMessagesResponse{}, fmt.Errorf("发布朋友圈参数错误")
+	}
+
+	// 校验提醒谁看列表与分享对象/黑名单的关系
+	if len(req.ShareWith) > 0 && len(req.WithUserList) > 0 {
+		for _, u := range req.WithUserList {
+			if !slices.Contains(req.ShareWith, u) {
+				return robot.FriendCircleMessagesResponse{}, fmt.Errorf("提醒谁看的好友必须在分享对象列表中")
 			}
-			momentMessage.BlackList = strings.Join(req.DoNotShare, ",")
 		}
 	}
+
+	if len(req.DoNotShare) > 0 && len(req.WithUserList) > 0 {
+		for _, u := range req.WithUserList {
+			if slices.Contains(req.DoNotShare, u) {
+				return robot.FriendCircleMessagesResponse{}, fmt.Errorf("提醒谁看的好友不能在黑名单列表中")
+			}
+		}
+	}
+
 	if len(req.MediaList) > 0 {
 		if len(req.MediaList) > 9 {
 			return robot.FriendCircleMessagesResponse{}, fmt.Errorf("朋友圈最多只能上传9张图片")
@@ -83,10 +122,9 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 	}
 
 	momentTimeline := robot.TimelineObject{
-		ID:       0,
-		Username: vars.RobotRuntime.WxID,
-		// 暂时先写死
-		Private:     0,
+		ID:          0,
+		Username:    vars.RobotRuntime.WxID,
+		Private:     momentMessage.Privacy,
 		SightFolded: 0,
 		ShowFlag:    0,
 		CreateTime:  uint32(time.Now().Unix()),
