@@ -72,6 +72,7 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 			return robot.FriendCircleMessagesResponse{}, fmt.Errorf("分享对象列表不能包含自己")
 		}
 		momentMessage.GroupUser = strings.Join(req.ShareWith, ",")
+		momentMessage.BlackList = ""
 	case "donot_share":
 		momentMessage.Privacy = 0
 		if len(req.DoNotShare) == 0 {
@@ -80,9 +81,27 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 		if slices.Contains(req.DoNotShare, vars.RobotRuntime.WxID) {
 			return robot.FriendCircleMessagesResponse{}, fmt.Errorf("黑名单列表不能包含自己")
 		}
+		momentMessage.GroupUser = ""
 		momentMessage.BlackList = strings.Join(req.DoNotShare, ",")
 	default:
 		return robot.FriendCircleMessagesResponse{}, fmt.Errorf("发布朋友圈参数错误")
+	}
+
+	// 校验提醒谁看列表与分享对象/黑名单的关系
+	if len(req.ShareWith) > 0 && len(req.WithUserList) > 0 {
+		for _, u := range req.WithUserList {
+			if !slices.Contains(req.ShareWith, u) {
+				return robot.FriendCircleMessagesResponse{}, fmt.Errorf("提醒谁看的好友必须在分享对象列表中")
+			}
+		}
+	}
+
+	if len(req.DoNotShare) > 0 && len(req.WithUserList) > 0 {
+		for _, u := range req.WithUserList {
+			if slices.Contains(req.DoNotShare, u) {
+				return robot.FriendCircleMessagesResponse{}, fmt.Errorf("提醒谁看的好友不能在黑名单列表中")
+			}
+		}
 	}
 
 	if len(req.MediaList) > 0 {
