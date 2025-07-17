@@ -56,21 +56,23 @@ type MediaList struct {
 }
 
 type Media struct {
-	ID              string          `xml:"id"`
-	Type            string          `xml:"type"`
-	Title           string          `xml:"title"`
-	Description     string          `xml:"description"`
-	Private         string          `xml:"private"`
-	UserData        string          `xml:"userData,omitempty"`
-	SubType         string          `xml:"subType,omitempty"`
-	VideoSize       VideoSize       `xml:"videoSize,omitempty"`
-	HD              URL             `xml:"hd"`
-	UHD             URL             `xml:"uhd"`
-	URL             URL             `xml:"url"`
-	Thumb           Thumb           `xml:"thumb"`
-	Size            Size            `xml:"size"`
-	VideoDuration   string          `xml:"videoDuration,omitempty"`
-	VideoColdDLRule VideoColdDLRule `xml:"VideoColdDLRule,omitempty"`
+	ID               uint64          `xml:"id"`
+	IDStr            string          `xml:"idStr,omitempty"`
+	Type             uint32          `xml:"type"`
+	Title            string          `xml:"title"`
+	Description      string          `xml:"description"`
+	Private          uint32          `xml:"private"`
+	UserData         string          `xml:"userData,omitempty"`
+	SubType          uint32          `xml:"subType,omitempty"`
+	VideoSize        VideoSize       `xml:"videoSize,omitempty"`
+	HD               URL             `xml:"hd"`
+	UHD              URL             `xml:"uhd"`
+	URL              URL             `xml:"url"`
+	Thumb            Thumb           `xml:"thumb"`
+	Size             Size            `xml:"size"`
+	VideoDuration    float64         `xml:"videoDuration,omitempty"`
+	VideoDurationStr string          `xml:"videoDurationStr,omitempty"`
+	VideoColdDLRule  VideoColdDLRule `xml:"VideoColdDLRule,omitempty"`
 }
 
 type VideoSize struct {
@@ -251,6 +253,8 @@ type FriendCircleUploadResponse struct {
 	ThumbUrls     []*SnsBufferUrl `json:"ThumbUrls,omitempty"`
 	Id            *uint64         `json:"Id,omitempty"`
 	Type          *uint32         `json:"Type,omitempty"`
+	Size          Size            `xml:"size"`
+	VideoDuration string          `xml:"videoDuration,omitempty"`
 }
 
 type SnsBufferUrl struct {
@@ -259,13 +263,35 @@ type SnsBufferUrl struct {
 }
 
 type FriendCircleMessagesRequest struct {
-	Wxid         string `json:"Wxid"`
-	Privacy      uint32 `json:"Privacy"`
-	WithUserList string `json:"WithUserList"`
-	GroupUser    string `json:"GroupUser"`
-	BlackList    string `json:"BlackList"`
-	Content      string `json:"Content"`
+	Wxid           string `json:"Wxid"`
+	Content        string `json:"Content"`
+	Privacy        uint32 `json:"Privacy"`
+	WithUserList   string `json:"WithUserList"`
+	GroupUser      string `json:"GroupUser"`
+	BlackList      string `json:"BlackList"`
+	MediaInfoCount *uint32
+	MediaInfo      []*MediaInfo
+	WeAppInfo      []*SnsWeAppInfo
 }
+
+type MediaInfo struct {
+	Source          *uint32       `json:"Source,omitempty"`
+	MediaType       *SnsMediaType `json:"MediaType,omitempty"`
+	VideoPlayLength *uint32       `json:"VideoPlayLength,omitempty"`
+	SessionId       *string       `json:"SessionId,omitempty"`
+	StartTime       *uint32       `json:"StartTime,omitempty"`
+}
+
+type SnsMediaType int32
+
+const (
+	SnsMediaType_MMSNS_DATA_TEXT  SnsMediaType = 1
+	SnsMediaType_MMSNS_DATA_PHOTO SnsMediaType = 2
+	SnsMediaType_MMSNS_DATA_VOICE SnsMediaType = 3
+	SnsMediaType_MMSNS_DATA_VIDEO SnsMediaType = 4
+	SnsMediaType_MMSNS_DATA_MUSIC SnsMediaType = 5
+	SnsMediaType_MMSNS_DATA_SIGHT SnsMediaType = 6
+)
 
 type FriendCircleMessagesResponse struct {
 	BaseResponse *BaseResponse `json:"BaseResponse,omitempty"`
