@@ -254,7 +254,7 @@ type FriendCircleUploadResponse struct {
 	Id            *uint64         `json:"Id,omitempty"`
 	Type          *uint32         `json:"Type,omitempty"`
 	Size          Size            `xml:"size"`
-	VideoDuration string          `xml:"videoDuration,omitempty"`
+	VideoDuration float64         `xml:"videoDuration,omitempty"`
 }
 
 type SnsBufferUrl struct {

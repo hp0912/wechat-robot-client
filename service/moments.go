@@ -180,11 +180,7 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 
 			mediaItem.Size = mediaReq.Size
 			if mediaItem.Type == 6 {
-				vd, err := strconv.ParseFloat(mediaReq.VideoDuration, 64)
-				if err != nil {
-					return robot.FriendCircleMessagesResponse{}, fmt.Errorf("解析视频时长失败: %w", err)
-				}
-				mediaItem.VideoDuration = vd
+				mediaItem.VideoDuration = mediaReq.VideoDuration
 			}
 
 			mediaItemURL := robot.URL{}
