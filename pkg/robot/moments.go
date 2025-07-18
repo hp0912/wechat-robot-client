@@ -56,23 +56,23 @@ type MediaList struct {
 }
 
 type Media struct {
-	ID               uint64          `xml:"id"`
-	IDStr            string          `xml:"idStr,omitempty"`
-	Type             uint32          `xml:"type"`
-	Title            string          `xml:"title"`
-	Description      string          `xml:"description"`
-	Private          uint32          `xml:"private"`
-	UserData         string          `xml:"userData,omitempty"`
-	SubType          uint32          `xml:"subType,omitempty"`
-	VideoSize        VideoSize       `xml:"videoSize,omitempty"`
-	HD               URL             `xml:"hd"`
-	UHD              URL             `xml:"uhd"`
-	URL              URL             `xml:"url"`
-	Thumb            Thumb           `xml:"thumb"`
-	Size             Size            `xml:"size"`
-	VideoDuration    float64         `xml:"videoDuration,omitempty"`
-	VideoDurationStr string          `xml:"videoDurationStr,omitempty"`
-	VideoColdDLRule  VideoColdDLRule `xml:"VideoColdDLRule,omitempty"`
+	ID               uint64           `xml:"id"`
+	IDStr            string           `xml:"idStr,omitempty"`
+	Type             uint32           `xml:"type"`
+	Title            string           `xml:"title"`
+	Description      string           `xml:"description"`
+	Private          uint32           `xml:"private"`
+	UserData         string           `xml:"userData"`
+	SubType          uint32           `xml:"subType"`
+	VideoSize        *VideoSize       `xml:"videoSize,omitempty"`
+	HD               *URL             `xml:"hd,omitempty"`
+	UHD              *URL             `xml:"uhd,omitempty"`
+	URL              URL              `xml:"url"`
+	Thumb            Thumb            `xml:"thumb"`
+	Size             Size             `xml:"size"`
+	VideoDuration    float64          `xml:"videoDuration,omitempty"`
+	VideoDurationStr string           `xml:"videoDurationStr,omitempty"`
+	VideoColdDLRule  *VideoColdDLRule `xml:"VideoColdDLRule,omitempty"`
 }
 
 type VideoSize struct {

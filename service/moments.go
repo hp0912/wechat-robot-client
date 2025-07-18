@@ -292,6 +292,11 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 	}
 
 	momentMessage.Content = string(momentTimelineBytes)
+	momentMessage.Content = strings.ReplaceAll(momentMessage.Content, "token=\"\"", "")
+	momentMessage.Content = strings.ReplaceAll(momentMessage.Content, "key=\"\"", "")
+	momentMessage.Content = strings.ReplaceAll(momentMessage.Content, "enc_idx=\"\"", "")
+	momentMessage.Content = strings.ReplaceAll(momentMessage.Content, "videomd5=\"\"", "")
+	momentMessage.Content = strings.ReplaceAll(momentMessage.Content, "md5=\"\"", "")
 
 	return vars.RobotRuntime.FriendCircleMessages(momentMessage)
 }
