@@ -1,14 +1,24 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"encoding/xml"
 	"fmt"
 	"io"
+	"net/http"
+	"os"
+	"os/exec"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+
 	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/vars"
@@ -37,7 +47,62 @@ func (s *MomentsService) FriendCircleUpload(media io.Reader) (robot.FriendCircle
 	if err != nil {
 		return robot.FriendCircleUploadResponse{}, fmt.Errorf("读取文件内容失败: %w", err)
 	}
-	return vars.RobotRuntime.FriendCircleUpload(mediaBytes)
+
+	// 计算文件大小
+	totalSize := len(mediaBytes)
+
+	// 尝试识别媒体类型
+	contentType := http.DetectContentType(mediaBytes)
+
+	var width, height int
+	var videoDuration float64
+
+	switch {
+	case strings.HasPrefix(contentType, "image"):
+		// 图片处理
+		cfg, _, err := image.DecodeConfig(bytes.NewReader(mediaBytes))
+		if err == nil {
+			width = cfg.Width
+			height = cfg.Height
+		}
+	case strings.HasPrefix(contentType, "video"):
+		// 写入临时文件供 ffprobe 分析
+		tmpFile, err := os.CreateTemp("", "wechat-moments-*.tmp")
+		if err == nil {
+			defer os.Remove(tmpFile.Name()) // 确保临时文件被删除
+
+			_, _ = tmpFile.Write(mediaBytes)
+			_ = tmpFile.Close()
+
+			// 使用 ffprobe 获取 width, height, duration
+			cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height:format=duration", "-of", "default=noprint_wrappers=1:nokey=1", tmpFile.Name())
+			if out, err := cmd.Output(); err == nil {
+				parts := strings.Split(strings.TrimSpace(string(out)), "\n")
+				if len(parts) >= 3 {
+					width, _ = strconv.Atoi(parts[0])
+					height, _ = strconv.Atoi(parts[1])
+					videoDuration, _ = strconv.ParseFloat(parts[2], 64)
+				}
+			}
+		}
+	default:
+		// 未知类型，保持媒体类型为 0
+	}
+
+	resp, err := vars.RobotRuntime.FriendCircleUpload(mediaBytes)
+	if err != nil {
+		return resp, err
+	}
+
+	resp.Size.Width = strconv.Itoa(width)
+	resp.Size.Height = strconv.Itoa(height)
+	resp.Size.TotalSize = strconv.Itoa(totalSize)
+
+	if videoDuration > 0 {
+		resp.VideoDuration = videoDuration
+	}
+
+	return resp, nil
 }
 
 func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.FriendCircleMessagesResponse, error) {
@@ -155,7 +220,7 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 	momentMessage.MediaInfo = make([]*robot.MediaInfo, 0, len(req.MediaList))
 
 	if len(req.MediaList) > 0 {
-		for mediaIndex, mediaReq := range req.MediaList {
+		for _, mediaReq := range req.MediaList {
 			if mediaReq.Type == nil {
 				return robot.FriendCircleMessagesResponse{}, fmt.Errorf("朋友圈图片类型不能为空")
 			}
@@ -173,11 +238,6 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 			if mediaReq.Id != nil {
 				mediaItem.ID = *mediaReq.Id
 			}
-			if mediaIndex == 0 && req.Content != "" {
-				mediaItem.Title = req.Content
-				mediaItem.Description = req.Content
-			}
-
 			mediaItem.Size = mediaReq.Size
 			if mediaItem.Type == 6 {
 				mediaItem.VideoDuration = mediaReq.VideoDuration
@@ -187,6 +247,10 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 			if mediaReq.BufferUrl.Type != nil {
 				mediaInfo.Source = mediaReq.BufferUrl.Type
 				mediaItemURL.Type = strconv.FormatUint(uint64(*mediaReq.BufferUrl.Type), 10)
+			} else {
+				source := uint32(2)
+				mediaInfo.Source = &source
+				mediaItemURL.Type = "1"
 			}
 			if mediaReq.BufferUrl.Url != nil {
 				mediaItemURL.Value = *mediaReq.BufferUrl.Url
@@ -197,6 +261,8 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 				mediaItemThumb := robot.Thumb{}
 				if mediaReq.ThumbUrls[0].Type != nil {
 					mediaItemThumb.Type = strconv.FormatUint(uint64(*mediaReq.ThumbUrls[0].Type), 10)
+				} else {
+					mediaItemThumb.Type = "1"
 				}
 				if mediaReq.ThumbUrls[0].Url != nil {
 					mediaItemThumb.Value = *mediaReq.ThumbUrls[0].Url
@@ -215,7 +281,7 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 			startTime := uint32(time.Now().Unix())
 			mediaInfo.StartTime = &startTime
 
-			momentMessage.MediaInfo[mediaIndex] = mediaInfo
+			momentMessage.MediaInfo = append(momentMessage.MediaInfo, mediaInfo)
 			momentTimeline.ContentObject.MediaList.Media = append(momentTimeline.ContentObject.MediaList.Media, mediaItem)
 		}
 	}
