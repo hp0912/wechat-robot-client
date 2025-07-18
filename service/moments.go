@@ -134,44 +134,69 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 		},
 		ContentDescShowType:    0,
 		PublicBrandContactType: 0,
-		ContentObject: robot.ContentObject{
-			// 暂时先写死
-			ContentStyle: 2,
-		},
 	}
+
+	contentObject := robot.ContentObject{}
+	if req.Content != "" && len(req.MediaList) == 0 {
+		contentObject.ContentStyle = 1 // 文本
+	} else if len(req.MediaList) == 1 && req.MediaList[0].Type != nil && *req.MediaList[0].Type == 6 {
+		contentObject.ContentStyle = 15 // 视频
+	} else {
+		contentObject.ContentStyle = 2 // 图文
+	}
+	momentTimeline.ContentObject = contentObject
+
 	if req.Content != "" {
 		momentTimeline.ContentDesc = req.Content
 	}
+
+	mediaInfoCount := uint32(len(req.MediaList))
+	momentMessage.MediaInfoCount = &mediaInfoCount
+	momentMessage.MediaInfo = make([]*robot.MediaInfo, 0, len(req.MediaList))
+
 	if len(req.MediaList) > 0 {
 		for mediaIndex, mediaReq := range req.MediaList {
 			if mediaReq.Type == nil {
 				return robot.FriendCircleMessagesResponse{}, fmt.Errorf("朋友圈图片类型不能为空")
 			}
-			mediaItem := robot.Media{
-				Type: strconv.FormatUint(uint64(*mediaReq.Type), 10),
+			if mediaReq.BufferUrl == nil {
+				return robot.FriendCircleMessagesResponse{}, fmt.Errorf("朋友圈图片BufferUrl不能为空")
 			}
+			// Media
+			mediaItem := robot.Media{
+				Type:    *mediaReq.Type,
+				Private: momentMessage.Privacy,
+			}
+			// MediaInfo
+			mediaInfo := &robot.MediaInfo{}
+
 			if mediaReq.Id != nil {
-				mediaItem.ID = strconv.FormatUint(*mediaReq.Id, 10)
+				mediaItem.ID = *mediaReq.Id
 			}
 			if mediaIndex == 0 && req.Content != "" {
 				mediaItem.Title = req.Content
 				mediaItem.Description = req.Content
 			}
-			if mediaReq.TotalLen != nil {
-				mediaItem.Size = robot.Size{
-					TotalSize: strconv.FormatUint(uint64(*mediaReq.TotalLen), 10),
+
+			mediaItem.Size = mediaReq.Size
+			if mediaItem.Type == 6 {
+				vd, err := strconv.ParseFloat(mediaReq.VideoDuration, 64)
+				if err != nil {
+					return robot.FriendCircleMessagesResponse{}, fmt.Errorf("解析视频时长失败: %w", err)
 				}
+				mediaItem.VideoDuration = vd
 			}
-			if mediaReq.BufferUrl != nil {
-				mediaItemURL := robot.URL{}
-				if mediaReq.BufferUrl.Type != nil {
-					mediaItemURL.Type = strconv.FormatUint(uint64(*mediaReq.BufferUrl.Type), 10)
-				}
-				if mediaReq.BufferUrl.Url != nil {
-					mediaItemURL.Value = *mediaReq.BufferUrl.Url
-				}
-				mediaItem.URL = mediaItemURL
+
+			mediaItemURL := robot.URL{}
+			if mediaReq.BufferUrl.Type != nil {
+				mediaInfo.Source = mediaReq.BufferUrl.Type
+				mediaItemURL.Type = strconv.FormatUint(uint64(*mediaReq.BufferUrl.Type), 10)
 			}
+			if mediaReq.BufferUrl.Url != nil {
+				mediaItemURL.Value = *mediaReq.BufferUrl.Url
+			}
+			mediaItem.URL = mediaItemURL
+
 			if len(mediaReq.ThumbUrls) > 0 {
 				mediaItemThumb := robot.Thumb{}
 				if mediaReq.ThumbUrls[0].Type != nil {
@@ -182,6 +207,19 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 				}
 				mediaItem.Thumb = mediaItemThumb
 			}
+
+			// MediaInfo
+			mediaType := robot.SnsMediaType(mediaItem.Type - 1)
+			mediaInfo.MediaType = &mediaType
+			playLength := uint32(mediaItem.VideoDuration)
+			mediaInfo.VideoPlayLength = &playLength
+			currentTime := int(time.Now().Unix())
+			sessionID := "memonts-" + strconv.Itoa(currentTime)
+			mediaInfo.SessionId = &sessionID
+			startTime := uint32(time.Now().Unix())
+			mediaInfo.StartTime = &startTime
+
+			momentMessage.MediaInfo[mediaIndex] = mediaInfo
 			momentTimeline.ContentObject.MediaList.Media = append(momentTimeline.ContentObject.MediaList.Media, mediaItem)
 		}
 	}
