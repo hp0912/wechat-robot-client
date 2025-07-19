@@ -299,3 +299,22 @@ type FriendCircleMessagesResponse struct {
 	SnsObject    *SnsObject    `json:"SnsObject,omitempty"`
 	SpamTips     *string       `json:"SpamTips,omitempty"`
 }
+
+type FriendCircleOperationRequest struct {
+	Wxid      string `json:"Wxid"`
+	Id        string `json:"Id"`
+	Type      uint32 `json:"Type"`
+	CommnetId uint32 `json:"CommnetId"`
+}
+
+type SnsObjectOpResponse struct {
+	BaseResponse *BaseResponse `json:"BaseResponse,omitempty"`
+	OpCount      *uint32       `json:"opCount,omitempty"`
+	OpRetList    []int32       `json:"opRetList,omitempty"`
+}
+
+type FriendCirclePrivacySettingsRequest struct {
+	Wxid     string `json:"Wxid"`
+	Function uint32 `json:"Function"`
+	Value    uint32 `json:"Value"`
+}

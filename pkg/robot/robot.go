@@ -982,6 +982,16 @@ func (r *Robot) FriendCircleMessages(req FriendCircleMessagesRequest) (FriendCir
 	return r.Client.FriendCircleMessages(req)
 }
 
+func (r *Robot) FriendCircleOperation(req FriendCircleOperationRequest) (SnsObjectOpResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendCircleOperation(req)
+}
+
+func (r *Robot) FriendCirclePrivacySettings(req FriendCirclePrivacySettingsRequest) (OplogResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendCirclePrivacySettings(req)
+}
+
 func (r *Robot) WxappQrcodeAuthLogin(URL string) error {
 	return r.Client.WxappQrcodeAuthLogin(r.WxID, URL)
 }

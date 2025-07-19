@@ -866,6 +866,36 @@ func (c *Client) FriendCircleUpload(wxid string, mediaType uint32, base64 string
 	return
 }
 
+// 朋友圈操作
+func (c *Client) FriendCircleOperation(req FriendCircleOperationRequest) (resp SnsObjectOpResponse, err error) {
+	var result ClientResponse[SnsObjectOpResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleOperation))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+// 朋友圈权限设置
+func (c *Client) FriendCirclePrivacySettings(req FriendCirclePrivacySettingsRequest) (resp OplogResponse, err error) {
+	var result ClientResponse[OplogResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCirclePrivacySettings))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
 // 发布朋友圈
 func (c *Client) FriendCircleMessages(req FriendCircleMessagesRequest) (resp FriendCircleMessagesResponse, err error) {
 	var result ClientResponse[FriendCircleMessagesResponse]

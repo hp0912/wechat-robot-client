@@ -316,3 +316,18 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 
 	return vars.RobotRuntime.FriendCircleMessages(momentMessage)
 }
+
+func (s *MomentsService) FriendCircleOperation(req dto.MomentOpRequest) (robot.SnsObjectOpResponse, error) {
+	return vars.RobotRuntime.FriendCircleOperation(robot.FriendCircleOperationRequest{
+		Id:        req.Id,
+		Type:      req.Type,
+		CommnetId: req.CommnetId,
+	})
+}
+
+func (s *MomentsService) FriendCirclePrivacySettings(req dto.MomentPrivacySettingsRequest) (robot.OplogResponse, error) {
+	return vars.RobotRuntime.FriendCirclePrivacySettings(robot.FriendCirclePrivacySettingsRequest{
+		Function: req.Function,
+		Value:    req.Value,
+	})
+}
