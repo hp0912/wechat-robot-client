@@ -203,21 +203,17 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 
 	contentObject := robot.ContentObject{}
 	if req.Content != "" && len(req.MediaList) == 0 {
-		contentObject.ContentStyle = 1 // 文本
+		contentObject.ContentStyle = 2 // 文本
 	} else if len(req.MediaList) == 1 && req.MediaList[0].Type != nil && *req.MediaList[0].Type == 6 {
 		contentObject.ContentStyle = 15 // 视频
 	} else {
-		contentObject.ContentStyle = 2 // 图文
+		contentObject.ContentStyle = 1 // 图文
 	}
 	momentTimeline.ContentObject = contentObject
 
 	if req.Content != "" {
 		momentTimeline.ContentDesc = req.Content
 	}
-
-	mediaInfoCount := uint32(len(req.MediaList))
-	momentMessage.MediaInfoCount = &mediaInfoCount
-	momentMessage.MediaInfo = make([]*robot.MediaInfo, 0, len(req.MediaList))
 
 	if len(req.MediaList) > 0 {
 		for _, mediaReq := range req.MediaList {
@@ -227,14 +223,10 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 			if mediaReq.BufferUrl == nil {
 				return robot.FriendCircleMessagesResponse{}, fmt.Errorf("朋友圈图片BufferUrl不能为空")
 			}
-			// Media
 			mediaItem := robot.Media{
 				Type:    *mediaReq.Type,
 				Private: momentMessage.Privacy,
 			}
-			// MediaInfo
-			mediaInfo := &robot.MediaInfo{}
-
 			if mediaReq.Id != nil {
 				mediaItem.ID = *mediaReq.Id
 			}
@@ -245,11 +237,8 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 
 			mediaItemURL := robot.URL{}
 			if mediaReq.BufferUrl.Type != nil {
-				mediaInfo.Source = mediaReq.BufferUrl.Type
 				mediaItemURL.Type = strconv.FormatUint(uint64(*mediaReq.BufferUrl.Type), 10)
 			} else {
-				source := uint32(2)
-				mediaInfo.Source = &source
 				mediaItemURL.Type = "1"
 			}
 			if mediaReq.BufferUrl.Url != nil {
@@ -270,18 +259,6 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 				mediaItem.Thumb = mediaItemThumb
 			}
 
-			// MediaInfo
-			mediaType := robot.SnsMediaType(mediaItem.Type - 1)
-			mediaInfo.MediaType = &mediaType
-			playLength := uint32(mediaItem.VideoDuration)
-			mediaInfo.VideoPlayLength = &playLength
-			currentTime := int(time.Now().Unix())
-			sessionID := "memonts-" + strconv.Itoa(currentTime)
-			mediaInfo.SessionId = &sessionID
-			startTime := uint32(time.Now().Unix())
-			mediaInfo.StartTime = &startTime
-
-			momentMessage.MediaInfo = append(momentMessage.MediaInfo, mediaInfo)
 			momentTimeline.ContentObject.MediaList.Media = append(momentTimeline.ContentObject.MediaList.Media, mediaItem)
 		}
 	}
@@ -292,11 +269,6 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 	}
 
 	momentMessage.Content = string(momentTimelineBytes)
-	momentMessage.Content = strings.ReplaceAll(momentMessage.Content, "token=\"\"", "")
-	momentMessage.Content = strings.ReplaceAll(momentMessage.Content, "key=\"\"", "")
-	momentMessage.Content = strings.ReplaceAll(momentMessage.Content, "enc_idx=\"\"", "")
-	momentMessage.Content = strings.ReplaceAll(momentMessage.Content, "videomd5=\"\"", "")
-	momentMessage.Content = strings.ReplaceAll(momentMessage.Content, "md5=\"\"", "")
 
 	return vars.RobotRuntime.FriendCircleMessages(momentMessage)
 }
