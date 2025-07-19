@@ -68,21 +68,21 @@ func (s *MomentsService) FriendCircleUpload(media io.Reader) (robot.FriendCircle
 	case strings.HasPrefix(contentType, "video"):
 		// 写入临时文件供 ffprobe 分析
 		tmpFile, err := os.CreateTemp("", "wechat-moments-*.tmp")
-		if err == nil {
-			defer os.Remove(tmpFile.Name()) // 确保临时文件被删除
+		if err != nil {
+			return robot.FriendCircleUploadResponse{}, fmt.Errorf("创建临时文件失败: %w", err)
+		}
+		defer os.Remove(tmpFile.Name()) // 确保临时文件被删除
 
-			_, _ = tmpFile.Write(mediaBytes)
-			_ = tmpFile.Close()
-
-			// 使用 ffprobe 获取 width, height, duration
-			cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height:format=duration", "-of", "default=noprint_wrappers=1:nokey=1", tmpFile.Name())
-			if out, err := cmd.Output(); err == nil {
-				parts := strings.Split(strings.TrimSpace(string(out)), "\n")
-				if len(parts) >= 3 {
-					width, _ = strconv.Atoi(parts[0])
-					height, _ = strconv.Atoi(parts[1])
-					videoDuration, _ = strconv.ParseFloat(parts[2], 64)
-				}
+		_, _ = tmpFile.Write(mediaBytes)
+		_ = tmpFile.Close()
+		// 使用 ffprobe 获取 width, height, duration
+		cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height:format=duration", "-of", "default=noprint_wrappers=1:nokey=1", tmpFile.Name())
+		if out, err := cmd.Output(); err == nil {
+			parts := strings.Split(strings.TrimSpace(string(out)), "\n")
+			if len(parts) >= 3 {
+				width, _ = strconv.Atoi(parts[0])
+				height, _ = strconv.Atoi(parts[1])
+				videoDuration, _ = strconv.ParseFloat(parts[2], 64)
 			}
 		}
 	default:
