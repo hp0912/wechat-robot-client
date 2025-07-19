@@ -244,17 +244,18 @@ type FriendCircleUploadRequest struct {
 }
 
 type FriendCircleUploadResponse struct {
-	BaseResponse  *BaseResponse   `json:"BaseResponse,omitempty"`
-	StartPos      *uint32         `json:"StartPos,omitempty"`
-	TotalLen      *uint32         `json:"TotalLen,omitempty"`
-	ClientId      *string         `json:"ClientId,omitempty"`
-	BufferUrl     *SnsBufferUrl   `json:"BufferUrl,omitempty"`
-	ThumbUrlCount *uint32         `json:"ThumbUrlCount,omitempty"`
-	ThumbUrls     []*SnsBufferUrl `json:"ThumbUrls,omitempty"`
-	Id            *uint64         `json:"Id,omitempty"`
-	Type          *uint32         `json:"Type,omitempty"`
-	Size          Size            `xml:"size"`
-	VideoDuration float64         `xml:"videoDuration,omitempty"`
+	BaseResponse     *BaseResponse   `json:"BaseResponse,omitempty"`
+	StartPos         *uint32         `json:"StartPos,omitempty"`
+	TotalLen         *uint32         `json:"TotalLen,omitempty"`
+	ClientId         *string         `json:"ClientId,omitempty"`
+	BufferUrl        *SnsBufferUrl   `json:"BufferUrl,omitempty"`
+	ThumbUrlCount    *uint32         `json:"ThumbUrlCount,omitempty"`
+	ThumbUrls        []*SnsBufferUrl `json:"ThumbUrls,omitempty"`
+	Id               *uint64         `json:"Id,omitempty"`
+	Type             *uint32         `json:"Type,omitempty"`
+	Size             Size            `xml:"size"`
+	VideoDuration    float64         `xml:"videoDuration,omitempty"`
+	VideoDurationStr string          `xml:"videoDurationStr,omitempty"`
 }
 
 type SnsBufferUrl struct {

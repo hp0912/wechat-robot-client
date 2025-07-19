@@ -148,6 +148,7 @@ func (s *MomentsService) FriendCircleCdnSnsUploadVideo(mediaBytes []byte) (robot
 		return robot.FriendCircleUploadResponse{}, fmt.Errorf("上传视频失败: %w", err)
 	}
 
+	mediaId := uint64(0)
 	mediaType := uint32(6)
 	thumbUrlCount := uint32(1)
 	thumbUrls := []*robot.SnsBufferUrl{
@@ -155,6 +156,7 @@ func (s *MomentsService) FriendCircleCdnSnsUploadVideo(mediaBytes []byte) (robot
 	}
 
 	return robot.FriendCircleUploadResponse{
+		Id:            &mediaId,
 		Type:          &mediaType,
 		BufferUrl:     &robot.SnsBufferUrl{Url: &resp.FileURL},
 		ThumbUrlCount: &thumbUrlCount,
@@ -295,7 +297,11 @@ func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.Frie
 			}
 			mediaItem.Size = mediaReq.Size
 			if mediaItem.Type == 6 {
-				mediaItem.VideoDuration = mediaReq.VideoDuration
+				videoDuration, err := strconv.ParseFloat(mediaReq.VideoDurationStr, 64)
+				if err != nil {
+					return robot.FriendCircleMessagesResponse{}, fmt.Errorf("视频时长格式错误: %w", err)
+				}
+				mediaItem.VideoDuration = videoDuration
 			}
 
 			mediaItemURL := robot.URL{}
