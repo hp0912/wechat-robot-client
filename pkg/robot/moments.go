@@ -240,6 +240,7 @@ type DownFriendCircleMediaRequest struct {
 
 type FriendCircleUploadRequest struct {
 	Wxid   string `json:"Wxid"`
+	Type   uint32 `json:"Type"`
 	Base64 string `json:"Base64"`
 }
 

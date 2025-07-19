@@ -846,12 +846,13 @@ func (c *Client) FriendCircleDownFriendCircleMedia(wxid, Url, Key string) (media
 }
 
 // 朋友圈图片/视频上传
-func (c *Client) FriendCircleUpload(wxid, base64 string) (resp FriendCircleUploadResponse, err error) {
+func (c *Client) FriendCircleUpload(wxid string, mediaType uint32, base64 string) (resp FriendCircleUploadResponse, err error) {
 	var result ClientResponse[FriendCircleUploadResponse]
 	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(FriendCircleUploadRequest{
 			Wxid:   wxid,
+			Type:   mediaType,
 			Base64: base64,
 		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleUpload))
 	if err = result.CheckError(err); err != nil {

@@ -5,8 +5,11 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"slices"
@@ -14,14 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"image"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
-
 	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/vars"
+
+	"github.com/h2non/filetype"
 )
 
 type MomentsService struct {
@@ -51,45 +51,89 @@ func (s *MomentsService) FriendCircleUpload(media io.Reader) (robot.FriendCircle
 	// 计算文件大小
 	totalSize := len(mediaBytes)
 
-	// 尝试识别媒体类型
-	contentType := http.DetectContentType(mediaBytes)
-
+	var mediaType uint32
 	var width, height int
 	var videoDuration float64
 
 	switch {
-	case strings.HasPrefix(contentType, "image"):
+	case filetype.IsImage(mediaBytes):
+		mediaType = 2
 		// 图片处理
 		cfg, _, err := image.DecodeConfig(bytes.NewReader(mediaBytes))
-		if err == nil {
-			width = cfg.Width
-			height = cfg.Height
-		}
-	case strings.HasPrefix(contentType, "video"):
-		// 写入临时文件供 ffprobe 分析
-		tmpFile, err := os.CreateTemp("", "wechat-moments-*.tmp")
 		if err != nil {
-			return robot.FriendCircleUploadResponse{}, fmt.Errorf("创建临时文件失败: %w", err)
+			return robot.FriendCircleUploadResponse{}, fmt.Errorf("无法解码图片: %w", err)
 		}
-		defer os.Remove(tmpFile.Name()) // 确保临时文件被删除
+		width = cfg.Width
+		height = cfg.Height
+	case filetype.IsVideo(mediaBytes):
+		mediaType = 2
+		mediaFileType, err := filetype.Match(mediaBytes)
+		if err != nil {
+			return robot.FriendCircleUploadResponse{}, fmt.Errorf("无法识别媒体类型: %w", err)
+		}
+		if mediaFileType == filetype.Unknown {
+			return robot.FriendCircleUploadResponse{}, fmt.Errorf("未知媒体类型")
+		}
 
-		_, _ = tmpFile.Write(mediaBytes)
-		_ = tmpFile.Close()
-		// 使用 ffprobe 获取 width, height, duration
-		cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height:format=duration", "-of", "default=noprint_wrappers=1:nokey=1", tmpFile.Name())
-		if out, err := cmd.Output(); err == nil {
-			parts := strings.Split(strings.TrimSpace(string(out)), "\n")
-			if len(parts) >= 3 {
-				width, _ = strconv.Atoi(parts[0])
-				height, _ = strconv.Atoi(parts[1])
-				videoDuration, _ = strconv.ParseFloat(parts[2], 64)
+		mediaExt := mediaFileType.Extension
+		inFile, err := os.CreateTemp("", "wechat_moments_input_*."+mediaExt)
+		if err != nil {
+			return robot.FriendCircleUploadResponse{}, fmt.Errorf("创建临时输入文件失败: %w", err)
+		}
+		defer os.Remove(inFile.Name())
+
+		if _, err = inFile.Write(mediaBytes); err != nil {
+			return robot.FriendCircleUploadResponse{}, fmt.Errorf("写入临时文件失败: %w", err)
+		}
+		inFile.Close()
+
+		outFile, err := os.CreateTemp("", "wechat_moments_output_*.mp4")
+		if err != nil {
+			return robot.FriendCircleUploadResponse{}, fmt.Errorf("创建临时输出文件失败: %w", err)
+		}
+		defer os.Remove(outFile.Name())
+		outFile.Close()
+
+		videoPath := inFile.Name()
+		if strings.ToLower(mediaExt) != "mp4" {
+			// avi mov mkv flv webm 格式转换成mp4
+			cmd := exec.Command("ffmpeg",
+				"-i", videoPath,
+				"-c:v", "libx264",
+				"-c:a", "aac",
+				outFile.Name(),
+				"-y",
+			)
+			if err = cmd.Run(); err != nil {
+				return robot.FriendCircleUploadResponse{}, fmt.Errorf("转换视频格式失败: %w", err)
 			}
+			videoPath = outFile.Name()
+		}
+
+		// 使用 ffprobe 获取 width, height, duration
+		cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height:format=duration", "-of", "default=noprint_wrappers=1:nokey=1", videoPath)
+		out, err := cmd.Output()
+		if err != nil {
+			return robot.FriendCircleUploadResponse{}, fmt.Errorf("获取视频信息失败: %w", err)
+		}
+		parts := strings.Split(strings.TrimSpace(string(out)), "\n")
+		if len(parts) >= 3 {
+			width, _ = strconv.Atoi(parts[0])
+			height, _ = strconv.Atoi(parts[1])
+			videoDuration, _ = strconv.ParseFloat(parts[2], 64)
+		}
+		if strings.ToLower(mediaExt) != "mp4" {
+			mediaBytes, err = os.ReadFile(videoPath)
+			if err != nil {
+				return robot.FriendCircleUploadResponse{}, fmt.Errorf("读取视频文件失败: %w", err)
+			}
+			totalSize = len(mediaBytes)
 		}
 	default:
 		// 未知类型，保持媒体类型为 0
 	}
 
-	resp, err := vars.RobotRuntime.FriendCircleUpload(mediaBytes)
+	resp, err := vars.RobotRuntime.FriendCircleUpload(mediaType, mediaBytes)
 	if err != nil {
 		return resp, err
 	}
