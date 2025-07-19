@@ -20,3 +20,14 @@ type MomentPostRequest struct {
 	ShareWith    []string                           `form:"share_with" json:"share_with"`
 	DoNotShare   []string                           `form:"donot_share" json:"donot_share"`
 }
+
+type MomentOpRequest struct {
+	Id        string `form:"Id" json:"Id" binding:"required"`
+	Type      uint32 `form:"Type" json:"Type" binding:"required"`
+	CommentId uint32 `form:"CommentId" json:"CommentId"`
+}
+
+type MomentPrivacySettingsRequest struct {
+	Function uint32 `form:"Function" json:"Function"`
+	Value    uint32 `form:"Value" json:"Value"`
+}

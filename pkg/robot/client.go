@@ -845,8 +845,8 @@ func (c *Client) FriendCircleDownFriendCircleMedia(wxid, Url, Key string) (media
 	return
 }
 
-// 朋友圈图片/视频上传
-func (c *Client) FriendCircleUpload(wxid, base64 string) (resp FriendCircleUploadResponse, err error) {
+// 朋友圈图片上传
+func (c *Client) FriendCircleUpload(wxid string, base64 string) (resp FriendCircleUploadResponse, err error) {
 	var result ClientResponse[FriendCircleUploadResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -859,6 +859,49 @@ func (c *Client) FriendCircleUpload(wxid, base64 string) (resp FriendCircleUploa
 	}
 	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
 	if err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+// 朋友圈视频上传
+func (c *Client) FriendCircleCdnSnsUploadVideo(req FriendCircleCdnSnsUploadVideoRequest) (resp CdnSnsVideoUploadResponse, err error) {
+	var result ClientResponse[CdnSnsVideoUploadResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleCdnSnsUploadVideo))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+// 朋友圈操作
+func (c *Client) FriendCircleOperation(req FriendCircleOperationRequest) (resp SnsObjectOpResponse, err error) {
+	var result ClientResponse[SnsObjectOpResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleOperation))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+// 朋友圈权限设置
+func (c *Client) FriendCirclePrivacySettings(req FriendCirclePrivacySettingsRequest) (resp OplogResponse, err error) {
+	var result ClientResponse[OplogResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCirclePrivacySettings))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	resp = result.Data

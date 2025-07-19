@@ -56,23 +56,23 @@ type MediaList struct {
 }
 
 type Media struct {
-	ID               uint64          `xml:"id"`
-	IDStr            string          `xml:"idStr,omitempty"`
-	Type             uint32          `xml:"type"`
-	Title            string          `xml:"title"`
-	Description      string          `xml:"description"`
-	Private          uint32          `xml:"private"`
-	UserData         string          `xml:"userData,omitempty"`
-	SubType          uint32          `xml:"subType,omitempty"`
-	VideoSize        VideoSize       `xml:"videoSize,omitempty"`
-	HD               URL             `xml:"hd"`
-	UHD              URL             `xml:"uhd"`
-	URL              URL             `xml:"url"`
-	Thumb            Thumb           `xml:"thumb"`
-	Size             Size            `xml:"size"`
-	VideoDuration    float64         `xml:"videoDuration,omitempty"`
-	VideoDurationStr string          `xml:"videoDurationStr,omitempty"`
-	VideoColdDLRule  VideoColdDLRule `xml:"VideoColdDLRule,omitempty"`
+	ID               uint64           `xml:"id"`
+	IDStr            string           `xml:"idStr,omitempty"`
+	Type             uint32           `xml:"type"`
+	Title            string           `xml:"title"`
+	Description      string           `xml:"description"`
+	Private          uint32           `xml:"private"`
+	UserData         string           `xml:"userData"`
+	SubType          uint32           `xml:"subType"`
+	VideoSize        *VideoSize       `xml:"videoSize,omitempty"`
+	HD               *URL             `xml:"hd,omitempty"`
+	UHD              *URL             `xml:"uhd,omitempty"`
+	URL              URL              `xml:"url"`
+	Thumb            Thumb            `xml:"thumb"`
+	Size             Size             `xml:"size"`
+	VideoDuration    float64          `xml:"videoDuration,omitempty"`
+	VideoDurationStr string           `xml:"videoDurationStr,omitempty"`
+	VideoColdDLRule  *VideoColdDLRule `xml:"VideoColdDLRule,omitempty"`
 }
 
 type VideoSize struct {
@@ -244,22 +244,91 @@ type FriendCircleUploadRequest struct {
 }
 
 type FriendCircleUploadResponse struct {
-	BaseResponse  *BaseResponse   `json:"BaseResponse,omitempty"`
-	StartPos      *uint32         `json:"StartPos,omitempty"`
-	TotalLen      *uint32         `json:"TotalLen,omitempty"`
-	ClientId      *string         `json:"ClientId,omitempty"`
-	BufferUrl     *SnsBufferUrl   `json:"BufferUrl,omitempty"`
-	ThumbUrlCount *uint32         `json:"ThumbUrlCount,omitempty"`
-	ThumbUrls     []*SnsBufferUrl `json:"ThumbUrls,omitempty"`
-	Id            *uint64         `json:"Id,omitempty"`
-	Type          *uint32         `json:"Type,omitempty"`
-	Size          Size            `xml:"size"`
-	VideoDuration string          `xml:"videoDuration,omitempty"`
+	BaseResponse     *BaseResponse   `json:"BaseResponse,omitempty"`
+	StartPos         *uint32         `json:"StartPos,omitempty"`
+	TotalLen         *uint32         `json:"TotalLen,omitempty"`
+	ClientId         *string         `json:"ClientId,omitempty"`
+	BufferUrl        *SnsBufferUrl   `json:"BufferUrl,omitempty"`
+	ThumbUrlCount    *uint32         `json:"ThumbUrlCount,omitempty"`
+	ThumbUrls        []*SnsBufferUrl `json:"ThumbUrls,omitempty"`
+	Id               *uint64         `json:"Id,omitempty"`
+	Type             *uint32         `json:"Type,omitempty"`
+	Size             Size            `xml:"size"`
+	VideoDuration    float64         `xml:"videoDuration,omitempty"`
+	VideoDurationStr string          `xml:"videoDurationStr,omitempty"`
 }
 
 type SnsBufferUrl struct {
 	Url  *string `json:"Url,omitempty"`
 	Type *uint32 `json:"Type,omitempty"`
+}
+
+type FriendCircleCdnSnsUploadVideoRequest struct {
+	Wxid      string `json:"Wxid"`
+	VideoData string `json:"VideoData"`
+	ThumbData string `json:"ThumbData"`
+}
+
+type CdnSnsVideoUploadResponse struct {
+	Ver        uint32
+	Seq        uint32
+	RetCode    uint32
+	FileKey    string
+	RecvLen    uint32
+	FileURL    string
+	ThumbURL   string
+	FileID     string
+	EnableQuic uint32
+	RetrySec   uint32
+	IsRetry    uint32
+	IsOverLoad uint32
+	IsGetCDN   uint32
+	XClientIP  string
+	ReqData    *CdnSnsVideoUploadRequest
+}
+
+type CdnSnsVideoUploadRequest struct {
+	Ver              uint32 // 1
+	WeiXinNum        uint32 //
+	Seq              uint32 // 6
+	ClientVersion    uint32
+	ClientOsType     string
+	AuthKey          string
+	NetType          uint32 // 1
+	AcceptDupack     uint32 // 1
+	RsaVer           uint32 // 1
+	RsaValue         string
+	FileType         uint32 // 2
+	WxChatType       uint32 // 1
+	LastRetCode      uint32 // 0
+	IPSeq            uint32 // 0
+	CliQuicFlag      uint32 // 0
+	HasThumb         uint32 // 1
+	NoCheckAesKey    uint32 // 1
+	EnableHit        uint32 // 1
+	ExistAnceCheck   uint32 // 0
+	AppType          uint32 // 1
+	FileKey          string // wxupload_21533455325@chatroom29_1572079793
+	TotalSize        uint32 // 53440
+	RawTotalSize     uint32 // 53425
+	LocalName        string // 29.wxgf
+	Offset           uint32 // 0
+	ThumbTotalSize   uint32 // 4496
+	RawThumbSize     uint32 // 4487
+	RawThumbMD5      string // 0d29df2b74d29efa46dd6fa1e75e71ba
+	ThumbCRC         uint32 // 2991702343
+	IsStoreVideo     uint32
+	ThumbData        string
+	LargesVideo      uint32 // 0
+	SourceFlag       uint32 // 0
+	AdVideoFlag      uint32 // 0
+	Mp4Identify      string
+	FileMD5          string // e851e118f524b4219928bed3f3bd0d24
+	RawFileMD5       string // e851e118f524b4219928bed3f3bd0d24
+	DataCheckSum     uint32 // 737909102
+	FileCRC          uint32 // 2444306137
+	FileData         string // 文件数据
+	UserLargeFileApi bool
 }
 
 type FriendCircleMessagesRequest struct {
@@ -297,4 +366,23 @@ type FriendCircleMessagesResponse struct {
 	BaseResponse *BaseResponse `json:"BaseResponse,omitempty"`
 	SnsObject    *SnsObject    `json:"SnsObject,omitempty"`
 	SpamTips     *string       `json:"SpamTips,omitempty"`
+}
+
+type FriendCircleOperationRequest struct {
+	Wxid      string `json:"Wxid"`
+	Id        string `json:"Id"`
+	Type      uint32 `json:"Type"`
+	CommnetId uint32 `json:"CommnetId"`
+}
+
+type SnsObjectOpResponse struct {
+	BaseResponse *BaseResponse `json:"BaseResponse,omitempty"`
+	OpCount      *uint32       `json:"opCount,omitempty"`
+	OpRetList    []int32       `json:"opRetList,omitempty"`
+}
+
+type FriendCirclePrivacySettingsRequest struct {
+	Wxid     string `json:"Wxid"`
+	Function uint32 `json:"Function"`
+	Value    uint32 `json:"Value"`
 }

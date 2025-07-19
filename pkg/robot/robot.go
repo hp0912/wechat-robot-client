@@ -977,9 +977,27 @@ func (r *Robot) FriendCircleUpload(mediaBytes []byte) (FriendCircleUploadRespons
 	return r.Client.FriendCircleUpload(r.WxID, base64Str)
 }
 
+func (r *Robot) FriendCircleCdnSnsUploadVideo(thumbBytes, videoBytes []byte) (CdnSnsVideoUploadResponse, error) {
+	return r.Client.FriendCircleCdnSnsUploadVideo(FriendCircleCdnSnsUploadVideoRequest{
+		Wxid:      r.WxID,
+		ThumbData: base64.StdEncoding.EncodeToString(thumbBytes),
+		VideoData: base64.StdEncoding.EncodeToString(videoBytes),
+	})
+}
+
 func (r *Robot) FriendCircleMessages(req FriendCircleMessagesRequest) (FriendCircleMessagesResponse, error) {
 	req.Wxid = r.WxID
 	return r.Client.FriendCircleMessages(req)
+}
+
+func (r *Robot) FriendCircleOperation(req FriendCircleOperationRequest) (SnsObjectOpResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendCircleOperation(req)
+}
+
+func (r *Robot) FriendCirclePrivacySettings(req FriendCirclePrivacySettingsRequest) (OplogResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendCirclePrivacySettings(req)
 }
 
 func (r *Robot) WxappQrcodeAuthLogin(URL string) error {

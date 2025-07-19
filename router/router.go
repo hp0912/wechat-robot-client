@@ -120,6 +120,8 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/moments/down-media", momentsCtl.FriendCircleDownFriendCircleMedia)
 	api.POST("/robot/moments/upload-media", momentsCtl.FriendCircleUpload)
 	api.POST("/robot/moments/post", momentsCtl.FriendCirclePost)
+	api.POST("/robot/moments/operate", momentsCtl.FriendCircleOperation)
+	api.POST("/robot/moments/privacy-settings", momentsCtl.FriendCirclePrivacySettings)
 
 	// 豆包AI回调相关接口
 	api.POST("/robot/ai-callback/voice/doubao-tts", aiCallbackCtl.DoubaoTTS)

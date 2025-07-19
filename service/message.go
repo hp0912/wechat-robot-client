@@ -257,7 +257,7 @@ func (s *MessageService) ProcessNewChatRoomMemberMessage(message *model.Message,
 	if len(msgXml.SysMsgTemplate.ContentTemplate.LinkList.Links) > 0 {
 		links := msgXml.SysMsgTemplate.ContentTemplate.LinkList.Links
 		for _, link := range links {
-			if link.Name == "names" {
+			if link.Name == "names" || link.Name == "adder" {
 				if link.MemberList != nil {
 					for _, member := range link.MemberList.Members {
 						newMemberWechatIds = append(newMemberWechatIds, member.Username)
@@ -354,7 +354,9 @@ func (s *MessageService) ProcessSystemMessage(message *model.Message) {
 		return
 	}
 	if msgXml.Type == "sysmsgtemplate" &&
-		(strings.Contains(msgXml.SysMsgTemplate.ContentTemplate.Template, "加入了群聊") || strings.Contains(msgXml.SysMsgTemplate.ContentTemplate.Template, "分享的二维码加入群聊")) {
+		(strings.Contains(msgXml.SysMsgTemplate.ContentTemplate.Template, "加入了群聊") ||
+			strings.Contains(msgXml.SysMsgTemplate.ContentTemplate.Template, "分享的二维码加入群聊") ||
+			strings.Contains(msgXml.SysMsgTemplate.ContentTemplate.Template, "joined group chat")) {
 		s.ProcessNewChatRoomMemberMessage(message, msgXml)
 		return
 	}
