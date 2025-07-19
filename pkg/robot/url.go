@@ -59,6 +59,7 @@ const (
 	FriendCircleOperation             = "/FriendCircle/Operation"
 	FriendCirclePrivacySettings       = "/FriendCircle/PrivacySettings"
 	FriendCircleUpload                = "/FriendCircle/Upload"
+	FriendCircleCdnSnsUploadVideo     = "/FriendCircle/CdnSnsUploadVideo"
 
 	ToolsCdnDownloadImage = "/Tools/CdnDownloadImage"
 	ToolsDownloadVideo    = "/Tools/DownloadVideo"

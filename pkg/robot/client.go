@@ -845,14 +845,13 @@ func (c *Client) FriendCircleDownFriendCircleMedia(wxid, Url, Key string) (media
 	return
 }
 
-// 朋友圈图片/视频上传
-func (c *Client) FriendCircleUpload(wxid string, mediaType uint32, base64 string) (resp FriendCircleUploadResponse, err error) {
+// 朋友圈图片上传
+func (c *Client) FriendCircleUpload(wxid string, base64 string) (resp FriendCircleUploadResponse, err error) {
 	var result ClientResponse[FriendCircleUploadResponse]
 	_, err = c.client.R().
 		SetResult(&result).
 		SetBody(FriendCircleUploadRequest{
 			Wxid:   wxid,
-			Type:   mediaType,
 			Base64: base64,
 		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleUpload))
 	if err = result.CheckError(err); err != nil {
@@ -860,6 +859,19 @@ func (c *Client) FriendCircleUpload(wxid string, mediaType uint32, base64 string
 	}
 	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
 	if err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+// 朋友圈视频上传
+func (c *Client) FriendCircleCdnSnsUploadVideo(req FriendCircleCdnSnsUploadVideoRequest) (resp CdnSnsVideoUploadResponse, err error) {
+	var result ClientResponse[CdnSnsVideoUploadResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleCdnSnsUploadVideo))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	resp = result.Data

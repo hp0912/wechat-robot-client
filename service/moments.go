@@ -48,16 +48,10 @@ func (s *MomentsService) FriendCircleUpload(media io.Reader) (robot.FriendCircle
 		return robot.FriendCircleUploadResponse{}, fmt.Errorf("读取文件内容失败: %w", err)
 	}
 
-	// 计算文件大小
-	totalSize := len(mediaBytes)
-
-	var mediaType uint32
-	var width, height int
-	var videoDuration float64
-
 	switch {
 	case filetype.IsImage(mediaBytes):
-		mediaType = 2
+		totalSize := len(mediaBytes)
+		var width, height int
 		// 图片处理
 		cfg, _, err := image.DecodeConfig(bytes.NewReader(mediaBytes))
 		if err != nil {
@@ -65,88 +59,113 @@ func (s *MomentsService) FriendCircleUpload(media io.Reader) (robot.FriendCircle
 		}
 		width = cfg.Width
 		height = cfg.Height
+		resp, err := vars.RobotRuntime.FriendCircleUpload(mediaBytes)
+		if err != nil {
+			return resp, err
+		}
+		resp.Size.Width = strconv.Itoa(width)
+		resp.Size.Height = strconv.Itoa(height)
+		resp.Size.TotalSize = strconv.Itoa(totalSize)
+		return resp, nil
 	case filetype.IsVideo(mediaBytes):
-		mediaType = 2
-		mediaFileType, err := filetype.Match(mediaBytes)
-		if err != nil {
-			return robot.FriendCircleUploadResponse{}, fmt.Errorf("无法识别媒体类型: %w", err)
-		}
-		if mediaFileType == filetype.Unknown {
-			return robot.FriendCircleUploadResponse{}, fmt.Errorf("未知媒体类型")
-		}
-
-		mediaExt := mediaFileType.Extension
-		inFile, err := os.CreateTemp("", "wechat_moments_input_*."+mediaExt)
-		if err != nil {
-			return robot.FriendCircleUploadResponse{}, fmt.Errorf("创建临时输入文件失败: %w", err)
-		}
-		defer os.Remove(inFile.Name())
-
-		if _, err = inFile.Write(mediaBytes); err != nil {
-			return robot.FriendCircleUploadResponse{}, fmt.Errorf("写入临时文件失败: %w", err)
-		}
-		inFile.Close()
-
-		outFile, err := os.CreateTemp("", "wechat_moments_output_*.mp4")
-		if err != nil {
-			return robot.FriendCircleUploadResponse{}, fmt.Errorf("创建临时输出文件失败: %w", err)
-		}
-		defer os.Remove(outFile.Name())
-		outFile.Close()
-
-		videoPath := inFile.Name()
-		if strings.ToLower(mediaExt) != "mp4" {
-			// avi mov mkv flv webm 格式转换成mp4
-			cmd := exec.Command("ffmpeg",
-				"-i", videoPath,
-				"-c:v", "libx264",
-				"-c:a", "aac",
-				outFile.Name(),
-				"-y",
-			)
-			if err = cmd.Run(); err != nil {
-				return robot.FriendCircleUploadResponse{}, fmt.Errorf("转换视频格式失败: %w", err)
-			}
-			videoPath = outFile.Name()
-		}
-
-		// 使用 ffprobe 获取 width, height, duration
-		cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height:format=duration", "-of", "default=noprint_wrappers=1:nokey=1", videoPath)
-		out, err := cmd.Output()
-		if err != nil {
-			return robot.FriendCircleUploadResponse{}, fmt.Errorf("获取视频信息失败: %w", err)
-		}
-		parts := strings.Split(strings.TrimSpace(string(out)), "\n")
-		if len(parts) >= 3 {
-			width, _ = strconv.Atoi(parts[0])
-			height, _ = strconv.Atoi(parts[1])
-			videoDuration, _ = strconv.ParseFloat(parts[2], 64)
-		}
-		if strings.ToLower(mediaExt) != "mp4" {
-			mediaBytes, err = os.ReadFile(videoPath)
-			if err != nil {
-				return robot.FriendCircleUploadResponse{}, fmt.Errorf("读取视频文件失败: %w", err)
-			}
-			totalSize = len(mediaBytes)
-		}
+		return s.FriendCircleCdnSnsUploadVideo(mediaBytes)
 	default:
 		// 未知类型，保持媒体类型为 0
 	}
+	return robot.FriendCircleUploadResponse{}, fmt.Errorf("不支持的媒体类型")
+}
 
-	resp, err := vars.RobotRuntime.FriendCircleUpload(mediaType, mediaBytes)
+func (s *MomentsService) FriendCircleCdnSnsUploadVideo(mediaBytes []byte) (robot.FriendCircleUploadResponse, error) {
+	var width, height int
+	var videoDuration float64
+	totalSize := len(mediaBytes)
+
+	mediaFileType, err := filetype.Match(mediaBytes)
 	if err != nil {
-		return resp, err
+		return robot.FriendCircleUploadResponse{}, fmt.Errorf("无法识别媒体类型: %w", err)
+	}
+	if mediaFileType == filetype.Unknown {
+		return robot.FriendCircleUploadResponse{}, fmt.Errorf("未知媒体类型")
 	}
 
-	resp.Size.Width = strconv.Itoa(width)
-	resp.Size.Height = strconv.Itoa(height)
-	resp.Size.TotalSize = strconv.Itoa(totalSize)
+	mediaExt := mediaFileType.Extension
+	inFile, err := os.CreateTemp("", "wechat_moments_input_*."+mediaExt)
+	if err != nil {
+		return robot.FriendCircleUploadResponse{}, fmt.Errorf("创建临时输入文件失败: %w", err)
+	}
+	defer os.Remove(inFile.Name())
 
-	if videoDuration > 0 {
-		resp.VideoDuration = videoDuration
+	if _, err = inFile.Write(mediaBytes); err != nil {
+		return robot.FriendCircleUploadResponse{}, fmt.Errorf("写入临时文件失败: %w", err)
+	}
+	inFile.Close()
+
+	outFile, err := os.CreateTemp("", "wechat_moments_output_*.mp4")
+	if err != nil {
+		return robot.FriendCircleUploadResponse{}, fmt.Errorf("创建临时输出文件失败: %w", err)
+	}
+	defer os.Remove(outFile.Name())
+	outFile.Close()
+
+	videoPath := inFile.Name()
+	if strings.ToLower(mediaExt) != "mp4" {
+		// avi mov mkv flv webm 格式转换成mp4
+		cmd := exec.Command("ffmpeg",
+			"-i", videoPath,
+			"-c:v", "libx264",
+			"-c:a", "aac",
+			outFile.Name(),
+			"-y",
+		)
+		if err = cmd.Run(); err != nil {
+			return robot.FriendCircleUploadResponse{}, fmt.Errorf("转换视频格式失败: %w", err)
+		}
+		videoPath = outFile.Name()
 	}
 
-	return resp, nil
+	// 使用 ffprobe 获取 width, height, duration
+	cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height:format=duration", "-of", "default=noprint_wrappers=1:nokey=1", videoPath)
+	out, err := cmd.Output()
+	if err != nil {
+		return robot.FriendCircleUploadResponse{}, fmt.Errorf("获取视频信息失败: %w", err)
+	}
+	parts := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(parts) >= 3 {
+		width, _ = strconv.Atoi(parts[0])
+		height, _ = strconv.Atoi(parts[1])
+		videoDuration, _ = strconv.ParseFloat(parts[2], 64)
+	}
+	if strings.ToLower(mediaExt) != "mp4" {
+		mediaBytes, err = os.ReadFile(videoPath)
+		if err != nil {
+			return robot.FriendCircleUploadResponse{}, fmt.Errorf("读取视频文件失败: %w", err)
+		}
+		totalSize = len(mediaBytes)
+	}
+
+	resp, err := vars.RobotRuntime.FriendCircleCdnSnsUploadVideo(mediaBytes, mediaBytes)
+	if err != nil {
+		return robot.FriendCircleUploadResponse{}, fmt.Errorf("上传视频失败: %w", err)
+	}
+
+	mediaType := uint32(6)
+	thumbUrlCount := uint32(1)
+	thumbUrls := []*robot.SnsBufferUrl{
+		{Url: &resp.ThumbURL},
+	}
+
+	return robot.FriendCircleUploadResponse{
+		Type:          &mediaType,
+		BufferUrl:     &robot.SnsBufferUrl{Url: &resp.FileURL},
+		ThumbUrlCount: &thumbUrlCount,
+		ThumbUrls:     thumbUrls,
+		Size: robot.Size{
+			Width:     strconv.Itoa(width),
+			Height:    strconv.Itoa(height),
+			TotalSize: strconv.Itoa(totalSize),
+		},
+		VideoDuration: videoDuration,
+	}, nil
 }
 
 func (s *MomentsService) FriendCirclePost(req dto.MomentPostRequest) (robot.FriendCircleMessagesResponse, error) {

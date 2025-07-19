@@ -240,7 +240,6 @@ type DownFriendCircleMediaRequest struct {
 
 type FriendCircleUploadRequest struct {
 	Wxid   string `json:"Wxid"`
-	Type   uint32 `json:"Type"`
 	Base64 string `json:"Base64"`
 }
 
@@ -261,6 +260,74 @@ type FriendCircleUploadResponse struct {
 type SnsBufferUrl struct {
 	Url  *string `json:"Url,omitempty"`
 	Type *uint32 `json:"Type,omitempty"`
+}
+
+type FriendCircleCdnSnsUploadVideoRequest struct {
+	Wxid      string `json:"Wxid"`
+	VideoData string `json:"VideoData"`
+	ThumbData string `json:"ThumbData"`
+}
+
+type CdnSnsVideoUploadResponse struct {
+	Ver        uint32
+	Seq        uint32
+	RetCode    uint32
+	FileKey    string
+	RecvLen    uint32
+	FileURL    string
+	ThumbURL   string
+	FileID     string
+	EnableQuic uint32
+	RetrySec   uint32
+	IsRetry    uint32
+	IsOverLoad uint32
+	IsGetCDN   uint32
+	XClientIP  string
+	ReqData    *CdnSnsVideoUploadRequest
+}
+
+type CdnSnsVideoUploadRequest struct {
+	Ver              uint32 // 1
+	WeiXinNum        uint32 //
+	Seq              uint32 // 6
+	ClientVersion    uint32
+	ClientOsType     string
+	AuthKey          string
+	NetType          uint32 // 1
+	AcceptDupack     uint32 // 1
+	RsaVer           uint32 // 1
+	RsaValue         string
+	FileType         uint32 // 2
+	WxChatType       uint32 // 1
+	LastRetCode      uint32 // 0
+	IPSeq            uint32 // 0
+	CliQuicFlag      uint32 // 0
+	HasThumb         uint32 // 1
+	NoCheckAesKey    uint32 // 1
+	EnableHit        uint32 // 1
+	ExistAnceCheck   uint32 // 0
+	AppType          uint32 // 1
+	FileKey          string // wxupload_21533455325@chatroom29_1572079793
+	TotalSize        uint32 // 53440
+	RawTotalSize     uint32 // 53425
+	LocalName        string // 29.wxgf
+	Offset           uint32 // 0
+	ThumbTotalSize   uint32 // 4496
+	RawThumbSize     uint32 // 4487
+	RawThumbMD5      string // 0d29df2b74d29efa46dd6fa1e75e71ba
+	ThumbCRC         uint32 // 2991702343
+	IsStoreVideo     uint32
+	ThumbData        string
+	LargesVideo      uint32 // 0
+	SourceFlag       uint32 // 0
+	AdVideoFlag      uint32 // 0
+	Mp4Identify      string
+	FileMD5          string // e851e118f524b4219928bed3f3bd0d24
+	RawFileMD5       string // e851e118f524b4219928bed3f3bd0d24
+	DataCheckSum     uint32 // 737909102
+	FileCRC          uint32 // 2444306137
+	FileData         string // 文件数据
+	UserLargeFileApi bool
 }
 
 type FriendCircleMessagesRequest struct {
