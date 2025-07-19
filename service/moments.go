@@ -321,7 +321,7 @@ func (s *MomentsService) FriendCircleOperation(req dto.MomentOpRequest) (robot.S
 	return vars.RobotRuntime.FriendCircleOperation(robot.FriendCircleOperationRequest{
 		Id:        req.Id,
 		Type:      req.Type,
-		CommnetId: req.CommnetId,
+		CommnetId: req.CommentId,
 	})
 }
 

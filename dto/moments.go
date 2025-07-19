@@ -24,7 +24,7 @@ type MomentPostRequest struct {
 type MomentOpRequest struct {
 	Id        string `form:"Id" json:"Id" binding:"required"`
 	Type      uint32 `form:"Type" json:"Type" binding:"required"`
-	CommnetId uint32 `form:"CommnetId" json:"CommnetId"`
+	CommentId uint32 `form:"CommentId" json:"CommentId"`
 }
 
 type MomentPrivacySettingsRequest struct {
