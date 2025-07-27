@@ -6,7 +6,7 @@ const (
 	LoginGetCacheInfo         = "/Login/GetCacheInfo"
 	LoginTwiceAutoAuth        = "/Login/LoginTwiceAutoAuth"
 	LoginAwaken               = "/Login/LoginAwaken"
-	LoginGetQR                = "/Login/LoginGetQRx"
+	LoginGetQR                = "/Login/LoginGetQR"
 	LoginCheckQR              = "/Login/LoginCheckQR"
 	LoginYPayVerificationcode = "/Login/YPayVerificationcode"
 	AutoHeartBeat             = "/Login/AutoHeartBeat"
