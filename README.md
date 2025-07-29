@@ -44,6 +44,8 @@
 
 - 群聊欢迎新成员，支持文本、图片、表情包、链接形式
 
+- 点歌
+
 - 群聊退群提醒
 
 - 拍一拍交互
@@ -183,6 +185,47 @@ sudo service nginx restart
 **配置微信服务器，获取`WECHAT_SERVER_TOKEN`参考本地部署**
 
 **其他，参考本地部署**
+
+## 本地开发
+
+### 启动前端项目
+
+```ini
+# 开发前准备，确保自己的Nodejs版本在18以及以上，全局安装了pnpm
+
+# clone 前端项目
+git clone git@github.com:hp0912/wechat-robot-admin-frontend.git
+
+# 进入项目目录
+cd wechat-robot-admin-frontend
+
+# 安装依赖
+pnpm install
+
+# 生成类型文件
+pnpm run build-types
+
+# 启动项目
+pnpm run dev
+```
+
+### 启动后端项目
+
+```ini
+# TODO
+```
+
+### 启动机器人客户端
+
+```ini
+# TODO
+```
+
+### 启动机器人服务端
+
+```ini
+# TODO
+```
 
 ## 官方交流群
 
