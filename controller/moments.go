@@ -31,6 +31,51 @@ func (m *Moments) FriendCircleGetList(c *gin.Context) {
 	resp.ToResponse(data)
 }
 
+func (m *Moments) FriendCircleComment(c *gin.Context) {
+	var req dto.FriendCircleCommentRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewMomentsService(c).FriendCircleComment(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
+func (m *Moments) FriendCircleGetDetail(c *gin.Context) {
+	var req dto.FriendCircleGetDetailRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewMomentsService(c).FriendCircleGetDetail(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
+func (m *Moments) FriendCircleGetIdDetail(c *gin.Context) {
+	var req dto.FriendCircleGetIdDetailRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewMomentsService(c).FriendCircleGetIdDetail(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
 func (m *Moments) FriendCircleDownFriendCircleMedia(c *gin.Context) {
 	var req dto.DownFriendCircleMediaRequest
 	resp := appx.NewResponse(c)

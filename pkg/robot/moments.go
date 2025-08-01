@@ -386,3 +386,49 @@ type FriendCirclePrivacySettingsRequest struct {
 	Function uint32 `json:"Function"`
 	Value    uint32 `json:"Value"`
 }
+
+type FriendCircleCommentRequest struct {
+	Wxid           string `json:"Wxid"`
+	Type           uint32 `json:"Type"`
+	Id             string `json:"Id"`
+	ReplyCommnetId uint32 `json:"ReplyCommnetId"`
+	Content        string `json:"Content"`
+}
+
+type SnsCommentResponse struct {
+	BaseResponse *BaseResponse `json:"BaseResponse,omitempty"`
+	SnsObject    *SnsObject    `json:"snsObject,omitempty"`
+}
+
+type FriendCircleGetDetailRequest struct {
+	Wxid         string `json:"Wxid"`
+	Towxid       string `json:"Towxid"`
+	Fristpagemd5 string `json:"Fristpagemd5"`
+	Maxid        uint64 `json:"Maxid"`
+}
+
+type SnsUserPageResponse struct {
+	BaseResponse          *BaseResponse      `json:"BaseResponse,omitempty"`
+	FristPageMd5          *string            `json:"FristPageMd5,omitempty"`
+	ObjectCount           *uint32            `json:"ObjectCount,omitempty"`
+	ObjectList            []*SnsObject       `json:"ObjectList,omitempty"`
+	ObjectTotalCount      []uint32           `json:"ObjectTotalCount,omitempty"`
+	SnsUserInfo           []*SnsUserInfo     `json:"SnsUserInfo,omitempty"`
+	NewRequestTime        []uint32           `json:"NewRequestTime,omitempty"`
+	ObjectCountForSameMd5 []uint32           `json:"ObjectCountForSameMd5,omitempty"`
+	ServerConfig          []*SnsServerConfig `json:"ServerConfig,omitempty"`
+	LimitedId             []uint64           `json:"LimitedId,omitempty"`
+	ContinueId            []uint64           `json:"ContinueId,omitempty"`
+	RetTips               []string           `json:"RetTips,omitempty"`
+}
+
+type FriendCircleGetIdDetailRequest struct {
+	Wxid   string `json:"Wxid"`
+	Towxid string `json:"Towxid"`
+	Id     uint64 `json:"Id"`
+}
+
+type SnsObjectDetailResponse struct {
+	BaseResponse *BaseResponse `json:"baseResponse,omitempty"`
+	Object       *SnsObject    `json:"object,omitempty"`
+}

@@ -948,6 +948,21 @@ func (r *Robot) GroupQuit(QID string) error {
 	return r.Client.GroupQuit(r.WxID, QID)
 }
 
+func (r *Robot) FriendCircleComment(req FriendCircleCommentRequest) (SnsCommentResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendCircleComment(req)
+}
+
+func (r *Robot) FriendCircleGetDetail(req FriendCircleGetDetailRequest) (SnsUserPageResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendCircleGetDetail(req)
+}
+
+func (r *Robot) FriendCircleGetIdDetail(req FriendCircleGetIdDetailRequest) (SnsObjectDetailResponse, error) {
+	req.Wxid = r.WxID
+	return r.Client.FriendCircleGetIdDetail(req)
+}
+
 func (r *Robot) FriendCircleGetList(Fristpagemd5 string, Maxid string) (GetListResponse, error) {
 	data, err := r.Client.FriendCircleGetList(r.WxID, Fristpagemd5, Maxid)
 	if err != nil {

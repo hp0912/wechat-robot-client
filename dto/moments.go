@@ -31,3 +31,21 @@ type MomentPrivacySettingsRequest struct {
 	Function uint32 `form:"Function" json:"Function"`
 	Value    uint32 `form:"Value" json:"Value"`
 }
+
+type FriendCircleCommentRequest struct {
+	Type           uint32 `form:"Type" json:"Type" binding:"required"`
+	Id             string `form:"Id" json:"Id" binding:"required"`
+	ReplyCommnetId uint32 `form:"ReplyCommnetId" json:"ReplyCommnetId"`
+	Content        string `form:"Content" json:"Content"`
+}
+
+type FriendCircleGetDetailRequest struct {
+	Towxid       string `form:"Towxid" json:"Towxid" binding:"required"`
+	Fristpagemd5 string `form:"Fristpagemd5" json:"Fristpagemd5"`
+	Maxid        uint64 `form:"Maxid" json:"Maxid"`
+}
+
+type FriendCircleGetIdDetailRequest struct {
+	Towxid string `form:"Towxid" json:"Towxid" binding:"required"`
+	Id     uint64 `form:"Id" json:"Id" binding:"required"`
+}
