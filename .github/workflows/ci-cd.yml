@@ -1,10 +1,8 @@
 name: Alibaba Cloud Registry Docker Image CI (异构)
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  release:
+    types: [published]
 
 jobs:
   push_to_acr:
@@ -38,5 +36,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ secrets.ACR_REGISTRY }}/houhou/wechat-robot-client:latest
+            ${{ secrets.ACR_REGISTRY }}/houhou/wechat-robot-client:${{ github.event.release.tag_name }}
           labels: ${{ steps.meta.outputs.labels }}
