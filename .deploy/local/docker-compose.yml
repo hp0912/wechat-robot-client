@@ -9,7 +9,7 @@ services:
       REDIS_PASSWORD: r12345678 # 自行修改
     command: [ "redis-server", "/etc/redis/redis.conf", "--requirepass", "r12345678" ] # 自行修改
     volumes:
-      - ./wechat_admin_redis_data:/var/lib/redis
+      - ./wechat_admin_redis_data:/data
       - ./redis.conf:/etc/redis/redis.conf
 
   wechat-admin-mysql:
