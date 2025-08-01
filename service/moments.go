@@ -34,6 +34,30 @@ func NewMomentsService(ctx context.Context) *MomentsService {
 	}
 }
 
+func (s *MomentsService) FriendCircleComment(req dto.FriendCircleCommentRequest) (robot.SnsCommentResponse, error) {
+	return vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
+		Type:           req.Type,
+		Id:             req.Id,
+		ReplyCommnetId: req.ReplyCommnetId,
+		Content:        req.Content,
+	})
+}
+
+func (s *MomentsService) FriendCircleGetDetail(req dto.FriendCircleGetDetailRequest) (robot.SnsUserPageResponse, error) {
+	return vars.RobotRuntime.FriendCircleGetDetail(robot.FriendCircleGetDetailRequest{
+		Towxid:       req.Towxid,
+		Fristpagemd5: req.Fristpagemd5,
+		Maxid:        req.Maxid,
+	})
+}
+
+func (s *MomentsService) FriendCircleGetIdDetail(req dto.FriendCircleGetIdDetailRequest) (robot.SnsObjectDetailResponse, error) {
+	return vars.RobotRuntime.FriendCircleGetIdDetail(robot.FriendCircleGetIdDetailRequest{
+		Towxid: req.Towxid,
+		Id:     req.Id,
+	})
+}
+
 func (s *MomentsService) FriendCircleGetList(fristpagemd5 string, maxID string) (robot.GetListResponse, error) {
 	return vars.RobotRuntime.FriendCircleGetList(fristpagemd5, maxID)
 }
