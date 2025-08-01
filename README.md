@@ -212,7 +212,22 @@ pnpm run dev
 ### 启动后端项目
 
 ```ini
-# TODO
+# clone 机器人管理后台后端项目
+git clone git@github.com:hp0912/wechat-robot-admin-backend.git
+
+# 进入项目目录
+cd wechat-robot-admin-backend
+
+# 下载依赖，翻墙的话会快一点 -> export https_proxy=http://127.0.0.1:7897 http_proxy=http://127.0.0.1:7897 all_proxy=socks5://127.0.0.1:7897
+go mod download
+
+# 指定开发模式，这里是mac，win设置环境变量的方式自行探索
+export GO_ENV=dev
+
+# 将根目录下的 .env.example 文件复制一份，复制后的文件的文件名改为 .env，按注释说明修改环境变量
+
+# 启动项目
+go run main.go
 ```
 
 ### 启动机器人客户端
