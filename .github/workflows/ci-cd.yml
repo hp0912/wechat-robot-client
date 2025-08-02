@@ -37,4 +37,5 @@ jobs:
           push: true
           tags: |
             ${{ secrets.ACR_REGISTRY }}/houhou/wechat-robot-client:${{ github.event.release.tag_name }}
+            ${{ secrets.ACR_REGISTRY }}/houhou/wechat-robot-client:latest
           labels: ${{ steps.meta.outputs.labels }}
