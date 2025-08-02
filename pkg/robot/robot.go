@@ -948,32 +948,48 @@ func (r *Robot) GroupQuit(QID string) error {
 	return r.Client.GroupQuit(r.WxID, QID)
 }
 
+func (r *Robot) DecodeTimelineObject(snsObject *SnsObject) {
+	if snsObject != nil && snsObject.ObjectDesc != nil && snsObject.ObjectDesc.Buffer != nil {
+		var timelineObject TimelineObject
+		err := r.XmlDecoder(*snsObject.ObjectDesc.Buffer, &timelineObject)
+		if err != nil {
+			snsObject.TimelineObject = &TimelineObject{}
+		} else {
+			snsObject.TimelineObject = &timelineObject
+		}
+	}
+}
+
 func (r *Robot) FriendCircleComment(req FriendCircleCommentRequest) (SnsCommentResponse, error) {
 	req.Wxid = r.WxID
 	resp, err := r.Client.FriendCircleComment(req)
 	if err != nil {
 		return SnsCommentResponse{}, err
 	}
-	if resp.SnsObject != nil && resp.SnsObject.ObjectDesc != nil && resp.SnsObject.ObjectDesc.Buffer != nil {
-		var timelineObject TimelineObject
-		err := r.XmlDecoder(*resp.SnsObject.ObjectDesc.Buffer, &timelineObject)
-		if err != nil {
-			resp.SnsObject.TimelineObject = &TimelineObject{}
-		} else {
-			resp.SnsObject.TimelineObject = &timelineObject
-		}
-	}
+	r.DecodeTimelineObject(resp.SnsObject)
 	return resp, nil
 }
 
 func (r *Robot) FriendCircleGetDetail(req FriendCircleGetDetailRequest) (SnsUserPageResponse, error) {
 	req.Wxid = r.WxID
-	return r.Client.FriendCircleGetDetail(req)
+	resp, err := r.Client.FriendCircleGetDetail(req)
+	if err != nil {
+		return SnsUserPageResponse{}, err
+	}
+	for _, snsObject := range resp.ObjectList {
+		r.DecodeTimelineObject(snsObject)
+	}
+	return resp, nil
 }
 
 func (r *Robot) FriendCircleGetIdDetail(req FriendCircleGetIdDetailRequest) (SnsObjectDetailResponse, error) {
 	req.Wxid = r.WxID
-	return r.Client.FriendCircleGetIdDetail(req)
+	resp, err := r.Client.FriendCircleGetIdDetail(req)
+	if err != nil {
+		return SnsObjectDetailResponse{}, err
+	}
+	r.DecodeTimelineObject(resp.Object)
+	return resp, nil
 }
 
 func (r *Robot) FriendCircleGetList(Fristpagemd5 string, Maxid string) (GetListResponse, error) {
