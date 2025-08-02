@@ -950,7 +950,20 @@ func (r *Robot) GroupQuit(QID string) error {
 
 func (r *Robot) FriendCircleComment(req FriendCircleCommentRequest) (SnsCommentResponse, error) {
 	req.Wxid = r.WxID
-	return r.Client.FriendCircleComment(req)
+	resp, err := r.Client.FriendCircleComment(req)
+	if err != nil {
+		return SnsCommentResponse{}, err
+	}
+	if resp.SnsObject != nil && resp.SnsObject.ObjectDesc != nil && resp.SnsObject.ObjectDesc.Buffer != nil {
+		var timelineObject TimelineObject
+		err := r.XmlDecoder(*resp.SnsObject.ObjectDesc.Buffer, &timelineObject)
+		if err != nil {
+			resp.SnsObject.TimelineObject = &TimelineObject{}
+		} else {
+			resp.SnsObject.TimelineObject = &timelineObject
+		}
+	}
+	return resp, nil
 }
 
 func (r *Robot) FriendCircleGetDetail(req FriendCircleGetDetailRequest) (SnsUserPageResponse, error) {
