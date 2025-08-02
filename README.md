@@ -233,13 +233,53 @@ go run main.go
 ### 启动机器人客户端
 
 ```ini
-# TODO
+# clone 机器人管理后台后端项目
+git clone git@github.com:hp0912/wechat-robot-client.git
+
+# 进入项目目录
+cd wechat-robot-client
+
+# 下载依赖，翻墙的话会快一点 -> export https_proxy=http://127.0.0.1:7897 http_proxy=http://127.0.0.1:7897 all_proxy=socks5://127.0.0.1:7897
+go mod download
+
+# 指定开发模式，这里是mac，win设置环境变量的方式自行探索
+export GO_ENV=dev
+
+# 将根目录下的 .env.example 文件复制一份，复制后的文件的文件名改为 .env，按注释说明修改环境变量
+
+# 启动项目
+go run main.go
 ```
 
 ### 启动机器人服务端
 
+```yml
+services:
+  ipad-test:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-ipad:latest
+    container_name: ipad-test
+    restart: always
+    networks:
+      - wechat-robot
+    ports:
+      - '3010:9000'
+    environment:
+      WECHAT_PORT: 9000
+      REDIS_HOST: wechat-admin-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: 123456
+      REDIS_DB: 0
+      WECHAT_CLIENT_HOST: 127.0.0.1:9001
+```
+
 ```ini
-# TODO
+# 机器人服务端，也就是iPad协议，不提供源码，可以通过docker镜像启动，上面是一个 docker-compose.yml 示例
+
+# 向宿主机暴露3010端口，和机器人客户端的 WECHAT_SERVER_HOST 环境变量是相对应的
+
+# WECHAT_CLIENT_HOST REDIS_DB 和机器人客户端环境变量相对应
+
+# redis db 地址、密码别写错了
 ```
 
 ## 官方交流群
