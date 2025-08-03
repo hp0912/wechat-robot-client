@@ -10,6 +10,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"slices"
@@ -18,19 +19,232 @@ import (
 	"time"
 
 	"wechat-robot-client/dto"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
+	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
 
 	"github.com/h2non/filetype"
 )
 
 type MomentsService struct {
-	ctx context.Context
+	ctx                context.Context
+	momentRepo         *repository.Moment
+	momentSettingsRepo *repository.MomentSettings
+	momentCommentRepo  *repository.MomentComment
 }
 
 func NewMomentsService(ctx context.Context) *MomentsService {
 	return &MomentsService{
-		ctx: ctx,
+		ctx:                ctx,
+		momentRepo:         repository.NewMomentRepo(ctx, vars.DB),
+		momentSettingsRepo: repository.NewMomentSettingsRepo(ctx, vars.DB),
+		momentCommentRepo:  repository.NewMomentCommentRepo(ctx, vars.DB),
+	}
+}
+
+func (s *MomentsService) SyncMomentStart() {
+	ctx := context.Background()
+	vars.RobotRuntime.SyncMomentContext, vars.RobotRuntime.SyncMomentCancel = context.WithCancel(ctx)
+	for {
+		select {
+		case <-vars.RobotRuntime.SyncMomentContext.Done():
+			return
+		case <-time.After(10 * time.Minute):
+			log.Println("开始同步朋友圈~")
+			if vars.RobotRuntime.Status == model.RobotStatusOffline {
+				continue
+			}
+			s.SyncMoments()
+		}
+	}
+}
+
+func (s *MomentsService) SyncMoments() {
+	loginData, err := vars.RobotRuntime.GetCachedInfo()
+	if err != nil {
+		log.Println("同步朋友圈获取用户信息失败: ", err)
+		return
+	}
+
+	momentSettings, err := s.momentSettingsRepo.GetMomentSettings()
+	if err != nil {
+		log.Println("获取朋友圈设置失败: ", err)
+		return
+	}
+	if momentSettings == nil {
+		f := false
+		err = s.momentSettingsRepo.Create(&model.MomentSettings{
+			SyncKey:             loginData.SyncKey,
+			AutoLike:            &f,
+			AutoComment:         &f,
+			Whitelist:           nil,
+			Blacklist:           nil,
+			AIBaseURL:           "",
+			AIAPIKey:            "",
+			WorkflowModel:       "",
+			CommentModel:        "",
+			CommentPrompt:       "",
+			MaxCompletionTokens: nil,
+		})
+		if err != nil {
+			log.Println("创建朋友圈设置失败: ", err)
+			return
+		}
+		momentSettings, err = s.momentSettingsRepo.GetMomentSettings()
+		if err != nil {
+			log.Println("获取朋友圈设置失败2: ", err)
+			return
+		}
+	}
+	if momentSettings.SyncKey == "" {
+		momentSettings.SyncKey = loginData.SyncKey
+		err = s.momentSettingsRepo.Update(momentSettings)
+		if err != nil {
+			log.Println("更新朋友圈设置失败: ", err)
+			return
+		}
+		momentSettings, err = s.momentSettingsRepo.GetMomentSettings()
+		if err != nil {
+			log.Println("获取朋友圈设置失败3: ", err)
+			return
+		}
+	}
+
+	// 获取新朋友圈
+	syncResp, err := vars.RobotRuntime.FriendCircleMmSnsSync(momentSettings.SyncKey)
+	if err != nil {
+		log.Println("获取新朋友圈失败: ", err)
+		return
+	}
+
+	defer func() {
+		momentSettings.SyncKey = syncResp.KeyBuf.Buffer
+		err = s.momentSettingsRepo.Update(momentSettings)
+		if err != nil {
+			log.Println("defer 更新朋友圈设置失败: ", err)
+			return
+		}
+	}()
+
+	if len(syncResp.AddSnsBuffer) == 0 {
+		// 没有新的朋友圈，直接返回
+		return
+	}
+
+	now := time.Now().Unix()
+	aiMomentService := NewAIMomentService(s.ctx)
+
+	for _, momentMsg := range syncResp.AddSnsBuffer {
+		var timelineObject robot.TimelineObject
+		if err := xml.Unmarshal([]byte(momentMsg), &timelineObject); err != nil {
+			log.Println("反序列化朋友圈消息失败: ", err)
+			continue
+		}
+		moment := &model.Moment{
+			WechatID:  timelineObject.Username,
+			MomentID:  timelineObject.ID,
+			Content:   momentMsg,
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		err := s.momentRepo.Create(moment)
+		if err != nil {
+			log.Println("创建朋友圈失败: ", err)
+			continue
+		}
+		if timelineObject.ContentDesc == "" && len(timelineObject.ContentObject.MediaList.Media) < 3 {
+			log.Println("朋友圈文字内容为空，且图片少于三张，跳过处理")
+			continue
+		}
+		if timelineObject.ContentDesc == "" {
+			if momentSettings.AutoLike != nil && *momentSettings.AutoLike {
+				_, err := vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
+					Id:   strconv.FormatUint(timelineObject.ID, 10),
+					Type: 1,
+				})
+				if err != nil {
+					log.Println("自动点赞朋友圈失败: ", err)
+					continue
+				}
+				log.Println("只有图片没有文字，只点赞不评论")
+				continue
+			}
+		}
+		// 自动评论
+		var momentMood *MomentMood
+		if momentSettings.AutoComment != nil && *momentSettings.AutoComment {
+			// 判断下这个好友今天的朋友圈是否已经评论过了，每人每天只能被评论一次
+			commented, err := s.momentCommentRepo.IsTodayHasCommented(timelineObject.Username)
+			if err != nil {
+				log.Println("获取朋友圈评论状态失败: ", err)
+				continue
+			}
+			if commented {
+				log.Println("今天已经评论过了，跳过")
+				continue
+			}
+			momentMood = aiMomentService.GetMomentMood(timelineObject.ContentDesc, *momentSettings)
+			if momentMood == nil {
+				log.Println("获取朋友圈心情失败")
+				continue
+			}
+			if momentMood.Comment == "no" {
+				log.Println("朋友圈不适合评论，跳过")
+				continue
+			}
+			commentContent, err := aiMomentService.Comment(timelineObject.ContentDesc, *momentSettings)
+			if err != nil {
+				log.Println("获取朋友圈评论内容失败: ", err)
+				continue
+			}
+			if commentContent.Content == "" {
+				log.Println("获取朋友圈评论内容为空，跳过")
+				continue
+			}
+			_, err = vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
+				Id:      strconv.FormatUint(timelineObject.ID, 10),
+				Type:    2,
+				Content: commentContent.Content,
+			})
+			if err != nil {
+				log.Println("自动评论朋友圈失败: ", err)
+				continue
+			}
+			err = s.momentCommentRepo.Create(&model.MomentComment{
+				WechatID:  timelineObject.Username,
+				MomentID:  timelineObject.ID,
+				Comment:   commentContent.Content,
+				CreatedAt: now,
+				UpdatedAt: now,
+			})
+			if err != nil {
+				log.Println("保存朋友圈评论记录失败: ", err)
+				continue
+			}
+		}
+		// 自动点赞
+		if momentSettings.AutoLike != nil && *momentSettings.AutoLike {
+			if momentMood == nil {
+				momentMood = aiMomentService.GetMomentMood(timelineObject.ContentDesc, *momentSettings)
+				if momentMood == nil {
+					log.Println("获取朋友圈心情失败")
+					continue
+				}
+			}
+			if momentMood.Like == "no" {
+				log.Println("朋友圈不适合点赞，跳过")
+				continue
+			}
+			_, err := vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
+				Id:   strconv.FormatUint(timelineObject.ID, 10),
+				Type: 1,
+			})
+			if err != nil {
+				log.Println("自动点赞朋友圈失败: ", err)
+				continue
+			}
+		}
 	}
 }
 
@@ -60,6 +274,31 @@ func (s *MomentsService) FriendCircleGetIdDetail(req dto.FriendCircleGetIdDetail
 
 func (s *MomentsService) FriendCircleGetList(fristpagemd5 string, maxID string) (robot.GetListResponse, error) {
 	return vars.RobotRuntime.FriendCircleGetList(fristpagemd5, maxID)
+}
+
+func (s *MomentsService) GetFriendCircleSettings() (*model.MomentSettings, error) {
+	momentSettings, err := s.momentSettingsRepo.GetMomentSettings()
+	if err != nil {
+		return nil, fmt.Errorf("获取朋友圈设置失败: %w", err)
+	}
+	if momentSettings == nil {
+		return &model.MomentSettings{}, nil
+	}
+	return momentSettings, nil
+}
+
+func (s *MomentsService) SaveFriendCircleSettings(req *model.MomentSettings) error {
+	if req.ID == 0 {
+		momentSettings, err := s.momentSettingsRepo.GetMomentSettings()
+		if err != nil {
+			return err
+		}
+		if momentSettings != nil {
+			return fmt.Errorf("朋友圈设置已存在，不能重复创建")
+		}
+		return s.momentSettingsRepo.Create(req)
+	}
+	return s.momentSettingsRepo.Update(req)
 }
 
 func (s *MomentsService) FriendCircleDownFriendCircleMedia(url, key string) (string, error) {

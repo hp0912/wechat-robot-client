@@ -4,6 +4,7 @@ import (
 	"errors"
 	"path/filepath"
 	"wechat-robot-client/dto"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
 
@@ -29,6 +30,37 @@ func (m *Moments) FriendCircleGetList(c *gin.Context) {
 		return
 	}
 	resp.ToResponse(data)
+}
+
+func (m *Moments) SyncMoments(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	service.NewMomentsService(c).SyncMoments()
+	resp.ToResponse(nil)
+}
+
+func (m *Moments) GetFriendCircleSettings(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	data, err := service.NewMomentsService(c).GetFriendCircleSettings()
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
+func (m *Moments) SaveFriendCircleSettings(c *gin.Context) {
+	var req model.MomentSettings
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	err := service.NewMomentsService(c).SaveFriendCircleSettings(&req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
 }
 
 func (m *Moments) FriendCircleComment(c *gin.Context) {

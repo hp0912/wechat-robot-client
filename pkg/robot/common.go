@@ -1,51 +1,51 @@
 package robot
 
 type MmtlsClient struct {
-	Shakehandpubkey    []byte
+	Shakehandpubkey    string
 	Shakehandpubkeylen int32
-	Shakehandprikey    []byte
+	Shakehandprikey    string
 	Shakehandprikeylen int32
 
-	Shakehandpubkey_2   []byte
+	Shakehandpubkey_2   string
 	Shakehandpubkeylen2 int32
-	Shakehandprikey_2   []byte
+	Shakehandprikey_2   string
 	Shakehandprikeylen2 int32
 
-	Mserverpubhashs     []byte
+	Mserverpubhashs     string
 	ServerSeq           int
 	ClientSeq           int
-	ShakehandECDHkey    []byte
+	ShakehandECDHkey    string
 	ShakehandECDHkeyLen int32
 
-	Encrptmmtlskey  []byte
-	Decryptmmtlskey []byte
-	EncrptmmtlsIv   []byte
-	DecryptmmtlsIv  []byte
+	Encrptmmtlskey  string
+	Decryptmmtlskey string
+	EncrptmmtlsIv   string
+	DecryptmmtlsIv  string
 
-	CurDecryptSeqIv []byte
-	CurEncryptSeqIv []byte
+	CurDecryptSeqIv string
+	CurEncryptSeqIv string
 
-	Decrypt_part2_hash256            []byte
-	Decrypt_part3_hash256            []byte
-	ShakehandECDHkeyhash             []byte
-	Hkdfexpand_pskaccess_key         []byte
-	Hkdfexpand_pskrefresh_key        []byte
-	HkdfExpand_info_serverfinish_key []byte
-	Hkdfexpand_clientfinish_key      []byte
-	Hkdfexpand_secret_key            []byte
+	Decrypt_part2_hash256            string
+	Decrypt_part3_hash256            string
+	ShakehandECDHkeyhash             string
+	Hkdfexpand_pskaccess_key         string
+	Hkdfexpand_pskrefresh_key        string
+	HkdfExpand_info_serverfinish_key string
+	Hkdfexpand_clientfinish_key      string
+	Hkdfexpand_secret_key            string
 
-	Hkdfexpand_application_key []byte
-	Encrptmmtlsapplicationkey  []byte
-	Decryptmmtlsapplicationkey []byte
-	EncrptmmtlsapplicationIv   []byte
-	DecryptmmtlsapplicationIv  []byte
+	Hkdfexpand_application_key string
+	Encrptmmtlsapplicationkey  string
+	Decryptmmtlsapplicationkey string
+	EncrptmmtlsapplicationIv   string
+	DecryptmmtlsapplicationIv  string
 
-	Earlydatapart       []byte
-	Newsendbufferhashs  []byte
-	Encrptshortmmtlskey []byte
-	Encrptshortmmtlsiv  []byte
-	Decrptshortmmtlskey []byte
-	Decrptshortmmtlsiv  []byte
+	Earlydatapart       string
+	Newsendbufferhashs  string
+	Encrptshortmmtlskey string
+	Encrptshortmmtlsiv  string
+	Decrptshortmmtlskey string
+	Decrptshortmmtlsiv  string
 
 	//http才需要
 	Pskkey    string
@@ -59,7 +59,7 @@ type SKBuiltinStringT struct {
 
 type SKBuiltinBufferT struct {
 	ILen   *uint32 `protobuf:"varint,1,opt,name=iLen" json:"iLen,omitempty"`
-	Buffer []byte  `protobuf:"bytes,2,opt,name=buffer" json:"buffer,omitempty"`
+	Buffer string  `protobuf:"bytes,2,opt,name=buffer" json:"buffer,omitempty"`
 }
 
 type SKBuiltinString_S struct {
@@ -116,8 +116,8 @@ func (b BaseResponse) Ok() bool {
 
 type OplogRet struct {
 	Count  *uint32 `json:"count,omitempty"`
-	Ret    []byte  `json:"ret,omitempty"`
-	ErrMsg []byte  `json:"errMsg,omitempty"`
+	Ret    string  `json:"ret,omitempty"`
+	ErrMsg string  `json:"errMsg,omitempty"`
 }
 
 type OplogResponse struct {

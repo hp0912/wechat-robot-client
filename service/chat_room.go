@@ -16,6 +16,7 @@ import (
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 
 	"github.com/sashabaranov/go-openai"
@@ -517,10 +518,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 	if setting.ChatBaseURL != nil && *setting.ChatBaseURL != "" {
 		aiApiBaseURL = strings.TrimRight(*setting.ChatBaseURL, "/")
 	}
-	aiConfig.BaseURL = aiApiBaseURL
-	if !strings.HasSuffix(aiConfig.BaseURL, "/v1") {
-		aiConfig.BaseURL += "/v1"
-	}
+	aiConfig.BaseURL = utils.NormalizeAIBaseURL(aiApiBaseURL)
 	model := globalSettings.ChatRoomSummaryModel
 	if setting.ChatRoomSummaryModel != nil && *setting.ChatRoomSummaryModel != "" {
 		model = *setting.ChatRoomSummaryModel

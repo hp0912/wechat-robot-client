@@ -33,6 +33,13 @@ func (s *LoginService) Online() error {
 		vars.CronManager.Clear()
 		vars.CronManager.Start()
 	}
+	if vars.RobotRuntime.SyncMomentCancel != nil {
+		vars.RobotRuntime.SyncMomentCancel()
+	}
+	go func() {
+		time.Sleep(1 * time.Second)
+		NewMomentsService(context.Background()).SyncMomentStart()
+	}()
 	// 开启自动心跳，包括长连接自动同步消息
 	err := s.AutoHeartBeat()
 	if err != nil {
@@ -51,6 +58,9 @@ func (s *LoginService) Offline() error {
 	err := s.CloseAutoHeartBeat()
 	if err != nil {
 		log.Printf("关闭自动心跳失败: %v\n", err)
+	}
+	if vars.RobotRuntime.SyncMomentCancel != nil {
+		vars.RobotRuntime.SyncMomentCancel()
 	}
 	// 清空定时任务
 	if vars.CronManager != nil {

@@ -811,6 +811,9 @@ func (c *Client) GroupQuit(wxid, QID string) (err error) {
 
 // FriendCircleComment 朋友圈评论
 func (c *Client) FriendCircleComment(req FriendCircleCommentRequest) (resp SnsCommentResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SnsCommentResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -940,6 +943,9 @@ func (c *Client) FriendCircleCdnSnsUploadVideo(req FriendCircleCdnSnsUploadVideo
 
 // 朋友圈操作
 func (c *Client) FriendCircleOperation(req FriendCircleOperationRequest) (resp SnsObjectOpResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SnsObjectOpResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -981,6 +987,22 @@ func (c *Client) FriendCircleMessages(req FriendCircleMessagesRequest) (resp Fri
 			err = err2
 			return
 		}
+		return
+	}
+	resp = result.Data
+	return
+}
+
+// FriendCircleMmSnsSync 同步朋友圈
+func (c *Client) FriendCircleMmSnsSync(wxid, synckey string) (resp SyncMessage, err error) {
+	var result ClientResponse[SyncMessage]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(map[string]string{
+			"Wxid":    wxid,
+			"Synckey": synckey,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleMmSnsSync))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	resp = result.Data
