@@ -2,7 +2,7 @@ package robot
 
 type TrustSoftData struct {
 	SoftConfig *string `json:"softConfig,omitempty"`
-	SoftData   []byte  `json:"softData,omitempty"`
+	SoftData   string  `json:"softData,omitempty"`
 }
 
 type TrustResponseData struct {
@@ -103,10 +103,10 @@ type LoginData struct {
 	Wxid                       string
 	Pwd                        string
 	Uuid                       string
-	Aeskey                     []byte
-	NotifyKey                  []byte
+	Aeskey                     string
+	NotifyKey                  string
 	Deviceid_str               string
-	Deviceid_byte              []byte
+	Deviceid_byte              string
 	DeviceType                 string
 	ClientVersion              int32
 	DeviceName                 string
@@ -118,36 +118,36 @@ type LoginData struct {
 	Mmtlsip                    string
 	ShortHost                  string
 	LongHost                   string
-	Sessionkey                 []byte
-	Sessionkey_2               []byte
-	Autoauthkey                []byte
+	Sessionkey                 string
+	Sessionkey_2               string
+	Autoauthkey                string
 	Autoauthkeylen             int32
-	Clientsessionkey           []byte
-	Serversessionkey           []byte
-	HybridEcdhPrivkey          []byte
-	HybridEcdhPubkey           []byte
-	HybridEcdhInitServerPubKey []byte
-	Loginecdhkey               []byte
-	Cooike                     []byte
+	Clientsessionkey           string
+	Serversessionkey           string
+	HybridEcdhPrivkey          string
+	HybridEcdhPubkey           string
+	HybridEcdhInitServerPubKey string
+	Loginecdhkey               string
+	Cooike                     string
 	LoginMode                  string
 	Proxy                      ProxyInfo
 	MmtlsKey                   MmtlsClient
 	DeviceToken                TrustResponse
-	SyncKey                    []byte
+	SyncKey                    string
 	Data62                     string
 	RomModel                   string
 	Imei                       string
 	SoftType                   string
 	OsVersion                  string
-	RsaPublicKey               []byte
-	RsaPrivateKey              []byte
+	RsaPublicKey               string
+	RsaPrivateKey              string
 	Dns                        []Dns
 	// 登录的Rsa 密钥版本
 	LoginRsaVer uint32
 	// 是否开启服务
 	EnableService bool
-	EcPublicKey   []byte `json:"ecpukey"`
-	EcPrivateKey  []byte `json:"ecprkey"`
+	EcPublicKey   string `json:"ecpukey"`
+	EcPrivateKey  string `json:"ecprkey"`
 	Ticket        string
 	LoginDataInfo LoginDataInfo
 	// 设备信息62

@@ -70,7 +70,7 @@ func (s *MomentsService) SyncMoments() {
 			log.Println("同步朋友圈获取用户信息失败: ", err)
 			return
 		}
-		snSyncKey = string(loginData.SyncKey)
+		snSyncKey = loginData.SyncKey
 	}
 	// 获取新朋友圈
 	syncResp, err := vars.RobotRuntime.FriendCircleMmSnsSync(snSyncKey)
@@ -79,7 +79,7 @@ func (s *MomentsService) SyncMoments() {
 		return
 	}
 
-	vars.RobotRuntime.SnSyncKey = string(syncResp.KeyBuf.Buffer)
+	vars.RobotRuntime.SnSyncKey = syncResp.KeyBuf.Buffer
 
 	if len(syncResp.AddMsgs) == 0 {
 		// 没有新的朋友圈，直接返回
@@ -90,9 +90,9 @@ func (s *MomentsService) SyncMoments() {
 		log.Println("获取朋友圈设置失败: ", err)
 	}
 	now := time.Now().Unix()
-	for _, momentMsg := range syncResp.AddMsgs {
+	for _, momentMsg := range syncResp.AddSnsBuffer {
 		moment := &model.Moment{
-			Content:   momentMsg.MsgSource,
+			Content:   momentMsg,
 			CreatedAt: now,
 			UpdatedAt: now,
 		}
