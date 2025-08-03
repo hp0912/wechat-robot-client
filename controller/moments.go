@@ -32,6 +32,12 @@ func (m *Moments) FriendCircleGetList(c *gin.Context) {
 	resp.ToResponse(data)
 }
 
+func (m *Moments) SyncMoments(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	service.NewMomentsService(c).SyncMoments()
+	resp.ToResponse(nil)
+}
+
 func (m *Moments) GetFriendCircleSettings(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	data, err := service.NewMomentsService(c).GetFriendCircleSettings()

@@ -61,12 +61,26 @@ func (s *MomentsService) SyncMomentStart() {
 }
 
 func (s *MomentsService) SyncMoments() {
+	var snSyncKey string
+	if vars.RobotRuntime.SnSyncKey != "" {
+		snSyncKey = vars.RobotRuntime.SnSyncKey
+	} else {
+		loginData, err := vars.RobotRuntime.GetCachedInfo()
+		if err != nil {
+			log.Println("同步朋友圈获取用户信息失败: ", err)
+			return
+		}
+		snSyncKey = string(loginData.SyncKey)
+	}
 	// 获取新朋友圈
-	syncResp, err := vars.RobotRuntime.FriendCircleMmSnsSync("")
+	syncResp, err := vars.RobotRuntime.FriendCircleMmSnsSync(snSyncKey)
 	if err != nil {
 		log.Println("获取新朋友圈失败: ", err)
 		return
 	}
+
+	vars.RobotRuntime.SnSyncKey = string(syncResp.KeyBuf.Buffer)
+
 	if len(syncResp.AddMsgs) == 0 {
 		// 没有新的朋友圈，直接返回
 		return

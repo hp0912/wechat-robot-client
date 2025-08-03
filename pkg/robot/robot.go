@@ -26,6 +26,7 @@ type Robot struct {
 	DeviceID          string
 	DeviceName        string
 	Client            *Client
+	SnSyncKey         string
 	HeartbeatContext  context.Context
 	HeartbeatCancel   func()
 	SyncMomentContext context.Context
@@ -90,6 +91,10 @@ func (r *Robot) GetQrCode() (loginData LoginResponse, err error) {
 
 func (r *Robot) GetProfile(wxid string) (GetProfileResponse, error) {
 	return r.Client.GetProfile(wxid)
+}
+
+func (r *Robot) GetCachedInfo() (LoginData, error) {
+	return r.Client.GetCachedInfo(r.WxID)
 }
 
 func (r *Robot) Login() (loginData LoginResponse, err error) {

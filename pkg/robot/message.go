@@ -13,6 +13,7 @@ type SyncMessage struct {
 	FunctionSwitchs []*FunctionSwitch `json:"FunctionSwitchs"`
 	UserInfoExts    []*UserInfoExt    `json:"UserInfoExts"`
 	AddMsgs         []Message         `json:"AddMsgs"`
+	AddSnsBuffer    []string          `json:"AddSnsBuffer"`
 	ContinueFlag    int               `json:"ContinueFlag"`
 	KeyBuf          SKBuiltinBufferT  `json:"KeyBuf"`
 	Status          int               `json:"Status"`

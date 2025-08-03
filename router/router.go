@@ -117,6 +117,7 @@ func RegisterRouter(r *gin.Engine) error {
 
 	// 朋友圈接口
 	api.GET("/robot/moments/list", momentsCtl.FriendCircleGetList)
+	api.GET("/robot/moments/sync", momentsCtl.SyncMoments)
 	api.GET("/robot/moments/settings", momentsCtl.GetFriendCircleSettings)
 	api.GET("/robot/moments/get-detail", momentsCtl.FriendCircleGetDetail)
 	api.GET("/robot/moments/get-id-detail", momentsCtl.FriendCircleGetIdDetail)
