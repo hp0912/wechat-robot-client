@@ -29,16 +29,16 @@ import (
 
 type MomentsService struct {
 	ctx                context.Context
-	momentSettingsRepo *repository.MomentSettings
 	momentRepo         *repository.Moment
+	momentSettingsRepo *repository.MomentSettings
 	momentCommentRepo  *repository.MomentComment
 }
 
 func NewMomentsService(ctx context.Context) *MomentsService {
 	return &MomentsService{
 		ctx:                ctx,
-		momentSettingsRepo: repository.NewMomentSettingsRepo(ctx, vars.DB),
 		momentRepo:         repository.NewMomentRepo(ctx, vars.DB),
+		momentSettingsRepo: repository.NewMomentSettingsRepo(ctx, vars.DB),
 		momentCommentRepo:  repository.NewMomentCommentRepo(ctx, vars.DB),
 	}
 }
@@ -61,36 +61,84 @@ func (s *MomentsService) SyncMomentStart() {
 }
 
 func (s *MomentsService) SyncMoments() {
-	var snSyncKey string
-	if vars.RobotRuntime.SnSyncKey != "" {
-		snSyncKey = vars.RobotRuntime.SnSyncKey
-	} else {
-		loginData, err := vars.RobotRuntime.GetCachedInfo()
+	loginData, err := vars.RobotRuntime.GetCachedInfo()
+	if err != nil {
+		log.Println("同步朋友圈获取用户信息失败: ", err)
+		return
+	}
+
+	momentSettings, err := s.momentSettingsRepo.GetMomentSettings()
+	if err != nil {
+		log.Println("获取朋友圈设置失败: ", err)
+		return
+	}
+	if momentSettings == nil {
+		f := false
+		err = s.momentSettingsRepo.Create(&model.MomentSettings{
+			SyncKey:             loginData.SyncKey,
+			AutoLike:            &f,
+			AutoComment:         &f,
+			Whitelist:           nil,
+			Blacklist:           nil,
+			AIBaseURL:           "",
+			AIAPIKey:            "",
+			WorkflowModel:       "",
+			CommentModel:        "",
+			CommentPrompt:       "",
+			MaxCompletionTokens: nil,
+		})
 		if err != nil {
-			log.Println("同步朋友圈获取用户信息失败: ", err)
+			log.Println("创建朋友圈设置失败: ", err)
 			return
 		}
-		snSyncKey = loginData.SyncKey
+		momentSettings, err = s.momentSettingsRepo.GetMomentSettings()
+		if err != nil {
+			log.Println("获取朋友圈设置失败2: ", err)
+			return
+		}
 	}
+	if momentSettings.SyncKey == "" {
+		momentSettings.SyncKey = loginData.SyncKey
+		err = s.momentSettingsRepo.Update(momentSettings)
+		if err != nil {
+			log.Println("更新朋友圈设置失败: ", err)
+			return
+		}
+		momentSettings, err = s.momentSettingsRepo.GetMomentSettings()
+		if err != nil {
+			log.Println("获取朋友圈设置失败3: ", err)
+			return
+		}
+	}
+
 	// 获取新朋友圈
-	syncResp, err := vars.RobotRuntime.FriendCircleMmSnsSync(snSyncKey)
+	syncResp, err := vars.RobotRuntime.FriendCircleMmSnsSync(momentSettings.SyncKey)
 	if err != nil {
 		log.Println("获取新朋友圈失败: ", err)
 		return
 	}
 
-	vars.RobotRuntime.SnSyncKey = syncResp.KeyBuf.Buffer
+	defer func() {
+		momentSettings.SyncKey = syncResp.KeyBuf.Buffer
+		err = s.momentSettingsRepo.Update(momentSettings)
+		if err != nil {
+			log.Println("defer 更新朋友圈设置失败: ", err)
+			return
+		}
+	}()
 
 	if len(syncResp.AddMsgs) == 0 {
 		// 没有新的朋友圈，直接返回
 		return
 	}
-	momentSettings, err := s.momentSettingsRepo.GetMomentSettings()
-	if err != nil {
-		log.Println("获取朋友圈设置失败: ", err)
-	}
+
 	now := time.Now().Unix()
 	for _, momentMsg := range syncResp.AddSnsBuffer {
+		var timelineObject robot.TimelineObject
+		if err := xml.Unmarshal([]byte(momentMsg), &timelineObject); err != nil {
+			log.Println("反序列化朋友圈消息失败: ", err)
+			continue
+		}
 		moment := &model.Moment{
 			Content:   momentMsg,
 			CreatedAt: now,
@@ -99,10 +147,6 @@ func (s *MomentsService) SyncMoments() {
 		err := s.momentRepo.Create(moment)
 		if err != nil {
 			log.Println("创建朋友圈失败: ", err)
-			continue
-		}
-		if momentSettings == nil {
-			// 自动点赞、评论朋友圈设置获取失败 或者未设置
 			continue
 		}
 	}

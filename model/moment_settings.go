@@ -2,6 +2,7 @@ package model
 
 type MomentSettings struct {
 	ID                  int64   `gorm:"primaryKey;autoIncrement;comment:表主键ID" json:"id"`
+	SyncKey             string  `gorm:"type:text;comment:朋友圈同步Key" json:"sync_key"`
 	AutoLike            *bool   `gorm:"default:false;comment:开启自动点赞" json:"auto_like"`
 	AutoComment         *bool   `gorm:"default:false;comment:开启自动评论" json:"auto_comment"`
 	Whitelist           *string `gorm:"type:text;comment:自动点赞、评论白名单" json:"whitelist"`
