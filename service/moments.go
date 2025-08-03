@@ -18,19 +18,23 @@ import (
 	"time"
 
 	"wechat-robot-client/dto"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
+	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
 
 	"github.com/h2non/filetype"
 )
 
 type MomentsService struct {
-	ctx context.Context
+	ctx                context.Context
+	momentSettingsRepo *repository.MomentSettings
 }
 
 func NewMomentsService(ctx context.Context) *MomentsService {
 	return &MomentsService{
-		ctx: ctx,
+		ctx:                ctx,
+		momentSettingsRepo: repository.NewMomentSettingsRepo(ctx, vars.DB),
 	}
 }
 
@@ -60,6 +64,31 @@ func (s *MomentsService) FriendCircleGetIdDetail(req dto.FriendCircleGetIdDetail
 
 func (s *MomentsService) FriendCircleGetList(fristpagemd5 string, maxID string) (robot.GetListResponse, error) {
 	return vars.RobotRuntime.FriendCircleGetList(fristpagemd5, maxID)
+}
+
+func (s *MomentsService) GetFriendCircleSettings() (*model.MomentSettings, error) {
+	momentSettings, err := s.momentSettingsRepo.GetMomentSettings()
+	if err != nil {
+		return nil, fmt.Errorf("获取朋友圈设置失败: %w", err)
+	}
+	if momentSettings == nil {
+		return &model.MomentSettings{}, nil
+	}
+	return momentSettings, nil
+}
+
+func (s *MomentsService) SaveFriendCircleSettings(req *model.MomentSettings) error {
+	if req.ID == 0 {
+		momentSettings, err := s.momentSettingsRepo.GetMomentSettings()
+		if err != nil {
+			return err
+		}
+		if momentSettings != nil {
+			return fmt.Errorf("朋友圈设置已存在，不能重复创建")
+		}
+		return s.momentSettingsRepo.Create(req)
+	}
+	return s.momentSettingsRepo.Update(req)
 }
 
 func (s *MomentsService) FriendCircleDownFriendCircleMedia(url, key string) (string, error) {
