@@ -811,6 +811,9 @@ func (c *Client) GroupQuit(wxid, QID string) (err error) {
 
 // FriendCircleComment 朋友圈评论
 func (c *Client) FriendCircleComment(req FriendCircleCommentRequest) (resp SnsCommentResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SnsCommentResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -940,6 +943,9 @@ func (c *Client) FriendCircleCdnSnsUploadVideo(req FriendCircleCdnSnsUploadVideo
 
 // 朋友圈操作
 func (c *Client) FriendCircleOperation(req FriendCircleOperationRequest) (resp SnsObjectOpResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[SnsObjectOpResponse]
 	_, err = c.client.R().
 		SetResult(&result).

@@ -3,7 +3,7 @@ package model
 type Moment struct {
 	ID            int64  `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	WechatID      string `gorm:"column:wechat_id;type:varchar(64);index:idx_wechat_id" json:"wechat_id"`
-	MomentID      int64  `gorm:"column:moment_id;not null;uniqueIndex:uniq_moment_id" json:"moment_id"`
+	MomentID      uint64 `gorm:"column:moment_id;not null;uniqueIndex:uniq_moment_id" json:"moment_id"`
 	Type          int    `gorm:"column:type;not null;index:idx_type" json:"type"`
 	AppMsgType    *int   `gorm:"column:app_msg_type" json:"app_msg_type"`
 	Content       string `gorm:"column:content;type:text" json:"content"`

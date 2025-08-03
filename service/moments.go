@@ -127,12 +127,14 @@ func (s *MomentsService) SyncMoments() {
 		}
 	}()
 
-	if len(syncResp.AddMsgs) == 0 {
+	if len(syncResp.AddSnsBuffer) == 0 {
 		// 没有新的朋友圈，直接返回
 		return
 	}
 
 	now := time.Now().Unix()
+	aiMomentService := NewAIMomentService(s.ctx)
+
 	for _, momentMsg := range syncResp.AddSnsBuffer {
 		var timelineObject robot.TimelineObject
 		if err := xml.Unmarshal([]byte(momentMsg), &timelineObject); err != nil {
@@ -140,6 +142,8 @@ func (s *MomentsService) SyncMoments() {
 			continue
 		}
 		moment := &model.Moment{
+			WechatID:  timelineObject.Username,
+			MomentID:  timelineObject.ID,
 			Content:   momentMsg,
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -148,6 +152,98 @@ func (s *MomentsService) SyncMoments() {
 		if err != nil {
 			log.Println("创建朋友圈失败: ", err)
 			continue
+		}
+		if timelineObject.ContentDesc == "" && len(timelineObject.ContentObject.MediaList.Media) < 3 {
+			log.Println("朋友圈文字内容为空，且图片少于三张，跳过处理")
+			continue
+		}
+		if timelineObject.ContentDesc == "" {
+			if momentSettings.AutoLike != nil && *momentSettings.AutoLike {
+				_, err := vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
+					Id:   strconv.FormatUint(timelineObject.ID, 10),
+					Type: 1,
+				})
+				if err != nil {
+					log.Println("自动点赞朋友圈失败: ", err)
+					continue
+				}
+				log.Println("只有图片没有文字，只点赞不评论")
+				continue
+			}
+		}
+		// 自动评论
+		var momentMood *MomentMood
+		if momentSettings.AutoComment != nil && *momentSettings.AutoComment {
+			// 判断下这个好友今天的朋友圈是否已经评论过了，每人每天只能被评论一次
+			commented, err := s.momentCommentRepo.IsTodayHasCommented(timelineObject.Username)
+			if err != nil {
+				log.Println("获取朋友圈评论状态失败: ", err)
+				continue
+			}
+			if commented {
+				log.Println("今天已经评论过了，跳过")
+				continue
+			}
+			momentMood = aiMomentService.GetMomentMood(timelineObject.ContentDesc, *momentSettings)
+			if momentMood == nil {
+				log.Println("获取朋友圈心情失败")
+				continue
+			}
+			if momentMood.Comment == "no" {
+				log.Println("朋友圈不适合评论，跳过")
+				continue
+			}
+			commentContent, err := aiMomentService.Comment(timelineObject.ContentDesc, *momentSettings)
+			if err != nil {
+				log.Println("获取朋友圈评论内容失败: ", err)
+				continue
+			}
+			if commentContent.Content == "" {
+				log.Println("获取朋友圈评论内容为空，跳过")
+				continue
+			}
+			_, err = vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
+				Id:      strconv.FormatUint(timelineObject.ID, 10),
+				Type:    2,
+				Content: commentContent.Content,
+			})
+			if err != nil {
+				log.Println("自动评论朋友圈失败: ", err)
+				continue
+			}
+			err = s.momentCommentRepo.Create(&model.MomentComment{
+				WechatID:  timelineObject.Username,
+				MomentID:  timelineObject.ID,
+				Comment:   commentContent.Content,
+				CreatedAt: now,
+				UpdatedAt: now,
+			})
+			if err != nil {
+				log.Println("保存朋友圈评论记录失败: ", err)
+				continue
+			}
+		}
+		// 自动点赞
+		if momentSettings.AutoLike != nil && *momentSettings.AutoLike {
+			if momentMood == nil {
+				momentMood = aiMomentService.GetMomentMood(timelineObject.ContentDesc, *momentSettings)
+				if momentMood == nil {
+					log.Println("获取朋友圈心情失败")
+					continue
+				}
+			}
+			if momentMood.Like == "no" {
+				log.Println("朋友圈不适合点赞，跳过")
+				continue
+			}
+			_, err := vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
+				Id:   strconv.FormatUint(timelineObject.ID, 10),
+				Type: 1,
+			})
+			if err != nil {
+				log.Println("自动点赞朋友圈失败: ", err)
+				continue
+			}
 		}
 	}
 }
