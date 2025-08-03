@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"strings"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 )
 
@@ -103,10 +103,7 @@ func (s *FriendSettingsService) GetAIConfig() settings.AIConfig {
 			aiConfig.LTTSSettings = s.friendSettings.LTTSSettings
 		}
 	}
-	aiConfig.BaseURL = strings.TrimRight(aiConfig.BaseURL, "/")
-	if !strings.HasSuffix(aiConfig.BaseURL, "/v1") {
-		aiConfig.BaseURL += "/v1"
-	}
+	aiConfig.BaseURL = utils.NormalizeAIBaseURL(aiConfig.BaseURL)
 	return aiConfig
 }
 

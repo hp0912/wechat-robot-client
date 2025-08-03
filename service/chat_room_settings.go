@@ -9,6 +9,7 @@ import (
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 )
 
@@ -110,10 +111,7 @@ func (s *ChatRoomSettingsService) GetAIConfig() settings.AIConfig {
 			aiConfig.LTTSSettings = s.chatRoomSettings.LTTSSettings
 		}
 	}
-	aiConfig.BaseURL = strings.TrimRight(aiConfig.BaseURL, "/")
-	if !strings.HasSuffix(aiConfig.BaseURL, "/v1") {
-		aiConfig.BaseURL += "/v1"
-	}
+	aiConfig.BaseURL = utils.NormalizeAIBaseURL(aiConfig.BaseURL)
 	return aiConfig
 }
 
