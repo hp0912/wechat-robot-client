@@ -987,6 +987,22 @@ func (c *Client) FriendCircleMessages(req FriendCircleMessagesRequest) (resp Fri
 	return
 }
 
+// FriendCircleMmSnsSync 同步朋友圈
+func (c *Client) FriendCircleMmSnsSync(wxid, synckey string) (resp SyncMessage, err error) {
+	var result ClientResponse[SyncMessage]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(map[string]string{
+			"Wxid":    wxid,
+			"Synckey": synckey,
+		}).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), FriendCircleMmSnsSync))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
 func (c *Client) WxappQrcodeAuthLogin(wxid, Url string) (err error) {
 	var result ClientResponse[struct{}]
 	_, err = c.client.R().

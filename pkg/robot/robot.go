@@ -20,16 +20,16 @@ import (
 )
 
 type Robot struct {
-	RobotID            int64
-	WxID               string
-	Status             model.RobotStatus
-	DeviceID           string
-	DeviceName         string
-	Client             *Client
-	HeartbeatContext   context.Context
-	HeartbeatCancel    func()
-	SyncMessageContext context.Context
-	SyncMessageCancel  func()
+	RobotID           int64
+	WxID              string
+	Status            model.RobotStatus
+	DeviceID          string
+	DeviceName        string
+	Client            *Client
+	HeartbeatContext  context.Context
+	HeartbeatCancel   func()
+	SyncMomentContext context.Context
+	SyncMomentCancel  func()
 }
 
 // 实现优雅退出接口
@@ -45,13 +45,12 @@ func (r *Robot) Shutdown(ctx context.Context) error {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
+		if r.SyncMomentCancel != nil {
+			r.SyncMomentCancel()
+		}
 		// 手动心跳才需要取消，现在改成了自动心跳，其实下面等代码没什么用
 		if r.HeartbeatCancel != nil {
 			r.HeartbeatCancel()
-		}
-		// 手动心跳才需要取消，现在改成了自动心跳，其实下面等代码没什么用
-		if r.SyncMessageCancel != nil {
-			r.SyncMessageCancel()
 		}
 	}()
 	select {
@@ -1032,6 +1031,10 @@ func (r *Robot) FriendCircleCdnSnsUploadVideo(thumbBytes, videoBytes []byte) (Cd
 func (r *Robot) FriendCircleMessages(req FriendCircleMessagesRequest) (FriendCircleMessagesResponse, error) {
 	req.Wxid = r.WxID
 	return r.Client.FriendCircleMessages(req)
+}
+
+func (r *Robot) FriendCircleMmSnsSync(synckey string) (SyncMessage, error) {
+	return r.Client.FriendCircleMmSnsSync(r.WxID, synckey)
 }
 
 func (r *Robot) FriendCircleOperation(req FriendCircleOperationRequest) (SnsObjectOpResponse, error) {

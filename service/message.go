@@ -555,19 +555,6 @@ func (s *MessageService) SyncMessage() {
 	s.ProcessMessage(syncResp)
 }
 
-func (s *MessageService) SyncMessageStart() {
-	ctx := context.Background()
-	vars.RobotRuntime.SyncMessageContext, vars.RobotRuntime.SyncMessageCancel = context.WithCancel(ctx)
-	for {
-		select {
-		case <-vars.RobotRuntime.SyncMessageContext.Done():
-			return
-		case <-time.After(1 * time.Second):
-			s.SyncMessage()
-		}
-	}
-}
-
 func (s *MessageService) XmlDecoder(content string) (robot.XmlMessage, error) {
 	var xmlMessage robot.XmlMessage
 	err := vars.RobotRuntime.XmlDecoder(content, &xmlMessage)

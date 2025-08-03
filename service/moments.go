@@ -10,6 +10,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"slices"
@@ -29,12 +30,67 @@ import (
 type MomentsService struct {
 	ctx                context.Context
 	momentSettingsRepo *repository.MomentSettings
+	momentRepo         *repository.Moment
+	momentCommentRepo  *repository.MomentComment
 }
 
 func NewMomentsService(ctx context.Context) *MomentsService {
 	return &MomentsService{
 		ctx:                ctx,
 		momentSettingsRepo: repository.NewMomentSettingsRepo(ctx, vars.DB),
+		momentRepo:         repository.NewMomentRepo(ctx, vars.DB),
+		momentCommentRepo:  repository.NewMomentCommentRepo(ctx, vars.DB),
+	}
+}
+
+func (s *MomentsService) SyncMomentStart() {
+	ctx := context.Background()
+	vars.RobotRuntime.SyncMomentContext, vars.RobotRuntime.SyncMomentCancel = context.WithCancel(ctx)
+	for {
+		select {
+		case <-vars.RobotRuntime.SyncMomentContext.Done():
+			return
+		case <-time.After(10 * time.Minute):
+			log.Println("开始同步朋友圈~")
+			if vars.RobotRuntime.Status == model.RobotStatusOffline {
+				continue
+			}
+			s.SyncMoments()
+		}
+	}
+}
+
+func (s *MomentsService) SyncMoments() {
+	// 获取新朋友圈
+	syncResp, err := vars.RobotRuntime.FriendCircleMmSnsSync("")
+	if err != nil {
+		log.Println("获取新朋友圈失败: ", err)
+		return
+	}
+	if len(syncResp.AddMsgs) == 0 {
+		// 没有新的朋友圈，直接返回
+		return
+	}
+	momentSettings, err := s.momentSettingsRepo.GetMomentSettings()
+	if err != nil {
+		log.Println("获取朋友圈设置失败: ", err)
+	}
+	now := time.Now().Unix()
+	for _, momentMsg := range syncResp.AddMsgs {
+		moment := &model.Moment{
+			Content:   momentMsg.MsgSource,
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		err := s.momentRepo.Create(moment)
+		if err != nil {
+			log.Println("创建朋友圈失败: ", err)
+			continue
+		}
+		if momentSettings == nil {
+			// 自动点赞、评论朋友圈设置获取失败 或者未设置
+			continue
+		}
 	}
 }
 
