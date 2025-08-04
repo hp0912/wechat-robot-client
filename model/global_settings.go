@@ -46,7 +46,9 @@ type GlobalSettings struct {
 	ChatAITrigger             *string        `gorm:"column:chat_ai_trigger;type:varchar(20);default:'';comment:触发聊天AI的关键词" json:"chat_ai_trigger"`
 	ChatBaseURL               string         `gorm:"column:chat_base_url;type:varchar(255);default:'';comment:聊天AI的基础URL地址" json:"chat_base_url"`
 	ChatAPIKey                string         `gorm:"column:chat_api_key;type:varchar(255);default:'';comment:聊天AI的API密钥" json:"chat_api_key"`
+	WorkflowModel             string         `gorm:"column:workflow_model;type:varchar(100);default:'';comment:聊天AI使用的模型名称" json:"workflow_model"`
 	ChatModel                 string         `gorm:"column:chat_model;type:varchar(100);default:'';comment:聊天AI使用的模型名称" json:"chat_model"`
+	ImageRecognitionModel     string         `gorm:"column:image_recognition_model;type:varchar(100);default:'';comment:图像识别AI使用的模型名称" json:"image_recognition_model"`
 	ChatPrompt                string         `gorm:"column:chat_prompt;type:text;comment:聊天AI系统提示词" json:"chat_prompt"`
 	MaxCompletionTokens       *int           `gorm:"column:max_completion_tokens;default:0;comment:最大回复" json:"max_completion_tokens"`
 	ImageAIEnabled            *bool          `gorm:"column:image_ai_enabled;default:false;comment:是否启用AI绘图功能" json:"image_ai_enabled"`

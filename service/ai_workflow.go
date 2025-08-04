@@ -140,7 +140,7 @@ func (s *AIWorkflowService) ChatIntention(message string, referMessage *model.Me
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    "gpt-4o-mini", // 固定写死，使用更小的模型以提高响应速度和降低成本
+			Model:    aiConfig.WorkflowModel,
 			Messages: aiMessages,
 			ResponseFormat: &openai.ChatCompletionResponseFormat{
 				Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
@@ -199,7 +199,7 @@ func (s *AIWorkflowService) GetSongRequestTitle(message string) string {
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    "gpt-4o-mini", // 固定写死，使用更小的模型以提高响应速度和降低成本
+			Model:    aiConfig.WorkflowModel,
 			Messages: aiMessages,
 			ResponseFormat: &openai.ChatCompletionResponseFormat{
 				Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
@@ -258,7 +258,7 @@ func (s *AIWorkflowService) GetDrawingPrompt(message string) string {
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    "gpt-4o-mini", // 固定写死，使用更小的模型以提高响应速度和降低成本
+			Model:    aiConfig.WorkflowModel,
 			Messages: aiMessages,
 			ResponseFormat: &openai.ChatCompletionResponseFormat{
 				Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
@@ -317,7 +317,7 @@ func (s *AIWorkflowService) GetTTSText(message string) string {
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    "gpt-4o-mini", // 固定写死，使用更小的模型以提高响应速度和降低成本
+			Model:    aiConfig.WorkflowModel,
 			Messages: aiMessages,
 			ResponseFormat: &openai.ChatCompletionResponseFormat{
 				Type: openai.ChatCompletionResponseFormatTypeJSONSchema,

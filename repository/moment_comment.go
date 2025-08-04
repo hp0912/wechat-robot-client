@@ -46,3 +46,7 @@ func (respo *MomentComment) Create(data *model.MomentComment) error {
 func (respo *MomentComment) Update(data *model.MomentComment) error {
 	return respo.DB.WithContext(respo.Ctx).Updates(data).Error
 }
+
+func (c *MomentComment) Delete(data *model.MomentComment) error {
+	return c.DB.WithContext(c.Ctx).Unscoped().Delete(data).Error
+}

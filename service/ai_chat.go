@@ -102,6 +102,9 @@ func (s *AIChatService) Chat(aiMessages []openai.ChatCompletionMessage) (openai.
 		Messages: aiMessages,
 		Stream:   false,
 	}
+	// if hasImage {
+	// 	req.Model = aiConfig.ImageRecognitionModel
+	// }
 	if aiConfig.MaxCompletionTokens > 0 {
 		req.MaxCompletionTokens = aiConfig.MaxCompletionTokens
 	}
