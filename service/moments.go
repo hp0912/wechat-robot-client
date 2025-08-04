@@ -153,6 +153,17 @@ func (s *MomentsService) SyncMoments() {
 			log.Println("创建朋友圈失败: ", err)
 			continue
 		}
+		if momentSettings.Whitelist != nil && *momentSettings.Whitelist != "" {
+			if !strings.Contains(*momentSettings.Whitelist, timelineObject.Username) {
+				log.Printf("用户[%s]不在白名单中，跳过处理", timelineObject.Username)
+				continue
+			}
+		} else if momentSettings.Blacklist != nil && *momentSettings.Blacklist != "" {
+			if strings.Contains(*momentSettings.Blacklist, timelineObject.Username) {
+				log.Printf("用户[%s]在黑名单中，跳过处理", timelineObject.Username)
+				continue
+			}
+		}
 		if timelineObject.ContentDesc == "" && len(timelineObject.ContentObject.MediaList.Media) < 3 {
 			log.Println("朋友圈文字内容为空，且图片少于三张，跳过处理")
 			continue
@@ -190,7 +201,7 @@ func (s *MomentsService) SyncMoments() {
 				continue
 			}
 			if momentMood.Comment == "no" {
-				log.Println("朋友圈不适合评论，跳过")
+				log.Printf("%s: 朋友圈不适合评论，跳过", timelineObject.ContentDesc)
 				continue
 			}
 			commentContent, err := aiMomentService.Comment(timelineObject.ContentDesc, *momentSettings)
@@ -233,7 +244,7 @@ func (s *MomentsService) SyncMoments() {
 				}
 			}
 			if momentMood.Like == "no" {
-				log.Println("朋友圈不适合点赞，跳过")
+				log.Printf("%s: 朋友圈不适合点赞，跳过", timelineObject.ContentDesc)
 				continue
 			}
 			_, err := vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
