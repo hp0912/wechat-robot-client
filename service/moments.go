@@ -117,6 +117,9 @@ func (s *MomentsService) SyncMoments() {
 		log.Println("获取新朋友圈失败: ", err)
 		return
 	}
+	if syncResp.KeyBuf.Buffer == momentSettings.SyncKey {
+		return
+	}
 
 	defer func() {
 		momentSettings.SyncKey = syncResp.KeyBuf.Buffer
