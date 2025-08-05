@@ -117,6 +117,9 @@ func (s *MomentsService) SyncMoments() {
 		log.Println("获取新朋友圈失败: ", err)
 		return
 	}
+	if syncResp.KeyBuf.Buffer == momentSettings.SyncKey {
+		return
+	}
 
 	defer func() {
 		momentSettings.SyncKey = syncResp.KeyBuf.Buffer
@@ -213,6 +216,19 @@ func (s *MomentsService) SyncMoments() {
 				log.Println("获取朋友圈评论内容为空，跳过")
 				continue
 			}
+			// 先保存一下，利用数据库唯一索引约束，保证同一条朋友圈不会重复评论
+			newComment := model.MomentComment{
+				WechatID:  timelineObject.Username,
+				MomentID:  timelineObject.ID,
+				Comment:   commentContent.Content,
+				CreatedAt: now,
+				UpdatedAt: now,
+			}
+			err = s.momentCommentRepo.Create(&newComment)
+			if err != nil {
+				log.Println("保存朋友圈评论记录失败: ", err)
+				continue
+			}
 			_, err = vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
 				Id:      strconv.FormatUint(timelineObject.ID, 10),
 				Type:    2,
@@ -220,17 +236,7 @@ func (s *MomentsService) SyncMoments() {
 			})
 			if err != nil {
 				log.Println("自动评论朋友圈失败: ", err)
-				continue
-			}
-			err = s.momentCommentRepo.Create(&model.MomentComment{
-				WechatID:  timelineObject.Username,
-				MomentID:  timelineObject.ID,
-				Comment:   commentContent.Content,
-				CreatedAt: now,
-				UpdatedAt: now,
-			})
-			if err != nil {
-				log.Println("保存朋友圈评论记录失败: ", err)
+				_ = s.momentCommentRepo.Delete(&newComment)
 				continue
 			}
 		}

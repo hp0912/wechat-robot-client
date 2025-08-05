@@ -42,7 +42,7 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		aiDrawing := NewAIDrawingPlugin()
 		aiDrawing.Run(ctx)
 	case service.ChatIntentionImageRecognizer:
-		// 如果AI闲聊已经开启，则AI图片识别默认开启，AI聊天模型要支持多模态
+		// 如果AI闲聊已经开启，则AI图片识别默认开启
 		aImageRecognizer := NewAImageRecognizerPlugin()
 		aImageRecognizer.Run(ctx)
 	case service.ChatIntentionTTS:

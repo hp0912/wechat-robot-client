@@ -55,6 +55,12 @@ func (s *FriendSettingsService) GetAIConfig() settings.AIConfig {
 		if s.globalSettings.ChatModel != "" {
 			aiConfig.Model = s.globalSettings.ChatModel
 		}
+		if s.globalSettings.WorkflowModel != "" {
+			aiConfig.WorkflowModel = s.globalSettings.WorkflowModel
+		}
+		if s.globalSettings.ImageRecognitionModel != "" {
+			aiConfig.ImageRecognitionModel = s.globalSettings.ImageRecognitionModel
+		}
 		if s.globalSettings.ChatPrompt != "" {
 			aiConfig.Prompt = s.globalSettings.ChatPrompt
 		}
@@ -83,6 +89,12 @@ func (s *FriendSettingsService) GetAIConfig() settings.AIConfig {
 		}
 		if s.friendSettings.ChatModel != nil && *s.friendSettings.ChatModel != "" {
 			aiConfig.Model = *s.friendSettings.ChatModel
+		}
+		if s.friendSettings.WorkflowModel != nil && *s.friendSettings.WorkflowModel != "" {
+			aiConfig.WorkflowModel = *s.friendSettings.WorkflowModel
+		}
+		if s.friendSettings.ImageRecognitionModel != nil && *s.friendSettings.ImageRecognitionModel != "" {
+			aiConfig.ImageRecognitionModel = *s.friendSettings.ImageRecognitionModel
 		}
 		if s.friendSettings.ChatPrompt != nil && *s.friendSettings.ChatPrompt != "" {
 			aiConfig.Prompt = *s.friendSettings.ChatPrompt
