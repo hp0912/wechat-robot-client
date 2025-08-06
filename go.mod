@@ -15,7 +15,7 @@ require (
 	github.com/sashabaranov/go-openai v1.40.1
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1186
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/hunyuan v1.0.1186
-	github.com/volcengine/volcengine-go-sdk v1.1.16
+	github.com/volcengine/volcengine-go-sdk v1.1.25
 	golang.org/x/time v0.12.0
 	gorm.io/datatypes v1.2.5
 	gorm.io/driver/mysql v1.5.7
