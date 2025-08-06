@@ -12,6 +12,7 @@ type DoubaoConfig struct {
 	ApiKey         string  `json:"api_key"`
 	Model          string  `json:"model"`
 	Prompt         string  `json:"prompt"`
+	Image          string  `json:"image"`
 	ResponseFormat string  `json:"response_format"`
 	Size           string  `json:"size"`
 	Seed           int64   `json:"seed"`
@@ -30,6 +31,12 @@ func DoubaoDrawing(config *DoubaoConfig) (string, error) {
 		Prompt:         config.Prompt,
 		ResponseFormat: &format,
 		Watermark:      &config.Watermark,
+	}
+	if config.Image != "" {
+		generateReq.Image = &config.Image
+	}
+	if config.ResponseFormat != "" {
+		generateReq.ResponseFormat = &config.ResponseFormat
 	}
 	if config.Size != "" {
 		generateReq.Size = &config.Size

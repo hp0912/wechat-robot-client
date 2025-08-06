@@ -64,7 +64,13 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		douyinVideoParse := NewDouyinVideoParsePlugin()
 		douyinVideoParse.Run(ctx)
 	case service.ChatIntentionEditPictures:
-		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "修图功能正在开发中，敬请期待！")
+		isAIEnabled := ctx.Settings.IsAIDrawingEnabled()
+		if !isAIEnabled {
+			return
+		}
+		ctx.MessageContent = messageContent
+		aImageEdit := NewAImageEditPlugin()
+		aImageEdit.Run(ctx)
 	default:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "更多功能正在开发中，敬请期待！")
 	}
