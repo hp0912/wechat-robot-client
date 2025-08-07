@@ -20,6 +20,7 @@ var chatRoomSettingsCtl *controller.ChatRoomSettings
 var wechatServerCallbackCtl *controller.WechatServerCallback
 var aiCallbackCtl *controller.AICallback
 var momentsCtl *controller.Moments
+var systemSettingsCtl *controller.SystemSettings
 var probeCtl *controller.Probe
 
 func initController() {
@@ -36,6 +37,7 @@ func initController() {
 	wechatServerCallbackCtl = controller.NewWechatServerCallbackController()
 	aiCallbackCtl = controller.NewAICallbackController()
 	momentsCtl = controller.NewMomentsController()
+	systemSettingsCtl = controller.NewSystemSettingsController()
 	probeCtl = controller.NewProbeController()
 }
 
@@ -100,6 +102,10 @@ func RegisterRouter(r *gin.Engine) error {
 	// 系统消息相关接口
 	api.GET("/robot/system-messages", systemMessageCtl.GetRecentMonthMessages)
 	api.POST("/robot/system-messages/mark-as-read", systemMessageCtl.MarkAsReadBatch)
+
+	// 系统设置相关接口
+	api.GET("/robot/system-settings", systemSettingsCtl.GetSystemSettings)
+	api.POST("/robot/system-settings", systemSettingsCtl.SaveSystemSettings)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
