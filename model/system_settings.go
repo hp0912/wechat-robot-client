@@ -14,7 +14,7 @@ type SystemSettings struct {
 	PushPlusURL                *string          `gorm:"type:varchar(255);default:'';comment:Push Plus的URL" json:"push_plus_url"`
 	PushPlusToken              *string          `gorm:"type:varchar(255);default:'';comment:Push Plus的Token" json:"push_plus_token"`
 	AutoVerifyUser             *bool            `gorm:"default:false;comment:自动通过好友验证" json:"auto_verify_user"`
-	VerifyUserDelay            int              `gorm:"default:60;comment:自动通过好友验证延迟时间(秒)" json:"verify_user_delay"`
+	VerifyUserDelay            *int             `gorm:"default:60;comment:自动通过好友验证延迟时间(秒)" json:"verify_user_delay"`
 	AutoChatroomInvite         *bool            `gorm:"default:false;comment:自动邀请进群" json:"auto_chatroom_invite"`
 	CreatedAt                  int64            `gorm:"autoCreateTime;comment:创建时间" json:"created_at"`
 	UpdatedAt                  int64            `gorm:"autoUpdateTime;comment:更新时间" json:"updated_at"`

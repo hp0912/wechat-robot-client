@@ -136,6 +136,10 @@ func (s *ContactService) FriendAutoPassVerify(systemMessageID int64) error {
 	if systemSettings == nil || systemSettings.AutoVerifyUser == nil || !*systemSettings.AutoVerifyUser {
 		return fmt.Errorf("系统设置未开启好友验证")
 	}
+	if systemSettings.VerifyUserDelay != nil && *systemSettings.VerifyUserDelay > 0 {
+		// 延迟处理
+		time.Sleep(time.Duration(*systemSettings.VerifyUserDelay) * time.Second)
+	}
 	return s.FriendPassVerify(systemMessageID)
 }
 
