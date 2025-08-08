@@ -19,7 +19,7 @@ func NewSystemSettingsRepo(ctx context.Context, db *gorm.DB) *SystemSettings {
 	}
 }
 
-func (respo *SystemSettings) GetMomentSettings() (*model.SystemSettings, error) {
+func (respo *SystemSettings) GetSystemSettings() (*model.SystemSettings, error) {
 	var systemSettings model.SystemSettings
 	err := respo.DB.WithContext(respo.Ctx).First(&systemSettings).Error
 	if err == gorm.ErrRecordNotFound {

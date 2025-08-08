@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
@@ -24,9 +25,26 @@ func NewSystemSettingService(ctx context.Context) *SystemSettingService {
 }
 
 func (s *SystemSettingService) GetSystemSettings() (*model.SystemSettings, error) {
-	return nil, nil
+	systemSettings, err := s.systemSettingsRepo.GetSystemSettings()
+	if err != nil {
+		return nil, fmt.Errorf("获取系统设置失败: %w", err)
+	}
+	if systemSettings == nil {
+		return &model.SystemSettings{}, nil
+	}
+	return systemSettings, nil
 }
 
 func (s *SystemSettingService) SaveSystemSettings(req *model.SystemSettings) error {
-	return nil
+	if req.ID == 0 {
+		systemSettings, err := s.systemSettingsRepo.GetSystemSettings()
+		if err != nil {
+			return err
+		}
+		if systemSettings != nil {
+			return fmt.Errorf("系统设置已存在，不能重复创建")
+		}
+		return s.systemSettingsRepo.Create(req)
+	}
+	return s.systemSettingsRepo.Update(req)
 }
