@@ -557,6 +557,7 @@ func (c *Client) GetContactDetail(wxid, chatRoomID string, towxids []string) (re
 	return
 }
 
+// FriendPassVerify 通过好友验证
 func (c *Client) FriendPassVerify(req FriendPassVerifyRequest) (verifyUserResponse VerifyUserResponse, err error) {
 	var result ClientResponse[VerifyUserResponse]
 	_, err = c.client.R().
