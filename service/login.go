@@ -8,21 +8,26 @@ import (
 	"log"
 	"os"
 	"time"
+	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
+
+	"github.com/go-resty/resty/v2"
 )
 
 type LoginService struct {
-	ctx             context.Context
-	robotAdminRespo *repository.RobotAdmin
+	ctx                 context.Context
+	robotAdminRespo     *repository.RobotAdmin
+	systemSettingsRespo *repository.SystemSettings
 }
 
 func NewLoginService(ctx context.Context) *LoginService {
 	return &LoginService{
-		ctx:             ctx,
-		robotAdminRespo: repository.NewRobotAdminRepo(ctx, vars.AdminDB),
+		ctx:                 ctx,
+		robotAdminRespo:     repository.NewRobotAdminRepo(ctx, vars.AdminDB),
+		systemSettingsRespo: repository.NewSystemSettingsRepo(ctx, vars.DB),
 	}
 }
 
@@ -222,9 +227,72 @@ func (r *LoginService) SyncMessageCallback(wxID string, syncMessage robot.SyncMe
 	NewMessageService(r.ctx).ProcessMessage(syncMessage)
 }
 
-func (r *LoginService) LogoutCallback(wxID string) (err error) {
-	if wxID != vars.RobotRuntime.WxID {
+func (r *LoginService) LogoutCallback(req dto.LogoutNotificationRequest) (err error) {
+	if req.WxID != vars.RobotRuntime.WxID {
+		log.Printf("LogoutCallback: wxID(%s) does not match the current robot's wxID", req.WxID)
 		return
 	}
-	return r.Offline()
+	defer func() {
+		if req.Type != "offline" {
+			log.Printf("接收到掉线通知，但类型不是offline，忽略处理: %s", req.Type)
+			return
+		}
+		err := r.Offline()
+		if err != nil {
+			log.Printf("接收到掉线通知，退出客户端失败: %v", err)
+		}
+	}()
+
+	systemSettings, err := r.systemSettingsRespo.GetSystemSettings()
+	if err != nil {
+		log.Printf("接收到掉线通知，获取系统设置失败: %v", err)
+		return
+	}
+	if systemSettings == nil {
+		log.Printf("接收到掉线通知，系统设置还未设置")
+		return
+	}
+	if systemSettings.OfflineNotificationEnabled != nil && *systemSettings.OfflineNotificationEnabled {
+		// 发送离线通知
+		if systemSettings.NotificationType == model.NotificationTypePushPlus {
+			var result dto.PushPlusNotificationResponse
+			var title string
+			var content string
+			if req.Type == "offline" {
+				title = "机器人掉线通知"
+				content = fmt.Sprintf("您的机器人（%s）掉线啦~~~", vars.RobotRuntime.WxID)
+			} else {
+				title = "机器人掉线警告"
+				content = fmt.Sprintf("您的机器人（%s）第%d次发送心跳失败了~~~", vars.RobotRuntime.WxID, req.RetryCount)
+			}
+			httpResp, err1 := resty.New().R().
+				SetHeader("Content-Type", "application/json;chartset=utf-8").
+				SetBody(dto.PushPlusNotificationRequest{
+					Token:   *systemSettings.PushPlusToken,
+					Title:   title,
+					Content: content,
+					Channel: "wechat",
+				}).
+				SetResult(&result).
+				Post(*systemSettings.PushPlusURL)
+			if err1 != nil {
+				log.Printf("接收到掉线通知，发送离线通知失败: %v", err1)
+				return
+			}
+			if httpResp.StatusCode() != 200 {
+				log.Printf("接收到掉线通知，发送离线通知失败，HTTP状态码: %d", httpResp.StatusCode())
+				return
+			}
+			if result.Code != 200 {
+				log.Printf("接收到掉线通知，发送离线通知失败，PushPlus返回错误: %s", result.Msg)
+				return
+			}
+			log.Printf("接收到掉线通知，发送离线通知成功")
+		}
+		return
+	}
+
+	log.Printf("接收到掉线通知，系统设置未开启掉线通知")
+
+	return
 }

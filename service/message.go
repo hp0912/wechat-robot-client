@@ -178,7 +178,8 @@ func (s *MessageService) ProcessFriendVerifyMessage(message *model.Message) {
 		log.Printf("解析好友添加请求消息失败: %v", err)
 		return
 	}
-	err = s.sysmsgRespo.Create(&model.SystemMessage{
+
+	systeMessage := model.SystemMessage{
 		MsgID:       message.MsgId,
 		ClientMsgID: message.ClientMsgId,
 		Type:        model.SystemMessageTypeVerify,
@@ -191,11 +192,21 @@ func (s *MessageService) ProcessFriendVerifyMessage(message *model.Message) {
 		IsRead:      false,
 		CreatedAt:   now,
 		UpdatedAt:   now,
-	})
+	}
+	err = s.sysmsgRespo.Create(&systeMessage)
 	if err != nil {
 		log.Printf("入库好友添加请求通知消息失败: %v", err)
 		return
 	}
+
+	// 自动通过好友
+	go func(systemSettingsID int64) {
+		err := NewContactService(context.Background()).FriendAutoPassVerify(systemSettingsID)
+		if err != nil {
+			log.Printf("自动通过好友验证失败: %v", err)
+		}
+	}(systeMessage.ID)
+
 	if message.ID > 0 {
 		// 消息已经没什么用了，删除掉
 		err := s.msgRespo.Delete(message)

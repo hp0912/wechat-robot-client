@@ -46,16 +46,18 @@ func (c ClientResponse[T]) CheckError(err error) error {
 }
 
 type Client struct {
-	client  *resty.Client
-	Domain  WechatDomain
-	limiter *rate.Limiter
+	client      *resty.Client
+	Domain      WechatDomain
+	limiter     *rate.Limiter
+	autoLimiter *rate.Limiter
 }
 
 func NewClient(domain WechatDomain) *Client {
 	return &Client{
-		client:  resty.New(),
-		Domain:  domain,
-		limiter: rate.NewLimiter(rate.Every(time.Second), 1), // 1 token/sec, burst = 1
+		client:      resty.New(),
+		Domain:      domain,
+		limiter:     rate.NewLimiter(rate.Every(time.Second), 1),
+		autoLimiter: rate.NewLimiter(rate.Every(15*time.Second), 1),
 	}
 }
 
@@ -557,7 +559,11 @@ func (c *Client) GetContactDetail(wxid, chatRoomID string, towxids []string) (re
 	return
 }
 
+// FriendPassVerify 通过好友验证
 func (c *Client) FriendPassVerify(req FriendPassVerifyRequest) (verifyUserResponse VerifyUserResponse, err error) {
+	if err = c.autoLimiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[VerifyUserResponse]
 	_, err = c.client.R().
 		SetResult(&result).
@@ -660,7 +666,7 @@ func (c *Client) CreateChatRoom(wxid string, contactIDs []string) (createChatRoo
 }
 
 func (c *Client) GroupAddChatRoomMember(wxid, chatRoomName string, contactIDs []string) (memberResp InviteChatRoomMemberResponse, err error) {
-	if err = c.limiter.Wait(context.Background()); err != nil {
+	if err = c.autoLimiter.Wait(context.Background()); err != nil {
 		return
 	}
 	var result ClientResponse[InviteChatRoomMemberResponse]
@@ -679,7 +685,7 @@ func (c *Client) GroupAddChatRoomMember(wxid, chatRoomName string, contactIDs []
 }
 
 func (c *Client) GroupInviteChatRoomMember(wxid, chatRoomName string, contactIDs []string) (memberResp InviteChatRoomMemberResponse, err error) {
-	if err = c.limiter.Wait(context.Background()); err != nil {
+	if err = c.autoLimiter.Wait(context.Background()); err != nil {
 		return
 	}
 	var result ClientResponse[InviteChatRoomMemberResponse]

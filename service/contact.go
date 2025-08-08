@@ -26,18 +26,20 @@ var (
 )
 
 type ContactService struct {
-	ctx         context.Context
-	ctRespo     *repository.Contact
-	crmRespo    *repository.ChatRoomMember
-	sysmsgRespo *repository.SystemMessage
+	ctx                 context.Context
+	ctRespo             *repository.Contact
+	crmRespo            *repository.ChatRoomMember
+	sysmsgRespo         *repository.SystemMessage
+	systemSettingsRespo *repository.SystemSettings
 }
 
 func NewContactService(ctx context.Context) *ContactService {
 	return &ContactService{
-		ctx:         ctx,
-		ctRespo:     repository.NewContactRepo(ctx, vars.DB),
-		crmRespo:    repository.NewChatRoomMemberRepo(ctx, vars.DB),
-		sysmsgRespo: repository.NewSystemMessageRepo(ctx, vars.DB),
+		ctx:                 ctx,
+		ctRespo:             repository.NewContactRepo(ctx, vars.DB),
+		crmRespo:            repository.NewChatRoomMemberRepo(ctx, vars.DB),
+		sysmsgRespo:         repository.NewSystemMessageRepo(ctx, vars.DB),
+		systemSettingsRespo: repository.NewSystemSettingsRepo(ctx, vars.DB),
 	}
 }
 
@@ -124,6 +126,21 @@ func (s *ContactService) FriendSetRemarks(req dto.FriendSetRemarksRequest) error
 		return err
 	}
 	return s.ctRespo.UpdateRemarkByContactID(req.ToWxid, req.Remarks)
+}
+
+func (s *ContactService) FriendAutoPassVerify(systemMessageID int64) error {
+	systemSettings, err := s.systemSettingsRespo.GetSystemSettings()
+	if err != nil {
+		return fmt.Errorf("获取系统设置失败: %v", err)
+	}
+	if systemSettings == nil || systemSettings.AutoVerifyUser == nil || !*systemSettings.AutoVerifyUser {
+		return fmt.Errorf("系统设置未开启好友验证")
+	}
+	if systemSettings.VerifyUserDelay != nil && *systemSettings.VerifyUserDelay > 0 {
+		// 延迟处理
+		time.Sleep(time.Duration(*systemSettings.VerifyUserDelay) * time.Second)
+	}
+	return s.FriendPassVerify(systemMessageID)
 }
 
 func (s *ContactService) FriendPassVerify(systemMessageID int64) error {
