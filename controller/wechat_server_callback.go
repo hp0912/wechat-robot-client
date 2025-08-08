@@ -2,6 +2,7 @@ package controller
 
 import (
 	"log"
+	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/service"
@@ -33,8 +34,13 @@ func (ct *WechatServerCallback) SyncMessageCallback(c *gin.Context) {
 func (ct *WechatServerCallback) LogoutCallback(c *gin.Context) {
 	wechatID := c.Param("wechatID")
 	log.Printf("Received LogoutCallback for wechatID: %s", wechatID)
-	err := service.NewLoginService(c).LogoutCallback(wechatID)
+	var req dto.LogoutNotificationRequest
 	resp := appx.NewResponse(c)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	err := service.NewLoginService(c).LogoutCallback(req)
 	if err != nil {
 		log.Printf("LogoutCallback failed: %v\n", err)
 		resp.ToErrorResponse(err)
