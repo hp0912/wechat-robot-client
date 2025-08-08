@@ -276,7 +276,7 @@ func (r *LoginService) LogoutCallback(req dto.LogoutNotificationRequest) (err er
 				SetResult(&result).
 				Post(*systemSettings.PushPlusURL)
 			if err1 != nil {
-				log.Printf("接收到掉线通知，发送离线通知失败: %v", err)
+				log.Printf("接收到掉线通知，发送离线通知失败: %v", err1)
 				return
 			}
 			if httpResp.StatusCode() != 200 {
@@ -289,6 +289,7 @@ func (r *LoginService) LogoutCallback(req dto.LogoutNotificationRequest) (err er
 			}
 			log.Printf("接收到掉线通知，发送离线通知成功")
 		}
+		return
 	}
 
 	log.Printf("接收到掉线通知，系统设置未开启掉线通知")

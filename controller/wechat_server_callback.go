@@ -37,6 +37,7 @@ func (ct *WechatServerCallback) LogoutCallback(c *gin.Context) {
 	var req dto.LogoutNotificationRequest
 	resp := appx.NewResponse(c)
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("LogoutCallback binding error: %v", err)
 		resp.ToErrorResponse(err)
 		return
 	}
