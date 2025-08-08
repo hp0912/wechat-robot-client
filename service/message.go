@@ -200,12 +200,12 @@ func (s *MessageService) ProcessFriendVerifyMessage(message *model.Message) {
 	}
 
 	// 自动通过好友
-	go func(sysmsg model.SystemMessage) {
-		err := NewContactService(context.Background()).FriendAutoPassVerify(sysmsg.ID)
+	go func(systemSettingsID int64) {
+		err := NewContactService(context.Background()).FriendAutoPassVerify(systemSettingsID)
 		if err != nil {
 			log.Printf("自动通过好友验证失败: %v", err)
 		}
-	}(systeMessage)
+	}(systeMessage.ID)
 
 	if message.ID > 0 {
 		// 消息已经没什么用了，删除掉

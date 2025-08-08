@@ -46,16 +46,18 @@ func (c ClientResponse[T]) CheckError(err error) error {
 }
 
 type Client struct {
-	client  *resty.Client
-	Domain  WechatDomain
-	limiter *rate.Limiter
+	client                  *resty.Client
+	Domain                  WechatDomain
+	limiter                 *rate.Limiter
+	friendPassVerifyLimiter *rate.Limiter
 }
 
 func NewClient(domain WechatDomain) *Client {
 	return &Client{
-		client:  resty.New(),
-		Domain:  domain,
-		limiter: rate.NewLimiter(rate.Every(time.Second), 1), // 1 token/sec, burst = 1
+		client:                  resty.New(),
+		Domain:                  domain,
+		limiter:                 rate.NewLimiter(rate.Every(time.Second), 1),
+		friendPassVerifyLimiter: rate.NewLimiter(rate.Every(10*time.Second), 1),
 	}
 }
 
@@ -559,6 +561,9 @@ func (c *Client) GetContactDetail(wxid, chatRoomID string, towxids []string) (re
 
 // FriendPassVerify 通过好友验证
 func (c *Client) FriendPassVerify(req FriendPassVerifyRequest) (verifyUserResponse VerifyUserResponse, err error) {
+	if err = c.friendPassVerifyLimiter.Wait(context.Background()); err != nil {
+		return
+	}
 	var result ClientResponse[VerifyUserResponse]
 	_, err = c.client.R().
 		SetResult(&result).
