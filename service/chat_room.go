@@ -31,24 +31,26 @@ var (
 )
 
 type ChatRoomService struct {
-	ctx         context.Context
-	msgRespo    *repository.Message
-	ctRespo     *repository.Contact
-	gsRespo     *repository.GlobalSettings
-	crsRespo    *repository.ChatRoomSettings
-	crmRespo    *repository.ChatRoomMember
-	sysmsgRespo *repository.SystemMessage
+	ctx                 context.Context
+	msgRespo            *repository.Message
+	ctRespo             *repository.Contact
+	gsRespo             *repository.GlobalSettings
+	crsRespo            *repository.ChatRoomSettings
+	crmRespo            *repository.ChatRoomMember
+	sysmsgRespo         *repository.SystemMessage
+	systemSettingsRespo *repository.SystemSettings
 }
 
 func NewChatRoomService(ctx context.Context) *ChatRoomService {
 	return &ChatRoomService{
-		ctx:         ctx,
-		msgRespo:    repository.NewMessageRepo(ctx, vars.DB),
-		ctRespo:     repository.NewContactRepo(ctx, vars.DB),
-		gsRespo:     repository.NewGlobalSettingsRepo(ctx, vars.DB),
-		crsRespo:    repository.NewChatRoomSettingsRepo(ctx, vars.DB),
-		crmRespo:    repository.NewChatRoomMemberRepo(ctx, vars.DB),
-		sysmsgRespo: repository.NewSystemMessageRepo(ctx, vars.DB),
+		ctx:                 ctx,
+		msgRespo:            repository.NewMessageRepo(ctx, vars.DB),
+		ctRespo:             repository.NewContactRepo(ctx, vars.DB),
+		gsRespo:             repository.NewGlobalSettingsRepo(ctx, vars.DB),
+		crsRespo:            repository.NewChatRoomSettingsRepo(ctx, vars.DB),
+		crmRespo:            repository.NewChatRoomMemberRepo(ctx, vars.DB),
+		sysmsgRespo:         repository.NewSystemMessageRepo(ctx, vars.DB),
+		systemSettingsRespo: repository.NewSystemSettingsRepo(ctx, vars.DB),
 	}
 }
 
@@ -210,6 +212,24 @@ func (s *ChatRoomService) CreateChatRoom(contactIDs []string) error {
 	}
 	NewContactService(s.ctx).DebounceSyncContact(*chatRoom.ChatRoomName.String)
 	return nil
+}
+
+func (s *ChatRoomService) AutoInviteChatRoomMember(chatRoomName string, contactIDs []string) error {
+	systemSettings, err := s.systemSettingsRespo.GetSystemSettings()
+	if err != nil {
+		return err
+	}
+	if systemSettings == nil || systemSettings.AutoChatroomInvite == nil || !*systemSettings.AutoChatroomInvite {
+		return fmt.Errorf("自动邀请入群功能未开启")
+	}
+	chatRoom, err := s.ctRespo.GetByChatRoomNickname(chatRoomName)
+	if err != nil {
+		return err
+	}
+	if chatRoom == nil {
+		return fmt.Errorf("群聊不存在: %s", chatRoomName)
+	}
+	return s.InviteChatRoomMember(chatRoom.WechatID, contactIDs)
 }
 
 func (s *ChatRoomService) InviteChatRoomMember(chatRoomID string, contactIDs []string) error {

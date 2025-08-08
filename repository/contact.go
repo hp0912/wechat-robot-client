@@ -60,6 +60,18 @@ func (respo *Contact) GetByWechatID(wechatID string) (*model.Contact, error) {
 	return &contact, nil
 }
 
+func (respo *Contact) GetByChatRoomNickname(chatRoomName string) (*model.Contact, error) {
+	var contact model.Contact
+	err := respo.DB.WithContext(respo.Ctx).Where("type = 'chat_room'").Where("remark = ? OR nickname = ?", chatRoomName, chatRoomName).First(&contact).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &contact, nil
+}
+
 func (respo *Contact) GetFriendsByWechatIDs(wechatIDs []string) ([]*model.Contact, error) {
 	var contacts []*model.Contact
 	err := respo.DB.WithContext(respo.Ctx).Where("wechat_id IN (?)", wechatIDs).Find(&contacts).Error
