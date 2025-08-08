@@ -73,8 +73,8 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		aImageEdit.Run(ctx)
 	case service.ChatIntentionApplyToJoinGroup:
 		ctx.MessageContent = messageContent
-		aImageEdit := NewAImageEditPlugin()
-		aImageEdit.Run(ctx)
+		autoJoinGroup := NewAutoJoinGroupPlugin()
+		autoJoinGroup.Run(ctx)
 	default:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "更多功能正在开发中，敬请期待！")
 	}
