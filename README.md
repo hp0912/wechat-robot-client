@@ -286,5 +286,4 @@ services:
 
 ## 官方交流群
 
-TODO
-<!-- <img src=".deploy/asserts/group-chat.jpg" alt="官方交流群" width="300"> -->
+<img src="https://img.houhoukang.com/char-room-qrcode.jpg" alt="官方交流群" width="300">
