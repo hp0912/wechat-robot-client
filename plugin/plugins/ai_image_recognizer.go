@@ -36,15 +36,24 @@ func (p *AImageRecognizerPlugin) Run(ctx *plugin.MessageContext) bool {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "你需要引用一条图片消息。")
 		return true
 	}
-	// 下载引用的图片
-	attachDownloadService := service.NewAttachDownloadService(ctx.Context)
-	imageBytes, contentType, _, err := attachDownloadService.DownloadImage(ctx.ReferMessage.ID)
-	if err != nil {
-		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-		return true
+	var dataURL string
+	if ctx.ReferMessage.AttachmentUrl != "" {
+		dataURL = ctx.ReferMessage.AttachmentUrl
+	} else {
+		// 下载引用的图片
+		attachDownloadService := service.NewAttachDownloadService(ctx.Context)
+		imageBytes, contentType, _, err := attachDownloadService.DownloadImage(ctx.ReferMessage.ID)
+		if err != nil {
+			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
+			return true
+		}
+		base64Image := base64.StdEncoding.EncodeToString(imageBytes)
+		dataURL = fmt.Sprintf("data:%s;base64,%s", contentType, base64Image)
+		// 更新引用消息的附件URL，待处理，OSS上传
+		// ctx.ReferMessage.AttachmentUrl = dataURL
+		// _ = ctx.MessageService.UpdateMessage(ctx.ReferMessage)
 	}
-	base64Image := base64.StdEncoding.EncodeToString(imageBytes)
-	dataURL := fmt.Sprintf("data:%s;base64,%s", contentType, base64Image)
+
 	aiContext := []openai.ChatCompletionMessage{
 		{
 			Role: openai.ChatMessageRoleUser,

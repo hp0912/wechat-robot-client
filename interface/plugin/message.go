@@ -12,7 +12,7 @@ import (
 
 type MessageServiceIface interface {
 	SendTextMessage(toWxID, content string, at ...string) error
-	MsgUploadImg(toWxID string, image io.Reader) error
+	MsgUploadImg(toWxID string, image io.Reader) (*model.Message, error)
 	MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error
 	MsgSendVideo(toWxID string, video io.Reader, videoExt string) error
 	SendMusicMessage(toWxID string, songTitle string) error
@@ -21,6 +21,7 @@ type MessageServiceIface interface {
 	GetAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error)
 	SetMessageIsInContext(message *model.Message) error
 	XmlDecoder(content string) (robot.XmlMessage, error)
+	UpdateMessage(message *model.Message) error
 }
 
 type MessageContext struct {

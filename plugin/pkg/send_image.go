@@ -31,5 +31,13 @@ func SendImageByURL(MessageService plugin.MessageServiceIface, toWxID, imageUrl 
 	if err != nil {
 		return err
 	}
-	return MessageService.MsgUploadImg(toWxID, tempFile)
+	imageMsg, err := MessageService.MsgUploadImg(toWxID, tempFile)
+	if err != nil {
+		return err
+	}
+
+	imageMsg.AttachmentUrl = imageUrl
+	_ = MessageService.UpdateMessage(imageMsg)
+
+	return nil
 }

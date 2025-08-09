@@ -320,7 +320,7 @@ func (s *MessageService) ProcessNewChatRoomMemberMessage(message *model.Message,
 			log.Println("将图片数据写入临时文件失败: ", err)
 			return
 		}
-		err = s.MsgUploadImg(message.FromWxID, tempFile)
+		_, err = s.MsgUploadImg(message.FromWxID, tempFile)
 		if err != nil {
 			log.Println("发送欢迎图片消息失败: ", err)
 			return
@@ -675,14 +675,14 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 	return nil
 }
 
-func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) error {
+func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) (*model.Message, error) {
 	imageBytes, err := io.ReadAll(image)
 	if err != nil {
-		return fmt.Errorf("读取文件内容失败: %w", err)
+		return nil, fmt.Errorf("读取文件内容失败: %w", err)
 	}
 	message, err := vars.RobotRuntime.MsgUploadImg(toWxID, imageBytes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	m := model.Message{
@@ -706,7 +706,7 @@ func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) error {
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
-	return nil
+	return &m, nil
 }
 
 func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt string) error {
@@ -1180,6 +1180,10 @@ func (s *MessageService) GetChatRoomAIMessageContext(message *model.Message) ([]
 		messages = append(messages, message)
 	}
 	return s.ProcessAIMessageContext(messages), nil
+}
+
+func (s *MessageService) UpdateMessage(message *model.Message) error {
+	return s.msgRespo.Update(message)
 }
 
 func (s *MessageService) ResetChatRoomAIMessageContext(message *model.Message) error {

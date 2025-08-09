@@ -80,7 +80,7 @@ func (cron *GoodMorningCron) Cron() error {
 			continue
 		}
 
-		err = msgService.MsgUploadImg(setting.ChatRoomID, image)
+		_, err = msgService.MsgUploadImg(setting.ChatRoomID, image)
 		if err != nil {
 			log.Printf("群[%s]早安图片发送失败: %v", setting.ChatRoomID, err)
 			continue
