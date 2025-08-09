@@ -83,7 +83,7 @@ func (m *Message) SendImageMessage(c *gin.Context) {
 		return
 	}
 
-	err = service.NewMessageService(c).MsgUploadImg(req.ToWxid, file)
+	_, err = service.NewMessageService(c).MsgUploadImg(req.ToWxid, file)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

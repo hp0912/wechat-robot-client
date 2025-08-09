@@ -104,7 +104,7 @@ func (cron *NewsCron) Cron() error {
 				log.Printf("[每日早报] 重置文件指针失败: %v", err)
 				continue
 			}
-			err = msgService.MsgUploadImg(setting.ChatRoomID, tempFile)
+			_, err = msgService.MsgUploadImg(setting.ChatRoomID, tempFile)
 			if err != nil {
 				log.Printf("[每日早报] 发送图片消息失败: %v", err)
 			}

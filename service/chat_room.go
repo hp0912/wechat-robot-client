@@ -700,7 +700,7 @@ func (s *ChatRoomService) ChatRoomRankingDaily() error {
 			continue
 		}
 		defer imageFile.Close()
-		err = msgService.MsgUploadImg(setting.ChatRoomID, imageFile)
+		_, err = msgService.MsgUploadImg(setting.ChatRoomID, imageFile)
 		if err != nil {
 			log.Printf("群聊 %s 词云图片发送失败: %v", setting.ChatRoomID, err)
 			continue
