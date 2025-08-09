@@ -32,6 +32,10 @@ func (p *AutoJoinGroupPlugin) PostAction(ctx *plugin.MessageContext) {
 func (p *AutoJoinGroupPlugin) Run(ctx *plugin.MessageContext) bool {
 	re := regexp.MustCompile(`^申请进群\s+`)
 	chatRoomName := re.ReplaceAllString(ctx.MessageContent, "")
+	if chatRoomName == "" {
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "群聊名称不能为空")
+		return true
+	}
 	err := service.NewChatRoomService(context.Background()).AutoInviteChatRoomMember(chatRoomName, []string{ctx.Message.FromWxID})
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
