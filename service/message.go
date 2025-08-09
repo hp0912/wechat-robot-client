@@ -597,7 +597,7 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 		for _, wxid := range at {
 			var targetNickname string
 
-			if strings.HasPrefix(wxid, "@chatroom") {
+			if strings.HasSuffix(toWxID, "@chatroom") {
 				// 群聊消息，昵称优先取群备注，备注取不到或者取失败了，再去取联系人的昵称
 				chatRoomMember, err := s.crmRespo.GetChatRoomMember(toWxID, wxid)
 				if err != nil || chatRoomMember == nil {
