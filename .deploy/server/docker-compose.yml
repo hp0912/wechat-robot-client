@@ -7,11 +7,12 @@ services:
       - wechat-robot
     environment:
       TZ: Asia/Shanghai
-      REDIS_PASSWORD: r12345678 # 自行修改
-    command: [ "redis-server", "/etc/redis/redis.conf", "--requirepass", "r12345678" ] # 自行修改
+    command: [ "sh", "-c", "redis-server /etc/redis/redis.conf --requirepass \"$$(cat /run/secrets/redis_password)\"" ]
     volumes:
       - ./wechat_admin_redis_data:/data
       - ./redis.conf:/etc/redis/redis.conf
+    secrets:
+      - redis_password # 密码在 .deploy/server/secrets/redis_password.txt 文件，自行修改
 
   wechat-admin-mysql:
     image: "${REGISTRY:-docker.io}/mysql:8.2.0"
@@ -83,7 +84,6 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: mroot12345678
       MYSQL_DB: robot_admin
-      MYSQL_SCHEMA: public
       REDIS_HOST: wechat-admin-redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: r12345678
