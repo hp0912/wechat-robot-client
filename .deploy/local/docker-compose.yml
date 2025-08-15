@@ -13,6 +13,12 @@ services:
       - ./redis.conf:/etc/redis/redis.conf
     secrets:
       - redis_password # 密码在 .deploy/local/secrets/redis_password.txt 文件，自行修改
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$(cat /run/secrets/redis_password) ping | grep PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   wechat-admin-mysql:
     image: "${REGISTRY:-docker.io}/mysql:8.2.0"
@@ -29,6 +35,12 @@ services:
       MYSQL_USER: wechat # 创建专用用户
       MYSQL_PASSWORD: 'mwechat12345678' # 设置专用用户密码 # 自行修改
       MYSQL_DATABASE: robot_admin # 自动创建数据库
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$MYSQL_ROOT_PASSWORD | grep 'mysqld is alive'"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
 
   wechat-server:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-server:latest
