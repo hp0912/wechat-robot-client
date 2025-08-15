@@ -74,6 +74,12 @@ services:
       - "3001:3000"
     networks:
       - wechat-robot
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000 | grep -i '<html' >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   wechat-robot-admin-backend:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-backend:latest
@@ -105,8 +111,16 @@ services:
       REDIS_PASSWORD: r12345678
       THIRD_PARTY_API_KEY: t123456 # 自行修改 AI语音合成的 key
     depends_on:
-      - wechat-admin-redis
-      - wechat-admin-mysql
+      wechat-admin-redis:
+        condition: service_healthy
+      wechat-admin-mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/api/v1/probe | grep 'success' >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
 networks:
   wechat-robot:
