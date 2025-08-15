@@ -6,6 +6,7 @@ services:
     networks:
       - wechat-robot
     environment:
+      TZ: Asia/Shanghai
       REDIS_PASSWORD: r12345678 # 自行修改
     command: [ "redis-server", "/etc/redis/redis.conf", "--requirepass", "r12345678" ] # 自行修改
     volumes:
@@ -38,6 +39,8 @@ services:
       - wechat-robot
     volumes:
       - ./wechat-server/data:/data
+    environment:
+      TZ: Asia/Shanghai
 
   word-cloud-server:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/word-cloud-server:latest
@@ -67,6 +70,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       GIN_MODE: release
+      TZ: Asia/Shanghai
       DOCKER_NETWORK: wechat-robot
       SESSION_SECRET: sessionid_123456 # 可自行修改 随便设置个uuid即可
       OPENAI_API_KEY: sk-123456 # 自行修改
