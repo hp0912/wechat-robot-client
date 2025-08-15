@@ -31,16 +31,20 @@ services:
       - ./my.cnf:/etc/my.cnf
     environment:
       TZ: Asia/Shanghai # 设置时区
-      MYSQL_ROOT_PASSWORD: 'mroot12345678' # 设置 root 用户的密码 # 自行修改
+      # 使用 *_FILE 方式从 docker secrets 读取敏感信息
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password # root 密码
       MYSQL_USER: wechat # 创建专用用户
-      MYSQL_PASSWORD: 'mwechat12345678' # 设置专用用户密码 # 自行修改
-      MYSQL_DATABASE: robot_admin # 自动创建数据库
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_user_password
+      MYSQL_DATABASE: robot_admin # 数据库名称
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$MYSQL_ROOT_PASSWORD | grep 'mysqld is alive'"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$(cat /run/secrets/mysql_root_password) | grep 'mysqld is alive'"]
       interval: 15s
       timeout: 5s
       retries: 6
       start_period: 40s
+    secrets:
+      - mysql_root_password
+      - mysql_user_password
 
   wechat-server:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-server:latest
@@ -121,3 +125,7 @@ networks:
 secrets:
   redis_password:
     file: ./secrets/redis_password.txt
+  mysql_root_password:
+    file: ./secrets/mysql_root_password.txt
+  mysql_user_password:
+    file: ./secrets/mysql_user_password.txt
