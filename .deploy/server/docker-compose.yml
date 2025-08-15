@@ -75,7 +75,7 @@ services:
     networks:
       - wechat-robot
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000 | grep -i '<html' >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "printf 'GET / HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' | nc -w2 127.0.0.1 9000 | grep -i '<html' >/dev/null || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -116,7 +116,7 @@ services:
       wechat-admin-mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/api/v1/probe | grep 'success' >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "printf 'GET /api/v1/probe HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' | nc -w2 127.0.0.1 9000 | grep 'success' >/dev/null || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
