@@ -286,4 +286,77 @@ services:
 
 ## 官方交流群
 
-<img src="https://img.houhoukang.com/char-room-qrcode.jpg" alt="官方交流群" width="300">
+<img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20250816" alt="官方交流群" width="300">
+
+## 效果展示
+
+<table>
+  <thead>
+    <tr>
+      <th>功能</th>
+      <th>效果图</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>机器人列表</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/robot-list.png" alt="机器人列表" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td>机器人详情</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/robot-detail.png" alt="机器人详情" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td>全局AI设置</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/global-settings.png" alt="全局AI设置" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td>系统设置</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/system-settings.png" alt="系统设置" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td>容器日志</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/docker-logs.png" alt="容器日志" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td>系统概览</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/overview.png" alt="系统概览" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td>发布朋友圈</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/post-moments.png" alt="发布朋友圈" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td>聊天记录</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/chat-history.png" alt="聊天记录" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td>群成员</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/chat-room-menber.png" alt="群成员" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td>群操作</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/chat-room-actions.png" alt="群操作" width="300">
+      </td>
+    </tr>
+  </tbody>
+</table>
