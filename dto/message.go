@@ -24,3 +24,12 @@ type TextMessageItem struct {
 	Message   string `json:"message"`
 	CreatedAt int64  `json:"created_at"`
 }
+
+type SendFileMessageRequest struct {
+	ToWxid      string `form:"to_wxid" json:"to_wxid" binding:"required"`
+	Filename    string `form:"filename" json:"filename" binding:"required"`
+	FileHash    string `form:"file_hash" json:"file_hash" binding:"required"`
+	FileSize    int64  `form:"file_size" json:"file_size" binding:"required"`
+	ChunkIndex  int    `form:"chunk_index" json:"chunk_index" binding:"required"`
+	TotalChunks int    `form:"total_chunks" json:"total_chunks" binding:"required"`
+}

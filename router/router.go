@@ -92,12 +92,14 @@ func RegisterRouter(r *gin.Engine) error {
 
 	api.GET("/robot/chat/history", chatHistoryCtl.GetChatHistory)
 
+	// 消息相关接口
 	api.POST("/robot/message/revoke", messageCtl.MessageRevoke)
 	api.POST("/robot/message/send/text", messageCtl.SendTextMessage)
 	api.POST("/robot/message/send/image", messageCtl.SendImageMessage)
 	api.POST("/robot/message/send/video", messageCtl.SendVideoMessage)
 	api.POST("/robot/message/send/voice", messageCtl.SendVoiceMessage)
 	api.POST("/robot/message/send/music", messageCtl.SendMusicMessage)
+	api.POST("/robot/message/send/file", messageCtl.SendFileMessage)
 
 	// 系统消息相关接口
 	api.GET("/robot/system-messages", systemMessageCtl.GetRecentMonthMessages)

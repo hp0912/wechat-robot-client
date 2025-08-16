@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"os"
 	"regexp"
 	"slices"
@@ -836,6 +837,11 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
+	return nil
+}
+
+func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) error {
+	// 处理文件分片上传
 	return nil
 }
 
