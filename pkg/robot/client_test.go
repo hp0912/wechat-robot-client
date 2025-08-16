@@ -121,6 +121,42 @@ func TestSendApp(t *testing.T) {
 	})
 }
 
+func TestSendApp2(t *testing.T) {
+	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "192.168.3.28", 3010)))
+	resp, err := client.SendApp(SendAppRequest{
+		Wxid:   "wxid_7bpstqonj92212",
+		ToWxid: "56161010107@chatroom",
+		Type:   6,
+		Xml: `<appmsg appid="" sdkver="0">
+    <title>test.txt</title>
+    <des/>
+    <type>6</type>
+    <showtype>0</showtype>
+    <soundtype>0</soundtype>
+    <contentattr>0</contentattr>
+    <appattach>
+      <totallen>35</totallen>
+      <fileext>txt</fileext>
+      <attachid>@cdn_3057020100044b30490201000204df99987302033d11fe0204fd835070020468a03de8042434303961366332392d383939312d346134642d383361382d3933656137643933363831610204052400050201000405004c4dfe00f81dad2a_706e6f66657974726268716a6c746c6a_1</attachid>
+      <emoticonmd5/>
+      <cdnattachurl/>
+      <cdnthumbaeskey/>
+      <aeskey/>
+      <encryver>0</encryver>
+      <filekey/>
+      <overwrite_newmsgid/>
+      <fileuploadtoken/>
+    </appattach>
+    <md5>f6be542d1f7f84321f4d25dde7d3b33b</md5>
+    <recorditem/>
+  </appmsg>`,
+	})
+	if err != nil {
+		t.Fatalf("failed to send app: %v", err)
+	}
+	fmt.Println(resp)
+}
+
 func TestSendCDNFile(t *testing.T) {
 	client := NewClient(WechatDomain(fmt.Sprintf("%s:%d", "120.79.142.0", 9003)))
 

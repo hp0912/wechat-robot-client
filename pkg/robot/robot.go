@@ -751,14 +751,13 @@ func (r *Robot) MsgSendFile(req SendFileMessageRequest, file io.Reader) (*SendAp
 	// 2. 发送文件消息
 	var fileXml FileMessageXml
 	fileXml.Appmsg.AppID = ""
-	fileXml.Appmsg.SDKVer = "0"
+	fileXml.Appmsg.SDKVer = 0
 	fileXml.Appmsg.Title = req.Filename
 	fileXml.Appmsg.Type = 6
 	fileXml.Appmsg.ShowType = 0
 	fileXml.Appmsg.SoundType = 0
 	fileXml.Appmsg.ContentAttr = 0
 	fileXml.Appmsg.MD5 = req.FileMD5
-	fileXml.FromUsername = r.WxID
 	if resp.AppId != nil {
 		fileXml.Appmsg.AppID = *resp.AppId
 	}
@@ -771,11 +770,7 @@ func (r *Robot) MsgSendFile(req SendFileMessageRequest, file io.Reader) (*SendAp
 	appAttach.TotalLen = req.TotalLen
 	fileXml.Appmsg.Attach = appAttach
 
-	appInfo := AppInfo{}
-	appInfo.Version = "1"
-	fileXml.AppInfo = appInfo
-
-	xmlBytes, err := xml.Marshal(fileXml)
+	xmlBytes, err := xml.Marshal(fileXml.Appmsg)
 	if err != nil {
 		return nil, err
 	}

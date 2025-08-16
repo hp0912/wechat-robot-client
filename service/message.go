@@ -845,7 +845,7 @@ func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMe
 		Filename:    req.Filename,
 		FileMD5:     req.FileHash,
 		TotalLen:    req.FileSize,
-		StartPos:    req.ChunkIndex,
+		StartPos:    req.ChunkIndex * vars.UploadFileChunkSize,
 		TotalChunks: req.TotalChunks,
 	}, file)
 	if err != nil {

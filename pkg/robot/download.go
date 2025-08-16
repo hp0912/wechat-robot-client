@@ -106,8 +106,9 @@ type AppAttach struct {
 }
 
 type FileSecretXml struct {
+	XMLName     xml.Name  `xml:"appmsg"`
 	AppID       string    `xml:"appid,attr"`
-	SDKVer      string    `xml:"sdkver,attr"`
+	SDKVer      int       `xml:"sdkver,attr"`
 	Title       string    `xml:"title"`
 	Des         string    `xml:"des"`
 	Type        int       `xml:"type"`
@@ -130,6 +131,7 @@ type AppInfo struct {
 }
 
 type FileMessageXml struct {
+	XMLName      xml.Name      `xml:"msg"`
 	Appmsg       FileSecretXml `xml:"appmsg"`
 	FromUsername string        `xml:"fromusername"`
 	Scene        int           `xml:"scene"`

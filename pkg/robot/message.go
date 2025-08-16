@@ -466,8 +466,8 @@ type SendFileMessageRequest struct {
 	Filename    string `json:"Filename"`
 	FileMD5     string `json:"FileMD5"`
 	TotalLen    int64  `json:"TotalLen"`
-	StartPos    int    `json:"StartPos"`
-	TotalChunks int    `json:"TotalChunks"`
+	StartPos    int64  `json:"StartPos"`
+	TotalChunks int64  `json:"TotalChunks"`
 }
 
 type SendFileMessageResponse struct {

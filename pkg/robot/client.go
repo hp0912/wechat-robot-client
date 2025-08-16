@@ -379,10 +379,10 @@ func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader) (file
 	if err = writer.WriteField("TotalLen", strconv.FormatInt(req.TotalLen, 10)); err != nil {
 		return
 	}
-	if err = writer.WriteField("StartPos", strconv.Itoa(req.StartPos)); err != nil {
+	if err = writer.WriteField("StartPos", strconv.FormatInt(req.StartPos, 10)); err != nil {
 		return
 	}
-	if err = writer.WriteField("TotalChunks", strconv.Itoa(req.TotalChunks)); err != nil {
+	if err = writer.WriteField("TotalChunks", strconv.FormatInt(req.TotalChunks, 10)); err != nil {
 		return
 	}
 	if err = writer.Close(); err != nil {
@@ -390,7 +390,7 @@ func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader) (file
 	}
 	var robotRequest *http.Request
 	var robotResp *http.Response
-	robotRequest, err = http.NewRequest("POST", fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsSendFile), &requestBody)
+	robotRequest, err = http.NewRequest("POST", fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsUploadAppAttachStream), &requestBody)
 	if err != nil {
 		return
 	}

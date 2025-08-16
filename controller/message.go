@@ -6,6 +6,7 @@ import (
 	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
+	"wechat-robot-client/vars"
 
 	"github.com/gin-gonic/gin"
 )
@@ -205,7 +206,7 @@ func (m *Message) SendFileMessage(c *gin.Context) {
 	}
 	defer file.Close()
 
-	if fileHeader.Size > 50000 {
+	if fileHeader.Size > vars.UploadFileChunkSize {
 		resp.ToErrorResponse(errors.New("单个分片大小不能超过50KB"))
 		return
 	}
