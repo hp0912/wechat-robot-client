@@ -1,12 +1,15 @@
 package robot
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -348,22 +351,57 @@ func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage MsgSendVoic
 
 // ToolsSendFile 上传文件
 func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader) (fileMessage *SendFileMessageResponse, err error) {
-	if err = c.limiter.Wait(context.Background()); err != nil {
-		return
-	}
-	var result ClientResponse[SendFileMessageResponse]
-	_, err = c.client.R().
-		SetResult(&result).
-		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsSendFile))
-	if err = result.CheckError(err); err != nil {
-		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
-		if err2 != nil {
-			err = err2
+	if req.StartPos == 0 {
+		if err = c.limiter.Wait(context.Background()); err != nil {
 			return
 		}
+	}
+	// var result ClientResponse[SendFileMessageResponse]
+	var requestBody bytes.Buffer
+	var part io.Writer
+	writer := multipart.NewWriter(&requestBody)
+
+	// 分片文件字段名与前端一致: chunk
+	part, err = writer.CreateFormFile("chunk", req.Filename)
+	if err != nil {
 		return
 	}
-	fileMessage = &result.Data
+	if _, err = io.Copy(part, file); err != nil {
+		return
+	}
+	// 追加其他字段
+	if err = writer.WriteField("Wxid", req.Wxid); err != nil {
+		return
+	}
+	if err = writer.WriteField("FileMD5", req.FileMD5); err != nil {
+		return
+	}
+	if err = writer.WriteField("TotalLen", strconv.FormatInt(req.TotalLen, 10)); err != nil {
+		return
+	}
+	if err = writer.WriteField("StartPos", strconv.Itoa(req.StartPos)); err != nil {
+		return
+	}
+	if err = writer.WriteField("TotalChunks", strconv.Itoa(req.TotalChunks)); err != nil {
+		return
+	}
+	if err = writer.Close(); err != nil {
+		return
+	}
+	var robotRequest *http.Request
+	var robotResp *http.Response
+	robotRequest, err = http.NewRequest("POST", fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsSendFile), &requestBody)
+	if err != nil {
+		return
+	}
+	robotRequest.Header.Set("Content-Type", writer.FormDataContentType())
+	robotClient := &http.Client{}
+	robotResp, err = robotClient.Do(robotRequest)
+	if err != nil {
+		return
+	}
+	defer robotResp.Body.Close()
+
 	return
 }
 
