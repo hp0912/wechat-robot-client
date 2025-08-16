@@ -6,11 +6,19 @@ services:
     networks:
       - wechat-robot
     environment:
-      REDIS_PASSWORD: r12345678 # 自行修改
-    command: [ "redis-server", "/etc/redis/redis.conf", "--requirepass", "r12345678" ] # 自行修改
+      TZ: Asia/Shanghai
+    command: [ "sh", "-c", "redis-server /etc/redis/redis.conf --requirepass \"$$(cat /run/secrets/redis_password)\"" ]
     volumes:
       - ./wechat_admin_redis_data:/data
       - ./redis.conf:/etc/redis/redis.conf
+    secrets:
+      - redis_password # 密码在 .deploy/local/secrets/redis_password.txt 文件，自行修改
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$(cat /run/secrets/redis_password) ping | grep PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   wechat-admin-mysql:
     image: "${REGISTRY:-docker.io}/mysql:8.2.0"
@@ -23,10 +31,20 @@ services:
       - ./my.cnf:/etc/my.cnf
     environment:
       TZ: Asia/Shanghai # 设置时区
-      MYSQL_ROOT_PASSWORD: 'mroot12345678' # 设置 root 用户的密码 # 自行修改
+      # 使用 *_FILE 方式从 docker secrets 读取敏感信息
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password # root 密码
       MYSQL_USER: wechat # 创建专用用户
-      MYSQL_PASSWORD: 'mwechat12345678' # 设置专用用户密码 # 自行修改
-      MYSQL_DATABASE: robot_admin # 自动创建数据库
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_user_password
+      MYSQL_DATABASE: robot_admin # 数据库名称
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$(cat /run/secrets/mysql_root_password) | grep 'mysqld is alive'"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+    secrets:
+      - mysql_root_password
+      - mysql_user_password
 
   wechat-server:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-server:latest
@@ -38,6 +56,8 @@ services:
       - wechat-robot
     volumes:
       - ./wechat-server/data:/data
+    environment:
+      TZ: Asia/Shanghai
 
   word-cloud-server:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/word-cloud-server:latest
@@ -52,6 +72,12 @@ services:
     restart: always
     networks:
       - wechat-robot
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'GET / HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' | nc -w2 127.0.0.1 9000 | grep -i '<html' >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   wechat-robot-admin-backend:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-backend:latest
@@ -63,6 +89,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       GIN_MODE: release
+      TZ: Asia/Shanghai
       DOCKER_NETWORK: wechat-robot
       SESSION_SECRET: sessionid_123456 # 可自行修改 随便设置个uuid即可
       OPENAI_API_KEY: sk-123456 # 自行修改
@@ -75,14 +102,21 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: mroot12345678
       MYSQL_DB: robot_admin
-      MYSQL_SCHEMA: public
       REDIS_HOST: wechat-admin-redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: r12345678
       THIRD_PARTY_API_KEY: t123456 # 自行修改 AI语音合成的 key
     depends_on:
-      - wechat-admin-redis
-      - wechat-admin-mysql
+      wechat-admin-redis:
+        condition: service_healthy
+      wechat-admin-mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'GET /api/v1/probe HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' | nc -w2 127.0.0.1 9000 | grep 'success' >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   wechat-nginx:
     image: "${REGISTRY:-docker.io}/nginx:latest"
@@ -95,9 +129,19 @@ services:
     networks:
       - wechat-robot
     depends_on:
-      - wechat-robot-admin-frontend
-      - wechat-robot-admin-backend
+      wechat-robot-admin-frontend:
+        condition: service_healthy
+      wechat-robot-admin-backend:
+        condition: service_healthy
 
 networks:
   wechat-robot:
     external: true
+
+secrets:
+  redis_password:
+    file: ./secrets/redis_password.txt
+  mysql_root_password:
+    file: ./secrets/mysql_root_password.txt
+  mysql_user_password:
+    file: ./secrets/mysql_user_password.txt

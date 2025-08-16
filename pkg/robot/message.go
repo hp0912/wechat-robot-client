@@ -333,6 +333,7 @@ type SendAppResponse struct {
 	CreateTime   int64  `json:"createTime"`
 	NewMsgId     int64  `json:"newMsgId"`
 	MsgSource    string `json:"msgSource"`
+	Content      string `json:"content"`
 }
 
 type SongInfo struct {
@@ -457,4 +458,27 @@ type SendCDNVideoResponse struct {
 	MsgSource     string `json:"msgSource"`
 	ActionFlag    int    `json:"actionFlag"`
 	ThumbStartPos int64  `json:"thumbStartPos"`
+}
+
+type SendFileMessageRequest struct {
+	Wxid            string `json:"Wxid"`
+	ToWxid          string `json:"ToWxid"`
+	ClientAppDataId string `json:"ClientAppDataId"`
+	Filename        string `json:"Filename"`
+	FileMD5         string `json:"FileMD5"`
+	TotalLen        int64  `json:"TotalLen"`
+	StartPos        int64  `json:"StartPos"`
+	TotalChunks     int64  `json:"TotalChunks"`
+}
+
+type SendFileMessageResponse struct {
+	BaseResponse    *BaseResponse `json:"BaseResponse,omitempty"`
+	AppId           *string       `json:"appId,omitempty"`
+	MediaId         *string       `json:"mediaId,omitempty"`
+	ClientAppDataId *string       `json:"clientAppDataId,omitempty"`
+	UserName        *string       `json:"userName,omitempty"`
+	TotalLen        *uint32       `json:"totalLen,omitempty"`
+	StartPos        *uint32       `json:"startPos,omitempty"`
+	DataLen         *uint32       `json:"dataLen,omitempty"`
+	CreateTime      *uint64       `json:"createTime,omitempty"`
 }

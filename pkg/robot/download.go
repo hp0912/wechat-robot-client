@@ -99,21 +99,25 @@ type AppAttach struct {
 	CDNAttachURL    string `xml:"cdnattachurl"`
 	CDNThumbAESKey  string `xml:"cdnthumbaeskey"`
 	AESKey          string `xml:"aeskey"`
-	EncryVer        string `xml:"encryver"`
+	EncryVer        int    `xml:"encryver"`
 	FileKey         string `xml:"filekey"`
 	OverwriteMsgID  string `xml:"overwrite_newmsgid"`
 	FileUploadToken string `xml:"fileuploadtoken"`
 }
 
 type FileSecretXml struct {
-	AppID      string    `xml:"appid,attr"`
-	SDKVer     string    `xml:"sdkver,attr"`
-	Title      string    `xml:"title"`
-	Des        string    `xml:"des"`
-	Type       int       `xml:"type"`
-	Attach     AppAttach `xml:"appattach"`
-	MD5        string    `xml:"md5"`
-	RecordItem string    `xml:"recorditem"`
+	XMLName     xml.Name  `xml:"appmsg"`
+	AppID       string    `xml:"appid,attr"`
+	SDKVer      int       `xml:"sdkver,attr"`
+	Title       string    `xml:"title"`
+	Des         string    `xml:"des"`
+	Type        int       `xml:"type"`
+	ShowType    int       `xml:"showtype"`
+	SoundType   int       `xml:"soundtype"`
+	ContentAttr int       `xml:"contentattr"`
+	Attach      AppAttach `xml:"appattach"`
+	MD5         string    `xml:"md5"`
+	RecordItem  string    `xml:"recorditem"`
 }
 
 type AppInfo struct {
@@ -127,6 +131,7 @@ type AppInfo struct {
 }
 
 type FileMessageXml struct {
+	XMLName      xml.Name      `xml:"msg"`
 	Appmsg       FileSecretXml `xml:"appmsg"`
 	FromUsername string        `xml:"fromusername"`
 	Scene        int           `xml:"scene"`

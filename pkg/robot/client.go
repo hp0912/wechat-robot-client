@@ -1,11 +1,15 @@
 package robot
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -342,6 +346,92 @@ func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage MsgSendVoic
 		return
 	}
 	voiceMessage = result.Data
+	return
+}
+
+// ToolsSendFile 上传文件
+func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) (fileMessage *SendFileMessageResponse, err error) {
+	if req.StartPos == 0 {
+		if err = c.limiter.Wait(context.Background()); err != nil {
+			return
+		}
+	}
+
+	var requestBody bytes.Buffer
+	var part io.Writer
+	writer := multipart.NewWriter(&requestBody)
+
+	// 分片文件字段名与前端一致: chunk
+	part, err = writer.CreateFormFile("chunk", fileHeader.Filename)
+	if err != nil {
+		return
+	}
+	if _, err = io.Copy(part, file); err != nil {
+		return
+	}
+	// 追加其他字段
+	if err = writer.WriteField("Wxid", req.Wxid); err != nil {
+		return
+	}
+	if err = writer.WriteField("ClientAppDataId", req.ClientAppDataId); err != nil {
+		return
+	}
+	if err = writer.WriteField("FileMD5", req.FileMD5); err != nil {
+		return
+	}
+	if err = writer.WriteField("TotalLen", strconv.FormatInt(req.TotalLen, 10)); err != nil {
+		return
+	}
+	if err = writer.WriteField("StartPos", strconv.FormatInt(req.StartPos, 10)); err != nil {
+		return
+	}
+	if err = writer.WriteField("TotalChunks", strconv.FormatInt(req.TotalChunks, 10)); err != nil {
+		return
+	}
+	if err = writer.Close(); err != nil {
+		return
+	}
+	var robotRequest *http.Request
+	var robotResp *http.Response
+	robotRequest, err = http.NewRequest("POST", fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsUploadAppAttachStream), &requestBody)
+	if err != nil {
+		return
+	}
+	robotRequest.Header.Set("Content-Type", writer.FormDataContentType())
+	robotClient := &http.Client{}
+	robotResp, err = robotClient.Do(robotRequest)
+	if err != nil {
+		return
+	}
+	defer robotResp.Body.Close()
+
+	if robotResp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("上传文件请求失败，状态码: %d", robotResp.StatusCode)
+		return
+	}
+
+	var respBody []byte
+	respBody, err = io.ReadAll(robotResp.Body)
+	if err != nil {
+		return
+	}
+
+	var result ClientResponse[SendFileMessageResponse]
+	if err = json.Unmarshal(respBody, &result); err != nil {
+		return
+	}
+
+	if err = result.CheckError(nil); err != nil {
+		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
+		if err2 != nil {
+			err = err2
+			return
+		}
+		return
+	}
+
+	fileMessage = &result.Data
+
 	return
 }
 
