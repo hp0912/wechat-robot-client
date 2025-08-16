@@ -735,7 +735,72 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 	return
 }
 
-func (r *Robot) SendMusicMessage(toWxID string, songInfo SongInfo) (appMessage SendAppResponse, xmlStr string, err error) {
+func (r *Robot) MsgSendFile(req SendFileMessageRequest, file io.Reader) (*SendAppResponse, error) {
+	// 1. 上传文件
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("读取文件内容失败: %w", err)
+	}
+	fileData := base64.StdEncoding.EncodeToString(fileBytes)
+	req.Wxid = r.WxID
+	req.FileData = fileData
+	resp, err := r.Client.MsgSendFile(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, nil
+	}
+	if resp.MediaId == nil {
+		return nil, fmt.Errorf("发送文件消息失败")
+	}
+	// 2. 发送文件消息
+	var fileXml FileMessageXml
+	fileXml.Appmsg.AppID = ""
+	fileXml.Appmsg.SDKVer = "0"
+	fileXml.Appmsg.Title = req.Filename
+	fileXml.Appmsg.Type = 6
+	fileXml.Appmsg.ShowType = 0
+	fileXml.Appmsg.SoundType = 0
+	fileXml.Appmsg.ContentAttr = 0
+	fileXml.Appmsg.MD5 = req.FileMD5
+	fileXml.FromUsername = r.WxID
+	if resp.AppId != nil {
+		fileXml.Appmsg.AppID = *resp.AppId
+	}
+
+	appAttach := AppAttach{}
+	if resp.MediaId != nil {
+		appAttach.AttachID = *resp.MediaId
+	}
+	appAttach.FileExt = strings.TrimPrefix(filepath.Ext(req.Filename), ".")
+	appAttach.TotalLen = req.TotalLen
+	fileXml.Appmsg.Attach = appAttach
+
+	appInfo := AppInfo{}
+	appInfo.Version = "1"
+	fileXml.AppInfo = appInfo
+
+	xmlBytes, err := xml.Marshal(fileXml)
+	if err != nil {
+		return nil, err
+	}
+	xmlStr := string(xmlBytes)
+
+	appMessage, err := r.Client.SendApp(SendAppRequest{
+		Wxid:   r.WxID,
+		ToWxid: req.ToWxid,
+		Xml:    xmlStr,
+		Type:   6,
+	})
+	if err != nil {
+		return nil, err
+	}
+	appMessage.Content = xmlStr
+	return &appMessage, nil
+}
+
+func (r *Robot) SendMusicMessage(toWxID string, songInfo SongInfo) (appMessage SendAppResponse, err error) {
 	musicXmlPath := filepath.Join("xml", "music.xml")
 	xmlTemplate, err := XmlFolder.ReadFile(musicXmlPath)
 	if err != nil {
@@ -758,7 +823,7 @@ func (r *Robot) SendMusicMessage(toWxID string, songInfo SongInfo) (appMessage S
 	}
 
 	// 发送音乐分享消息
-	xmlStr = renderedXml.String()
+	xmlStr := renderedXml.String()
 	appMessage, err = r.Client.SendApp(SendAppRequest{
 		Wxid:   r.WxID,
 		ToWxid: toWxID,
@@ -769,7 +834,7 @@ func (r *Robot) SendMusicMessage(toWxID string, songInfo SongInfo) (appMessage S
 		err = fmt.Errorf("发送音乐消息失败: %w", err)
 		return
 	}
-
+	appMessage.Content = xmlStr
 	return
 }
 

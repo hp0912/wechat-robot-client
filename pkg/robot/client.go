@@ -345,6 +345,35 @@ func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage MsgSendVoic
 	return
 }
 
+// MsgSendFile 上传文件，非流式
+func (c *Client) MsgSendFile(req SendFileMessageRequest) (fileMessage *SendFileMessageResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[SendFileMessageResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsUploadAppAttachApi))
+	if err = result.CheckError(err); err != nil {
+		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
+		if err2 != nil {
+			err = err2
+			return
+		}
+		return
+	}
+	fileMessage = &result.Data
+	return
+}
+
+// MsgSendFileStream 上传文件
+func (c *Client) MsgSendFileStream(req SendFileMessageRequest) (fileMessage *SendFileMessageResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	return
+}
+
 // SendApp 发送App消息
 func (c *Client) SendApp(req SendAppRequest) (appMessage SendAppResponse, err error) {
 	if err = c.limiter.Wait(context.Background()); err != nil {

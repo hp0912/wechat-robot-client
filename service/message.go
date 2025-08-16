@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"mime/multipart"
 	"os"
 	"regexp"
 	"slices"
@@ -811,7 +810,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 		songInfo.Lyric = *result.Lyric
 	}
 
-	message, xmlStr, err := vars.RobotRuntime.SendMusicMessage(toWxID, songInfo)
+	message, err := vars.RobotRuntime.SendMusicMessage(toWxID, songInfo)
 	if err != nil {
 		return err
 	}
@@ -820,7 +819,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 		MsgId:              message.NewMsgId,
 		ClientMsgId:        message.MsgId,
 		Type:               model.MsgTypeApp,
-		Content:            xmlStr,
+		Content:            message.Content,
 		DisplayFullContent: "",
 		MessageSource:      message.MsgSource,
 		FromWxID:           toWxID,
@@ -840,8 +839,45 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 	return nil
 }
 
-func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) error {
-	// 处理文件分片上传
+func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMessageRequest, file io.Reader) error {
+	message, err := vars.RobotRuntime.MsgSendFile(robot.SendFileMessageRequest{
+		ToWxid:      req.ToWxid,
+		Filename:    req.Filename,
+		FileMD5:     req.FileHash,
+		TotalLen:    req.FileSize,
+		StartPos:    req.ChunkIndex,
+		TotalChunks: req.TotalChunks,
+	}, file)
+	if err != nil {
+		return err
+	}
+	// 文件还没上传完
+	if message == nil {
+		return nil
+	}
+
+	clientMsgId, _ := strconv.ParseInt(message.ClientMsgId, 10, 64)
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        clientMsgId,
+		Type:               model.MsgTypeApp,
+		Content:            message.Content,
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
+		FromWxID:           req.ToWxid,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsChatRoom:         strings.HasSuffix(req.ToWxid, "@chatroom"),
+		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	err = s.msgRespo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
 	return nil
 }
 
