@@ -745,8 +745,8 @@ func (r *Robot) MsgSendFile(req SendFileMessageRequest, file io.Reader) (*SendAp
 	if resp == nil {
 		return nil, nil
 	}
-	if resp.MediaId == nil {
-		return nil, fmt.Errorf("发送文件消息失败")
+	if resp.CreateTime == nil {
+		return nil, nil
 	}
 	// 2. 发送文件消息
 	var fileXml FileMessageXml

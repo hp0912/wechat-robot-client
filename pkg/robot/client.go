@@ -356,7 +356,7 @@ func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader) (file
 			return
 		}
 	}
-	// var result ClientResponse[SendFileMessageResponse]
+
 	var requestBody bytes.Buffer
 	var part io.Writer
 	writer := multipart.NewWriter(&requestBody)
@@ -401,6 +401,33 @@ func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader) (file
 		return
 	}
 	defer robotResp.Body.Close()
+
+	if robotResp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("上传文件请求失败，状态码: %d", robotResp.StatusCode)
+		return
+	}
+
+	var respBody []byte
+	respBody, err = io.ReadAll(robotResp.Body)
+	if err != nil {
+		return
+	}
+
+	var result ClientResponse[SendFileMessageResponse]
+	if err = json.Unmarshal(respBody, &result); err != nil {
+		return
+	}
+
+	if err = result.CheckError(nil); err != nil {
+		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
+		if err2 != nil {
+			err = err2
+			return
+		}
+		return
+	}
+
+	fileMessage = &result.Data
 
 	return
 }
