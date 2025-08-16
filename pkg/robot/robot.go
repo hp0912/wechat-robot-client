@@ -785,7 +785,9 @@ func (r *Robot) MsgSendFile(req SendFileMessageRequest, file io.Reader) (*SendAp
 	if err != nil {
 		return nil, err
 	}
-	appMessage.Content = xmlStr
+
+	messageContentBytes, _ := xml.Marshal(fileXml)
+	appMessage.Content = string(messageContentBytes)
 	return &appMessage, nil
 }
 

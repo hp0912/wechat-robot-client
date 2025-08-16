@@ -373,6 +373,9 @@ func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader) (file
 	if err = writer.WriteField("Wxid", req.Wxid); err != nil {
 		return
 	}
+	if err = writer.WriteField("ClientAppDataId", req.ClientAppDataId); err != nil {
+		return
+	}
 	if err = writer.WriteField("FileMD5", req.FileMD5); err != nil {
 		return
 	}

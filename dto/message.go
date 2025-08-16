@@ -26,10 +26,11 @@ type TextMessageItem struct {
 }
 
 type SendFileMessageRequest struct {
-	ToWxid      string `form:"to_wxid" json:"to_wxid" binding:"required"`
-	Filename    string `form:"filename" json:"filename" binding:"required"`
-	FileHash    string `form:"file_hash" json:"file_hash" binding:"required"`
-	FileSize    int64  `form:"file_size" json:"file_size" binding:"required"`
-	ChunkIndex  int64  `form:"chunk_index" json:"chunk_index"`
-	TotalChunks int64  `form:"total_chunks" json:"total_chunks" binding:"required"`
+	ToWxid          string `form:"to_wxid" json:"to_wxid" binding:"required"`
+	ClientAppDataId string `form:"client_app_data_id" json:"client_app_data_id" binding:"required"`
+	Filename        string `form:"filename" json:"filename" binding:"required"`
+	FileHash        string `form:"file_hash" json:"file_hash" binding:"required"`
+	FileSize        int64  `form:"file_size" json:"file_size" binding:"required"`
+	ChunkIndex      int64  `form:"chunk_index" json:"chunk_index"`
+	TotalChunks     int64  `form:"total_chunks" json:"total_chunks" binding:"required"`
 }

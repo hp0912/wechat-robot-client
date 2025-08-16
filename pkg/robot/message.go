@@ -461,13 +461,14 @@ type SendCDNVideoResponse struct {
 }
 
 type SendFileMessageRequest struct {
-	Wxid        string `json:"Wxid"`
-	ToWxid      string `json:"ToWxid"`
-	Filename    string `json:"Filename"`
-	FileMD5     string `json:"FileMD5"`
-	TotalLen    int64  `json:"TotalLen"`
-	StartPos    int64  `json:"StartPos"`
-	TotalChunks int64  `json:"TotalChunks"`
+	Wxid            string `json:"Wxid"`
+	ToWxid          string `json:"ToWxid"`
+	ClientAppDataId string `json:"ClientAppDataId"`
+	Filename        string `json:"Filename"`
+	FileMD5         string `json:"FileMD5"`
+	TotalLen        int64  `json:"TotalLen"`
+	StartPos        int64  `json:"StartPos"`
+	TotalChunks     int64  `json:"TotalChunks"`
 }
 
 type SendFileMessageResponse struct {

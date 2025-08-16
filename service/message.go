@@ -841,12 +841,13 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 
 func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMessageRequest, file io.Reader) error {
 	message, err := vars.RobotRuntime.MsgSendFile(robot.SendFileMessageRequest{
-		ToWxid:      req.ToWxid,
-		Filename:    req.Filename,
-		FileMD5:     req.FileHash,
-		TotalLen:    req.FileSize,
-		StartPos:    req.ChunkIndex * vars.UploadFileChunkSize,
-		TotalChunks: req.TotalChunks,
+		ToWxid:          req.ToWxid,
+		ClientAppDataId: req.ClientAppDataId,
+		Filename:        req.Filename,
+		FileMD5:         req.FileHash,
+		TotalLen:        req.FileSize,
+		StartPos:        req.ChunkIndex * vars.UploadFileChunkSize,
+		TotalChunks:     req.TotalChunks,
 	}, file)
 	if err != nil {
 		return err
@@ -861,6 +862,7 @@ func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMe
 		MsgId:              message.NewMsgId,
 		ClientMsgId:        clientMsgId,
 		Type:               model.MsgTypeApp,
+		AppMsgType:         model.AppMsgTypeAttach,
 		Content:            message.Content,
 		DisplayFullContent: "",
 		MessageSource:      message.MsgSource,
