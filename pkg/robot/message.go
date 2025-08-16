@@ -468,7 +468,6 @@ type SendFileMessageRequest struct {
 	TotalLen    int64  `json:"TotalLen"`
 	StartPos    int    `json:"StartPos"`
 	TotalChunks int    `json:"TotalChunks"`
-	FileData    string `json:"fileData"` // Base64 encoded file data，这个字段用于非流式上传
 }
 
 type SendFileMessageResponse struct {

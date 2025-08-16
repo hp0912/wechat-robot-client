@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -345,15 +346,15 @@ func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage MsgSendVoic
 	return
 }
 
-// MsgSendFile 上传文件，非流式
-func (c *Client) MsgSendFile(req SendFileMessageRequest) (fileMessage *SendFileMessageResponse, err error) {
+// ToolsSendFile 上传文件
+func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader) (fileMessage *SendFileMessageResponse, err error) {
 	if err = c.limiter.Wait(context.Background()); err != nil {
 		return
 	}
 	var result ClientResponse[SendFileMessageResponse]
 	_, err = c.client.R().
 		SetResult(&result).
-		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsUploadAppAttachApi))
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), ToolsSendFile))
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
@@ -363,14 +364,6 @@ func (c *Client) MsgSendFile(req SendFileMessageRequest) (fileMessage *SendFileM
 		return
 	}
 	fileMessage = &result.Data
-	return
-}
-
-// MsgSendFileStream 上传文件
-func (c *Client) MsgSendFileStream(req SendFileMessageRequest) (fileMessage *SendFileMessageResponse, err error) {
-	if err = c.limiter.Wait(context.Background()); err != nil {
-		return
-	}
 	return
 }
 

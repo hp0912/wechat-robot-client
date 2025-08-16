@@ -61,11 +61,11 @@ const (
 	FriendCircleUpload                = "/FriendCircle/Upload"
 	FriendCircleCdnSnsUploadVideo     = "/FriendCircle/CdnSnsUploadVideo"
 
-	ToolsCdnDownloadImage   = "/Tools/CdnDownloadImage"
-	ToolsDownloadVideo      = "/Tools/DownloadVideo"
-	ToolsDownloadVoice      = "/Tools/DownloadVoice"
-	ToolsDownloadFile       = "/Tools/DownloadFile"
-	ToolsUploadAppAttachApi = "/Tools//UploadAppAttachApi"
+	ToolsCdnDownloadImage = "/Tools/CdnDownloadImage"
+	ToolsDownloadVideo    = "/Tools/DownloadVideo"
+	ToolsDownloadVoice    = "/Tools/DownloadVoice"
+	ToolsDownloadFile     = "/Tools/DownloadFile"
+	ToolsSendFile         = "/Tools//SendFile"
 
 	WxappQrcodeAuthLogin = "/Wxapp/QrcodeAuthLogin"
 )

@@ -737,14 +737,8 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 
 func (r *Robot) MsgSendFile(req SendFileMessageRequest, file io.Reader) (*SendAppResponse, error) {
 	// 1. 上传文件
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("读取文件内容失败: %w", err)
-	}
-	fileData := base64.StdEncoding.EncodeToString(fileBytes)
 	req.Wxid = r.WxID
-	req.FileData = fileData
-	resp, err := r.Client.MsgSendFile(req)
+	resp, err := r.Client.ToolsSendFile(req, file)
 	if err != nil {
 		return nil, err
 	}
