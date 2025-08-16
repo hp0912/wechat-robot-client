@@ -350,7 +350,7 @@ func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage MsgSendVoic
 }
 
 // ToolsSendFile 上传文件
-func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader) (fileMessage *SendFileMessageResponse, err error) {
+func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) (fileMessage *SendFileMessageResponse, err error) {
 	if req.StartPos == 0 {
 		if err = c.limiter.Wait(context.Background()); err != nil {
 			return
@@ -362,7 +362,7 @@ func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader) (file
 	writer := multipart.NewWriter(&requestBody)
 
 	// 分片文件字段名与前端一致: chunk
-	part, err = writer.CreateFormFile("chunk", req.Filename)
+	part, err = writer.CreateFormFile("chunk", fileHeader.Filename)
 	if err != nil {
 		return
 	}

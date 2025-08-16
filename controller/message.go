@@ -227,7 +227,7 @@ func (m *Message) SendFileMessage(c *gin.Context) {
 		return
 	}
 
-	if err = service.NewMessageService(c).SendFileMessage(c, req, file); err != nil {
+	if err = service.NewMessageService(c).SendFileMessage(c, req, file, fileHeader); err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}

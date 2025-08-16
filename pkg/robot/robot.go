@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"mime/multipart"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -735,10 +736,10 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 	return
 }
 
-func (r *Robot) MsgSendFile(req SendFileMessageRequest, file io.Reader) (*SendAppResponse, error) {
+func (r *Robot) MsgSendFile(req SendFileMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) (*SendAppResponse, error) {
 	// 1. 上传文件
 	req.Wxid = r.WxID
-	resp, err := r.Client.ToolsSendFile(req, file)
+	resp, err := r.Client.ToolsSendFile(req, file, fileHeader)
 	if err != nil {
 		return nil, err
 	}

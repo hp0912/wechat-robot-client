@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"os"
 	"regexp"
 	"slices"
@@ -839,7 +840,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 	return nil
 }
 
-func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMessageRequest, file io.Reader) error {
+func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) error {
 	message, err := vars.RobotRuntime.MsgSendFile(robot.SendFileMessageRequest{
 		ToWxid:          req.ToWxid,
 		ClientAppDataId: req.ClientAppDataId,
@@ -848,7 +849,7 @@ func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMe
 		TotalLen:        req.FileSize,
 		StartPos:        req.ChunkIndex * vars.UploadFileChunkSize,
 		TotalChunks:     req.TotalChunks,
-	}, file)
+	}, file, fileHeader)
 	if err != nil {
 		return err
 	}
