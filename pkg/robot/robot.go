@@ -902,6 +902,10 @@ func (r *Robot) LoginYPayVerificationcode(req VerificationCodeRequest) error {
 	return r.Client.LoginYPayVerificationcode(req)
 }
 
+func (r *Robot) LoginNewDeviceVerify(ticket string) (SilderOCR, error) {
+	return r.Client.LoginNewDeviceVerify(ticket)
+}
+
 func (r *Robot) Logout() error {
 	if r.WxID == "" {
 		return errors.New("您还未登陆")

@@ -31,3 +31,7 @@ type PushPlusNotificationResponse struct {
 	Msg  string `json:"msg"`
 	Data string `json:"data"`
 }
+
+type NewDeviceVerifyRequest struct {
+	Ticket string `form:"ticket" json:"ticket" binding:"required"`
+}

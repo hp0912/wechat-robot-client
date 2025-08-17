@@ -67,3 +67,13 @@ type VerificationCodeRequest struct {
 	Code   string
 	Ticket string
 }
+
+type SilderOCR struct {
+	Flag    int    `json:"flag"`
+	Data    string `json:"data"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	URL     string `json:"url"`
+	Remark  string `json:"remark"`
+	Success bool   `json:"Success"`
+}

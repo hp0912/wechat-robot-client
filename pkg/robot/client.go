@@ -204,6 +204,22 @@ func (c *Client) LoginYPayVerificationcode(req VerificationCodeRequest) (err err
 	return
 }
 
+func (c *Client) LoginNewDeviceVerify(ticket string) (resp SilderOCR, err error) {
+	var result ClientResponse[SilderOCR]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(map[string]string{
+			"ticket": ticket,
+		}).
+		SetResult(&result).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginNewDeviceVerify))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
 func (c *Client) Logout(wxid string) (err error) {
 	var result ClientResponse[struct{}]
 	_, err = c.client.R().

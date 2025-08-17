@@ -211,6 +211,10 @@ func (s *LoginService) LoginYPayVerificationcode(req robot.VerificationCodeReque
 	return vars.RobotRuntime.LoginYPayVerificationcode(req)
 }
 
+func (s *LoginService) LoginNewDeviceVerify(ticket string) (resp robot.SilderOCR, err error) {
+	return vars.RobotRuntime.LoginNewDeviceVerify(ticket)
+}
+
 func (r *LoginService) Logout() (err error) {
 	err = r.Offline()
 	if err != nil {

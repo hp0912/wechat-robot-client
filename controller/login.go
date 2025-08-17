@@ -74,6 +74,21 @@ func (lg *Login) LoginYPayVerificationcode(c *gin.Context) {
 	resp.ToResponse(nil)
 }
 
+func (lg *Login) LoginNewDeviceVerify(c *gin.Context) {
+	var req dto.NewDeviceVerifyRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewLoginService(c).LoginNewDeviceVerify(req.Ticket)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
 func (lg *Login) Logout(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	err := service.NewLoginService(c).Logout()

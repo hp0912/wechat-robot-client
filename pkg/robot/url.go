@@ -12,6 +12,7 @@ const (
 	AutoHeartBeat             = "/Login/AutoHeartBeat"
 	CloseAutoHeartBeat        = "/Login/CloseAutoHeartBeat"
 	LoginHeartBeat            = "/Login/HeartBeat"
+	LoginNewDeviceVerify      = "/Login/NewDeviceVerify"
 	LoginLogout               = "/Login/LogOut"
 
 	UserGetContactProfile = "/User/GetContractProfile"
