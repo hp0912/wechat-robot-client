@@ -449,6 +449,15 @@ func (r *Robot) SendTextMessage(toWxID, content string, at ...string) (SendTextM
 	return textMessage, nil
 }
 
+func (r *Robot) MsgSendGroupMassMsgText(req MsgSendGroupMassMsgTextRequest) (MsgSendGroupMassMsgTextResponse, error) {
+	req.Wxid = r.WxID
+	resp, err := r.Client.MsgSendGroupMassMsgText(req)
+	if err != nil {
+		return MsgSendGroupMassMsgTextResponse{}, err
+	}
+	return resp, nil
+}
+
 func (r *Robot) MsgUploadImg(toWxID string, image []byte) (MsgUploadImgResponse, error) {
 	base64Str := base64.StdEncoding.EncodeToString(image)
 	imageMessage, err := r.Client.MsgUploadImg(r.WxID, toWxID, base64Str)

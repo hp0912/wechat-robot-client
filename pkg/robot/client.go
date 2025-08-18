@@ -311,6 +311,26 @@ func (c *Client) SendTextMessage(req SendTextMessageRequest) (newMessages SendTe
 	return
 }
 
+func (c *Client) MsgSendGroupMassMsgText(req MsgSendGroupMassMsgTextRequest) (newMessages MsgSendGroupMassMsgTextResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[MsgSendGroupMassMsgTextResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendGroupMassMsgText))
+	if err = result.CheckError(err); err != nil {
+		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
+		if err2 != nil {
+			err = err2
+			return
+		}
+		return
+	}
+	newMessages = result.Data
+	return
+}
+
 // MsgUploadImg 发送图片消息
 func (c *Client) MsgUploadImg(wxid, toWxid, base64 string) (imageMessage MsgUploadImgResponse, err error) {
 	if err = c.limiter.Wait(context.Background()); err != nil {

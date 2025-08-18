@@ -193,7 +193,14 @@ sudo service nginx restart
 ### 启动前端项目
 
 ```ini
-# 开发前准备，确保自己的Nodejs版本在18以及以上，全局安装了pnpm
+# 开发前准备，确保自己的Nodejs版本在18以及以上，pnpm版本需要限定在8.x，pnpm版本太高，pnpm-lock.yaml 文件会不兼容
+# Node.js 16.10 及以上自带了 corepack，它可以帮助你管理和切换 pnpm（以及 yarn）的版本
+# 启用 corepack（如果还没启用）
+corepack enable
+
+corepack prepare pnpm@8.15.9 --activate
+
+pnpm -v
 
 # clone 前端项目
 git clone git@github.com:hp0912/wechat-robot-admin-frontend.git

@@ -233,6 +233,12 @@ type SendTextMessageRequest struct {
 	At      string `json:"At"`
 }
 
+type MsgSendGroupMassMsgTextRequest struct {
+	Wxid    string
+	ToWxid  []string
+	Content string
+}
+
 type TextMessageResponse struct {
 	Ret         int              `json:"Ret"`
 	ToUsetName  SKBuiltinStringT `json:"ToUsetName"`
@@ -249,6 +255,13 @@ type SendTextMessageResponse struct {
 	List   []TextMessageResponse `json:"List"`
 	Count  int                   `json:"Count"`
 	NoKnow int                   `json:"NoKnow"`
+}
+
+type MsgSendGroupMassMsgTextResponse struct {
+	BaseResponse  *BaseResponse `json:"baseResponse,omitempty"`
+	DataStartPos  *uint32       `json:"dataStartPos,omitempty"`
+	ThumbStartPos *uint32       `json:"thumbStartPos,omitempty"`
+	MaxSupport    *uint32       `json:"maxSupport,omitempty"`
 }
 
 type MsgUploadImgRequest struct {
