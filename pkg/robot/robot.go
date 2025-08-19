@@ -74,9 +74,9 @@ func (r *Robot) IsLoggedIn() bool {
 	return err == nil
 }
 
-func (r *Robot) GetQrCode() (loginData LoginResponse, err error) {
+func (r *Robot) GetQrCode(loginType string) (loginData LoginResponse, err error) {
 	var resp GetQRCode
-	resp, err = r.Client.GetQrCode(r.DeviceID, r.DeviceName)
+	resp, err = r.Client.GetQrCode(loginType, r.DeviceID, r.DeviceName)
 	if err != nil {
 		return
 	}
@@ -97,7 +97,7 @@ func (r *Robot) GetCachedInfo() (LoginData, error) {
 	return r.Client.GetCachedInfo(r.WxID)
 }
 
-func (r *Robot) Login() (loginData LoginResponse, err error) {
+func (r *Robot) Login(loginType string) (loginData LoginResponse, err error) {
 	// 尝试唤醒登陆
 	var cachedInfo LoginData
 	cachedInfo, err = r.Client.GetCachedInfo(r.WxID)
@@ -112,12 +112,12 @@ func (r *Robot) Login() (loginData LoginResponse, err error) {
 		resp, err = r.Client.AwakenLogin(r.WxID)
 		if err != nil {
 			// 如果唤醒失败，尝试获取二维码
-			loginData, err = r.GetQrCode()
+			loginData, err = r.GetQrCode(loginType)
 			return
 		}
 		if resp.Uuid == "" {
 			// 如果唤醒失败，尝试获取二维码
-			loginData, err = r.GetQrCode()
+			loginData, err = r.GetQrCode(loginType)
 			return
 		}
 		// 唤醒登陆成功
@@ -126,7 +126,7 @@ func (r *Robot) Login() (loginData LoginResponse, err error) {
 		return
 	}
 	// 二维码登陆
-	loginData, err = r.GetQrCode()
+	loginData, err = r.GetQrCode(loginType)
 	return
 }
 

@@ -35,11 +35,11 @@ services:
       MYSQL_PASSWORD: mwechat12345678
       MYSQL_DATABASE: robot_admin # 数据库名称
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$${MYSQL_ROOT_PASSWORD} | grep 'mysqld is alive'"]
-      interval: 15s
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$${MYSQL_ROOT_PASSWORD} --silent || exit 1"]
+      interval: 10s
       timeout: 5s
-      retries: 6
-      start_period: 40s
+      retries: 12
+      start_period: 120s
 
   wechat-server:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-server:latest

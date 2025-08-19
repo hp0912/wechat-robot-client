@@ -28,8 +28,15 @@ func (lg *Login) IsLoggedIn(c *gin.Context) {
 }
 
 func (lg *Login) Login(c *gin.Context) {
+	var req struct {
+		LoginType string `json:"login_type"`
+	}
 	resp := appx.NewResponse(c)
-	data, err := service.NewLoginService(c).Login()
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewLoginService(c).Login(req.LoginType)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

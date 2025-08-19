@@ -150,14 +150,14 @@ func (c *Client) AwakenLogin(wxid string) (resp QrCode, err error) {
 	return
 }
 
-func (c *Client) GetQrCode(deviceId, deviceName string) (resp GetQRCode, err error) {
+func (c *Client) GetQrCode(loginType, deviceId, deviceName string) (resp GetQRCode, err error) {
 	var result ClientResponse[GetQRCode]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(LoginGetQRRequest{
 			DeviceID:   deviceId,
 			DeviceName: deviceName,
-			LoginType:  "",
+			LoginType:  loginType,
 		}).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginGetQR))

@@ -136,14 +136,14 @@ func (s *LoginService) HeartbeatStart() {
 	}
 }
 
-func (s *LoginService) Login() (loginData robot.LoginResponse, err error) {
+func (s *LoginService) Login(loginType string) (loginData robot.LoginResponse, err error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOnline {
 		err := s.Logout()
 		if err != nil {
 			log.Printf("登出失败: %v\n", err)
 		}
 	}
-	loginData, err = vars.RobotRuntime.Login()
+	loginData, err = vars.RobotRuntime.Login(loginType)
 	return
 }
 
