@@ -101,6 +101,9 @@ git clone git@github.com:hp0912/wechat-robot-client.git
 # 进入部署目录
 cd ./wechat-robot-client/.deploy/local
 
+# 先创建一个docker网络，如果以前没创建过的话
+docker network create wechat-robot
+
 # 通过docker-compose启动容器，下面两个命令，哪个能用就用哪个
 docker compose up -d
 docker-compose up -d
@@ -155,6 +158,9 @@ docker-compose up -d
 ```vim
 # 克隆本项目
 git clone git@github.com:hp0912/wechat-robot-client.git
+
+# 先创建一个docker网络，如果以前没创建过的话
+docker network create wechat-robot
 
 # 进入部署目录
 cd ./wechat-robot-client/.deploy/server
