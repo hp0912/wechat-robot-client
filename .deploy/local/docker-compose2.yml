@@ -8,12 +8,12 @@ services:
     environment:
       TZ: Asia/Shanghai
       REDIS_PASSWORD: r12345678 # 自行修改
-    command: [ "sh", "-c", "redis-server /etc/redis/redis.conf --requirepass \"$$(cat /run/secrets/redis_password)\"" ]
+    command: [ "sh", "-c", "redis-server /etc/redis/redis.conf --requirepass \"$${REDIS_PASSWORD}\"" ]
     volumes:
       - ./wechat_admin_redis_data:/data
       - ./redis.conf:/etc/redis/redis.conf
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a $$(cat /run/secrets/redis_password) ping | grep PONG"]
+      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD} ping | grep PONG"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -35,7 +35,7 @@ services:
       MYSQL_PASSWORD: mwechat12345678
       MYSQL_DATABASE: robot_admin # 数据库名称
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$(cat /run/secrets/mysql_root_password) | grep 'mysqld is alive'"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$${MYSQL_ROOT_PASSWORD} | grep 'mysqld is alive'"]
       interval: 15s
       timeout: 5s
       retries: 6
