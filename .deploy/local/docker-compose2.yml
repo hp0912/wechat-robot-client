@@ -131,4 +131,5 @@ services:
 
 networks:
   wechat-robot:
-    external: true
+    name: wechat-robot
+    driver: bridge

@@ -104,6 +104,15 @@ cd ./wechat-robot-client/.deploy/local
 # 通过docker-compose启动容器，下面两个命令，哪个能用就用哪个
 docker compose up -d
 docker-compose up -d
+
+# 部分容器服务使用了 docker secrets 存储密钥，如果你的mysql容器无法启动，可以尝试使用方案2
+# 先删除原先启动的容器
+docker compose down
+docker-compose down
+# 最好手动清理下容器自动创建出来的文件(夹)
+# 重新启动服务
+docker compose -f docker-compose2.yml up -d
+docker-compose -f docker-compose2.yml up -d
 ```
 
 #### 配置公众号认证服务
