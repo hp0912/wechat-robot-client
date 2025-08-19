@@ -204,6 +204,22 @@ func (c *Client) LoginYPayVerificationcode(req VerificationCodeRequest) (err err
 	return
 }
 
+func (c *Client) LoginNewDeviceVerify(ticket string) (resp SilderOCR, err error) {
+	var result ClientResponse[SilderOCR]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(map[string]string{
+			"ticket": ticket,
+		}).
+		SetResult(&result).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginNewDeviceVerify))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
 func (c *Client) Logout(wxid string) (err error) {
 	var result ClientResponse[struct{}]
 	_, err = c.client.R().
@@ -289,6 +305,26 @@ func (c *Client) SendTextMessage(req SendTextMessageRequest) (newMessages SendTe
 		SetResult(&result).
 		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendTxt))
 	if err = result.CheckError(err); err != nil {
+		return
+	}
+	newMessages = result.Data
+	return
+}
+
+func (c *Client) MsgSendGroupMassMsgText(req MsgSendGroupMassMsgTextRequest) (newMessages MsgSendGroupMassMsgTextResponse, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[MsgSendGroupMassMsgTextResponse]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendGroupMassMsgText))
+	if err = result.CheckError(err); err != nil {
+		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
+		if err2 != nil {
+			err = err2
+			return
+		}
 		return
 	}
 	newMessages = result.Data

@@ -676,6 +676,18 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 	return nil
 }
 
+// MsgSendGroupMassMsgText 文本消息群发接口
+func (s *MessageService) MsgSendGroupMassMsgText(toWxID []string, content string) error {
+	_, err := vars.RobotRuntime.MsgSendGroupMassMsgText(robot.MsgSendGroupMassMsgTextRequest{
+		ToWxid:  toWxID,
+		Content: content,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) (*model.Message, error) {
 	imageBytes, err := io.ReadAll(image)
 	if err != nil {
