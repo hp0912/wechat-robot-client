@@ -136,8 +136,7 @@ services:
 
 networks:
   wechat-robot:
-    name: wechat-robot
-    driver: bridge
+    external: true
 
 secrets:
   redis_password:
