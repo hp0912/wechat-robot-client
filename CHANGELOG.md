@@ -6,6 +6,10 @@
 
 - 支持多种登录方式(iPad、Windows微信、车载微信、Mac微信)
 
+### 修改
+
+- 优化创建机器人docker容器流程，如果docker镜像还没拉取过，会自动拉取 (wechat-robot-admin-backend)
+
 ## [1.1.11] - 2025/08/18
 
 ### 新特性

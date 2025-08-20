@@ -20,7 +20,7 @@ func main() {
 		log.Fatalf("加载配置失败: %v", err)
 	}
 	if err := startup.SetupVars(); err != nil {
-		log.Fatalf("MySQL连接失败: %v", err)
+		log.Fatalf("初始化失败: %v", err)
 	}
 	shutdownManager := shutdown.NewShutdownManager(30 * time.Second)
 	// 注册消息处理插件

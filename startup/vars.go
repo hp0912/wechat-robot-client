@@ -16,11 +16,11 @@ import (
 
 func SetupVars() error {
 	if err := InitMySQLClient(); err != nil {
-		return err
+		return fmt.Errorf("MySQL连接失败: %v", err)
 	}
 	log.Println("MySQL连接成功")
 	if err := InitRedisClient(); err != nil {
-		return err
+		return fmt.Errorf("redis连接失败: %v", err)
 	}
 	log.Println("Redis连接成功")
 	return nil
