@@ -15,7 +15,7 @@ const (
 	LoginNewDeviceVerify      = "/Login/NewDeviceVerify"
 	LoginGet62Data            = "/Login/Get62Data"
 	LoginGetA16Data           = "/Login/GetA16Data"
-	LoginA16Data1             = "/Login/A16Data1"
+	LoginA16Data1             = "/Login/A16Data"
 	LoginData62SMSApply       = "/Login/Data62SMSApply"
 	LoginData62SMSAgain       = "/Login/Data62SMSAgain"
 	LoginData62SMSVerify      = "/Login/Data62SMSVerify"
