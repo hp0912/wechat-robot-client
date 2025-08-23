@@ -36,9 +36,6 @@ func (lg *Login) Login(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	if req.LoginType == "0" {
-		req.LoginType = ""
-	}
 	data, err := service.NewLoginService(c).Login(req.LoginType)
 	if err != nil {
 		resp.ToErrorResponse(err)
@@ -92,6 +89,36 @@ func (lg *Login) LoginNewDeviceVerify(c *gin.Context) {
 		return
 	}
 	data, err := service.NewLoginService(c).LoginNewDeviceVerify(req.Ticket)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
+func (lg *Login) LoginData62Login(c *gin.Context) {
+	var req dto.LoginRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewLoginService(c).LoginData62Login(req.Username, req.Password)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
+func (lg *Login) LoginA16Data1(c *gin.Context) {
+	var req dto.LoginRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewLoginService(c).LoginA16Data1(req.Username, req.Password)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

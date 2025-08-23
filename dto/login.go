@@ -35,3 +35,8 @@ type PushPlusNotificationResponse struct {
 type NewDeviceVerifyRequest struct {
 	Ticket string `form:"ticket" json:"ticket" binding:"required"`
 }
+
+type LoginRequest struct {
+	Username string `form:"username" json:"username" binding:"required"`
+	Password string `form:"password" json:"password" binding:"required"`
+}

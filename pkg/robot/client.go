@@ -220,6 +220,72 @@ func (c *Client) LoginNewDeviceVerify(ticket string) (resp SilderOCR, err error)
 	return
 }
 
+func (c *Client) LoginGet62Data(wxid string) (resp string, err error) {
+	var result ClientResponse[string]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetQueryParam("wxid", wxid).
+		SetResult(&result).
+		Get(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginGet62Data))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+func (c *Client) LoginGetA16Data(wxid string) (resp string, err error) {
+	var result ClientResponse[string]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetQueryParam("wxid", wxid).
+		SetResult(&result).
+		Get(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginGetA16Data))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+func (c *Client) LoginData62Login(req Data62LoginRequest) (resp UnifyAuthResponse, err error) {
+	var result ClientResponse[UnifyAuthResponse]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		SetResult(&result).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginData62Login))
+	if err = result.CheckError(err); err != nil {
+		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
+		if err2 != nil {
+			err = err2
+			return
+		}
+		return
+	}
+	resp = result.Data
+	return
+}
+
+func (c *Client) LoginA16Data1(req A16LoginRequest) (resp UnifyAuthResponse, err error) {
+	var result ClientResponse[UnifyAuthResponse]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		SetResult(&result).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginA16Data1))
+	if err = result.CheckError(err); err != nil {
+		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
+		if err2 != nil {
+			err = err2
+			return
+		}
+		return
+	}
+	resp = result.Data
+	return
+}
+
 func (c *Client) Logout(wxid string) (err error) {
 	var result ClientResponse[struct{}]
 	_, err = c.client.R().
@@ -236,7 +302,7 @@ func (c *Client) AutoHeartBeat(wxid string) (err error) {
 	_, err = c.client.R().
 		SetResult(&result).
 		SetQueryParam("wxid", wxid).
-		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), AutoHeartBeat))
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginAutoHeartBeat))
 	err = result.CheckError(err)
 	return
 }
@@ -247,7 +313,7 @@ func (c *Client) CloseAutoHeartBeat(wxid string) (err error) {
 	_, err = c.client.R().
 		SetResult(&result).
 		SetQueryParam("wxid", wxid).
-		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), CloseAutoHeartBeat))
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginCloseAutoHeartBeat))
 	err = result.CheckError(err)
 	return
 }

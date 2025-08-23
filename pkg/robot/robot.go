@@ -915,6 +915,41 @@ func (r *Robot) LoginNewDeviceVerify(ticket string) (SilderOCR, error) {
 	return r.Client.LoginNewDeviceVerify(ticket)
 }
 
+func (r *Robot) LoginData62Login(username, password string) (UnifyAuthResponse, error) {
+	var data62 string
+	if r.WxID != "" {
+		var err error
+		data62, err = r.Client.LoginGet62Data(r.WxID)
+		if err != nil {
+			return UnifyAuthResponse{}, err
+		}
+	}
+	return r.Client.LoginData62Login(Data62LoginRequest{
+		UserName:   username,
+		Password:   password,
+		DeviceName: r.DeviceName,
+		Data62:     data62,
+	})
+}
+
+func (r *Robot) LoginA16Data1(username, password string) (UnifyAuthResponse, error) {
+	var a16 string
+	if r.WxID == "" {
+		return UnifyAuthResponse{}, errors.New("当前机器人还未成功登录过，不支持通过A16强行登录")
+	}
+	var err error
+	a16, err = r.Client.LoginGetA16Data(r.WxID)
+	if err != nil {
+		return UnifyAuthResponse{}, err
+	}
+	return r.Client.LoginA16Data1(A16LoginRequest{
+		UserName:   username,
+		Password:   password,
+		DeviceName: r.DeviceName,
+		A16:        a16,
+	})
+}
+
 func (r *Robot) Logout() error {
 	if r.WxID == "" {
 		return errors.New("您还未登陆")
