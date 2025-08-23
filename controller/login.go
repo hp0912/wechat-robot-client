@@ -111,6 +111,36 @@ func (lg *Login) LoginData62Login(c *gin.Context) {
 	resp.ToResponse(data)
 }
 
+func (lg *Login) LoginData62SMSAgain(c *gin.Context) {
+	var req robot.LoginData62SMSAgainRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewLoginService(c).LoginData62SMSAgain(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
+func (lg *Login) LoginData62SMSVerify(c *gin.Context) {
+	var req robot.LoginData62SMSVerifyRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewLoginService(c).LoginData62SMSVerify(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
 func (lg *Login) LoginA16Data1(c *gin.Context) {
 	var req dto.LoginRequest
 	resp := appx.NewResponse(c)

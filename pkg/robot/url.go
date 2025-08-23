@@ -16,7 +16,9 @@ const (
 	LoginGet62Data            = "/Login/Get62Data"
 	LoginGetA16Data           = "/Login/GetA16Data"
 	LoginA16Data1             = "/Login/A16Data1"
-	LoginData62Login          = "/Login/Data62Login"
+	LoginData62SMSApply       = "/Login/Data62SMSApply"
+	LoginData62SMSAgain       = "/Login/Data62SMSAgain"
+	LoginData62SMSVerify      = "/Login/Data62SMSVerify"
 	LoginLogout               = "/Login/LogOut"
 
 	UserGetContactProfile = "/User/GetContractProfile"

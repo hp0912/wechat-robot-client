@@ -91,6 +91,9 @@ type Data62LoginRequest struct {
 
 type UnifyAuthResponse struct {
 	BaseResponse      *BaseResponse `json:"baseResponse,omitempty"`
+	CheckUrl          string        `json:"checkUrl,omitempty"`
+	AgainUrl          string        `json:"AgainUrl,omitempty"`
+	Cookie            string        `json:"Cookie,omitempty"`
 	UnifyAuthSectFlag *uint32       `json:"unifyAuthSectFlag,omitempty"`
 	AuthSectResp      *AuthSectResp `json:"authSectResp,omitempty"`
 	// AcctSectResp      *AcctSectResp      `json:"acctSectResp,omitempty"`
@@ -145,4 +148,17 @@ type ShowStyleKey struct {
 type WxVerifyCodeRespInfo struct {
 	VerifySignature *string           `json:"verifySignature,omitempty"`
 	VerifyBuff      *SKBuiltinBufferT `json:"verifyBuff,omitempty"`
+}
+
+type LoginData62SMSAgainRequest struct {
+	Url    string
+	Cookie string
+	Proxy  ProxyInfo
+}
+
+type LoginData62SMSVerifyRequest struct {
+	Url    string
+	Cookie string
+	Sms    string
+	Proxy  ProxyInfo
 }

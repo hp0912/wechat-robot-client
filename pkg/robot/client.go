@@ -248,19 +248,49 @@ func (c *Client) LoginGetA16Data(wxid string) (resp string, err error) {
 	return
 }
 
-func (c *Client) LoginData62Login(req Data62LoginRequest) (resp UnifyAuthResponse, err error) {
+func (c *Client) LoginData62SMSApply(req Data62LoginRequest) (resp UnifyAuthResponse, err error) {
 	var result ClientResponse[UnifyAuthResponse]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(req).
 		SetResult(&result).
-		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginData62Login))
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginData62SMSApply))
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
 			err = err2
 			return
 		}
+		return
+	}
+	resp = result.Data
+	return
+}
+
+// LoginData62SMSAgain 重新发送验证码
+func (c *Client) LoginData62SMSAgain(req LoginData62SMSAgainRequest) (resp string, err error) {
+	var result ClientResponse[string]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		SetResult(&result).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginData62SMSAgain))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	resp = result.Data
+	return
+}
+
+// LoginData62SMSVerify 短信验证
+func (c *Client) LoginData62SMSVerify(req LoginData62SMSVerifyRequest) (resp string, err error) {
+	var result ClientResponse[string]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		SetResult(&result).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginData62SMSVerify))
+	if err = result.CheckError(err); err != nil {
 		return
 	}
 	resp = result.Data

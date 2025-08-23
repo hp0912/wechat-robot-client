@@ -924,12 +924,20 @@ func (r *Robot) LoginData62Login(username, password string) (UnifyAuthResponse, 
 			return UnifyAuthResponse{}, err
 		}
 	}
-	return r.Client.LoginData62Login(Data62LoginRequest{
+	return r.Client.LoginData62SMSApply(Data62LoginRequest{
 		UserName:   username,
 		Password:   password,
 		DeviceName: r.DeviceName,
 		Data62:     data62,
 	})
+}
+
+func (r *Robot) LoginData62SMSAgain(req LoginData62SMSAgainRequest) (string, error) {
+	return r.Client.LoginData62SMSAgain(req)
+}
+
+func (r *Robot) LoginData62SMSVerify(req LoginData62SMSVerifyRequest) (string, error) {
+	return r.Client.LoginData62SMSVerify(req)
 }
 
 func (r *Robot) LoginA16Data1(username, password string) (UnifyAuthResponse, error) {
