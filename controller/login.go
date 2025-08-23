@@ -29,7 +29,7 @@ func (lg *Login) IsLoggedIn(c *gin.Context) {
 
 func (lg *Login) Login(c *gin.Context) {
 	var req struct {
-		LoginType string `json:"login_type"`
+		LoginType string `form:"login_type" json:"login_type" binding:"required"`
 	}
 	resp := appx.NewResponse(c)
 	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
@@ -89,6 +89,66 @@ func (lg *Login) LoginNewDeviceVerify(c *gin.Context) {
 		return
 	}
 	data, err := service.NewLoginService(c).LoginNewDeviceVerify(req.Ticket)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
+func (lg *Login) LoginData62Login(c *gin.Context) {
+	var req dto.LoginRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewLoginService(c).LoginData62Login(req.Username, req.Password)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
+func (lg *Login) LoginData62SMSAgain(c *gin.Context) {
+	var req robot.LoginData62SMSAgainRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewLoginService(c).LoginData62SMSAgain(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
+func (lg *Login) LoginData62SMSVerify(c *gin.Context) {
+	var req robot.LoginData62SMSVerifyRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewLoginService(c).LoginData62SMSVerify(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
+func (lg *Login) LoginA16Data1(c *gin.Context) {
+	var req dto.LoginRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewLoginService(c).LoginA16Data1(req.Username, req.Password)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

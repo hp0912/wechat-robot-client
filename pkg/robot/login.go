@@ -20,11 +20,6 @@ type AwakenLoginRequest struct {
 	Proxy ProxyInfo `json:"Proxy"`
 }
 
-type UnifyAuthResponse struct {
-	BaseResponse      *BaseResponse `json:"baseResponse,omitempty"`
-	UnifyAuthSectFlag *uint32       `json:"unifyAuthSectFlag,omitempty"`
-}
-
 type QrCode struct {
 	BaseResponse              BaseResponse     `json:"BaseResponse"`
 	BlueToothBroadCastContent SKBuiltinBufferT `json:"BlueToothBroadCastContent"`
@@ -76,4 +71,94 @@ type SilderOCR struct {
 	URL     string `json:"url"`
 	Remark  string `json:"remark"`
 	Success bool   `json:"Success"`
+}
+
+type A16LoginRequest struct {
+	UserName   string
+	Password   string
+	A16        string
+	DeviceName string
+	Proxy      ProxyInfo
+}
+
+type Data62LoginRequest struct {
+	UserName   string
+	Password   string
+	Data62     string
+	DeviceName string
+	Proxy      ProxyInfo
+}
+
+type UnifyAuthResponse struct {
+	BaseResponse      *BaseResponse `json:"baseResponse,omitempty"`
+	CheckUrl          string        `json:"checkUrl,omitempty"`
+	AgainUrl          string        `json:"AgainUrl,omitempty"`
+	Cookie            string        `json:"Cookie,omitempty"`
+	UnifyAuthSectFlag *uint32       `json:"unifyAuthSectFlag,omitempty"`
+	AuthSectResp      *AuthSectResp `json:"authSectResp,omitempty"`
+	// AcctSectResp      *AcctSectResp      `json:"acctSectResp,omitempty"`
+	// NetworkSectResp   *NetworkSectResp   `json:"networkSectResp,omitempty"`
+	// AxAuthSecRespList *AxAuthSecRespList `json:"axAuthSecRespList,omitempty"`
+}
+
+type AuthSectResp struct {
+	Uin                  *uint32               `json:"uin,omitempty"`
+	SvrPubEcdhkey        *ECDHKey              `json:"svrPubEcdhkey,omitempty"`
+	SessionKey           *SKBuiltinBufferT     `json:"sessionKey,omitempty"`
+	AutoAuthKey          *SKBuiltinBufferT     `json:"autoAuthKey,omitempty"`
+	WtloginRspBuffFlag   *uint32               `json:"wtloginRspBuffFlag,omitempty"`
+	WtloginRspBuff       *SKBuiltinBufferT     `json:"wtloginRspBuff,omitempty"`
+	WtloginImgRespInfo   *WTLoginImgRespInfo   `json:"wtloginImgRespInfo,omitempty"`
+	WxVerifyCodeRespInfo *WxVerifyCodeRespInfo `json:"wxVerifyCodeRespInfo,omitempty"`
+	CliDbencryptKey      *SKBuiltinBufferT     `json:"cliDbencryptKey,omitempty"`
+	CliDbencryptInfo     *SKBuiltinBufferT     `json:"cliDbencryptInfo,omitempty"`
+	AuthKey              *string               `json:"authKey,omitempty"`
+	A2Key                *SKBuiltinBufferT     `json:"a2Key,omitempty"`
+	ApplyBetaUrl         *string               `json:"applyBetaUrl,omitempty"`
+	ShowStyle            *ShowStyleKey         `json:"showStyle,omitempty"`
+	AuthTicket           *string               `json:"authTicket,omitempty"`
+	NewVersion           *uint32               `json:"newVersion,omitempty"`
+	UpdateFlag           *uint32               `json:"updateFlag,omitempty"`
+	AuthResultFlag       *uint32               `json:"authResultFlag,omitempty"`
+	Fsurl                *string               `json:"fsurl,omitempty"`
+	MmtlsControlBitFlag  *uint32               `json:"mmtlsControlBitFlag,omitempty"`
+	ServerTime           *uint32               `json:"serverTime,omitempty"`
+	ClientSessionKey     *SKBuiltinBufferT     `json:"clientSessionKey,omitempty"`
+	ServerSessionKey     *SKBuiltinBufferT     `json:"serverSessionKey,omitempty"`
+	EcdhControlFlag      *uint32               `json:"ecdhControlFlag,omitempty"`
+}
+
+type ECDHKey struct {
+	Nid *int32            `json:"nid,omitempty"`
+	Key *SKBuiltinBufferT `json:"key,omitempty"`
+}
+
+type WTLoginImgRespInfo struct {
+	ImgEncryptKey *string           `json:"imgEncryptKey,omitempty"`
+	Ksid          *SKBuiltinBufferT `json:"ksid,omitempty"`
+	ImgSid        *string           `json:"imgSid,omitempty"`
+	ImgBuf        *SKBuiltinBufferT `json:"imgBuf,omitempty"`
+}
+
+type ShowStyleKey struct {
+	KeyCount *uint32 `json:"keyCount,omitempty"`
+	// Key      []string `json:"key,omitempty"`
+}
+
+type WxVerifyCodeRespInfo struct {
+	VerifySignature *string           `json:"verifySignature,omitempty"`
+	VerifyBuff      *SKBuiltinBufferT `json:"verifyBuff,omitempty"`
+}
+
+type LoginData62SMSAgainRequest struct {
+	Url    string
+	Cookie string
+	Proxy  ProxyInfo
+}
+
+type LoginData62SMSVerifyRequest struct {
+	Url    string
+	Cookie string
+	Sms    string
+	Proxy  ProxyInfo
 }

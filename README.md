@@ -74,6 +74,12 @@
 
 - 支持发送文件消息
 
+- 支持多种登录方式(iPad、Windows微信、车载微信、Mac微信)
+
+- 支持Data62登录
+
+- 支持A16登录
+
 ## 使用方式
 
 **自部署**
@@ -308,7 +314,7 @@ services:
 
 ## 官方交流群
 
-<img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20250816" alt="官方交流群" width="300">
+<img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20250823" alt="官方交流群" width="300">
 
 ## 效果展示
 

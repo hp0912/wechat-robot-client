@@ -37,11 +37,11 @@ services:
       MYSQL_PASSWORD_FILE: /run/secrets/mysql_user_password
       MYSQL_DATABASE: robot_admin # 数据库名称
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$(cat /run/secrets/mysql_root_password) | grep 'mysqld is alive'"]
-      interval: 15s
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$(cat /run/secrets/mysql_root_password) --silent || exit 1"]
+      interval: 10s
       timeout: 5s
-      retries: 6
-      start_period: 40s
+      retries: 12
+      start_period: 120s
     secrets:
       - mysql_root_password
       - mysql_user_password

@@ -215,6 +215,22 @@ func (s *LoginService) LoginNewDeviceVerify(ticket string) (resp robot.SilderOCR
 	return vars.RobotRuntime.LoginNewDeviceVerify(ticket)
 }
 
+func (s *LoginService) LoginData62Login(username, password string) (resp robot.UnifyAuthResponse, err error) {
+	return vars.RobotRuntime.LoginData62Login(username, password)
+}
+
+func (s *LoginService) LoginData62SMSAgain(req robot.LoginData62SMSAgainRequest) (resp string, err error) {
+	return vars.RobotRuntime.LoginData62SMSAgain(req)
+}
+
+func (s *LoginService) LoginData62SMSVerify(req robot.LoginData62SMSVerifyRequest) (resp string, err error) {
+	return vars.RobotRuntime.LoginData62SMSVerify(req)
+}
+
+func (s *LoginService) LoginA16Data1(username, password string) (resp robot.UnifyAuthResponse, err error) {
+	return vars.RobotRuntime.LoginA16Data1(username, password)
+}
+
 func (r *LoginService) Logout() (err error) {
 	err = r.Offline()
 	if err != nil {
