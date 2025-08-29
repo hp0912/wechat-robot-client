@@ -93,6 +93,8 @@ services:
       DOCKER_NETWORK: wechat-robot
       SESSION_SECRET: sessionid_123456 # 可自行修改 随便设置个uuid即可
       OPENAI_API_KEY: sk-123456 # 自行修改
+      LOGIN_METHOD: token
+      LOGIN_TOKEN: 12345678
       WECHAT_SERVER_ADDRESS: http://wechat-server:3000
       WECHAT_SERVER_TOKEN: w123456 # 自行修改
       WECHAT_OFFICIAL_ACCOUNT_AUTH_URL: https://img.houhoukang.com/uranus/qrcode_for_gh.jpg # 自行修改
