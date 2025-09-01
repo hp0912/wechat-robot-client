@@ -133,6 +133,9 @@ docker-compose -f docker-compose2.yml up -d
 # 如果严格走升级流程是不会出现问题的，也用不到暴力重置
 # windows系统上请在Git Bash上面(或者 WSL 终端)执行下面的命令
 ./reset.sh
+
+# windows 系统备用方案
+./reset.bat
 ```
 
 #### 配置公众号认证服务
