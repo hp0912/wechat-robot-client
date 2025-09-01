@@ -126,6 +126,15 @@ docker compose -f docker-compose2.yml up -d
 docker-compose -f docker-compose2.yml up -d
 ```
 
+#### 暴力重置
+
+```
+# 如果在升级版本过程中出现问题，可以执行下面的命令重置，会丢失历史数据
+# 如果严格走升级流程是不会出现问题的，也用不到暴力重置
+# windows系统上请在Git Bash上面(或者 WSL 终端)执行下面的命令
+./reset.sh
+```
+
 #### 配置公众号认证服务
 
 > 非必须，2025/08/29 新增支持通过登录密钥登录管理后台，默认设置：通过登录密钥登录
