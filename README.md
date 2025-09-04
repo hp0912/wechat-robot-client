@@ -126,7 +126,7 @@ docker compose -f docker-compose2.yml up -d
 docker-compose -f docker-compose2.yml up -d
 ```
 
-#### 暴力重置
+#### 暴力重置 (非必要不使用此功能)
 
 ```
 # 如果在升级版本过程中出现问题，可以执行下面的命令重置，会丢失历史数据
