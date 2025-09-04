@@ -18,11 +18,12 @@ type NewsCron struct {
 }
 
 type NewsResponse struct {
-	Code    string   `json:"code"`
+	Code    int      `json:"code"`
 	Msg     string   `json:"msg"`
 	Date    string   `json:"date"`
 	HeadImg string   `json:"head_image"`
 	Image   string   `json:"image"`
+	Audio   string   `json:"audio"`
 	News    []string `json:"news"`
 	Weiyu   string   `json:"weiyu"`
 }
@@ -61,7 +62,7 @@ func (cron *NewsCron) Cron() error {
 	if err != nil {
 		return err
 	}
-	if newsResp.Code != "200" {
+	if newsResp.Code != 200 {
 		return fmt.Errorf("获取每日早报失败: %s", newsResp.Msg)
 	}
 
