@@ -61,6 +61,15 @@ services:
     networks:
       - wechat-robot
 
+  jimeng-free-api:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/jimeng-free-api:latest
+    container_name: jimeng-free-api
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - wechat-robot
+
   wechat-robot-admin-frontend:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-frontend:latest
     container_name: wechat-robot-admin-frontend
