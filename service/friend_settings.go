@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
@@ -14,17 +15,20 @@ type FriendSettingsService struct {
 	Message        *model.Message
 	gsRespo        *repository.GlobalSettings
 	fsRespo        *repository.FriendSettings
+	contactRespo   *repository.Contact
 	globalSettings *model.GlobalSettings
 	friendSettings *model.FriendSettings
+	sender         *model.Contact
 }
 
 var _ settings.Settings = (*FriendSettingsService)(nil)
 
 func NewFriendSettingsService(ctx context.Context) *FriendSettingsService {
 	return &FriendSettingsService{
-		ctx:     ctx,
-		gsRespo: repository.NewGlobalSettingsRepo(ctx, vars.DB),
-		fsRespo: repository.NewFriendSettingsRepo(ctx, vars.DB),
+		ctx:          ctx,
+		gsRespo:      repository.NewGlobalSettingsRepo(ctx, vars.DB),
+		fsRespo:      repository.NewFriendSettingsRepo(ctx, vars.DB),
+		contactRespo: repository.NewContactRepo(ctx, vars.DB),
 	}
 }
 
@@ -40,6 +44,11 @@ func (s *FriendSettingsService) InitByMessage(message *model.Message) error {
 		return err
 	}
 	s.friendSettings = friendSettings
+	contact, err := s.contactRespo.GetContact(message.FromWxID)
+	if err != nil {
+		return err
+	}
+	s.sender = contact
 	return nil
 }
 
@@ -126,6 +135,18 @@ func (s *FriendSettingsService) GetPatConfig() settings.PatConfig {
 func (s *FriendSettingsService) IsAIChatEnabled() bool {
 	if s.friendSettings != nil && s.friendSettings.ChatAIEnabled != nil {
 		return *s.friendSettings.ChatAIEnabled
+	}
+	// 公众号默认不开启 AI 聊天
+	if s.sender == nil {
+		if gh, ok := vars.OfficialAccount[s.Message.FromWxID]; ok && gh {
+			return false
+		}
+		if strings.HasPrefix(s.Message.FromWxID, "gh_") {
+			return false
+		}
+	}
+	if s.sender != nil && s.sender.Type == model.ContactTypeOfficialAccount {
+		return false
 	}
 	if s.globalSettings != nil && s.globalSettings.ChatAIEnabled != nil {
 		return *s.globalSettings.ChatAIEnabled

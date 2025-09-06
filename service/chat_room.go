@@ -565,7 +565,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		return nil
 	}
 	replyMsg := fmt.Sprintf("#消息总结\n让我们一起来看看群友们都聊了什么有趣的话题吧~\n\n%s", resp.Choices[0].Message.Content)
-	msgService.SendTextMessage(setting.ChatRoomID, replyMsg)
+	msgService.SendLongTextMessage(setting.ChatRoomID, replyMsg)
 	return nil
 }
 
