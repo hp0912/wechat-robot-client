@@ -116,12 +116,7 @@ docker network create wechat-robot
 docker compose up -d
 docker-compose up -d
 
-# 部分容器服务使用了 docker secrets 存储密钥，如果你的mysql容器无法启动，可以尝试使用方案2
-# 先删除原先启动的容器
-docker compose down
-docker-compose down
-# 最好手动清理下容器自动创建出来的文件(夹)
-# 重新启动服务
+# 可选进阶方案，使用 docker secrets 存储密钥，看不懂配置的可以不管这部份
 docker compose -f docker-compose2.yml up -d
 docker-compose -f docker-compose2.yml up -d
 ```
@@ -226,6 +221,23 @@ sudo service nginx restart
 **配置微信服务器，获取`WECHAT_SERVER_TOKEN`参考本地部署**
 
 **其他，参考本地部署**
+
+## 如何升级
+
+```
+# 关注本项目 Release，如果有数据库升级脚本，先执行数据库升级脚本
+
+# 管理后台前端、管理后台后端服务 手动拉取 docker 镜像
+docker pull registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-frontend:latest
+docker pull registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-backend:latest
+
+# 通过 docker-compose 重建容器，下面两个命令，哪个能用就用哪个
+docker compose up -d
+docker-compose up -d
+
+# 机器人客户端、机器人服务端，没有通过 docker-compose 管理，是通过管理后台自动创建的
+# 请在机器人详情界面，右上角`更新镜像`按钮，先点击更新镜像，然后再依次点击`删除客户端容器` `删除服务端容器` `创建服务端容器` `创建客户端容器`，该系列操作不会对机器人登录态造成影响
+```
 
 ## 本地开发
 
