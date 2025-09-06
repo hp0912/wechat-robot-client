@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"mime/multipart"
 	"os"
 	"regexp"
@@ -22,25 +25,28 @@ import (
 	"wechat-robot-client/vars"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/google/uuid"
 	"github.com/sashabaranov/go-openai"
 )
 
 type MessageService struct {
-	ctx         context.Context
-	settings    settings.Settings
-	msgRespo    *repository.Message
-	crmRespo    *repository.ChatRoomMember
-	sysmsgRespo *repository.SystemMessage
+	ctx             context.Context
+	settings        settings.Settings
+	msgRespo        *repository.Message
+	crmRespo        *repository.ChatRoomMember
+	sysmsgRespo     *repository.SystemMessage
+	robotAdminRespo *repository.RobotAdmin
 }
 
 var _ plugin.MessageServiceIface = (*MessageService)(nil)
 
 func NewMessageService(ctx context.Context) *MessageService {
 	return &MessageService{
-		ctx:         ctx,
-		msgRespo:    repository.NewMessageRepo(ctx, vars.DB),
-		crmRespo:    repository.NewChatRoomMemberRepo(ctx, vars.DB),
-		sysmsgRespo: repository.NewSystemMessageRepo(ctx, vars.DB),
+		ctx:             ctx,
+		msgRespo:        repository.NewMessageRepo(ctx, vars.DB),
+		crmRespo:        repository.NewChatRoomMemberRepo(ctx, vars.DB),
+		sysmsgRespo:     repository.NewSystemMessageRepo(ctx, vars.DB),
+		robotAdminRespo: repository.NewRobotAdminRepo(ctx, vars.AdminDB),
 	}
 }
 
@@ -775,6 +781,91 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice io.Reader, voiceExt s
 		Content:            "", // 获取不到音频的 xml 内容
 		DisplayFullContent: "",
 		MessageSource:      "",
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	err = s.msgRespo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
+func (s *MessageService) SendLongTextMessage(toWxID string, longText string) error {
+	currentRobot, err := s.robotAdminRespo.GetByWeChatID(vars.RobotRuntime.WxID)
+	if err != nil {
+		return err
+	}
+	if currentRobot == nil || currentRobot.Nickname == nil {
+		return fmt.Errorf("未找到机器人信息")
+	}
+
+	dataID := uuid.New().String()
+	fiveMinuteAgo := time.Now().Add(-5 * time.Minute)
+
+	recordInfo := robot.RecordInfo{
+		Info:       fmt.Sprintf("%s: %s", *currentRobot.Nickname, longText),
+		IsChatRoom: 1,
+		Desc:       fmt.Sprintf("%s: %s", *currentRobot.Nickname, longText),
+		FromScene:  3,
+		DataList: robot.DataList{
+			Count: 1,
+			Items: []robot.DataItem{
+				{
+					DataType:         1,
+					DataID:           strings.ReplaceAll(dataID, "-", ""),
+					SrcMsgLocalID:    rand.Intn(90000) + 10000,
+					SourceTime:       fiveMinuteAgo.Format("2006-1-2 15:04"),
+					FromNewMsgID:     time.Now().UnixNano() / 100,
+					SrcMsgCreateTime: fiveMinuteAgo.Unix(),
+					DataDesc:         longText,
+					DataItemSource: &robot.DataItemSource{
+						HashUsername: fmt.Sprintf("%x", sha256.Sum256([]byte(vars.RobotRuntime.WxID))),
+					},
+					SourceName:    *currentRobot.Nickname,
+					SourceHeadURL: *currentRobot.Avatar,
+				},
+			},
+		},
+	}
+
+	recordInfoBytes, err := xml.MarshalIndent(recordInfo, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	newMsg := robot.ChatHistoryMessage{
+		AppMsg: robot.ChatHistoryAppMsg{
+			AppID:  "",
+			SDKVer: "0",
+			Title:  "群聊的聊天记录",
+			Type:   19,
+			URL:    "https://support.weixin.qq.com/cgi-bin/mmsupport-bin/readtemplate?t=page/favorite_record__w_unsupport",
+			Des:    fmt.Sprintf("%s: %s", *currentRobot.Nickname, longText),
+			RecordItem: robot.ChatHistoryRecordItem{XML: fmt.Sprintf(`<![CDATA[
+%s
+]]>`, string(recordInfoBytes))},
+		},
+	}
+	message, err := vars.RobotRuntime.SendChatHistoryMessage(toWxID, newMsg)
+	if err != nil {
+		return err
+	}
+
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.MsgId,
+		Type:               model.MsgTypeApp,
+		Content:            message.Content,
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
 		FromWxID:           toWxID,
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,

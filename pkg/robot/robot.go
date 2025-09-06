@@ -839,6 +839,28 @@ func (r *Robot) SendMusicMessage(toWxID string, songInfo SongInfo) (appMessage S
 	return
 }
 
+func (r *Robot) SendChatHistoryMessage(toWxID string, message ChatHistoryMessage) (appMessage SendAppResponse, err error) {
+	var xmlBytes []byte
+	var xmlStr string
+	xmlBytes, err = xml.MarshalIndent(message.AppMsg, "", "  ")
+	if err != nil {
+		return
+	}
+	xmlStr = string(xmlBytes)
+	appMessage, err = r.Client.SendApp(SendAppRequest{
+		Wxid:   r.WxID,
+		ToWxid: toWxID,
+		Xml:    xmlStr,
+		Type:   19,
+	})
+	if err != nil {
+		err = fmt.Errorf("发送聊天记录消息失败: %w", err)
+		return
+	}
+	appMessage.Content = xmlStr
+	return
+}
+
 func (r *Robot) SendEmoji(req SendEmojiRequest) (emojiMessage SendEmojiResponse, err error) {
 	req.Wxid = r.WxID
 	return r.Client.SendEmoji(req)
