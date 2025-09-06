@@ -116,12 +116,7 @@ docker network create wechat-robot
 docker compose up -d
 docker-compose up -d
 
-# 部分容器服务使用了 docker secrets 存储密钥，如果你的mysql容器无法启动，可以尝试使用方案2
-# 先删除原先启动的容器
-docker compose down
-docker-compose down
-# 最好手动清理下容器自动创建出来的文件(夹)
-# 重新启动服务
+# 可选进阶方案，使用 docker secrets 存储密钥，看不懂配置的可以不管这部份
 docker compose -f docker-compose2.yml up -d
 docker-compose -f docker-compose2.yml up -d
 ```
