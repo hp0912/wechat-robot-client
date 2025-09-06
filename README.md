@@ -227,6 +227,23 @@ sudo service nginx restart
 
 **其他，参考本地部署**
 
+## 如何升级
+
+```
+# 关注本项目 Release，如果有数据库升级脚本，先执行数据库升级脚本
+
+# 管理后台前端、管理后台后端服务 手动拉取 docker 镜像
+docker pull registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-frontend:latest
+docker pull registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-backend:latest
+
+# 通过 docker-compose 重建容器，下面两个命令，哪个能用就用哪个
+docker compose up -d
+docker-compose up -d
+
+# 机器人客户端、机器人服务端，没有通过 docker-compose 管理，是通过管理后台自动创建的
+# 请在机器人详情界面，右上角`更新镜像`按钮，先点击更新镜像，然后再依次点击`删除客户端容器` `删除服务端容器` `创建服务端容器` `创建客户端容器`，该系列操作不会对机器人登录态造成影响
+```
+
 ## 本地开发
 
 ### 启动前端项目
