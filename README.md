@@ -344,7 +344,7 @@ services:
 
 ## 官方交流群
 
-<img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20250831_1" alt="官方交流群" width="300">
+<img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20250907" alt="官方交流群" width="300">
 
 ## 效果展示
 
