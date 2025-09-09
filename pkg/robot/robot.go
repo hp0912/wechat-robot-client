@@ -866,41 +866,14 @@ func (r *Robot) SendEmoji(req SendEmojiRequest) (emojiMessage SendEmojiResponse,
 	return r.Client.SendEmoji(req)
 }
 
-func (r *Robot) SendWelcomNewMessage(toWxID string, shareLinkInfo ShareLinkInfo) (shareLinkMessage ShareLinkResponse, xmlStr string, err error) {
-	welcomeXmlPath := filepath.Join("xml", "welcome_new.xml")
-	xmlTemplate, err := XmlFolder.ReadFile(welcomeXmlPath)
+func (r *Robot) ShareLink(toWxID string, shareLinkInfo ShareLinkMessage) (shareLinkMessage ShareLinkResponse, xmlStr string, err error) {
+	shareLinkInfo.Type = 5
+	var xmlBytes []byte
+	xmlBytes, err = xml.MarshalIndent(shareLinkInfo, "", "  ")
 	if err != nil {
-		err = fmt.Errorf("读取XML模板失败: %w", err)
 		return
 	}
-
-	// 使用模板引擎渲染XML
-	tmpl, err := template.New("welcomeXml").Parse(string(xmlTemplate))
-	if err != nil {
-		err = fmt.Errorf("解析XML模板失败: %w", err)
-		return
-	}
-
-	var renderedXml bytes.Buffer
-	err = tmpl.Execute(&renderedXml, shareLinkInfo)
-	if err != nil {
-		err = fmt.Errorf("渲染XML模板失败: %w", err)
-		return
-	}
-
-	// 发送分享链接消息
-	xmlStr = renderedXml.String()
-	shareLinkMessage, err = r.Client.ShareLink(ShareLinkRequest{
-		ToWxid: toWxID,
-		Wxid:   r.WxID,
-		Type:   5,
-		Xml:    xmlStr,
-	})
-	return
-}
-
-func (r *Robot) ShareLink(toWxID, xmlStr string) (shareLinkMessage ShareLinkResponse, err error) {
-	// 发送分享链接消息
+	xmlStr = string(xmlBytes)
 	shareLinkMessage, err = r.Client.ShareLink(ShareLinkRequest{
 		ToWxid: toWxID,
 		Wxid:   r.WxID,
