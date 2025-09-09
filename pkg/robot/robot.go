@@ -867,6 +867,8 @@ func (r *Robot) SendEmoji(req SendEmojiRequest) (emojiMessage SendEmojiResponse,
 }
 
 func (r *Robot) ShareLink(toWxID string, shareLinkInfo ShareLinkMessage) (shareLinkMessage ShareLinkResponse, xmlStr string, err error) {
+	shareLinkInfo.AppID = ""
+	shareLinkInfo.SDKVer = "1"
 	shareLinkInfo.Type = 5
 	var xmlBytes []byte
 	xmlBytes, err = xml.MarshalIndent(shareLinkInfo, "", "  ")
