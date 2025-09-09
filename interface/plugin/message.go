@@ -16,7 +16,7 @@ type MessageServiceIface interface {
 	MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error
 	MsgSendVideo(toWxID string, video io.Reader, videoExt string) error
 	SendMusicMessage(toWxID string, songTitle string) error
-	ShareLink(toWxID, xmlStr string) error
+	ShareLink(toWxID string, shareLinkInfo robot.ShareLinkMessage) error
 	ResetChatRoomAIMessageContext(message *model.Message) error
 	GetAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error)
 	SetMessageIsInContext(message *model.Message) error
