@@ -54,11 +54,13 @@ func (p *DouyinVideoParsePlugin) PostAction(ctx *plugin.MessageContext) {
 }
 
 func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
-	if ctx.ReferMessage == nil {
-		return false
+	var douyinShareContent string
+	if ctx.ReferMessage != nil {
+		douyinShareContent = ctx.ReferMessage.Content
+	} else {
+		douyinShareContent = ctx.Message.Content
 	}
 
-	douyinShareContent := ctx.ReferMessage.Content
 	re := regexp.MustCompile(`https://[^\s]+`)
 	matches := re.FindAllString(douyinShareContent, -1)
 	if len(matches) == 0 {
@@ -93,7 +95,7 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 		Title:    fmt.Sprintf("抖音视频解析成功 - %s", respData.Data.Author),
 		Des:      respData.Data.Title,
 		Url:      respData.Data.URL,
-		ThumbUrl: "https://mmbiz.qpic.cn/mmbiz_png/NbW0ZIUM8lVHoUbjXw2YbYXbNJDtUH7Sbkibm9Qwo9FhAiaEFG4jY3Q2MEleRpiaWDyDv8BZUfR85AW3kG4ib6DyAw/640?wx_fmt=png",
+		ThumbUrl: robot.CDATAString("https://mmbiz.qpic.cn/mmbiz_png/NbW0ZIUM8lVHoUbjXw2YbYXbNJDtUH7Sbkibm9Qwo9FhAiaEFG4jY3Q2MEleRpiaWDyDv8BZUfR85AW3kG4ib6DyAw/640?wx_fmt=png"),
 	})
 
 	return true

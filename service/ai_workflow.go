@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
@@ -23,6 +24,7 @@ const (
 	ChatIntentionLTTS             ChatIntention = "ltts"
 	ChatIntentionDYVideoParse     ChatIntention = "dy_video_parse"
 	ChatIntentionApplyToJoinGroup ChatIntention = "apply_to_join_group"
+	ChatIntentionAIDisabled       ChatIntention = "ai_disabled"
 	ChatIntentionChat             ChatIntention = "chat"
 )
 
@@ -56,7 +58,24 @@ func NewAIWorkflowService(ctx context.Context, config settings.Settings) *AIWork
 	}
 }
 
+func (s *AIWorkflowService) ChatIntentionSimple(message string, referMessage *model.Message) (bool, ChatIntention) {
+	if strings.Contains(message, "https://v.douyin.com") && strings.Contains(message, "复制打开抖音") {
+		return true, ChatIntentionDYVideoParse
+	}
+	if message == "#关闭AI" {
+		return true, ChatIntentionAIDisabled
+	}
+	return false, ChatIntentionChat
+}
+
 func (s *AIWorkflowService) ChatIntention(message string, referMessage *model.Message) ChatIntention {
+	// 简单意图分析
+	matched, intention := s.ChatIntentionSimple(message, referMessage)
+	if matched {
+		return intention
+	}
+
+	// 复杂意图分析
 	aiConfig := s.config.GetAIConfig()
 	openaiConfig := openai.DefaultConfig(aiConfig.APIKey)
 	openaiConfig.BaseURL = aiConfig.BaseURL
