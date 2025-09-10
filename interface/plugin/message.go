@@ -22,6 +22,7 @@ type MessageServiceIface interface {
 	SetMessageIsInContext(message *model.Message) error
 	XmlDecoder(content string) (robot.XmlMessage, error)
 	UpdateMessage(message *model.Message) error
+	ChatRoomAIDisabled(chatRoomID string) error
 }
 
 type MessageContext struct {

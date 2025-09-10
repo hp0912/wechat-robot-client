@@ -349,7 +349,7 @@ func (s *MessageService) ProcessNewChatRoomMemberMessage(message *model.Message,
 			Title:    title,
 			Des:      welcomeConfig.WelcomeText,
 			Url:      welcomeConfig.WelcomeURL,
-			ThumbUrl: newMembers[0].Avatar,
+			ThumbUrl: robot.CDATAString(newMembers[0].Avatar),
 		})
 		if err != nil {
 			log.Println("发送欢迎链接消息失败: ", err)
@@ -602,7 +602,7 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 	atContent := ""
 	if len(at) > 0 {
 		// 手动拼接上 @ 符号和昵称
-		for _, wxid := range at {
+		for index, wxid := range at {
 			var targetNickname string
 
 			if strings.HasSuffix(toWxID, "@chatroom") {
@@ -639,7 +639,9 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 			if targetNickname == "" {
 				continue
 			}
-
+			if index > 0 {
+				atContent += " "
+			}
 			atContent += fmt.Sprintf("@%s%s", targetNickname, "\u2005")
 		}
 	}
@@ -1324,4 +1326,22 @@ func (s *MessageService) GetLastWeekChatRommRank(chatRoomID string) ([]*dto.Chat
 
 func (s *MessageService) GetLastMonthChatRommRank(chatRoomID string) ([]*dto.ChatRoomRank, error) {
 	return s.msgRespo.GetLastMonthChatRommRank(vars.RobotRuntime.WxID, chatRoomID)
+}
+
+func (s *MessageService) ChatRoomAIDisabled(chatRoomID string) error {
+	chatRoomSettingsSvc := NewChatRoomSettingsService(s.ctx)
+	chatRoomSettings, err := chatRoomSettingsSvc.GetChatRoomSettings(chatRoomID)
+	if err != nil {
+		return err
+	}
+	if chatRoomSettings == nil || chatRoomSettings.ChatAIEnabled == nil || !*chatRoomSettings.ChatAIEnabled {
+		return nil
+	}
+	disabled := false
+	chatRoomSettings.ChatAIEnabled = &disabled
+	err = chatRoomSettingsSvc.SaveChatRoomSettings(chatRoomSettings)
+	if err != nil {
+		return err
+	}
+	return nil
 }

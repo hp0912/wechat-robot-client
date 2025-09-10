@@ -157,6 +157,12 @@ func (s *ChatRoomSettingsService) IsTTSEnabled() bool {
 	return false
 }
 
+// 是否属于自动触发AI的指令
+func (s *ChatRoomSettingsService) IsAutoAITrigger(message string) bool {
+	matched, _ := NewAIWorkflowService(s.ctx, s).ChatIntentionSimple(message, nil)
+	return matched
+}
+
 func (s *ChatRoomSettingsService) IsAITrigger() bool {
 	messageContent := s.Message.Content
 	if s.Message.AppMsgType == model.AppMsgTypequote {
@@ -181,10 +187,16 @@ func (s *ChatRoomSettingsService) IsAITrigger() bool {
 		if s.globalSettings.ChatAIEnabled == nil || !*s.globalSettings.ChatAIEnabled {
 			return false
 		}
+		if s.IsAutoAITrigger(messageContent) {
+			return true
+		}
 		return *s.globalSettings.ChatAITrigger != "" && strings.HasPrefix(messageContent, *s.globalSettings.ChatAITrigger)
 	}
 	if s.chatRoomSettings.ChatAIEnabled == nil || !*s.chatRoomSettings.ChatAIEnabled {
 		return false
+	}
+	if s.IsAutoAITrigger(messageContent) {
+		return true
 	}
 	if s.chatRoomSettings.ChatAITrigger != nil && *s.chatRoomSettings.ChatAITrigger != "" {
 		return *s.chatRoomSettings.ChatAITrigger != "" && strings.HasPrefix(messageContent, *s.chatRoomSettings.ChatAITrigger)

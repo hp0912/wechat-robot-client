@@ -75,6 +75,10 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		ctx.MessageContent = messageContent
 		autoJoinGroup := NewAutoJoinGroupPlugin()
 		autoJoinGroup.Run(ctx)
+	case service.ChatIntentionAIDisabled:
+		// 关闭AI功能
+		// 没有权限管理，先关闭此功能
+		// _ = ctx.MessageService.ChatRoomAIDisabled(ctx.Message.FromWxID)
 	default:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "更多功能正在开发中，敬请期待！")
 	}
