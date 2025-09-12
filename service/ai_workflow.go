@@ -59,7 +59,7 @@ func NewAIWorkflowService(ctx context.Context, config settings.Settings) *AIWork
 }
 
 func (s *AIWorkflowService) ChatIntentionSimple(message string, referMessage *model.Message) (bool, ChatIntention) {
-	if strings.Contains(message, "https://v.douyin.com") && strings.Contains(message, "复制打开抖音") {
+	if strings.Contains(message, "https://v.douyin.com") {
 		return true, ChatIntentionDYVideoParse
 	}
 	if message == "#关闭AI" {
