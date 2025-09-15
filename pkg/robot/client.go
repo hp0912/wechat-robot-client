@@ -204,6 +204,36 @@ func (c *Client) LoginYPayVerificationcode(req VerificationCodeRequest) (err err
 	return
 }
 
+func (c *Client) LoginSliderVerify(data62, ticket string) (resp string, err error) {
+	var result struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Data    string `json:"data"`
+	}
+	var httpResp *resty.Response
+	httpResp, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(map[string]string{
+			"data":   data62,
+			"ticket": ticket,
+		}).
+		SetResult(&result).
+		Post("http://wechat-slider:9000/api/v1/slider-verify-html") // TODO 链接先写死
+	if err != nil {
+		return
+	}
+	if httpResp.StatusCode() != 200 {
+		err = fmt.Errorf("请求失败，状态码：%d", httpResp.StatusCode())
+		return
+	}
+	if result.Code != 200 {
+		err = errors.New(result.Message)
+		return
+	}
+	resp = result.Data
+	return
+}
+
 func (c *Client) LoginNewDeviceVerify(ticket string) (resp SilderOCR, err error) {
 	var result ClientResponse[SilderOCR]
 	_, err = c.client.R().

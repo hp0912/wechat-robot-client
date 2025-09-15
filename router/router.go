@@ -65,7 +65,7 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/login", loginCtl.Login)
 	api.POST("/robot/login/check", loginCtl.LoginCheck)
 	api.POST("/robot/login/2fa", loginCtl.LoginYPayVerificationcode)
-	api.POST("/robot/login/new-device-verify", loginCtl.LoginNewDeviceVerify)
+	api.POST("/robot/login/slider", loginCtl.LoginSliderVerify)
 	api.POST("/robot/login/data62", loginCtl.LoginData62Login)
 	api.POST("/robot/login/data62-sms-again", loginCtl.LoginData62SMSAgain)
 	api.POST("/robot/login/data62-sms-verify", loginCtl.LoginData62SMSVerify)

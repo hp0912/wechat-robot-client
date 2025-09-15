@@ -211,8 +211,8 @@ func (s *LoginService) LoginYPayVerificationcode(req robot.VerificationCodeReque
 	return vars.RobotRuntime.LoginYPayVerificationcode(req)
 }
 
-func (s *LoginService) LoginNewDeviceVerify(ticket string) (resp robot.SilderOCR, err error) {
-	return vars.RobotRuntime.LoginNewDeviceVerify(ticket)
+func (s *LoginService) LoginSliderVerify(req dto.SliderVerifyRequest) (string, error) {
+	return vars.RobotRuntime.LoginSliderVerify(req.Data62, req.Ticket)
 }
 
 func (s *LoginService) LoginData62Login(username, password string) (resp robot.UnifyAuthResponse, err error) {

@@ -908,8 +908,8 @@ func (r *Robot) LoginYPayVerificationcode(req VerificationCodeRequest) error {
 	return r.Client.LoginYPayVerificationcode(req)
 }
 
-func (r *Robot) LoginNewDeviceVerify(ticket string) (SilderOCR, error) {
-	return r.Client.LoginNewDeviceVerify(ticket)
+func (r *Robot) LoginSliderVerify(data62, ticket string) (string, error) {
+	return r.Client.LoginSliderVerify(data62, ticket)
 }
 
 func (r *Robot) LoginData62Login(username, password string) (UnifyAuthResponse, error) {
