@@ -81,21 +81,6 @@ func (lg *Login) LoginYPayVerificationcode(c *gin.Context) {
 	resp.ToResponse(nil)
 }
 
-func (lg *Login) LoginSliderVerify(c *gin.Context) {
-	var req dto.SliderVerifyRequest
-	resp := appx.NewResponse(c)
-	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
-		resp.ToErrorResponse(errors.New("参数错误"))
-		return
-	}
-	data, err := service.NewLoginService(c).LoginSliderVerify(req)
-	if err != nil {
-		resp.ToErrorResponse(err)
-		return
-	}
-	resp.ToResponse(data)
-}
-
 func (lg *Login) LoginData62Login(c *gin.Context) {
 	var req dto.LoginRequest
 	resp := appx.NewResponse(c)
