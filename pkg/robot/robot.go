@@ -76,9 +76,17 @@ func (r *Robot) IsLoggedIn() bool {
 
 func (r *Robot) GetQrCode(loginType string) (loginData LoginResponse, err error) {
 	var resp GetQRCode
-	resp, err = r.Client.GetQrCode(loginType, r.DeviceID, r.DeviceName)
-	if err != nil {
-		return
+	switch loginType {
+	case "mac":
+		resp, err = r.Client.LoginGetQRMac(r.DeviceID, r.DeviceName)
+		if err != nil {
+			return
+		}
+	default:
+		resp, err = r.Client.GetQrCode(loginType, r.DeviceID, r.DeviceName)
+		if err != nil {
+			return
+		}
 	}
 	if resp.Uuid != "" {
 		loginData.Uuid = resp.Uuid
