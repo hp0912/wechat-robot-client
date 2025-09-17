@@ -169,6 +169,24 @@ func (c *Client) GetQrCode(loginType, deviceId, deviceName string) (resp GetQRCo
 	return
 }
 
+func (c *Client) LoginGetQRMac(deviceId, deviceName string) (resp GetQRCode, err error) {
+	var result ClientResponse[GetQRCode]
+	_, err = c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(LoginGetQRRequest{
+			DeviceID:   deviceId,
+			DeviceName: deviceName,
+		}).
+		SetResult(&result).
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginGetQRMac))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	result.Data.Data62 = result.Data62
+	resp = result.Data
+	return
+}
+
 func (c *Client) CheckLoginUuid(uuid string) (resp CheckUuid, err error) {
 	var result ClientResponse[json.RawMessage]
 	_, err = c.client.R().
