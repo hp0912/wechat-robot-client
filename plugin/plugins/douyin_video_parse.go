@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/pkg/robot"
+	"wechat-robot-client/plugin/pkg"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -97,6 +98,8 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 		Url:      respData.Data.URL,
 		ThumbUrl: robot.CDATAString("https://mmbiz.qpic.cn/mmbiz_png/NbW0ZIUM8lVHoUbjXw2YbYXbNJDtUH7Sbkibm9Qwo9FhAiaEFG4jY3Q2MEleRpiaWDyDv8BZUfR85AW3kG4ib6DyAw/640?wx_fmt=png"),
 	})
+
+	_ = pkg.SendVideoByURL(ctx.MessageService, ctx.Message.FromWxID, respData.Data.URL)
 
 	return true
 }

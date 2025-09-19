@@ -78,7 +78,7 @@ func (r *Robot) GetQrCode(loginType string) (loginData LoginResponse, err error)
 	var resp GetQRCode
 	switch loginType {
 	case "mac":
-		resp, err = r.Client.LoginGetQRMac(r.DeviceID, r.DeviceName)
+		resp, err = r.Client.LoginGetQRMac(r.DeviceID, "Mac")
 		if err != nil {
 			return
 		}
