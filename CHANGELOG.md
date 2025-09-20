@@ -1,5 +1,20 @@
 # 更新日志
 
+## [1.4.0] - 2025/09/20
+
+### 新特性
+
+- Mac 扫码登录支持手动过滑块。
+
+> 本次更新包含破坏性更新
+>
+> `wechat-robot-admin-backend`服务需要新增两个环境变量，否则服务会启动失败
+>
+> - SLIDER_VERIFY_URL=http://wechat-slider:9000/api/v1/slider-verify-html
+>
+> - SLIDER_VERIFY_SUBMIT_URL=http://wechat-slider:9000/api/v1/security-verify
+>
+
 ## [1.3.0] - 2025/09/19
 
 ### 体验性优化
