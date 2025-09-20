@@ -59,6 +59,38 @@ services:
     environment:
       TZ: Asia/Shanghai
 
+  wechat-slider:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-slider:latest
+    container_name: wechat-slider
+    restart: always
+    environment:
+      - GIN_MODE=release
+      - TZ=Asia/Shanghai
+      - UUID_SERVER_URL=http://wechat-uuid:9000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X GET -H 'Content-Type: application/json' http://127.0.0.1:9000/api/v1/probe | grep -q '\"success\"[[:space:]]*:[[:space:]]*true'"]
+      interval: 10s
+      timeout: 2s
+      retries: 12
+    networks:
+      - wechat-robot
+
+  wechat-uuid:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-uuid:latest
+    container_name: wechat-uuid
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+      - GIN_MODE=release
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST -H 'Content-Type: application/json' -d '{\"data\":\"0\"}' http://127.0.0.1:9000/api/v1/uuid | grep -q '\"code\"[[:space:]]*:[[:space:]]*200'"]
+      interval: 10s
+      timeout: 2s
+      retries: 12
+      start_period: 15s
+    networks:
+      - wechat-robot
+
   word-cloud-server:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/word-cloud-server:latest
     container_name: word-cloud-server
@@ -109,6 +141,8 @@ services:
       WECHAT_SERVER_ADDRESS: http://wechat-server:3000
       WECHAT_SERVER_TOKEN: w123456 # 自行修改
       WECHAT_OFFICIAL_ACCOUNT_AUTH_URL: https://img.houhoukang.com/uranus/qrcode_for_gh.jpg # 自行修改
+      SLIDER_VERIFY_URL: http://wechat-slider:9000/api/v1/slider-verify-html
+      SLIDER_VERIFY_SUBMIT_URL: http://wechat-slider:9000/api/v1/security-verify
       MYSQL_DRIVER: mysql
       MYSQL_HOST: wechat-admin-mysql
       MYSQL_PORT: 3306
