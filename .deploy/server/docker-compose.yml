@@ -141,8 +141,8 @@ services:
       WECHAT_SERVER_ADDRESS: http://wechat-server:3000
       WECHAT_SERVER_TOKEN: w123456 # 自行修改
       WECHAT_OFFICIAL_ACCOUNT_AUTH_URL: https://img.houhoukang.com/uranus/qrcode_for_gh.jpg # 自行修改
-      SLIDER_VERIFY_URL: http://wechat-slider:9000/api/v1/slider-verify-html
-      SLIDER_VERIFY_SUBMIT_URL: http://wechat-slider:9000/api/v1/security-verify
+      SLIDER_SERVER_BASE_URL: http://wechat-slider:9000
+      SLIDER_TOKEN: xxxx # 自行修改，加入官方交流群获取
       MYSQL_DRIVER: mysql
       MYSQL_HOST: wechat-admin-mysql
       MYSQL_PORT: 3306
