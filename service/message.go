@@ -893,6 +893,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 		SetQueryParam("msg", songTitle).
 		SetQueryParam("type", "json").
 		SetQueryParam("n", "1").
+		SetQueryParam("br", "7").
 		SetResult(&resp).
 		Get(vars.MusicSearchApi)
 	if err != nil {
@@ -905,16 +906,16 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 
 	songInfo := robot.SongInfo{}
 	songInfo.FromUsername = vars.RobotRuntime.WxID
-	songInfo.AppID = "wx79f2c4418704b4f8"
+	songInfo.AppID = "wx8dd6ecd81906fd84"
 	songInfo.Title = *result.Title
 	songInfo.Singer = result.Singer
 	songInfo.Url = result.Link
-	songInfo.MusicUrl = result.Url
+	songInfo.MusicUrl = result.MusicURL
 	if result.Cover != nil {
 		songInfo.CoverUrl = *result.Cover
 	}
-	if result.Lyric != nil {
-		songInfo.Lyric = *result.Lyric
+	if result.Lrc != nil {
+		songInfo.Lyric = *result.Lrc
 	}
 
 	message, err := vars.RobotRuntime.SendMusicMessage(toWxID, songInfo)

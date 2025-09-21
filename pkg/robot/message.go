@@ -368,18 +368,19 @@ type ShareLinkInfo struct {
 }
 
 type MusicSearchResponse struct {
+	Code int             `json:"code"`
+	Msg  string          `json:"msg"`
 	Data MusicSearchData `json:"data"`
 }
 
 type MusicSearchData struct {
-	Code   int     `json:"code"`
-	Title  *string `json:"title"`
-	Singer string  `json:"singer"`
-	ID     string  `json:"id"`
-	Cover  *string `json:"cover"`
-	Link   string  `json:"link"`
-	Url    string  `json:"url"`
-	Lyric  *string `json:"lyric"`
+	Title    *string `json:"title"`
+	Singer   string  `json:"singer"`
+	ID       string  `json:"id"`
+	Cover    *string `json:"cover"`
+	Link     string  `json:"link"`
+	MusicURL string  `json:"music_url"`
+	Lrc      *string `json:"lrc"`
 }
 
 type SendEmojiRequest struct {
