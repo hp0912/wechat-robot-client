@@ -36,7 +36,8 @@ var RobotRuntime = &robot.Robot{}
 var CronManager CronManagerInterface
 
 // 歌曲搜索Api
-var MusicSearchApi = "https://www.hhlqilongzhu.cn/api/joox/juhe_music.php"
+// var MusicSearchApi = "https://www.hhlqilongzhu.cn/api/joox/juhe_music.php"
+var MusicSearchApi = "https://api.cenguigui.cn/api/music/netease/WyY_Dg.php"
 
 var WordCloudUrl string
 
