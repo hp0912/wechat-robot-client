@@ -29,14 +29,18 @@ func (lg *Login) IsLoggedIn(c *gin.Context) {
 
 func (lg *Login) Login(c *gin.Context) {
 	var req struct {
-		LoginType string `form:"login_type" json:"login_type" binding:"required"`
+		LoginType   string `form:"login_type" json:"login_type" binding:"required"`
+		IsPretender bool   `form:"is_pretender" json:"is_pretender"`
 	}
 	resp := appx.NewResponse(c)
 	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	data, err := service.NewLoginService(c).Login(req.LoginType)
+	if req.LoginType == "ipad" {
+		req.IsPretender = false
+	}
+	data, err := service.NewLoginService(c).Login(req.LoginType, req.IsPretender)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

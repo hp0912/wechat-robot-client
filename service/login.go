@@ -136,14 +136,14 @@ func (s *LoginService) HeartbeatStart() {
 	}
 }
 
-func (s *LoginService) Login(loginType string) (loginData robot.LoginResponse, err error) {
+func (s *LoginService) Login(loginType string, isPretender bool) (loginData robot.LoginResponse, err error) {
 	if vars.RobotRuntime.Status == model.RobotStatusOnline {
 		err := s.Logout()
 		if err != nil {
 			log.Printf("登出失败: %v\n", err)
 		}
 	}
-	loginData, err = vars.RobotRuntime.Login(loginType)
+	loginData, err = vars.RobotRuntime.Login(loginType, isPretender)
 	return
 }
 
@@ -278,7 +278,7 @@ func (r *LoginService) LogoutCallback(req dto.LogoutNotificationRequest) (err er
 				title = "机器人掉线通知"
 				content = fmt.Sprintf("您的机器人（%s）掉线啦~~~", vars.RobotRuntime.WxID)
 			} else {
-				title = "机器人掉线警告"
+				title = "机器人发送心跳失败"
 				content = fmt.Sprintf("您的机器人（%s）第%d次发送心跳失败了~~~", vars.RobotRuntime.WxID, req.RetryCount)
 			}
 			httpResp, err1 := resty.New().R().
