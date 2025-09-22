@@ -74,11 +74,15 @@ func (r *Robot) IsLoggedIn() bool {
 	return err == nil
 }
 
-func (r *Robot) GetQrCode(loginType string) (loginData LoginResponse, err error) {
+func (r *Robot) GetQrCode(loginType string, isPretender bool) (loginData LoginResponse, err error) {
 	var resp GetQRCode
 	switch loginType {
 	case "mac":
-		resp, err = r.Client.LoginGetQRMac(r.DeviceID, "Mac")
+		if isPretender {
+			resp, err = r.Client.GetQrCode(loginType, r.DeviceID, r.DeviceName)
+		} else {
+			resp, err = r.Client.LoginGetQRMac(r.DeviceID, "Mac Book Pro")
+		}
 		if err != nil {
 			return
 		}
@@ -105,7 +109,12 @@ func (r *Robot) GetCachedInfo() (LoginData, error) {
 	return r.Client.GetCachedInfo(r.WxID)
 }
 
-func (r *Robot) Login(loginType string) (loginData LoginResponse, err error) {
+func (r *Robot) Login(loginType string, isPretender bool) (loginData LoginResponse, err error) {
+	if isPretender {
+		// 二维码登陆
+		loginData, err = r.GetQrCode(loginType, true)
+		return
+	}
 	// 尝试唤醒登陆
 	var cachedInfo LoginData
 	cachedInfo, err = r.Client.GetCachedInfo(r.WxID)
@@ -120,12 +129,12 @@ func (r *Robot) Login(loginType string) (loginData LoginResponse, err error) {
 		resp, err = r.Client.AwakenLogin(r.WxID)
 		if err != nil {
 			// 如果唤醒失败，尝试获取二维码
-			loginData, err = r.GetQrCode(loginType)
+			loginData, err = r.GetQrCode(loginType, false)
 			return
 		}
 		if resp.Uuid == "" {
 			// 如果唤醒失败，尝试获取二维码
-			loginData, err = r.GetQrCode(loginType)
+			loginData, err = r.GetQrCode(loginType, false)
 			return
 		}
 		// 唤醒登陆成功
@@ -134,7 +143,7 @@ func (r *Robot) Login(loginType string) (loginData LoginResponse, err error) {
 		return
 	}
 	// 二维码登陆
-	loginData, err = r.GetQrCode(loginType)
+	loginData, err = r.GetQrCode(loginType, false)
 	return
 }
 
