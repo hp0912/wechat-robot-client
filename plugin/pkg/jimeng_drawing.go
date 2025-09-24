@@ -17,6 +17,7 @@ type JimengRequest struct {
 	Width          int     `json:"width"`
 	Height         int     `json:"height"`
 	SampleStrength float64 `json:"sample_strength"`
+	ResolutionType string  `json:"resolution_type"`
 }
 
 type JimengConfig struct {
