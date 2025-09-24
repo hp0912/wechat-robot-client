@@ -28,6 +28,12 @@
 
   - 词云服务: [https://github.com/hp0912/word-cloud-server](https://github.com/hp0912/word-cloud-server) golang写的词云效果不太好，用python写了一个单独的服务
 
+  - 即梦绘图: [https://github.com/hp0912/jimeng-free-api](https://github.com/hp0912/jimeng-free-api) 即梦AI绘图逆向免费 api
+
+  - UUID生成器: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-uuid:latest
+
+  - Mac 扫码登录自动过滑块: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-slider:latest
+
 > 机器人服务端采用iPad协议，可以去马老板开的动物园淘一淘
 
 ## 项目概览
