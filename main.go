@@ -14,7 +14,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var Version = "unknown"
+
 func main() {
+	log.Printf("[微信机器人]启动 版本: %s", Version)
+
 	// 加载配置
 	if err := startup.LoadConfig(); err != nil {
 		log.Fatalf("加载配置失败: %v", err)
