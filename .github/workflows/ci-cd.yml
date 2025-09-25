@@ -35,6 +35,8 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            VERSION=${{ github.event.release.tag_name }}
           tags: |
             ${{ secrets.ACR_REGISTRY }}/houhou/wechat-robot-client:${{ github.event.release.tag_name }}
             ${{ secrets.ACR_REGISTRY }}/houhou/wechat-robot-client:latest
