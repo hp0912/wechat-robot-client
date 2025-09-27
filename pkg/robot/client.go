@@ -315,13 +315,13 @@ func (c *Client) LoginData62SMSVerify(req LoginData62SMSVerifyRequest) (resp str
 	return
 }
 
-func (c *Client) LoginA16Data1(req A16LoginRequest) (resp UnifyAuthResponse, err error) {
+func (c *Client) LoginA16Data(req A16LoginRequest) (resp UnifyAuthResponse, err error) {
 	var result ClientResponse[UnifyAuthResponse]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(req).
 		SetResult(&result).
-		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginA16Data1))
+		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginA16Data))
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {

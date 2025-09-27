@@ -227,8 +227,27 @@ func (s *LoginService) LoginData62SMSVerify(req robot.LoginData62SMSVerifyReques
 	return vars.RobotRuntime.LoginData62SMSVerify(req)
 }
 
-func (s *LoginService) LoginA16Data1(username, password string) (resp robot.UnifyAuthResponse, err error) {
-	return vars.RobotRuntime.LoginA16Data1(username, password)
+func (s *LoginService) LoginA16Data(username, password string) (resp robot.UnifyAuthResponse, err error) {
+	return vars.RobotRuntime.LoginA16Data(username, password)
+}
+
+func (s *LoginService) ImportLoginData(loginDataStr string) (err error) {
+	var loginData robot.LoginData
+	err = json.Unmarshal([]byte(loginDataStr), &loginData)
+	if err != nil {
+		return
+	}
+	robot := model.RobotAdmin{
+		ID:         vars.RobotRuntime.RobotID,
+		DeviceID:   loginData.Deviceid_str,
+		DeviceName: loginData.DeviceName,
+		WeChatID:   loginData.Wxid,
+	}
+	err = s.robotAdminRespo.Update(&robot)
+	if err != nil {
+		return
+	}
+	return vars.RedisClient.Set(s.ctx, loginData.Wxid, loginDataStr, 0).Err()
 }
 
 func (r *LoginService) Logout() (err error) {
