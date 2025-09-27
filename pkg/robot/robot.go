@@ -950,7 +950,7 @@ func (r *Robot) LoginData62SMSVerify(req LoginData62SMSVerifyRequest) (string, e
 	return r.Client.LoginData62SMSVerify(req)
 }
 
-func (r *Robot) LoginA16Data1(username, password string) (UnifyAuthResponse, error) {
+func (r *Robot) LoginA16Data(username, password string) (UnifyAuthResponse, error) {
 	var a16 string
 	if r.WxID == "" {
 		return UnifyAuthResponse{}, errors.New("当前机器人还未成功登录过，不支持通过A16强行登录")
@@ -960,7 +960,7 @@ func (r *Robot) LoginA16Data1(username, password string) (UnifyAuthResponse, err
 	if err != nil {
 		return UnifyAuthResponse{}, err
 	}
-	return r.Client.LoginA16Data1(A16LoginRequest{
+	return r.Client.LoginA16Data(A16LoginRequest{
 		UserName:   username,
 		Password:   password,
 		DeviceName: r.DeviceName,

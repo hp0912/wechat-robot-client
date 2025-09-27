@@ -227,8 +227,13 @@ func (s *LoginService) LoginData62SMSVerify(req robot.LoginData62SMSVerifyReques
 	return vars.RobotRuntime.LoginData62SMSVerify(req)
 }
 
-func (s *LoginService) LoginA16Data1(username, password string) (resp robot.UnifyAuthResponse, err error) {
-	return vars.RobotRuntime.LoginA16Data1(username, password)
+func (s *LoginService) LoginA16Data(username, password string) (resp robot.UnifyAuthResponse, err error) {
+	return vars.RobotRuntime.LoginA16Data(username, password)
+}
+
+func (s *LoginService) ImportLoginData(loginData string) (err error) {
+	fmt.Println(loginData)
+	return nil
 }
 
 func (r *LoginService) Logout() (err error) {

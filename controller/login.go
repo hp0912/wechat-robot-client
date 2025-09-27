@@ -140,19 +140,36 @@ func (lg *Login) LoginData62SMSVerify(c *gin.Context) {
 	resp.ToResponse(data)
 }
 
-func (lg *Login) LoginA16Data1(c *gin.Context) {
+func (lg *Login) LoginA16Data(c *gin.Context) {
 	var req dto.LoginRequest
 	resp := appx.NewResponse(c)
 	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	data, err := service.NewLoginService(c).LoginA16Data1(req.Username, req.Password)
+	data, err := service.NewLoginService(c).LoginA16Data(req.Username, req.Password)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
 	resp.ToResponse(data)
+}
+
+func (lg *Login) ImportLoginData(c *gin.Context) {
+	var req struct {
+		Data string `json:"data" binding:"required"`
+	}
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	err := service.NewLoginService(c).ImportLoginData(req.Data)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
 }
 
 func (lg *Login) Logout(c *gin.Context) {

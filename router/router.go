@@ -63,13 +63,14 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/is-running", loginCtl.IsRunning)
 	api.GET("/robot/is-loggedin", loginCtl.IsLoggedIn)
 	api.GET("/robot/get-cached-info", loginCtl.GetCachedInfo)
+	api.POST("/robot/import-login-data", loginCtl.ImportLoginData)
 	api.POST("/robot/login", loginCtl.Login)
 	api.POST("/robot/login/check", loginCtl.LoginCheck)
 	api.POST("/robot/login/2fa", loginCtl.LoginYPayVerificationcode)
 	api.POST("/robot/login/data62", loginCtl.LoginData62Login)
 	api.POST("/robot/login/data62-sms-again", loginCtl.LoginData62SMSAgain)
 	api.POST("/robot/login/data62-sms-verify", loginCtl.LoginData62SMSVerify)
-	api.POST("/robot/login/a16", loginCtl.LoginA16Data1)
+	api.POST("/robot/login/a16", loginCtl.LoginA16Data)
 	api.DELETE("/robot/logout", loginCtl.Logout)
 
 	// 联系人相关接口
