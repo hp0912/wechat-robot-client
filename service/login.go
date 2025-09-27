@@ -95,6 +95,10 @@ func (s *LoginService) IsLoggedIn() (result bool) {
 	return
 }
 
+func (s *LoginService) GetCachedInfo() (robot.LoginData, error) {
+	return vars.RobotRuntime.GetCachedInfo()
+}
+
 func (s *LoginService) AutoHeartBeat() error {
 	return vars.RobotRuntime.AutoHeartBeat()
 }

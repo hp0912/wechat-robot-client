@@ -62,6 +62,7 @@ func RegisterRouter(r *gin.Engine) error {
 	// 登录相关接口
 	api.GET("/robot/is-running", loginCtl.IsRunning)
 	api.GET("/robot/is-loggedin", loginCtl.IsLoggedIn)
+	api.GET("/robot/get-cached-info", loginCtl.GetCachedInfo)
 	api.POST("/robot/login", loginCtl.Login)
 	api.POST("/robot/login/check", loginCtl.LoginCheck)
 	api.POST("/robot/login/2fa", loginCtl.LoginYPayVerificationcode)

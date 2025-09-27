@@ -27,6 +27,16 @@ func (lg *Login) IsLoggedIn(c *gin.Context) {
 	resp.ToResponse(service.NewLoginService(c).IsLoggedIn())
 }
 
+func (lg *Login) GetCachedInfo(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	data, err := service.NewLoginService(c).GetCachedInfo()
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}
+
 func (lg *Login) Login(c *gin.Context) {
 	var req struct {
 		LoginType   string `form:"login_type" json:"login_type" binding:"required"`
