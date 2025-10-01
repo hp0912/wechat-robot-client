@@ -4,7 +4,7 @@
 
 ### 新特性
 
-- 消息图片自动上传 OSS
+- 消息图片自动上传 OSS (需要执行数据库升级脚本[https://github.com/hp0912/wechat-robot-admin-backend/blob/1.3.2/template/1_3_2.sql](https://github.com/hp0912/wechat-robot-admin-backend/blob/1.3.2/template/1_3_2.sql))
 
 ## [1.5.1] - 2025/09/27
 
