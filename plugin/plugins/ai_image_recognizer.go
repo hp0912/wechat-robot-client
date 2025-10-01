@@ -20,7 +20,7 @@ func (p *AImageRecognizerPlugin) GetName() string {
 }
 
 func (p *AImageRecognizerPlugin) GetLabels() []string {
-	return []string{"internal", "chat"}
+	return []string{"text", "internal", "chat"}
 }
 
 func (p *AImageRecognizerPlugin) PreAction(ctx *plugin.MessageContext) bool {

@@ -18,7 +18,7 @@ func (p *AutoJoinGroupPlugin) GetName() string {
 }
 
 func (p *AutoJoinGroupPlugin) GetLabels() []string {
-	return []string{"auto"}
+	return []string{"text", "auto"}
 }
 
 func (p *AutoJoinGroupPlugin) PreAction(ctx *plugin.MessageContext) bool {

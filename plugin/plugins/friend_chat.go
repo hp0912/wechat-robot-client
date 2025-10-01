@@ -18,7 +18,7 @@ func (p *FriendAIChatPlugin) GetName() string {
 }
 
 func (p *FriendAIChatPlugin) GetLabels() []string {
-	return []string{"chat"}
+	return []string{"text", "chat"}
 }
 
 func (p *FriendAIChatPlugin) PreAction(ctx *plugin.MessageContext) bool {

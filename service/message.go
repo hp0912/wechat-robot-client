@@ -60,6 +60,9 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 		MessageService: s,
 	}
 	for _, messagePlugin := range vars.MessagePlugin.Plugins {
+		if !slices.Contains(messagePlugin.GetLabels(), "text") {
+			continue
+		}
 		abort := messagePlugin.Run(msgCtx)
 		if abort {
 			return
@@ -118,6 +121,9 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 		MessageService: s,
 	}
 	for _, messagePlugin := range vars.MessagePlugin.Plugins {
+		if !slices.Contains(messagePlugin.GetLabels(), "text") {
+			continue
+		}
 		abort := messagePlugin.Run(msgCtx)
 		if abort {
 			return

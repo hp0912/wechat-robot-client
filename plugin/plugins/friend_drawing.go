@@ -17,7 +17,7 @@ func (p *FriendAIDrawingSessionStartPlugin) GetName() string {
 }
 
 func (p *FriendAIDrawingSessionStartPlugin) GetLabels() []string {
-	return []string{"drawing"}
+	return []string{"text", "drawing"}
 }
 
 func (p *FriendAIDrawingSessionStartPlugin) PreAction(ctx *plugin.MessageContext) bool {

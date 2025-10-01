@@ -24,7 +24,7 @@ func (p *AImageEditPlugin) GetName() string {
 }
 
 func (p *AImageEditPlugin) GetLabels() []string {
-	return []string{"internal", "image_edit"}
+	return []string{"text", "internal", "image_edit"}
 }
 
 func (p *AImageEditPlugin) PreAction(ctx *plugin.MessageContext) bool {

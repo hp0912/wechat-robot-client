@@ -29,7 +29,7 @@ func (p *AITTSPlugin) GetName() string {
 }
 
 func (p *AITTSPlugin) GetLabels() []string {
-	return []string{"internal", "voice"}
+	return []string{"text", "internal", "voice"}
 }
 
 func (p *AITTSPlugin) PreAction(ctx *plugin.MessageContext) bool {
