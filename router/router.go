@@ -21,6 +21,7 @@ var wechatServerCallbackCtl *controller.WechatServerCallback
 var aiCallbackCtl *controller.AICallback
 var momentsCtl *controller.Moments
 var systemSettingsCtl *controller.SystemSettings
+var ossSettingsCtl *controller.OSSSettings
 var probeCtl *controller.Probe
 
 func initController() {
@@ -38,6 +39,7 @@ func initController() {
 	aiCallbackCtl = controller.NewAICallbackController()
 	momentsCtl = controller.NewMomentsController()
 	systemSettingsCtl = controller.NewSystemSettingsController()
+	ossSettingsCtl = controller.NewOSSSettingsController()
 	probeCtl = controller.NewProbeController()
 }
 
@@ -114,6 +116,10 @@ func RegisterRouter(r *gin.Engine) error {
 	// 系统设置相关接口
 	api.GET("/robot/system-settings", systemSettingsCtl.GetSystemSettings)
 	api.POST("/robot/system-settings", systemSettingsCtl.SaveSystemSettings)
+
+	// OSS 设置相关接口
+	api.GET("/robot/oss-settings", ossSettingsCtl.GetOSSSettings)
+	api.POST("/robot/oss-settings", ossSettingsCtl.SaveOSSSettings)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)

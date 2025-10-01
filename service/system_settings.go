@@ -3,9 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
 
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
