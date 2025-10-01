@@ -17,7 +17,7 @@ func (p *ChatRoomAIDrawingSessionStartPlugin) GetName() string {
 }
 
 func (p *ChatRoomAIDrawingSessionStartPlugin) GetLabels() []string {
-	return []string{"drawing"}
+	return []string{"text", "drawing"}
 }
 
 func (p *ChatRoomAIDrawingSessionStartPlugin) PreAction(ctx *plugin.MessageContext) bool {

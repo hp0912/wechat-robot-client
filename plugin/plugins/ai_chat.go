@@ -17,7 +17,7 @@ func (p *AIChatPlugin) GetName() string {
 }
 
 func (p *AIChatPlugin) GetLabels() []string {
-	return []string{"internal", "chat"}
+	return []string{"text", "internal", "chat"}
 }
 
 func (p *AIChatPlugin) PreAction(ctx *plugin.MessageContext) bool {

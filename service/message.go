@@ -60,6 +60,9 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 		MessageService: s,
 	}
 	for _, messagePlugin := range vars.MessagePlugin.Plugins {
+		if !slices.Contains(messagePlugin.GetLabels(), "text") {
+			continue
+		}
 		abort := messagePlugin.Run(msgCtx)
 		if abort {
 			return
@@ -69,7 +72,22 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 
 // ProcessImageMessage 处理图片消息
 func (s *MessageService) ProcessImageMessage(message *model.Message) {
-
+	msgCtx := &plugin.MessageContext{
+		Context:        s.ctx,
+		Settings:       s.settings,
+		Message:        message,
+		MessageContent: message.Content,
+		MessageService: s,
+	}
+	for _, messagePlugin := range vars.MessagePlugin.Plugins {
+		if !slices.Contains(messagePlugin.GetLabels(), "image") {
+			continue
+		}
+		abort := messagePlugin.Run(msgCtx)
+		if abort {
+			return
+		}
+	}
 }
 
 // ProcessVoiceMessage 处理语音消息
@@ -118,6 +136,9 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 		MessageService: s,
 	}
 	for _, messagePlugin := range vars.MessagePlugin.Plugins {
+		if !slices.Contains(messagePlugin.GetLabels(), "text") {
+			continue
+		}
 		abort := messagePlugin.Run(msgCtx)
 		if abort {
 			return

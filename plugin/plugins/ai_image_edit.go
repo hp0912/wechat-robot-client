@@ -24,7 +24,7 @@ func (p *AImageEditPlugin) GetName() string {
 }
 
 func (p *AImageEditPlugin) GetLabels() []string {
-	return []string{"internal", "image_edit"}
+	return []string{"text", "internal", "image_edit"}
 }
 
 func (p *AImageEditPlugin) PreAction(ctx *plugin.MessageContext) bool {
@@ -33,6 +33,26 @@ func (p *AImageEditPlugin) PreAction(ctx *plugin.MessageContext) bool {
 
 func (p *AImageEditPlugin) PostAction(ctx *plugin.MessageContext) {
 
+}
+
+func (p *AImageEditPlugin) GetOSSFileURL(ctx *plugin.MessageContext) (string, error) {
+	ossSettingService := service.NewOSSSettingService(ctx.Context)
+	ossSettings, err := ossSettingService.GetOSSSettingService()
+	if err != nil {
+		return "", fmt.Errorf("获取OSS设置失败: %w", err)
+	}
+	if ossSettings == nil {
+		return "", fmt.Errorf("OSS设置为空")
+	}
+	if ossSettings.AutoUploadImage != nil && *ossSettings.AutoUploadImage {
+		ossSettingService := service.NewOSSSettingService(ctx.Context)
+		err := ossSettingService.UploadImageToOSS(ossSettings, ctx.ReferMessage)
+		if err != nil {
+			return "", fmt.Errorf("上传图片到OSS失败: %w", err)
+		}
+		return ctx.ReferMessage.AttachmentUrl, nil
+	}
+	return "", nil
 }
 
 func (p *AImageEditPlugin) Run(ctx *plugin.MessageContext) bool {
@@ -54,18 +74,22 @@ func (p *AImageEditPlugin) Run(ctx *plugin.MessageContext) bool {
 		if ctx.ReferMessage.AttachmentUrl != "" {
 			dataURL = ctx.ReferMessage.AttachmentUrl
 		} else {
-			// 下载引用的图片
-			attachDownloadService := service.NewAttachDownloadService(ctx.Context)
-			imageBytes, contentType, _, err := attachDownloadService.DownloadImage(ctx.ReferMessage.ID)
+			imageURL, err := p.GetOSSFileURL(ctx)
 			if err != nil {
-				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-				return true
+				log.Printf("获取图片OSS URL失败: %v", err)
 			}
-			base64Image := base64.StdEncoding.EncodeToString(imageBytes)
-			dataURL = fmt.Sprintf("data:%s;base64,%s", contentType, base64Image)
-			// 更新引用消息的附件URL，待处理，OSS上传
-			// ctx.ReferMessage.AttachmentUrl = dataURL
-			// _ = ctx.MessageService.UpdateMessage(ctx.ReferMessage)
+			if imageURL != "" {
+				dataURL = imageURL
+			} else {
+				attachDownloadService := service.NewAttachDownloadService(ctx.Context)
+				imageBytes, contentType, _, err := attachDownloadService.DownloadImage(ctx.ReferMessage.ID)
+				if err != nil {
+					ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
+					return true
+				}
+				base64Image := base64.StdEncoding.EncodeToString(imageBytes)
+				dataURL = fmt.Sprintf("data:%s;base64,%s", contentType, base64Image)
+			}
 		}
 
 		doubaoConfig.Model = "doubao-seededit-3-0-i2i-250628"

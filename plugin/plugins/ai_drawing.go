@@ -20,7 +20,7 @@ func (p *AIDrawingPlugin) GetName() string {
 }
 
 func (p *AIDrawingPlugin) GetLabels() []string {
-	return []string{"internal", "drawing"}
+	return []string{"text", "internal", "drawing"}
 }
 
 func (p *AIDrawingPlugin) PreAction(ctx *plugin.MessageContext) bool {

@@ -96,7 +96,7 @@ func (p *ChatRoomAIChatPlugin) GetName() string {
 }
 
 func (p *ChatRoomAIChatPlugin) GetLabels() []string {
-	return []string{"chat"}
+	return []string{"text", "chat"}
 }
 
 func (p *ChatRoomAIChatPlugin) PreAction(ctx *plugin.MessageContext) bool {

@@ -175,6 +175,7 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 		// 登陆成功
 		vars.RobotRuntime.WxID = resp.AcctSectResp.Username
 		vars.RobotRuntime.Status = model.RobotStatusOnline
+		vars.RobotRuntime.LoginTime = time.Now().Unix()
 		err = s.Online()
 		if err != nil {
 			return
@@ -224,11 +225,23 @@ func (s *LoginService) LoginData62SMSAgain(req robot.LoginData62SMSAgainRequest)
 }
 
 func (s *LoginService) LoginData62SMSVerify(req robot.LoginData62SMSVerifyRequest) (resp string, err error) {
-	return vars.RobotRuntime.LoginData62SMSVerify(req)
+	resp, err = vars.RobotRuntime.LoginData62SMSVerify(req)
+	if err == nil {
+		vars.RobotRuntime.Status = model.RobotStatusOnline
+		vars.RobotRuntime.LoginTime = time.Now().Unix()
+		_ = s.Online()
+	}
+	return
 }
 
 func (s *LoginService) LoginA16Data(username, password string) (resp robot.UnifyAuthResponse, err error) {
-	return vars.RobotRuntime.LoginA16Data(username, password)
+	resp, err = vars.RobotRuntime.LoginA16Data(username, password)
+	if err == nil {
+		vars.RobotRuntime.Status = model.RobotStatusOnline
+		vars.RobotRuntime.LoginTime = time.Now().Unix()
+		_ = s.Online()
+	}
+	return
 }
 
 func (s *LoginService) ImportLoginData(loginDataStr string) (err error) {

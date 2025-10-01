@@ -43,7 +43,7 @@ func (p *DouyinVideoParsePlugin) GetName() string {
 }
 
 func (p *DouyinVideoParsePlugin) GetLabels() []string {
-	return []string{"douyin"}
+	return []string{"text", "douyin"}
 }
 
 func (p *DouyinVideoParsePlugin) PreAction(ctx *plugin.MessageContext) bool {
