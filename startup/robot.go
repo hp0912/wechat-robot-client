@@ -60,6 +60,7 @@ func InitWechatRobot() error {
 				log.Println("微信机器人服务端已启动")
 				if vars.RobotRuntime.IsLoggedIn() {
 					log.Println("微信机器人已登录")
+					vars.RobotRuntime.LoginTime = time.Now().Unix()
 					err := service.NewLoginService(context.Background()).Online()
 					if err != nil {
 						log.Println("微信机器人已登录，启动自动心跳失败:", err)

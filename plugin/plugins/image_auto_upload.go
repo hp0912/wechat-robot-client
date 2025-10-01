@@ -2,9 +2,11 @@ package plugins
 
 import (
 	"log"
+	"time"
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/model"
 	"wechat-robot-client/service"
+	"wechat-robot-client/vars"
 )
 
 type ImageAutoUploadPlugin struct{}
@@ -32,6 +34,10 @@ func (p *ImageAutoUploadPlugin) PostAction(ctx *plugin.MessageContext) {
 func (p *ImageAutoUploadPlugin) Run(ctx *plugin.MessageContext) bool {
 	if ctx.Message == nil || ctx.Message.Type != model.MsgTypeImage {
 		return false
+	}
+	if time.Now().Unix()-vars.RobotRuntime.LoginTime < 60 {
+		log.Printf("登录时间不足60秒，跳过图片自动上传")
+		return true
 	}
 	ossSettingService := service.NewOSSSettingService(ctx.Context)
 	ossSettings, err := ossSettingService.GetOSSSettingService()

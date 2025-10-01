@@ -27,6 +27,7 @@ type Robot struct {
 	DeviceID          string
 	DeviceName        string
 	Client            *Client
+	LoginTime         int64
 	HeartbeatContext  context.Context
 	HeartbeatCancel   func()
 	SyncMomentContext context.Context

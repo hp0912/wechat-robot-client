@@ -140,7 +140,9 @@ func (s *OSSSettingService) UploadImageToAliyun(settings *model.OSSSettings, mes
 	if config.CustomDomain != "" {
 		fileURL = fmt.Sprintf("%s/%s", strings.TrimRight(config.CustomDomain, "/"), objectKey)
 	} else {
-		fileURL = fmt.Sprintf("https://%s.%s/%s", config.BucketName, config.Endpoint, objectKey)
+		endpoint := strings.TrimPrefix(config.Endpoint, "https://")
+		endpoint = strings.TrimPrefix(endpoint, "http://")
+		fileURL = fmt.Sprintf("https://%s.%s/%s", config.BucketName, endpoint, objectKey)
 	}
 
 	message.AttachmentUrl = fileURL
