@@ -36,3 +36,33 @@ type OSSSettings struct {
 func (OSSSettings) TableName() string {
 	return "oss_settings"
 }
+
+// AliyunOSSConfig 阿里云OSS配置
+type AliyunOSSConfig struct {
+	Endpoint        string `json:"endpoint"`          // 访问域名
+	AccessKeyID     string `json:"access_key_id"`     // AccessKey ID
+	AccessKeySecret string `json:"access_key_secret"` // AccessKey Secret
+	BucketName      string `json:"bucket_name"`       // 存储空间名称
+	BasePath        string `json:"base_path"`         // 基础路径（可选）
+	CustomDomain    string `json:"custom_domain"`     // 自定义域名（可选）
+}
+
+// TencentCloudCOSConfig 腾讯云COS配置
+type TencentCloudCOSConfig struct {
+	Region       string `json:"region"`        // 地域
+	SecretID     string `json:"secret_id"`     // SecretId
+	SecretKey    string `json:"secret_key"`    // SecretKey
+	BucketURL    string `json:"bucket_url"`    // 存储桶URL (格式: https://bucket-appid.cos.region.myqcloud.com)
+	BasePath     string `json:"base_path"`     // 基础路径（可选）
+	CustomDomain string `json:"custom_domain"` // 自定义域名（可选）
+}
+
+// CloudflareR2Config Cloudflare R2配置
+type CloudflareR2Config struct {
+	AccountID       string `json:"account_id"`        // 账户ID
+	AccessKeyID     string `json:"access_key_id"`     // Access Key ID
+	SecretAccessKey string `json:"secret_access_key"` // Secret Access Key
+	BucketName      string `json:"bucket_name"`       // 存储桶名称
+	BasePath        string `json:"base_path"`         // 基础路径（可选）
+	CustomDomain    string `json:"custom_domain"`     // 自定义域名（可选）
+}
