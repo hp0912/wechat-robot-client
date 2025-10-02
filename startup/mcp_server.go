@@ -7,12 +7,12 @@ import (
 	"wechat-robot-client/vars"
 )
 
-func InitMCPService() (*service.MCPService, error) {
+func InitMCPService() error {
 	ctx := context.Background()
-	mcpService := service.NewMCPService(ctx, vars.DB)
-	err := mcpService.Initialize()
+	vars.MCPService = service.NewMCPService(ctx, vars.DB)
+	err := vars.MCPService.Initialize()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return mcpService, nil
+	return nil
 }
