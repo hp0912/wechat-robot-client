@@ -1,6 +1,8 @@
 package model
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"gorm.io/datatypes"
@@ -96,4 +98,154 @@ func (m *MCPServer) IsNetworkMode() bool {
 // NeedsAuth 判断是否需要认证
 func (m *MCPServer) NeedsAuth() bool {
 	return m.AuthType != MCPAuthTypeNone && m.AuthType != ""
+}
+
+// SetArgs 设置命令行参数
+func (m *MCPServer) SetArgs(args []string) error {
+	if args == nil {
+		args = []string{}
+	}
+	data, err := json.Marshal(args)
+	if err != nil {
+		return fmt.Errorf("failed to marshal args: %w", err)
+	}
+	m.Args = data
+	return nil
+}
+
+// GetArgs 获取命令行参数
+func (m *MCPServer) GetArgs() ([]string, error) {
+	if m.Args == nil {
+		return []string{}, nil
+	}
+	var args []string
+	if err := json.Unmarshal(m.Args, &args); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal args: %w", err)
+	}
+	return args, nil
+}
+
+// SetEnv 设置环境变量
+func (m *MCPServer) SetEnv(env map[string]string) error {
+	if env == nil {
+		env = map[string]string{}
+	}
+	data, err := json.Marshal(env)
+	if err != nil {
+		return fmt.Errorf("failed to marshal env: %w", err)
+	}
+	m.Env = data
+	return nil
+}
+
+// GetEnv 获取环境变量
+func (m *MCPServer) GetEnv() (map[string]string, error) {
+	if m.Env == nil {
+		return map[string]string{}, nil
+	}
+	var env map[string]string
+	if err := json.Unmarshal(m.Env, &env); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal env: %w", err)
+	}
+	return env, nil
+}
+
+// SetHeaders 设置HTTP请求头
+func (m *MCPServer) SetHeaders(headers map[string]string) error {
+	if headers == nil {
+		headers = map[string]string{}
+	}
+	data, err := json.Marshal(headers)
+	if err != nil {
+		return fmt.Errorf("failed to marshal headers: %w", err)
+	}
+	m.Headers = data
+	return nil
+}
+
+// GetHeaders 获取HTTP请求头
+func (m *MCPServer) GetHeaders() (map[string]string, error) {
+	if m.Headers == nil {
+		return map[string]string{}, nil
+	}
+	var headers map[string]string
+	if err := json.Unmarshal(m.Headers, &headers); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal headers: %w", err)
+	}
+	return headers, nil
+}
+
+// SetTags 设置标签列表
+func (m *MCPServer) SetTags(tags []string) error {
+	if tags == nil {
+		tags = []string{}
+	}
+	data, err := json.Marshal(tags)
+	if err != nil {
+		return fmt.Errorf("failed to marshal tags: %w", err)
+	}
+	m.Tags = data
+	return nil
+}
+
+// GetTags 获取标签列表
+func (m *MCPServer) GetTags() ([]string, error) {
+	if m.Tags == nil {
+		return []string{}, nil
+	}
+	var tags []string
+	if err := json.Unmarshal(m.Tags, &tags); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal tags: %w", err)
+	}
+	return tags, nil
+}
+
+// SetCapabilities 设置能力配置
+func (m *MCPServer) SetCapabilities(capabilities map[string]interface{}) error {
+	if capabilities == nil {
+		capabilities = map[string]interface{}{}
+	}
+	data, err := json.Marshal(capabilities)
+	if err != nil {
+		return fmt.Errorf("failed to marshal capabilities: %w", err)
+	}
+	m.Capabilities = data
+	return nil
+}
+
+// GetCapabilities 获取能力配置
+func (m *MCPServer) GetCapabilities() (map[string]interface{}, error) {
+	if m.Capabilities == nil {
+		return map[string]interface{}{}, nil
+	}
+	var capabilities map[string]interface{}
+	if err := json.Unmarshal(m.Capabilities, &capabilities); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal capabilities: %w", err)
+	}
+	return capabilities, nil
+}
+
+// SetCustomConfig 设置自定义配置
+func (m *MCPServer) SetCustomConfig(config map[string]interface{}) error {
+	if config == nil {
+		config = map[string]interface{}{}
+	}
+	data, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal custom config: %w", err)
+	}
+	m.CustomConfig = data
+	return nil
+}
+
+// GetCustomConfig 获取自定义配置
+func (m *MCPServer) GetCustomConfig() (map[string]interface{}, error) {
+	if m.CustomConfig == nil {
+		return map[string]interface{}{}, nil
+	}
+	var config map[string]interface{}
+	if err := json.Unmarshal(m.CustomConfig, &config); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal custom config: %w", err)
+	}
+	return config, nil
 }
