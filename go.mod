@@ -14,6 +14,7 @@ require (
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/h2non/filetype v1.1.3
 	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.10.0
