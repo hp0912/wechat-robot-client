@@ -93,7 +93,7 @@ func (c *MCPToolConverter) convertInputSchemaToParameters(inputSchema map[string
 }
 
 // ExecuteOpenAIToolCall 执行OpenAI函数调用
-func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, toolCall openai.ToolCall) (string, error) {
+func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx RobotContext, toolCall openai.ToolCall) (string, error) {
 	// 解析工具名称，提取服务器名称和原始工具名称
 	serverName, toolName, err := c.parseToolName(toolCall.Function.Name)
 	if err != nil {
@@ -107,6 +107,8 @@ func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, toolCall o
 			return "", fmt.Errorf("failed to parse tool arguments: %w", err)
 		}
 	}
+
+	args["robot_context"] = robotCtx
 
 	// 构建MCP调用参数
 	params := MCPCallToolParams{

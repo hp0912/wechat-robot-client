@@ -6,6 +6,7 @@ import (
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/mcp"
 	"wechat-robot-client/vars"
 
 	"github.com/sashabaranov/go-openai"
@@ -82,7 +83,7 @@ func (s *AIChatService) GetAISessionEndTips() string {
 	return "AI会话已结束，您可以输入 #进入AI会话 来重新开始。"
 }
 
-func (s *AIChatService) Chat(aiMessages []openai.ChatCompletionMessage) (openai.ChatCompletionMessage, error) {
+func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.ChatCompletionMessage) (openai.ChatCompletionMessage, error) {
 	aiConfig := s.config.GetAIConfig()
 	if aiConfig.Prompt != "" {
 		systemMessage := openai.ChatCompletionMessage{
@@ -116,12 +117,5 @@ func (s *AIChatService) Chat(aiMessages []openai.ChatCompletionMessage) (openai.
 	if aiConfig.MaxCompletionTokens > 0 {
 		req.MaxCompletionTokens = aiConfig.MaxCompletionTokens
 	}
-	resp, err := client.CreateChatCompletion(context.Background(), req)
-	if err != nil {
-		return openai.ChatCompletionMessage{}, err
-	}
-	if len(resp.Choices) == 0 {
-		return openai.ChatCompletionMessage{}, fmt.Errorf("AI返回了空内容，请联系管理员")
-	}
-	return resp.Choices[0].Message, nil
+	return vars.MCPService.ChatWithMCPTools(robotCtx, client, req, 0)
 }

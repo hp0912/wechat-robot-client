@@ -171,3 +171,14 @@ type MCPConnectionStats struct {
 	AverageLatency time.Duration `json:"averageLatency"`
 	IsConnected    bool          `json:"isConnected"`
 }
+
+type RobotContext struct {
+	// 微信机器人实例 ID
+	RobotID int64
+	// 微信机器人实例的微信 ID
+	RobotWxID string
+	// 消息来源，如果是群聊则为群ID，私聊则为用户ID
+	FromWxID string
+	// 发送者ID，群聊中为发送者的用户ID，私聊中同FromWxID
+	SenderWxID string
+}

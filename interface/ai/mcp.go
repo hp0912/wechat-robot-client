@@ -14,10 +14,11 @@ type MCPService interface {
 	Shutdown(ctx context.Context) error
 	GetAllTools() ([]openai.Tool, error)
 	GetToolsByServer(serverName string) ([]openai.Tool, error)
-	ExecuteToolCall(toolCall openai.ToolCall) (string, error)
+	ExecuteToolCall(robotCtx mcp.RobotContext, toolCall openai.ToolCall) (string, error)
 	ChatWithMCPTools(
-		messages []openai.ChatCompletionMessage,
-		config *model.GlobalSettings,
+		robotCtx mcp.RobotContext,
+		client *openai.Client,
+		req openai.ChatCompletionRequest,
 		maxIterations int,
 	) (openai.ChatCompletionMessage, error)
 	AddServer(server *model.MCPServer) error

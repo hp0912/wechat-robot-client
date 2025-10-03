@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"wechat-robot-client/interface/plugin"
+	"wechat-robot-client/pkg/mcp"
 	"wechat-robot-client/service"
+	"wechat-robot-client/vars"
 
 	"github.com/sashabaranov/go-openai"
 )
@@ -79,7 +81,7 @@ func (p *AImageRecognizerPlugin) Run(ctx *plugin.MessageContext) bool {
 		}
 	}
 
-	aiContext := []openai.ChatCompletionMessage{
+	aiMessages := []openai.ChatCompletionMessage{
 		{
 			Role: openai.ChatMessageRoleUser,
 			MultiContent: []openai.ChatMessagePart{
@@ -97,7 +99,12 @@ func (p *AImageRecognizerPlugin) Run(ctx *plugin.MessageContext) bool {
 		},
 	}
 	aiChatService := service.NewAIChatService(ctx.Context, ctx.Settings)
-	aiReply, err := aiChatService.Chat(aiContext)
+	aiReply, err := aiChatService.Chat(mcp.RobotContext{
+		RobotID:    vars.RobotRuntime.RobotID,
+		RobotWxID:  vars.RobotRuntime.WxID,
+		FromWxID:   ctx.Message.FromWxID,
+		SenderWxID: ctx.Message.SenderWxID,
+	}, aiMessages)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 		return true
