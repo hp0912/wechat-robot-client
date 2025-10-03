@@ -31,7 +31,7 @@ func (v ValidErrors) Errors() []string {
 	return errs
 }
 
-func BindAndValid(c *gin.Context, v interface{}) (isValid bool, errs ValidErrors) {
+func BindAndValid(c *gin.Context, v any) (isValid bool, errs ValidErrors) {
 	err := c.ShouldBind(v)
 	if err != nil {
 		return false, errs

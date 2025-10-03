@@ -201,9 +201,9 @@ func (m *MCPServer) GetTags() ([]string, error) {
 }
 
 // SetCapabilities 设置能力配置
-func (m *MCPServer) SetCapabilities(capabilities map[string]interface{}) error {
+func (m *MCPServer) SetCapabilities(capabilities map[string]any) error {
 	if capabilities == nil {
-		capabilities = map[string]interface{}{}
+		capabilities = map[string]any{}
 	}
 	data, err := json.Marshal(capabilities)
 	if err != nil {
@@ -214,11 +214,11 @@ func (m *MCPServer) SetCapabilities(capabilities map[string]interface{}) error {
 }
 
 // GetCapabilities 获取能力配置
-func (m *MCPServer) GetCapabilities() (map[string]interface{}, error) {
+func (m *MCPServer) GetCapabilities() (map[string]any, error) {
 	if m.Capabilities == nil {
-		return map[string]interface{}{}, nil
+		return map[string]any{}, nil
 	}
-	var capabilities map[string]interface{}
+	var capabilities map[string]any
 	if err := json.Unmarshal(m.Capabilities, &capabilities); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal capabilities: %w", err)
 	}
@@ -226,9 +226,9 @@ func (m *MCPServer) GetCapabilities() (map[string]interface{}, error) {
 }
 
 // SetCustomConfig 设置自定义配置
-func (m *MCPServer) SetCustomConfig(config map[string]interface{}) error {
+func (m *MCPServer) SetCustomConfig(config map[string]any) error {
 	if config == nil {
-		config = map[string]interface{}{}
+		config = map[string]any{}
 	}
 	data, err := json.Marshal(config)
 	if err != nil {
@@ -239,11 +239,11 @@ func (m *MCPServer) SetCustomConfig(config map[string]interface{}) error {
 }
 
 // GetCustomConfig 获取自定义配置
-func (m *MCPServer) GetCustomConfig() (map[string]interface{}, error) {
+func (m *MCPServer) GetCustomConfig() (map[string]any, error) {
 	if m.CustomConfig == nil {
-		return map[string]interface{}{}, nil
+		return map[string]any{}, nil
 	}
-	var config map[string]interface{}
+	var config map[string]any
 	if err := json.Unmarshal(m.CustomConfig, &config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal custom config: %w", err)
 	}
