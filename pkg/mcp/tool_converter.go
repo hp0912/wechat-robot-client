@@ -13,13 +13,15 @@ import (
 
 // MCPToolConverter MCP工具到OpenAI工具格式的转换器
 type MCPToolConverter struct {
-	manager *MCPManager
+	manager       *MCPManager
+	messageSender MessageSender
 }
 
 // NewMCPToolConverter 创建转换器
-func NewMCPToolConverter(manager *MCPManager) *MCPToolConverter {
+func NewMCPToolConverter(manager *MCPManager, messageSender MessageSender) *MCPToolConverter {
 	return &MCPToolConverter{
-		manager: manager,
+		manager:       manager,
+		messageSender: messageSender,
 	}
 }
 
@@ -124,8 +126,7 @@ func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx R
 		return "", fmt.Errorf("failed to call mcp tool: %w", err)
 	}
 
-	// 转换结果为字符串
-	return c.formatToolResult(result)
+	return c.formatToolResult(robotCtx, result)
 }
 
 // parseToolName 解析工具名称
@@ -141,27 +142,37 @@ func (c *MCPToolConverter) parseToolName(fullName string) (serverName, toolName 
 	return "", "", fmt.Errorf("invalid tool name format: %s", fullName)
 }
 
-// formatToolResult 格式化工具结果
-func (c *MCPToolConverter) formatToolResult(result *MCPCallToolResult) (string, error) {
+func (c *MCPToolConverter) formatToolResult(robotCtx RobotContext, result *MCPCallToolResult) (string, error) {
 	if result.IsError {
 		return "", fmt.Errorf("tool execution error: %v", result.Content)
 	}
-
 	for _, content := range result.Content {
 		switch content.Type {
 		case model.MsgTypeText:
-			// message, ok := content.Data.(string)
-			// if !ok {
-			// 	return "", fmt.Errorf("invalid text content format")
-			// }
+			message, ok := content.Data.(string)
+			if !ok || message == "" {
+				return "", fmt.Errorf("invalid text message format")
+			}
+			err := c.messageSender.SendTextMessage(robotCtx.FromWxID, message, content.Mentions...)
+			if err != nil {
+				return "", fmt.Errorf("failed to send text message: %w", err)
+			}
 		case model.MsgTypeApp:
-			//
+			// 发送App消息
+			xmlData, ok := content.Data.(string)
+			if !ok || xmlData == "" {
+				return "", fmt.Errorf("invalid app message format")
+			}
+			appMsgType := int(content.SubType)
+			err := c.messageSender.SendAppMessage(robotCtx.FromWxID, appMsgType, xmlData)
+			if err != nil {
+				return "", fmt.Errorf("failed to send app message: %w", err)
+			}
 		default:
 			//
 		}
 	}
-
-	return "执行成功", nil
+	return "工具执行成功", nil
 }
 
 // BuildSystemPromptWithMCPTools 构建包含MCP工具描述的系统提示词

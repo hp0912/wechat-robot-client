@@ -24,9 +24,9 @@ type MCPService struct {
 
 var _ ai.MCPService = (*MCPService)(nil)
 
-func NewMCPService(ctx context.Context, db *gorm.DB) *MCPService {
+func NewMCPService(ctx context.Context, db *gorm.DB, messageSender mcp.MessageSender) *MCPService {
 	manager := mcp.NewMCPManager(db)
-	converter := mcp.NewMCPToolConverter(manager)
+	converter := mcp.NewMCPToolConverter(manager, messageSender)
 	repo := repository.NewMCPServerRepository(ctx, db)
 
 	return &MCPService{

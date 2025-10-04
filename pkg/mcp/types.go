@@ -191,3 +191,8 @@ type RobotContext struct {
 	// 引用消息 ID
 	RefMessageID int64
 }
+
+type MessageSender interface {
+	SendTextMessage(toWxID, content string, at ...string) error
+	SendAppMessage(toWxID string, appMsgType int, appMsgXml string) error
+}

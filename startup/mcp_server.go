@@ -9,7 +9,11 @@ import (
 
 func InitMCPService() error {
 	ctx := context.Background()
-	vars.MCPService = service.NewMCPService(ctx, vars.DB)
+
+	messageService := service.NewMessageService(ctx)
+	messageSender := service.NewMessageSenderAdapter(messageService)
+	vars.MCPService = service.NewMCPService(ctx, vars.DB, messageSender)
+
 	err := vars.MCPService.Initialize()
 	if err != nil {
 		return err
