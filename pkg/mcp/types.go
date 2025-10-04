@@ -174,11 +174,17 @@ type MCPConnectionStats struct {
 
 type RobotContext struct {
 	// 微信机器人实例 ID
-	RobotID int64
+	RobotID      int64
+	RobotCode    string
+	RobotRedisDB uint
 	// 微信机器人实例的微信 ID
 	RobotWxID string
 	// 消息来源，如果是群聊则为群ID，私聊则为用户ID
 	FromWxID string
 	// 发送者ID，群聊中为发送者的用户ID，私聊中同FromWxID
 	SenderWxID string
+	// 当前消息 ID
+	MessageID int64
+	// 引用消息 ID
+	RefMessageID int64
 }

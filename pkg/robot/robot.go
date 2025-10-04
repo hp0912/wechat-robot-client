@@ -22,6 +22,8 @@ import (
 
 type Robot struct {
 	RobotID           int64
+	RobotCode         string
+	RobotRedisDB      uint
 	WxID              string
 	Status            model.RobotStatus
 	DeviceID          string

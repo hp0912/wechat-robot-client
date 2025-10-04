@@ -32,6 +32,8 @@ func InitWechatRobot() error {
 		return errors.New("未找到机器人配置")
 	}
 	vars.RobotRuntime.RobotID = robotAdmin.ID
+	vars.RobotRuntime.RobotCode = robotAdmin.RobotCode
+	vars.RobotRuntime.RobotRedisDB = robotAdmin.RedisDB
 	vars.RobotRuntime.WxID = robotAdmin.WeChatID
 	vars.RobotRuntime.DeviceID = robotAdmin.DeviceID
 	vars.RobotRuntime.DeviceName = robotAdmin.DeviceName
