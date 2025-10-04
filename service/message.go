@@ -718,6 +718,36 @@ func (s *MessageService) MsgSendGroupMassMsgText(toWxID []string, content string
 	return nil
 }
 
+func (s *MessageService) SendAppMessage(toWxID string, appMsgType int, appMsgXml string) error {
+	message, err := vars.RobotRuntime.SendAppMessage(toWxID, appMsgType, appMsgXml)
+	if err != nil {
+		return err
+	}
+
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.MsgId,
+		Type:               model.MsgTypeApp,
+		Content:            message.Content,
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	err = s.msgRespo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
 func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) (*model.Message, error) {
 	imageBytes, err := io.ReadAll(image)
 	if err != nil {

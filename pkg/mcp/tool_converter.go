@@ -7,6 +7,8 @@ import (
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
+
+	"wechat-robot-client/model"
 )
 
 // MCPToolConverter MCP工具到OpenAI工具格式的转换器
@@ -145,34 +147,21 @@ func (c *MCPToolConverter) formatToolResult(result *MCPCallToolResult) (string, 
 		return "", fmt.Errorf("tool execution error: %v", result.Content)
 	}
 
-	// 合并所有内容
-	var output string
-	for i, content := range result.Content {
-		if i > 0 {
-			output += "\n\n"
-		}
-
+	for _, content := range result.Content {
 		switch content.Type {
-		case "text":
-			output += content.Text
-		case "image":
-			// 图片内容可能需要特殊处理
-			output += fmt.Sprintf("[Image: %v]", content.Data)
-		case "resource":
-			// 资源内容
-			output += fmt.Sprintf("[Resource: %v]", content.Data)
+		case model.MsgTypeText:
+			// message, ok := content.Data.(string)
+			// if !ok {
+			// 	return "", fmt.Errorf("invalid text content format")
+			// }
+		case model.MsgTypeApp:
+			//
 		default:
-			// 其他类型
-			dataBytes, err := json.Marshal(content.Data)
-			if err != nil {
-				output += fmt.Sprintf("[Data: %v]", content.Data)
-			} else {
-				output += string(dataBytes)
-			}
+			//
 		}
 	}
 
-	return output, nil
+	return "执行成功", nil
 }
 
 // BuildSystemPromptWithMCPTools 构建包含MCP工具描述的系统提示词

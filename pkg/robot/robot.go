@@ -82,7 +82,7 @@ func (r *Robot) GetQrCode(loginType string, isPretender bool) (loginData LoginRe
 	switch loginType {
 	case "mac":
 		if isPretender {
-			resp, err = r.Client.GetQrCode(loginType, r.DeviceID, r.DeviceName)
+			resp, err = r.Client.GetQrCode(loginType, "", r.DeviceName)
 		} else {
 			resp, err = r.Client.LoginGetQRMac(r.DeviceID, "Mac Book Pro")
 		}
@@ -476,6 +476,21 @@ func (r *Robot) MsgSendGroupMassMsgText(req MsgSendGroupMassMsgTextRequest) (Msg
 		return MsgSendGroupMassMsgTextResponse{}, err
 	}
 	return resp, nil
+}
+
+func (r *Robot) SendAppMessage(toWxID string, appMsgType int, appMsgXml string) (appMessage SendAppResponse, err error) {
+	appMessage, err = r.Client.SendApp(SendAppRequest{
+		Wxid:   r.WxID,
+		ToWxid: toWxID,
+		Xml:    appMsgXml,
+		Type:   appMsgType,
+	})
+	if err != nil {
+		err = fmt.Errorf("发送聊天记录消息失败: %w", err)
+		return
+	}
+	appMessage.Content = appMsgXml
+	return
 }
 
 func (r *Robot) MsgUploadImg(toWxID string, image []byte) (MsgUploadImgResponse, error) {

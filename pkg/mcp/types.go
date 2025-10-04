@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"time"
+	"wechat-robot-client/model"
 )
 
 const MCPProtocolVersion = "0.1.0"
@@ -127,9 +128,11 @@ type MCPCallToolResult struct {
 
 // MCPToolContent 工具内容
 type MCPToolContent struct {
-	Type string `json:"type"` // text, image, resource
-	Text string `json:"text,omitempty"`
-	Data any    `json:"data,omitempty"`
+	Type     model.MessageType    `json:"type"`
+	SubType  model.AppMessageType `json:"subType,omitempty"`
+	Text     string               `json:"text,omitempty"`
+	Mentions []string             `json:"mentions,omitempty"` // 只对文本消息有效
+	Data     any                  `json:"data,omitempty"`
 }
 
 // MCPListResourcesResult 资源列表结果
