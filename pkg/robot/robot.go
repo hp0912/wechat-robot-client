@@ -80,7 +80,7 @@ func (r *Robot) GetQrCode(loginType string, isPretender bool) (loginData LoginRe
 	switch loginType {
 	case "mac":
 		if isPretender {
-			resp, err = r.Client.GetQrCode(loginType, r.DeviceID, r.DeviceName)
+			resp, err = r.Client.GetQrCode(loginType, "", r.DeviceName)
 		} else {
 			resp, err = r.Client.LoginGetQRMac(r.DeviceID, "Mac Book Pro")
 		}

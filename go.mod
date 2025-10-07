@@ -21,7 +21,7 @@ require (
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1186
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/hunyuan v1.0.1186
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.70
-	github.com/volcengine/volcengine-go-sdk v1.1.25
+	github.com/volcengine/volcengine-go-sdk v1.1.37
 	golang.org/x/time v0.12.0
 	gorm.io/datatypes v1.2.5
 	gorm.io/driver/mysql v1.5.7
