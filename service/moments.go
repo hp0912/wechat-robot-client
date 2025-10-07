@@ -195,7 +195,20 @@ func (s *MomentsService) SyncMoments() {
 				continue
 			}
 			if commented {
-				log.Println("今天已经评论过了，跳过")
+				// 已经评论过了，只自动点赞
+				if momentSettings.AutoLike != nil && *momentSettings.AutoLike {
+					_, err := vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
+						Id:   strconv.FormatUint(timelineObject.ID, 10),
+						Type: 1,
+					})
+					if err != nil {
+						log.Println("自动点赞朋友圈失败: ", err)
+						continue
+					}
+					log.Println("今天已经评论过了，只点赞")
+				} else {
+					log.Println("今天已经评论过了，跳过")
+				}
 				continue
 			}
 			momentMood = aiMomentService.GetMomentMood(timelineObject.ContentDesc, *momentSettings)
