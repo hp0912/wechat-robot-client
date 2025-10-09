@@ -6,30 +6,31 @@ import (
 
 	"github.com/volcengine/volcengine-go-sdk/service/arkruntime"
 	"github.com/volcengine/volcengine-go-sdk/service/arkruntime/model"
+	"github.com/volcengine/volcengine-go-sdk/volcengine"
 )
 
 type DoubaoConfig struct {
-	ApiKey         string  `json:"api_key"`
-	Model          string  `json:"model"`
-	Prompt         string  `json:"prompt"`
-	Image          string  `json:"image"`
-	ResponseFormat string  `json:"response_format"`
-	Size           string  `json:"size"`
-	Seed           int64   `json:"seed"`
-	GuidanceScale  float64 `json:"guidance_scale"`
-	Watermark      bool    `json:"watermark"`
+	ApiKey                    string `json:"api_key"`
+	Model                     string `json:"model"`
+	Prompt                    string `json:"prompt"`
+	Image                     string `json:"image"`
+	ResponseFormat            string `json:"response_format"`
+	Size                      string `json:"size"`
+	SequentialImageGeneration string `json:"sequential_image_generation"`
+	Seed                      int64  `json:"seed"`
+	Stream                    bool   `json:"stream"`
+	Watermark                 bool   `json:"watermark"`
 }
 
 // DoubaoDrawing 豆包绘图
 func DoubaoDrawing(config *DoubaoConfig) (string, error) {
 	client := arkruntime.NewClientWithApiKey(config.ApiKey)
 	ctx := context.Background()
-	format := string(model.GenerateImagesResponseFormatURL)
 
 	generateReq := model.GenerateImagesRequest{
 		Model:          config.Model,
 		Prompt:         config.Prompt,
-		ResponseFormat: &format,
+		ResponseFormat: volcengine.String(model.GenerateImagesResponseFormatURL),
 		Watermark:      &config.Watermark,
 	}
 	if config.Image != "" {
@@ -40,12 +41,15 @@ func DoubaoDrawing(config *DoubaoConfig) (string, error) {
 	}
 	if config.Size != "" {
 		generateReq.Size = &config.Size
+	} else {
+		generateReq.Size = volcengine.String("2K")
 	}
-	if config.Seed != 0 {
-		generateReq.Seed = &config.Seed
-	}
-	if config.GuidanceScale != 0 {
-		generateReq.GuidanceScale = &config.GuidanceScale
+	if config.SequentialImageGeneration != "" {
+		seq := model.SequentialImageGeneration(config.SequentialImageGeneration)
+		generateReq.SequentialImageGeneration = &seq
+	} else {
+		seq := model.SequentialImageGeneration("auto")
+		generateReq.SequentialImageGeneration = &seq
 	}
 
 	imagesResponse, err := client.GenerateImages(ctx, generateReq)
