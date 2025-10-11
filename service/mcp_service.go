@@ -19,7 +19,7 @@ type MCPService struct {
 	db            *gorm.DB
 	manager       *mcp.MCPManager
 	converter     *mcp.MCPToolConverter
-	mcpServerRepo *repository.MCPServerRepository
+	mcpServerRepo *repository.MCPServer
 }
 
 var _ ai.MCPService = (*MCPService)(nil)
@@ -27,7 +27,7 @@ var _ ai.MCPService = (*MCPService)(nil)
 func NewMCPService(ctx context.Context, db *gorm.DB, messageSender mcp.MessageSender) *MCPService {
 	manager := mcp.NewMCPManager(db)
 	converter := mcp.NewMCPToolConverter(manager, messageSender)
-	repo := repository.NewMCPServerRepository(ctx, db)
+	repo := repository.NewMCPServerRepo(ctx, db)
 
 	return &MCPService{
 		ctx:           ctx,

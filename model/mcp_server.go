@@ -32,6 +32,7 @@ const (
 type MCPServer struct {
 	ID          uint64           `gorm:"column:id;primaryKey;autoIncrement;comment:MCP服务器配置表主键ID" json:"id"`
 	Name        string           `gorm:"column:name;type:varchar(100);not null;comment:MCP服务器名称" json:"name"`
+	IsBuiltIn   *bool            `gorm:"column:is_built_in;default:false;comment:是否为内置服务器配置，内置配置不可删除" json:"is_built_in"`
 	Description string           `gorm:"column:description;type:varchar(500);default:'';comment:MCP服务器描述" json:"description"`
 	Transport   MCPTransportType `gorm:"column:transport;type:enum('stdio','sse','http','ws');not null;comment:传输类型：stdio-命令行，sse-SSE，http-HTTP，ws-WebSocket" json:"transport"`
 	Enabled     *bool            `gorm:"column:enabled;default:true;comment:是否启用该MCP服务器" json:"enabled"`

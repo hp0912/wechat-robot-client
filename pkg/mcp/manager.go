@@ -20,7 +20,7 @@ type MCPManager struct {
 	mu         sync.RWMutex
 	ctx        context.Context
 	cancelFunc context.CancelFunc
-	repo       *repository.MCPServerRepository
+	repo       *repository.MCPServer
 }
 
 // NewMCPManager 创建MCP管理器
@@ -31,7 +31,7 @@ func NewMCPManager(db *gorm.DB) *MCPManager {
 		clients:    make(map[uint64]MCPClient),
 		ctx:        ctx,
 		cancelFunc: cancel,
-		repo:       repository.NewMCPServerRepository(ctx, db),
+		repo:       repository.NewMCPServerRepo(ctx, db),
 	}
 }
 

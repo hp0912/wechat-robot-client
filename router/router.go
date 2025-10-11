@@ -22,6 +22,7 @@ var aiCallbackCtl *controller.AICallback
 var momentsCtl *controller.Moments
 var systemSettingsCtl *controller.SystemSettings
 var ossSettingsCtl *controller.OSSSettings
+var mcpServerCtl *controller.MCPServer
 var probeCtl *controller.Probe
 
 func initController() {
@@ -40,6 +41,7 @@ func initController() {
 	momentsCtl = controller.NewMomentsController()
 	systemSettingsCtl = controller.NewSystemSettingsController()
 	ossSettingsCtl = controller.NewOSSSettingsController()
+	mcpServerCtl = controller.NewMCPController()
 	probeCtl = controller.NewProbeController()
 }
 
@@ -120,6 +122,12 @@ func RegisterRouter(r *gin.Engine) error {
 	// OSS 设置相关接口
 	api.GET("/robot/oss-settings", ossSettingsCtl.GetOSSSettings)
 	api.POST("/robot/oss-settings", ossSettingsCtl.SaveOSSSettings)
+
+	// MCP 协议相关接口
+	api.GET("/robot/mcp/servers", mcpServerCtl.GetMCPServers)
+	api.POST("/robot/mcp/server", mcpServerCtl.CreateMCPServer)
+	api.PUT("/robot/mcp/server", mcpServerCtl.UpdateMCPServer)
+	api.DELETE("/robot/mcp/server", mcpServerCtl.DeleteMCPServer)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)

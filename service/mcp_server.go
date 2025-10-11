@@ -1,0 +1,65 @@
+package service
+
+import (
+	"context"
+	"fmt"
+	"regexp"
+	"strings"
+	"wechat-robot-client/model"
+	"wechat-robot-client/repository"
+	"wechat-robot-client/vars"
+)
+
+var mcpNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+type MCPServerService struct {
+	ctx           context.Context
+	mcpServerRepo *repository.MCPServer
+}
+
+func NewMCPServerService(ctx context.Context) *MCPServerService {
+	return &MCPServerService{
+		ctx:           ctx,
+		mcpServerRepo: repository.NewMCPServerRepo(ctx, vars.DB),
+	}
+}
+
+func (s *MCPServerService) GetMCPServers() ([]*model.MCPServer, error) {
+	return s.mcpServerRepo.FindAll()
+}
+
+func (s *MCPServerService) validateMCPServerName(mcpServer *model.MCPServer) error {
+	if mcpServer == nil {
+		return fmt.Errorf("MCP服务器对象不能为空")
+	}
+	name := strings.TrimSpace(mcpServer.Name)
+	if name == "" {
+		return fmt.Errorf("MCP服务器名称不能为空")
+	}
+	if !mcpNameRe.MatchString(name) {
+		return fmt.Errorf("无效的MCP服务器名称：%q。只允许字母、数字、下划线，且必须以字母或下划线开头", name)
+	}
+	mcpServer.Name = name
+	return nil
+}
+
+func (s *MCPServerService) CreateMCPServer(mcpServer *model.MCPServer) error {
+	if err := s.validateMCPServerName(mcpServer); err != nil {
+		return err
+	}
+	return s.mcpServerRepo.Create(mcpServer)
+}
+
+func (s *MCPServerService) UpdateMCPServer(mcpServer *model.MCPServer) error {
+	if err := s.validateMCPServerName(mcpServer); err != nil {
+		return err
+	}
+	return s.mcpServerRepo.Update(mcpServer)
+}
+
+func (s *MCPServerService) DeleteMCPServer(mcpServer *model.MCPServer) error {
+	if mcpServer == nil || mcpServer.ID == 0 {
+		return fmt.Errorf("参数异常")
+	}
+	return s.mcpServerRepo.Delete(mcpServer.ID)
+}

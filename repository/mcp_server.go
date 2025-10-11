@@ -10,29 +10,28 @@ import (
 	"wechat-robot-client/model"
 )
 
-type MCPServerRepository struct {
+type MCPServer struct {
 	Ctx context.Context
 	DB  *gorm.DB
 }
 
-func NewMCPServerRepository(ctx context.Context, db *gorm.DB) *MCPServerRepository {
-	return &MCPServerRepository{Ctx: ctx, DB: db}
+func NewMCPServerRepo(ctx context.Context, db *gorm.DB) *MCPServer {
+	return &MCPServer{Ctx: ctx, DB: db}
 }
 
-func (respo *MCPServerRepository) Create(server *model.MCPServer) error {
+func (respo *MCPServer) Create(server *model.MCPServer) error {
 	return respo.DB.WithContext(respo.Ctx).Create(server).Error
 }
 
-func (respo *MCPServerRepository) Update(server *model.MCPServer) error {
+func (respo *MCPServer) Update(server *model.MCPServer) error {
 	return respo.DB.WithContext(respo.Ctx).Save(server).Error
 }
 
-// Delete 软删除MCP服务器配置
-func (respo *MCPServerRepository) Delete(id uint64) error {
-	return respo.DB.WithContext(respo.Ctx).Delete(&model.MCPServer{}, id).Error
+func (respo *MCPServer) Delete(id uint64) error {
+	return respo.DB.WithContext(respo.Ctx).Unscoped().Delete(&model.MCPServer{}, id).Error
 }
 
-func (respo *MCPServerRepository) FindByID(id uint64) (*model.MCPServer, error) {
+func (respo *MCPServer) FindByID(id uint64) (*model.MCPServer, error) {
 	var server model.MCPServer
 	err := respo.DB.WithContext(respo.Ctx).First(&server, id).Error
 	if err == gorm.ErrRecordNotFound {
@@ -44,7 +43,7 @@ func (respo *MCPServerRepository) FindByID(id uint64) (*model.MCPServer, error) 
 	return &server, nil
 }
 
-func (respo *MCPServerRepository) FindByName(name string) (*model.MCPServer, error) {
+func (respo *MCPServer) FindByName(name string) (*model.MCPServer, error) {
 	var server model.MCPServer
 	err := respo.DB.WithContext(respo.Ctx).Where("name = ?", name).First(&server).Error
 	if err == gorm.ErrRecordNotFound {
@@ -56,13 +55,13 @@ func (respo *MCPServerRepository) FindByName(name string) (*model.MCPServer, err
 	return &server, nil
 }
 
-func (respo *MCPServerRepository) FindAll() ([]*model.MCPServer, error) {
+func (respo *MCPServer) FindAll() ([]*model.MCPServer, error) {
 	var servers []*model.MCPServer
 	err := respo.DB.WithContext(respo.Ctx).Order("priority DESC, id ASC").Find(&servers).Error
 	return servers, err
 }
 
-func (respo *MCPServerRepository) FindEnabled() ([]*model.MCPServer, error) {
+func (respo *MCPServer) FindEnabled() ([]*model.MCPServer, error) {
 	var servers []*model.MCPServer
 	enabled := true
 	err := respo.DB.WithContext(respo.Ctx).Where("enabled = ?", enabled).
@@ -71,7 +70,7 @@ func (respo *MCPServerRepository) FindEnabled() ([]*model.MCPServer, error) {
 	return servers, err
 }
 
-func (respo *MCPServerRepository) FindByTransport(transport model.MCPTransportType) ([]*model.MCPServer, error) {
+func (respo *MCPServer) FindByTransport(transport model.MCPTransportType) ([]*model.MCPServer, error) {
 	var servers []*model.MCPServer
 	err := respo.DB.WithContext(respo.Ctx).Where("transport = ?", transport).
 		Order("priority DESC, id ASC").
@@ -79,7 +78,7 @@ func (respo *MCPServerRepository) FindByTransport(transport model.MCPTransportTy
 	return servers, err
 }
 
-func (respo *MCPServerRepository) FindByTag(tag string) ([]*model.MCPServer, error) {
+func (respo *MCPServer) FindByTag(tag string) ([]*model.MCPServer, error) {
 	var servers []*model.MCPServer
 	// MySQL的JSON_CONTAINS函数
 	err := respo.DB.WithContext(respo.Ctx).Where("JSON_CONTAINS(tags, ?)", fmt.Sprintf(`"%s"`, tag)).
@@ -89,7 +88,7 @@ func (respo *MCPServerRepository) FindByTag(tag string) ([]*model.MCPServer, err
 }
 
 // FindEnabledByTransport 根据传输类型查询已启用的MCP服务器配置
-func (respo *MCPServerRepository) FindEnabledByTransport(transport model.MCPTransportType) ([]*model.MCPServer, error) {
+func (respo *MCPServer) FindEnabledByTransport(transport model.MCPTransportType) ([]*model.MCPServer, error) {
 	var servers []*model.MCPServer
 	enabled := true
 	err := respo.DB.WithContext(respo.Ctx).Where("enabled = ? AND transport = ?", enabled, transport).
@@ -99,35 +98,35 @@ func (respo *MCPServerRepository) FindEnabledByTransport(transport model.MCPTran
 }
 
 // UpdateEnabled 更新启用状态
-func (respo *MCPServerRepository) UpdateEnabled(id uint64, enabled bool) error {
+func (respo *MCPServer) UpdateEnabled(id uint64, enabled bool) error {
 	return respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).
 		Where("id = ?", id).
 		Update("enabled", enabled).Error
 }
 
 // UpdatePriority 更新优先级
-func (respo *MCPServerRepository) UpdatePriority(id uint64, priority int) error {
+func (respo *MCPServer) UpdatePriority(id uint64, priority int) error {
 	return respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).
 		Where("id = ?", id).
 		Update("priority", priority).Error
 }
 
 // IncrementConnectionCount 增加连接计数
-func (respo *MCPServerRepository) IncrementConnectionCount(id uint64) error {
+func (respo *MCPServer) IncrementConnectionCount(id uint64) error {
 	return respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).
 		Where("id = ?", id).
 		UpdateColumn("connection_count", gorm.Expr("connection_count + 1")).Error
 }
 
 // IncrementErrorCount 增加错误计数
-func (respo *MCPServerRepository) IncrementErrorCount(id uint64) error {
+func (respo *MCPServer) IncrementErrorCount(id uint64) error {
 	return respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).
 		Where("id = ?", id).
 		UpdateColumn("error_count", gorm.Expr("error_count + 1")).Error
 }
 
 // UpdateConnectionSuccess 更新连接成功状态
-func (respo *MCPServerRepository) UpdateConnectionSuccess(id uint64) error {
+func (respo *MCPServer) UpdateConnectionSuccess(id uint64) error {
 	now := time.Now()
 	return respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).
 		Where("id = ?", id).
@@ -139,7 +138,7 @@ func (respo *MCPServerRepository) UpdateConnectionSuccess(id uint64) error {
 }
 
 // UpdateConnectionError 更新连接错误状态
-func (respo *MCPServerRepository) UpdateConnectionError(id uint64, errMsg string) error {
+func (respo *MCPServer) UpdateConnectionError(id uint64, errMsg string) error {
 	return respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).
 		Where("id = ?", id).
 		Updates(map[string]any{
@@ -150,7 +149,7 @@ func (respo *MCPServerRepository) UpdateConnectionError(id uint64, errMsg string
 }
 
 // ResetErrorCount 重置错误计数
-func (respo *MCPServerRepository) ResetErrorCount(id uint64) error {
+func (respo *MCPServer) ResetErrorCount(id uint64) error {
 	return respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).
 		Where("id = ?", id).
 		Updates(map[string]any{
@@ -160,7 +159,7 @@ func (respo *MCPServerRepository) ResetErrorCount(id uint64) error {
 }
 
 // CountByTransport 统计各传输类型的服务器数量
-func (respo *MCPServerRepository) CountByTransport() (map[model.MCPTransportType]int64, error) {
+func (respo *MCPServer) CountByTransport() (map[model.MCPTransportType]int64, error) {
 	type Result struct {
 		Transport model.MCPTransportType
 		Count     int64
@@ -185,7 +184,7 @@ func (respo *MCPServerRepository) CountByTransport() (map[model.MCPTransportType
 }
 
 // FindWithHighErrorRate 查询高错误率的服务器（错误率 > 阈值）
-func (respo *MCPServerRepository) FindWithHighErrorRate(errorRateThreshold float64) ([]*model.MCPServer, error) {
+func (respo *MCPServer) FindWithHighErrorRate(errorRateThreshold float64) ([]*model.MCPServer, error) {
 	var servers []*model.MCPServer
 
 	// 计算错误率：error_count / (connection_count + error_count)
@@ -199,7 +198,7 @@ func (respo *MCPServerRepository) FindWithHighErrorRate(errorRateThreshold float
 }
 
 // FindNotConnectedRecently 查询最近未连接的服务器
-func (respo *MCPServerRepository) FindNotConnectedRecently(duration time.Duration) ([]*model.MCPServer, error) {
+func (respo *MCPServer) FindNotConnectedRecently(duration time.Duration) ([]*model.MCPServer, error) {
 	var servers []*model.MCPServer
 	enabled := true
 	cutoffTime := time.Now().Add(-duration)
@@ -213,35 +212,35 @@ func (respo *MCPServerRepository) FindNotConnectedRecently(duration time.Duratio
 }
 
 // BatchUpdateEnabled 批量更新启用状态
-func (respo *MCPServerRepository) BatchUpdateEnabled(ids []uint64, enabled bool) error {
+func (respo *MCPServer) BatchUpdateEnabled(ids []uint64, enabled bool) error {
 	return respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).
 		Where("id IN ?", ids).
 		Update("enabled", enabled).Error
 }
 
 // Exists 检查配置是否存在
-func (respo *MCPServerRepository) Exists(id uint64) (bool, error) {
+func (respo *MCPServer) Exists(id uint64) (bool, error) {
 	var count int64
 	err := respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).Where("id = ?", id).Count(&count).Error
 	return count > 0, err
 }
 
 // ExistsByName 检查名称是否已存在
-func (respo *MCPServerRepository) ExistsByName(name string) (bool, error) {
+func (respo *MCPServer) ExistsByName(name string) (bool, error) {
 	var count int64
 	err := respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).Where("name = ?", name).Count(&count).Error
 	return count > 0, err
 }
 
 // GetTotalCount 获取总数
-func (respo *MCPServerRepository) GetTotalCount() (int64, error) {
+func (respo *MCPServer) GetTotalCount() (int64, error) {
 	var count int64
 	err := respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).Count(&count).Error
 	return count, err
 }
 
 // GetEnabledCount 获取已启用的数量
-func (respo *MCPServerRepository) GetEnabledCount() (int64, error) {
+func (respo *MCPServer) GetEnabledCount() (int64, error) {
 	var count int64
 	enabled := true
 	err := respo.DB.WithContext(respo.Ctx).Model(&model.MCPServer{}).Where("enabled = ?", enabled).Count(&count).Error
@@ -249,7 +248,7 @@ func (respo *MCPServerRepository) GetEnabledCount() (int64, error) {
 }
 
 // FindWithPagination 分页查询
-func (respo *MCPServerRepository) FindWithPagination(page, pageSize int) ([]*model.MCPServer, int64, error) {
+func (respo *MCPServer) FindWithPagination(page, pageSize int) ([]*model.MCPServer, int64, error) {
 	var servers []*model.MCPServer
 	var total int64
 
@@ -269,6 +268,6 @@ func (respo *MCPServerRepository) FindWithPagination(page, pageSize int) ([]*mod
 }
 
 // Transaction 执行事务
-func (respo *MCPServerRepository) Transaction(fn func(*gorm.DB) error) error {
+func (respo *MCPServer) Transaction(fn func(*gorm.DB) error) error {
 	return respo.DB.WithContext(respo.Ctx).Transaction(fn)
 }
