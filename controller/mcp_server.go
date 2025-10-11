@@ -2,11 +2,12 @@ package controller
 
 import (
 	"errors"
+
+	"github.com/gin-gonic/gin"
+
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
-
-	"github.com/gin-gonic/gin"
 )
 
 type MCPServer struct{}
