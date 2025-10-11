@@ -26,20 +26,20 @@ var (
 )
 
 type ContactService struct {
-	ctx                 context.Context
-	ctRespo             *repository.Contact
-	crmRespo            *repository.ChatRoomMember
-	sysmsgRespo         *repository.SystemMessage
-	systemSettingsRespo *repository.SystemSettings
+	ctx                context.Context
+	ctRepo             *repository.Contact
+	crmRepo            *repository.ChatRoomMember
+	sysmsgRepo         *repository.SystemMessage
+	systemSettingsRepo *repository.SystemSettings
 }
 
 func NewContactService(ctx context.Context) *ContactService {
 	return &ContactService{
-		ctx:                 ctx,
-		ctRespo:             repository.NewContactRepo(ctx, vars.DB),
-		crmRespo:            repository.NewChatRoomMemberRepo(ctx, vars.DB),
-		sysmsgRespo:         repository.NewSystemMessageRepo(ctx, vars.DB),
-		systemSettingsRespo: repository.NewSystemSettingsRepo(ctx, vars.DB),
+		ctx:                ctx,
+		ctRepo:             repository.NewContactRepo(ctx, vars.DB),
+		crmRepo:            repository.NewChatRoomMemberRepo(ctx, vars.DB),
+		sysmsgRepo:         repository.NewSystemMessageRepo(ctx, vars.DB),
+		systemSettingsRepo: repository.NewSystemSettingsRepo(ctx, vars.DB),
 	}
 }
 
@@ -86,14 +86,14 @@ func (s *ContactService) FriendSendRequest(req dto.FriendSendRequestRequest) err
 }
 
 func (s *ContactService) FriendSendRequestFromChatRoom(req dto.FriendSendRequestFromChatRoomRequest) error {
-	chatRoomMember, err := s.crmRespo.GetByID(req.ChatRoomMemberID)
+	chatRoomMember, err := s.crmRepo.GetByID(req.ChatRoomMemberID)
 	if err != nil {
 		return fmt.Errorf("获取群成员信息失败: %v", err)
 	}
 	if chatRoomMember == nil {
 		return fmt.Errorf("群成员不存在: %d", req.ChatRoomMemberID)
 	}
-	contact, err := s.ctRespo.GetContact(chatRoomMember.WechatID)
+	contact, err := s.ctRepo.GetContact(chatRoomMember.WechatID)
 	if err != nil {
 		return fmt.Errorf("获取联系人信息失败: %v", err)
 	}
@@ -125,11 +125,11 @@ func (s *ContactService) FriendSetRemarks(req dto.FriendSetRemarksRequest) error
 	if err != nil {
 		return err
 	}
-	return s.ctRespo.UpdateRemarkByContactID(req.ToWxid, req.Remarks)
+	return s.ctRepo.UpdateRemarkByContactID(req.ToWxid, req.Remarks)
 }
 
 func (s *ContactService) FriendAutoPassVerify(systemMessageID int64) error {
-	systemSettings, err := s.systemSettingsRespo.GetSystemSettings()
+	systemSettings, err := s.systemSettingsRepo.GetSystemSettings()
 	if err != nil {
 		return fmt.Errorf("获取系统设置失败: %v", err)
 	}
@@ -144,7 +144,7 @@ func (s *ContactService) FriendAutoPassVerify(systemMessageID int64) error {
 }
 
 func (s *ContactService) FriendPassVerify(systemMessageID int64) error {
-	systemMessage, err := s.sysmsgRespo.GetByID(systemMessageID)
+	systemMessage, err := s.sysmsgRepo.GetByID(systemMessageID)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (s *ContactService) FriendPassVerify(systemMessageID int64) error {
 		return fmt.Errorf("通过好友验证失败: %s，接口返回了空", systemMessage.FromWxid)
 	}
 	s.DebounceSyncContact(*userVerify.Username)
-	err = s.sysmsgRespo.Update(&model.SystemMessage{
+	err = s.sysmsgRepo.Update(&model.SystemMessage{
 		ID:     systemMessage.ID,
 		IsRead: true,
 		Status: 1,
@@ -220,7 +220,7 @@ func (s *ContactService) SyncContact(syncChatRoomMember bool) error {
 		return err
 	}
 	// 查询没有保存到通讯录的群聊，只同步一天内活跃的群聊
-	recentChatRoomContacts, err := s.ctRespo.FindRecentChatRoomContacts()
+	recentChatRoomContacts, err := s.ctRepo.FindRecentChatRoomContacts()
 	if err != nil {
 		return err
 	}
@@ -295,7 +295,7 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 			continue
 		}
 		// 判断数据库是否存在当前数据，不存在就新建，存在就更新
-		existContact, err := s.ctRespo.GetContact(*contact.UserName.String)
+		existContact, err := s.ctRepo.GetContact(*contact.UserName.String)
 		if err != nil {
 			log.Printf("获取联系人失败: %v", err)
 			continue
@@ -329,7 +329,7 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 					contactPerson.ChatRoomOwner = *contact.ChatRoomOwner
 				}
 			}
-			err = s.ctRespo.Update(&contactPerson)
+			err = s.ctRepo.Update(&contactPerson)
 			if err != nil {
 				log.Printf("更新联系人失败: %v", err)
 				continue
@@ -364,7 +364,7 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 					contactPerson.ChatRoomOwner = *contact.ChatRoomOwner
 				}
 			}
-			err = s.ctRespo.Create(&contactPerson)
+			err = s.ctRepo.Create(&contactPerson)
 			if err != nil {
 				log.Printf("创建联系人失败: %v", err)
 				continue
@@ -375,16 +375,16 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 }
 
 func (s *ContactService) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
-	return s.ctRespo.GetContacts(req, pager)
+	return s.ctRepo.GetContacts(req, pager)
 }
 
 func (s *ContactService) DeleteContactByContactID(contactID string) error {
-	return s.ctRespo.DeleteByContactID(contactID)
+	return s.ctRepo.DeleteByContactID(contactID)
 }
 
 func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 	now := time.Now().Unix()
-	existContact, err := s.ctRespo.GetContact(contactID)
+	existContact, err := s.ctRepo.GetContact(contactID)
 	if err != nil {
 		log.Printf("获取联系人失败: %v", err)
 		return
@@ -399,7 +399,7 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 				LastActiveAt: now,
 				UpdatedAt:    now,
 			}
-			err = s.ctRespo.Create(&contactChatRoom)
+			err = s.ctRepo.Create(&contactChatRoom)
 			if err != nil {
 				log.Printf("创建群聊联系人失败: %v", err)
 				return
@@ -410,7 +410,7 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 				ID:           existContact.ID,
 				LastActiveAt: now,
 			}
-			err = s.ctRespo.Update(&contactChatRoom)
+			err = s.ctRepo.Update(&contactChatRoom)
 			if err != nil {
 				log.Printf("更新群聊联系人失败: %v", err)
 				return
@@ -428,7 +428,7 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 			UpdatedAt:    now,
 		}
 		contact.Type = s.GetContactType(contact)
-		err = s.ctRespo.Create(&contact)
+		err = s.ctRepo.Create(&contact)
 		if err != nil {
 			log.Printf("创建好友失败: %v", err)
 			return
@@ -438,7 +438,7 @@ func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {
 			ID:           existContact.ID,
 			LastActiveAt: now,
 		}
-		err = s.ctRespo.Update(&contact)
+		err = s.ctRepo.Update(&contact)
 		if err != nil {
 			log.Printf("更新好友失败: %v", err)
 			return

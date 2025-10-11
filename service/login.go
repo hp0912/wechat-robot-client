@@ -18,16 +18,16 @@ import (
 )
 
 type LoginService struct {
-	ctx                 context.Context
-	robotAdminRespo     *repository.RobotAdmin
-	systemSettingsRespo *repository.SystemSettings
+	ctx                context.Context
+	robotAdminRepo     *repository.RobotAdmin
+	systemSettingsRepo *repository.SystemSettings
 }
 
 func NewLoginService(ctx context.Context) *LoginService {
 	return &LoginService{
-		ctx:                 ctx,
-		robotAdminRespo:     repository.NewRobotAdminRepo(ctx, vars.AdminDB),
-		systemSettingsRespo: repository.NewSystemSettingsRepo(ctx, vars.DB),
+		ctx:                ctx,
+		robotAdminRepo:     repository.NewRobotAdminRepo(ctx, vars.AdminDB),
+		systemSettingsRepo: repository.NewSystemSettingsRepo(ctx, vars.DB),
 	}
 }
 
@@ -55,7 +55,7 @@ func (s *LoginService) Online() error {
 		ID:     vars.RobotRuntime.RobotID,
 		Status: model.RobotStatusOnline,
 	}
-	return s.robotAdminRespo.Update(&robot)
+	return s.robotAdminRepo.Update(&robot)
 }
 
 func (s *LoginService) Offline() error {
@@ -76,7 +76,7 @@ func (s *LoginService) Offline() error {
 		ID:     vars.RobotRuntime.RobotID,
 		Status: model.RobotStatusOffline,
 	}
-	return s.robotAdminRespo.Update(&robot)
+	return s.robotAdminRepo.Update(&robot)
 }
 
 func (s *LoginService) IsRunning() (result bool) {
@@ -159,7 +159,7 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 	if resp.AcctSectResp.Username != "" {
 		// 一个机器人实例只能绑定一个微信账号
 		var robotAdmin *model.RobotAdmin
-		robotAdmin, err = s.robotAdminRespo.GetByRobotID(vars.RobotRuntime.RobotID)
+		robotAdmin, err = s.robotAdminRepo.GetByRobotID(vars.RobotRuntime.RobotID)
 		if err != nil {
 			return
 		}
@@ -204,7 +204,7 @@ func (s *LoginService) LoginCheck(uuid string) (resp robot.CheckUuid, err error)
 			ProfileExt:  bytesExt,
 			LastLoginAt: time.Now().Unix(),
 		}
-		err = s.robotAdminRespo.Update(&robot)
+		err = s.robotAdminRepo.Update(&robot)
 		if err != nil {
 			return
 		}
@@ -256,7 +256,7 @@ func (s *LoginService) ImportLoginData(loginDataStr string) (err error) {
 		DeviceName: loginData.DeviceName,
 		WeChatID:   loginData.Wxid,
 	}
-	err = s.robotAdminRespo.Update(&robot)
+	err = s.robotAdminRepo.Update(&robot)
 	if err != nil {
 		return
 	}
@@ -295,7 +295,7 @@ func (r *LoginService) LogoutCallback(req dto.LogoutNotificationRequest) (err er
 		}
 	}()
 
-	systemSettings, err := r.systemSettingsRespo.GetSystemSettings()
+	systemSettings, err := r.systemSettingsRepo.GetSystemSettings()
 	if err != nil {
 		log.Printf("接收到掉线通知，获取系统设置失败: %v", err)
 		return

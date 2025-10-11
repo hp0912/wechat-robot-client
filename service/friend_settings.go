@@ -13,9 +13,9 @@ import (
 type FriendSettingsService struct {
 	ctx            context.Context
 	Message        *model.Message
-	gsRespo        *repository.GlobalSettings
-	fsRespo        *repository.FriendSettings
-	contactRespo   *repository.Contact
+	gsRepo         *repository.GlobalSettings
+	fsRepo         *repository.FriendSettings
+	contactRepo    *repository.Contact
 	globalSettings *model.GlobalSettings
 	friendSettings *model.FriendSettings
 	sender         *model.Contact
@@ -25,26 +25,26 @@ var _ settings.Settings = (*FriendSettingsService)(nil)
 
 func NewFriendSettingsService(ctx context.Context) *FriendSettingsService {
 	return &FriendSettingsService{
-		ctx:          ctx,
-		gsRespo:      repository.NewGlobalSettingsRepo(ctx, vars.DB),
-		fsRespo:      repository.NewFriendSettingsRepo(ctx, vars.DB),
-		contactRespo: repository.NewContactRepo(ctx, vars.DB),
+		ctx:         ctx,
+		gsRepo:      repository.NewGlobalSettingsRepo(ctx, vars.DB),
+		fsRepo:      repository.NewFriendSettingsRepo(ctx, vars.DB),
+		contactRepo: repository.NewContactRepo(ctx, vars.DB),
 	}
 }
 
 func (s *FriendSettingsService) InitByMessage(message *model.Message) error {
 	s.Message = message
-	globalSettings, err := s.gsRespo.GetGlobalSettings()
+	globalSettings, err := s.gsRepo.GetGlobalSettings()
 	if err != nil {
 		return err
 	}
 	s.globalSettings = globalSettings
-	friendSettings, err := s.fsRespo.GetFriendSettings(message.FromWxID)
+	friendSettings, err := s.fsRepo.GetFriendSettings(message.FromWxID)
 	if err != nil {
 		return err
 	}
 	s.friendSettings = friendSettings
-	contact, err := s.contactRespo.GetContact(message.FromWxID)
+	contact, err := s.contactRepo.GetContact(message.FromWxID)
 	if err != nil {
 		return err
 	}
@@ -183,12 +183,12 @@ func (s *FriendSettingsService) GetAITriggerWord() string {
 }
 
 func (s *FriendSettingsService) GetFriendSettings(contactID string) (*model.FriendSettings, error) {
-	return s.fsRespo.GetFriendSettings(contactID)
+	return s.fsRepo.GetFriendSettings(contactID)
 }
 
 func (s *FriendSettingsService) SaveFriendSettings(data *model.FriendSettings) error {
 	if data.ID == 0 {
-		return s.fsRespo.Create(data)
+		return s.fsRepo.Create(data)
 	}
-	return s.fsRespo.Update(data)
+	return s.fsRepo.Update(data)
 }

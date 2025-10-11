@@ -28,14 +28,14 @@ import (
 
 type OSSSettingService struct {
 	ctx             context.Context
-	messageRespo    *repository.Message
+	messageRepo     *repository.Message
 	ossSettingsRepo *repository.OSSSettings
 }
 
 func NewOSSSettingService(ctx context.Context) *OSSSettingService {
 	return &OSSSettingService{
 		ctx:             ctx,
-		messageRespo:    repository.NewMessageRepo(ctx, vars.DB),
+		messageRepo:     repository.NewMessageRepo(ctx, vars.DB),
 		ossSettingsRepo: repository.NewOSSSettingsRepo(ctx, vars.DB),
 	}
 }
@@ -146,7 +146,7 @@ func (s *OSSSettingService) UploadImageToAliyun(settings *model.OSSSettings, mes
 	}
 
 	message.AttachmentUrl = fileURL
-	err = s.messageRespo.Update(&model.Message{
+	err = s.messageRepo.Update(&model.Message{
 		ID:            message.ID,
 		AttachmentUrl: fileURL,
 	})
@@ -212,7 +212,7 @@ func (s *OSSSettingService) UploadImageToTencentCloud(settings *model.OSSSetting
 	}
 
 	message.AttachmentUrl = fileURL
-	err = s.messageRespo.Update(&model.Message{
+	err = s.messageRepo.Update(&model.Message{
 		ID:            message.ID,
 		AttachmentUrl: fileURL,
 	})
@@ -282,7 +282,7 @@ func (s *OSSSettingService) UploadImageToCloudflareR2(settings *model.OSSSetting
 	}
 
 	message.AttachmentUrl = fileURL
-	err = s.messageRespo.Update(&model.Message{
+	err = s.messageRepo.Update(&model.Message{
 		ID:            message.ID,
 		AttachmentUrl: fileURL,
 	})

@@ -61,5 +61,15 @@ func (s *MCPServerService) DeleteMCPServer(mcpServer *model.MCPServer) error {
 	if mcpServer == nil || mcpServer.ID == 0 {
 		return fmt.Errorf("参数异常")
 	}
+	currentMCPServer, err := s.mcpServerRepo.FindByID(mcpServer.ID)
+	if err != nil {
+		return fmt.Errorf("查询MCP服务器失败: %w", err)
+	}
+	if currentMCPServer == nil {
+		return fmt.Errorf("MCP服务器不存在")
+	}
+	if currentMCPServer.IsBuiltIn != nil && *currentMCPServer.IsBuiltIn {
+		return fmt.Errorf("内置MCP服务器不允许删除")
+	}
 	return s.mcpServerRepo.Delete(mcpServer.ID)
 }
