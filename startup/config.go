@@ -79,6 +79,7 @@ func loadEnvConfig() {
 		vars.RobotStartTimeout = time.Duration(t) * time.Second
 	}
 
+	vars.ThirdPartyApiKey = os.Getenv("THIRD_PARTY_API_KEY")
 	// 词云
 	vars.WordCloudUrl = os.Getenv("WORD_CLOUD_URL")
 }
