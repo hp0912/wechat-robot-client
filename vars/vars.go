@@ -39,6 +39,8 @@ var CronManager CronManagerInterface
 // var MusicSearchApi = "https://www.hhlqilongzhu.cn/api/joox/juhe_music.php"
 var MusicSearchApi = "https://api.cenguigui.cn/api/music/netease/WyY_Dg.php"
 
+var ThirdPartyApiKey string
+
 var WordCloudUrl string
 
 var UploadFileChunkSize int64 = 50000
