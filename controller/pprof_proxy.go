@@ -78,8 +78,7 @@ go tool pprof -pdf http://your-domain/api/v1/pprof/debug/pprof/heap > heap.pdf
 ```
 */
 type PprofProxy struct {
-	targetURL string
-	proxy     *httputil.ReverseProxy
+	proxy *httputil.ReverseProxy
 }
 
 func NewPprofProxyController(targetURL string) *PprofProxy {
@@ -103,8 +102,7 @@ func NewPprofProxyController(targetURL string) *PprofProxy {
 	}
 
 	return &PprofProxy{
-		targetURL: targetURL,
-		proxy:     proxy,
+		proxy: proxy,
 	}
 }
 
