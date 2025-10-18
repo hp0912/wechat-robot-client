@@ -171,7 +171,7 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/wxapp/qrcode-auth-login", controller.NewWXAppController().WxappQrcodeAuthLogin)
 
 	// Pprof 代理接口 - 代理项目B的pprof监控
-	pprofGroup := api.Group("/pprof")
+	pprofGroup := api.Group("/robot/pprof")
 	pprofGroup.GET("/*proxyPath", pprofProxyCtl.ProxyPprof)
 	pprofGroup.POST("/*proxyPath", pprofProxyCtl.ProxyPprof)
 

@@ -91,7 +91,7 @@ func NewPprofProxyController(targetURL string) *PprofProxy {
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
-		req.URL.Path = strings.TrimPrefix(req.URL.Path, "/api/v1/pprof")
+		req.URL.Path = strings.TrimPrefix(req.URL.Path, "/api/v1/robot/pprof")
 		req.Host = target.Host
 	}
 
