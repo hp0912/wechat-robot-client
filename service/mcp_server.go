@@ -67,6 +67,20 @@ func (s *MCPServerService) UpdateMCPServer(mcpServer *model.MCPServer) error {
 	return s.mcpServerRepo.Update(mcpServer)
 }
 
+func (s *MCPServerService) EnableMCPServer(id uint64) error {
+	if vars.MCPService == nil {
+		return fmt.Errorf("MCP服务未初始化")
+	}
+	return vars.MCPService.EnableServer(id)
+}
+
+func (s *MCPServerService) DisableMCPServer(id uint64) error {
+	if vars.MCPService == nil {
+		return fmt.Errorf("MCP服务未初始化")
+	}
+	return vars.MCPService.DisableServer(id)
+}
+
 func (s *MCPServerService) DeleteMCPServer(mcpServer *model.MCPServer) error {
 	if mcpServer == nil || mcpServer.ID == 0 {
 		return fmt.Errorf("参数异常")
@@ -81,5 +95,11 @@ func (s *MCPServerService) DeleteMCPServer(mcpServer *model.MCPServer) error {
 	if currentMCPServer.IsBuiltIn != nil && *currentMCPServer.IsBuiltIn {
 		return fmt.Errorf("内置MCP服务器不允许删除")
 	}
+	if vars.MCPService != nil {
+		if err := vars.MCPService.RemoveServer(mcpServer.ID); err != nil {
+			fmt.Printf("停止MCP服务器时出错（将继续删除）: %v\n", err)
+		}
+	}
+
 	return s.mcpServerRepo.Delete(mcpServer.ID)
 }

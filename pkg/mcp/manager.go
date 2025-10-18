@@ -15,23 +15,25 @@ import (
 
 // MCPManager MCP服务管理器
 type MCPManager struct {
-	db         *gorm.DB
-	clients    map[uint64]MCPClient
-	mu         sync.RWMutex
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-	repo       *repository.MCPServer
+	db               *gorm.DB
+	clients          map[uint64]MCPClient
+	heartbeatCancels map[uint64]context.CancelFunc
+	mu               sync.RWMutex
+	ctx              context.Context
+	cancelFunc       context.CancelFunc
+	repo             *repository.MCPServer
 }
 
 // NewMCPManager 创建MCP管理器
 func NewMCPManager(db *gorm.DB) *MCPManager {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &MCPManager{
-		db:         db,
-		clients:    make(map[uint64]MCPClient),
-		ctx:        ctx,
-		cancelFunc: cancel,
-		repo:       repository.NewMCPServerRepo(ctx, db),
+		db:               db,
+		clients:          make(map[uint64]MCPClient),
+		heartbeatCancels: make(map[uint64]context.CancelFunc),
+		ctx:              ctx,
+		cancelFunc:       cancel,
+		repo:             repository.NewMCPServerRepo(ctx, db),
 	}
 }
 
@@ -101,7 +103,9 @@ func (m *MCPManager) AddServer(server *model.MCPServer) error {
 
 	// 启动心跳检测（如果启用）
 	if server.HeartbeatEnable != nil && *server.HeartbeatEnable {
-		go m.startHeartbeat(server.ID, client, time.Duration(server.HeartbeatInterval)*time.Second)
+		heartbeatCtx, heartbeatCancel := context.WithCancel(m.ctx)
+		m.heartbeatCancels[server.ID] = heartbeatCancel
+		go m.startHeartbeat(heartbeatCtx, server.ID, client, time.Duration(server.HeartbeatInterval)*time.Second)
 	}
 
 	return nil
@@ -115,6 +119,13 @@ func (m *MCPManager) RemoveServer(serverID uint64) error {
 	client, exists := m.clients[serverID]
 	if !exists {
 		return fmt.Errorf("mcp server %d not found", serverID)
+	}
+
+	// 停止心跳检测
+	if cancel, exists := m.heartbeatCancels[serverID]; exists {
+		cancel()
+		delete(m.heartbeatCancels, serverID)
+		log.Printf("MCP server %d heartbeat stopped", serverID)
 	}
 
 	// 断开连接
@@ -279,6 +290,12 @@ func (m *MCPManager) Shutdown() error {
 
 	log.Printf("Shutting down MCP Manager...")
 
+	// 取消所有心跳检测
+	for id, cancel := range m.heartbeatCancels {
+		log.Printf("Stopping heartbeat for MCP server %d", id)
+		cancel()
+	}
+
 	// 取消context
 	m.cancelFunc()
 
@@ -293,35 +310,36 @@ func (m *MCPManager) Shutdown() error {
 
 	// 清空映射
 	m.clients = make(map[uint64]MCPClient)
+	m.heartbeatCancels = make(map[uint64]context.CancelFunc)
 
 	log.Printf("MCP Manager shutdown complete")
 	return lastErr
 }
 
 // startHeartbeat 启动心跳检测
-func (m *MCPManager) startHeartbeat(serverID uint64, client MCPClient, interval time.Duration) {
+func (m *MCPManager) startHeartbeat(ctx context.Context, serverID uint64, client MCPClient, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	log.Printf("MCP server %d heartbeat started (interval: %v)", serverID, interval)
+
 	for {
 		select {
-		case <-m.ctx.Done():
+		case <-ctx.Done():
+			log.Printf("MCP server %d heartbeat context cancelled", serverID)
 			return
 		case <-ticker.C:
 			if !client.IsConnected() {
+				log.Printf("MCP server %d client disconnected, stopping heartbeat", serverID)
 				return
 			}
-
-			ctx, cancel := context.WithTimeout(m.ctx, 10*time.Second)
-			err := client.Ping(ctx)
+			pingCtx, cancel := context.WithTimeout(m.ctx, 10*time.Second)
+			err := client.Ping(pingCtx)
 			cancel()
-
 			if err != nil {
 				log.Printf("Heartbeat failed for MCP server %d: %v", serverID, err)
 				m.repo.IncrementErrorCount(serverID)
 				m.repo.UpdateConnectionError(serverID, err.Error())
-
-				// 尝试重连
 				if err := m.ReloadServer(serverID); err != nil {
 					log.Printf("Failed to reconnect MCP server %d: %v", serverID, err)
 				}
@@ -332,12 +350,9 @@ func (m *MCPManager) startHeartbeat(serverID uint64, client MCPClient, interval 
 
 // EnableServer 启用服务器
 func (m *MCPManager) EnableServer(serverID uint64) error {
-	// 更新数据库
 	if err := m.repo.UpdateEnabled(serverID, true); err != nil {
 		return err
 	}
-
-	// 加载服务器
 	server, err := m.repo.FindByID(serverID)
 	if err != nil {
 		return err
@@ -348,14 +363,10 @@ func (m *MCPManager) EnableServer(serverID uint64) error {
 
 // DisableServer 禁用服务器
 func (m *MCPManager) DisableServer(serverID uint64) error {
-	// 移除服务器
 	if err := m.RemoveServer(serverID); err != nil {
-		// 如果服务器不存在，忽略错误
 		if err.Error() != fmt.Sprintf("mcp server %d not found", serverID) {
 			return err
 		}
 	}
-
-	// 更新数据库
 	return m.repo.UpdateEnabled(serverID, false)
 }

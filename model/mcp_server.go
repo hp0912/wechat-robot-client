@@ -35,7 +35,7 @@ type MCPServer struct {
 	IsBuiltIn   *bool            `gorm:"column:is_built_in;default:false;comment:是否为内置服务器配置，内置配置不可删除" json:"is_built_in"`
 	Description string           `gorm:"column:description;type:varchar(500);default:'';comment:MCP服务器描述" json:"description"`
 	Transport   MCPTransportType `gorm:"column:transport;type:enum('stdio','sse','http','ws');not null;comment:传输类型：stdio-命令行，sse-SSE，http-HTTP，ws-WebSocket" json:"transport"`
-	Enabled     *bool            `gorm:"column:enabled;default:true;comment:是否启用该MCP服务器" json:"enabled"`
+	Enabled     *bool            `gorm:"column:enabled;default:false;comment:是否启用该MCP服务器" json:"enabled"`
 	Priority    int              `gorm:"column:priority;default:0;comment:优先级，数字越大优先级越高" json:"priority"`
 
 	// Stdio模式配置（命令行模式）
