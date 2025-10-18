@@ -350,15 +350,18 @@ func (m *MCPManager) startHeartbeat(ctx context.Context, serverID uint64, client
 
 // EnableServer 启用服务器
 func (m *MCPManager) EnableServer(serverID uint64) error {
-	if err := m.repo.UpdateEnabled(serverID, true); err != nil {
-		return err
-	}
 	server, err := m.repo.FindByID(serverID)
 	if err != nil {
 		return err
 	}
-
-	return m.AddServer(server)
+	err = m.AddServer(server)
+	if err != nil {
+		return err
+	}
+	if err := m.repo.UpdateEnabled(serverID, true); err != nil {
+		return err
+	}
+	return nil
 }
 
 // DisableServer 禁用服务器
