@@ -64,7 +64,11 @@ func (s *MCPServerService) UpdateMCPServer(mcpServer *model.MCPServer) error {
 	}
 	now := time.Now()
 	mcpServer.UpdatedAt = &now
-	return s.mcpServerRepo.Update(mcpServer)
+	err := s.mcpServerRepo.Update(mcpServer)
+	if err != nil {
+		return err
+	}
+	return vars.MCPService.ReloadServer(mcpServer.ID)
 }
 
 func (s *MCPServerService) EnableMCPServer(id uint64) error {
