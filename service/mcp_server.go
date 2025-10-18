@@ -68,7 +68,17 @@ func (s *MCPServerService) UpdateMCPServer(mcpServer *model.MCPServer) error {
 	if err != nil {
 		return err
 	}
-	return vars.MCPService.ReloadServer(mcpServer.ID)
+	server, err := s.mcpServerRepo.FindByID(mcpServer.ID)
+	if err != nil {
+		return err
+	}
+	if server == nil {
+		return fmt.Errorf("MCP服务器不存在")
+	}
+	if server.Enabled != nil && *server.Enabled {
+		return vars.MCPService.ReloadServer(mcpServer.ID)
+	}
+	return nil
 }
 
 func (s *MCPServerService) EnableMCPServer(id uint64) error {
