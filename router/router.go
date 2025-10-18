@@ -1,10 +1,11 @@
 package router
 
 import (
+	"github.com/gin-gonic/gin"
+
 	"wechat-robot-client/controller"
 	"wechat-robot-client/middleware"
-
-	"github.com/gin-gonic/gin"
+	"wechat-robot-client/vars"
 )
 
 var chatHistoryCtl *controller.ChatHistory
@@ -24,6 +25,7 @@ var systemSettingsCtl *controller.SystemSettings
 var ossSettingsCtl *controller.OSSSettings
 var mcpServerCtl *controller.MCPServer
 var probeCtl *controller.Probe
+var pprofProxyCtl *controller.PprofProxy
 
 func initController() {
 	chatHistoryCtl = controller.NewChatHistoryController()
@@ -42,6 +44,7 @@ func initController() {
 	systemSettingsCtl = controller.NewSystemSettingsController()
 	ossSettingsCtl = controller.NewOSSSettingsController()
 	mcpServerCtl = controller.NewMCPController()
+	pprofProxyCtl = controller.NewPprofProxyController(vars.PprofProxyURL)
 	probeCtl = controller.NewProbeController()
 }
 
@@ -166,6 +169,11 @@ func RegisterRouter(r *gin.Engine) error {
 
 	// 微信小程序相关接口
 	api.POST("/robot/wxapp/qrcode-auth-login", controller.NewWXAppController().WxappQrcodeAuthLogin)
+
+	// Pprof 代理接口 - 代理项目B的pprof监控
+	pprofGroup := api.Group("/pprof")
+	pprofGroup.GET("/*proxyPath", pprofProxyCtl.ProxyPprof)
+	pprofGroup.POST("/*proxyPath", pprofProxyCtl.ProxyPprof)
 
 	return nil
 }

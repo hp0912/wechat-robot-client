@@ -82,4 +82,6 @@ func loadEnvConfig() {
 	vars.ThirdPartyApiKey = os.Getenv("THIRD_PARTY_API_KEY")
 	// 词云
 	vars.WordCloudUrl = os.Getenv("WORD_CLOUD_URL")
+	// pprof 代理地址
+	vars.PprofProxyURL = os.Getenv("PPROF_PROXY_URL")
 }

@@ -47,6 +47,9 @@ var ThirdPartyApiKey string
 
 var WordCloudUrl string
 
+// Pprof 代理目标地址
+var PprofProxyURL string
+
 var UploadFileChunkSize int64 = 50000
 
 var AtAllRegexp = `@所有人(?: | )`
