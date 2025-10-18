@@ -127,6 +127,7 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/oss-settings", ossSettingsCtl.SaveOSSSettings)
 
 	// MCP 协议相关接口
+	api.GET("/robot/mcp/server", mcpServerCtl.GetMCPServer)
 	api.GET("/robot/mcp/servers", mcpServerCtl.GetMCPServers)
 	api.POST("/robot/mcp/server", mcpServerCtl.CreateMCPServer)
 	api.PUT("/robot/mcp/server", mcpServerCtl.UpdateMCPServer)

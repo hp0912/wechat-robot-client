@@ -74,8 +74,8 @@ type MCPServer struct {
 	ErrorCount      int64      `gorm:"column:error_count;default:0;comment:累计错误次数" json:"error_count"`
 
 	// 时间戳
-	CreatedAt time.Time  `gorm:"column:created_at;type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
-	UpdatedAt time.Time  `gorm:"column:updated_at;type:datetime;not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
+	CreatedAt *time.Time `gorm:"column:created_at;type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
+	UpdatedAt *time.Time `gorm:"column:updated_at;type:datetime;not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`
 	DeletedAt *time.Time `gorm:"column:deleted_at;type:datetime;index;comment:软删除时间" json:"deleted_at,omitempty"`
 }
 

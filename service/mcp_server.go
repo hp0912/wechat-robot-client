@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
@@ -28,6 +29,10 @@ func (s *MCPServerService) GetMCPServers() ([]*model.MCPServer, error) {
 	return s.mcpServerRepo.FindAll()
 }
 
+func (s *MCPServerService) GetMCPServer(id uint64) (*model.MCPServer, error) {
+	return s.mcpServerRepo.FindByID(id)
+}
+
 func (s *MCPServerService) validateMCPServerName(mcpServer *model.MCPServer) error {
 	if mcpServer == nil {
 		return fmt.Errorf("MCP服务器对象不能为空")
@@ -47,6 +52,9 @@ func (s *MCPServerService) CreateMCPServer(mcpServer *model.MCPServer) error {
 	if err := s.validateMCPServerName(mcpServer); err != nil {
 		return err
 	}
+	now := time.Now()
+	mcpServer.CreatedAt = &now
+	mcpServer.UpdatedAt = &now
 	return s.mcpServerRepo.Create(mcpServer)
 }
 
@@ -54,6 +62,8 @@ func (s *MCPServerService) UpdateMCPServer(mcpServer *model.MCPServer) error {
 	if err := s.validateMCPServerName(mcpServer); err != nil {
 		return err
 	}
+	now := time.Now()
+	mcpServer.UpdatedAt = &now
 	return s.mcpServerRepo.Update(mcpServer)
 }
 

@@ -24,7 +24,7 @@ func (respo *MCPServer) Create(server *model.MCPServer) error {
 }
 
 func (respo *MCPServer) Update(server *model.MCPServer) error {
-	return respo.DB.WithContext(respo.Ctx).Save(server).Error
+	return respo.DB.WithContext(respo.Ctx).Updates(server).Error
 }
 
 func (respo *MCPServer) Delete(id uint64) error {
