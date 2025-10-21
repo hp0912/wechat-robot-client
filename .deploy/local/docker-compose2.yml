@@ -140,7 +140,7 @@ services:
       WECHAT_SERVER_TOKEN: w123456 # 自行修改
       WECHAT_OFFICIAL_ACCOUNT_AUTH_URL: https://img.houhoukang.com/uranus/qrcode_for_gh.jpg # 自行修改
       SLIDER_SERVER_BASE_URL: http://wechat-slider:9000
-      SLIDER_TOKEN: xxxx # 自行修改，加入官方交流群获取
+      SLIDER_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VfaWRzIjpbXSwiZXhwIjoxNzYzNjM0NzM1LCJuYmYiOjE3NjEwNDI3MzUsImlhdCI6MTc2MTA0MjczNX0.7ZQl5zMayJ7MHHF35Q7kqqNJpSm5_cGRK5tAw2BP5jI # 自行修改，加入官方交流群获取
       MYSQL_DRIVER: mysql
       MYSQL_HOST: wechat-admin-mysql
       MYSQL_PORT: 3306
