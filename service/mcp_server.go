@@ -62,18 +62,27 @@ func (s *MCPServerService) UpdateMCPServer(mcpServer *model.MCPServer) error {
 	if err := s.validateMCPServerName(mcpServer); err != nil {
 		return err
 	}
-	now := time.Now()
-	mcpServer.UpdatedAt = &now
-	err := s.mcpServerRepo.Update(mcpServer)
-	if err != nil {
-		return err
-	}
 	server, err := s.mcpServerRepo.FindByID(mcpServer.ID)
 	if err != nil {
 		return err
 	}
 	if server == nil {
 		return fmt.Errorf("MCP服务器不存在")
+	}
+	if server.Transport != mcpServer.Transport {
+		return fmt.Errorf("不允许修改MCP服务器类型")
+	}
+
+	now := time.Now()
+	mcpServer.UpdatedAt = &now
+	err = s.mcpServerRepo.Update(mcpServer)
+	if err != nil {
+		return err
+	}
+
+	server, err = s.mcpServerRepo.FindByID(mcpServer.ID)
+	if err != nil {
+		return err
 	}
 	if server.Enabled != nil && *server.Enabled {
 		return vars.MCPService.ReloadServer(mcpServer.ID)

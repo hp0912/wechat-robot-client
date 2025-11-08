@@ -1,6 +1,8 @@
 module wechat-robot-client
 
-go 1.23.0
+go 1.24.0
+
+toolchain go1.24.3
 
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
@@ -16,7 +18,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/h2non/filetype v1.1.3
 	github.com/joho/godotenv v1.5.1
-	github.com/modelcontextprotocol/go-sdk v1.0.0
+	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/redis/go-redis/v9 v9.10.0
 	github.com/sashabaranov/go-openai v1.40.1
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1186
@@ -82,6 +84,7 @@ require (
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/image v0.27.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/oauth2 v0.33.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
