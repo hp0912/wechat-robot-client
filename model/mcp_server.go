@@ -12,10 +12,8 @@ import (
 type MCPTransportType string
 
 const (
-	MCPTransportTypeStdio MCPTransportType = "stdio" // 命令行模式（标准输入输出）
-	MCPTransportTypeSSE   MCPTransportType = "sse"   // Server-Sent Events模式
-	MCPTransportTypeHTTP  MCPTransportType = "http"  // HTTP模式
-	MCPTransportTypeWS    MCPTransportType = "ws"    // WebSocket模式
+	MCPTransportTypeStdio  MCPTransportType = "stdio"  // 命令行模式（标准输入输出）
+	MCPTransportTypeStream MCPTransportType = "stream" // 官方SDK的可流式传输
 )
 
 // MCPAuthType MCP认证类型
@@ -34,7 +32,7 @@ type MCPServer struct {
 	Name        string           `gorm:"column:name;type:varchar(100);not null;comment:MCP服务器名称" json:"name"`
 	IsBuiltIn   *bool            `gorm:"column:is_built_in;default:false;comment:是否为内置服务器配置，内置配置不可删除" json:"is_built_in"`
 	Description string           `gorm:"column:description;type:varchar(500);default:'';comment:MCP服务器描述" json:"description"`
-	Transport   MCPTransportType `gorm:"column:transport;type:enum('stdio','sse','http','ws');not null;comment:传输类型：stdio-命令行，sse-SSE，http-HTTP，ws-WebSocket" json:"transport"`
+	Transport   MCPTransportType `gorm:"column:transport;type:enum('stdio','stream');not null;comment:传输类型：stdio-命令行，stream-流式" json:"transport"`
 	Enabled     *bool            `gorm:"column:enabled;default:false;comment:是否启用该MCP服务器" json:"enabled"`
 	Priority    int              `gorm:"column:priority;default:0;comment:优先级，数字越大优先级越高" json:"priority"`
 
@@ -44,8 +42,9 @@ type MCPServer struct {
 	WorkingDir string         `gorm:"column:working_dir;type:varchar(500);default:'';comment:工作目录" json:"working_dir"`
 	Env        datatypes.JSON `gorm:"column:env;type:json;comment:环境变量键值对" json:"env"` // map[string]string
 
-	// 网络模式配置（SSE/HTTP/WS共用）
+	// 网络模式配置（流式传输）
 	URL           string         `gorm:"column:url;type:varchar(500);default:'';comment:服务器URL地址（SSE/HTTP/WS模式）" json:"url"`
+	ClientName    string         `gorm:"column:client_name;type:varchar(100);default:'';comment:MCP客户端实现名称(Implementation.Name)" json:"client_name"`
 	AuthType      MCPAuthType    `gorm:"column:auth_type;type:enum('none','bearer','basic','apikey');default:'none';comment:认证类型" json:"auth_type"`
 	AuthToken     string         `gorm:"column:auth_token;type:varchar(500);default:'';comment:认证令牌（Bearer Token或API Key）" json:"auth_token"`
 	AuthUsername  string         `gorm:"column:auth_username;type:varchar(100);default:'';comment:Basic认证用户名" json:"auth_username"`
@@ -89,11 +88,9 @@ func (m *MCPServer) IsStdio() bool {
 	return m.Transport == MCPTransportTypeStdio
 }
 
-// IsNetworkMode 判断是否为网络模式（SSE/HTTP/WS）
-func (m *MCPServer) IsNetworkMode() bool {
-	return m.Transport == MCPTransportTypeSSE ||
-		m.Transport == MCPTransportTypeHTTP ||
-		m.Transport == MCPTransportTypeWS
+// IsStream 判断是否为流式传输
+func (m *MCPServer) IsStream() bool {
+	return m.Transport == MCPTransportTypeStream
 }
 
 // NeedsAuth 判断是否需要认证

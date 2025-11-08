@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"wechat-robot-client/model"
+
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // MCPClient MCP客户端接口
@@ -22,17 +24,17 @@ type MCPClient interface {
 	// Initialize 初始化MCP会话
 	Initialize(ctx context.Context) (*MCPServerInfo, error)
 
-	// ListTools 列出所有可用工具
-	ListTools(ctx context.Context) ([]MCPTool, error)
+	// ListTools 列出所有可用工具（使用官方SDK结构）
+	ListTools(ctx context.Context) ([]*sdkmcp.Tool, error)
 
-	// CallTool 调用工具
-	CallTool(ctx context.Context, params MCPCallToolParams) (*MCPCallToolResult, error)
+	// CallTool 调用工具（使用官方SDK结构）
+	CallTool(ctx context.Context, params *sdkmcp.CallToolParams) (*sdkmcp.CallToolResult, error)
 
-	// ListResources 列出所有可用资源
-	ListResources(ctx context.Context) ([]MCPResource, error)
+	// ListResources 列出所有可用资源（使用官方SDK结构）
+	ListResources(ctx context.Context) ([]*sdkmcp.Resource, error)
 
-	// ReadResource 读取资源
-	ReadResource(ctx context.Context, params MCPReadResourceParams) (*MCPReadResourceResult, error)
+	// ReadResource 读取资源（使用官方SDK结构）
+	ReadResource(ctx context.Context, params *sdkmcp.ReadResourceParams) (*sdkmcp.ReadResourceResult, error)
 
 	// Ping 心跳检测
 	Ping(ctx context.Context) error
@@ -53,7 +55,6 @@ type BaseClient struct {
 	serverInfo *MCPServerInfo
 	connected  atomic.Bool
 	stats      MCPConnectionStats
-	requestID  atomic.Int64
 }
 
 // NewBaseClient 创建基础客户端
@@ -117,45 +118,13 @@ func (c *BaseClient) updateStats(success bool, latency time.Duration) {
 	}
 }
 
-// nextRequestID 生成下一个请求ID
-func (c *BaseClient) nextRequestID() string {
-	id := c.requestID.Add(1)
-	return c.config.Name + "-" + string(rune(id))
-}
-
-// getTimeout 获取超时时间
-func (c *BaseClient) getConnectTimeout() time.Duration {
-	if c.config.ConnectTimeout > 0 {
-		return time.Duration(c.config.ConnectTimeout) * time.Second
-	}
-	return 30 * time.Second
-}
-
-func (c *BaseClient) getReadTimeout() time.Duration {
-	if c.config.ReadTimeout > 0 {
-		return time.Duration(c.config.ReadTimeout) * time.Second
-	}
-	return 60 * time.Second
-}
-
-func (c *BaseClient) getWriteTimeout() time.Duration {
-	if c.config.WriteTimeout > 0 {
-		return time.Duration(c.config.WriteTimeout) * time.Second
-	}
-	return 60 * time.Second
-}
-
 // NewMCPClient 根据配置创建MCP客户端
 func NewMCPClient(config *model.MCPServer) (MCPClient, error) {
 	switch config.Transport {
 	case model.MCPTransportTypeStdio:
 		return NewStdioClient(config), nil
-	case model.MCPTransportTypeHTTP:
-		return NewHTTPClient(config), nil
-	case model.MCPTransportTypeWS:
-		return NewWebSocketClient(config), nil
-	case model.MCPTransportTypeSSE:
-		return NewSSEClient(config), nil
+	case model.MCPTransportTypeStream:
+		return NewStreamableClient(config), nil
 	default:
 		return nil, ErrInvalidTransport
 	}

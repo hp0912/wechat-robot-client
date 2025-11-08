@@ -8,7 +8,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
 
-	"wechat-robot-client/model"
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // MCPToolConverter MCP工具到OpenAI工具格式的转换器
@@ -52,11 +52,12 @@ func (c *MCPToolConverter) ConvertMCPToolsToOpenAI(ctx context.Context) ([]opena
 }
 
 // convertSingleTool 转换单个工具
-func (c *MCPToolConverter) convertSingleTool(serverName string, mcpTool MCPTool) (openai.Tool, error) {
+func (c *MCPToolConverter) convertSingleTool(serverName string, mcpTool *sdkmcp.Tool) (openai.Tool, error) {
 	// 为工具名称添加服务器前缀以避免冲突
 	toolName := fmt.Sprintf("%s__%s", serverName, mcpTool.Name)
 
 	// 转换inputSchema到OpenAI的参数格式
+	// mcpTool.InputSchema 是 any，通常为 map[string]any
 	parameters, err := c.convertInputSchemaToParameters(mcpTool.InputSchema)
 	if err != nil {
 		return openai.Tool{}, fmt.Errorf("failed to convert input schema: %w", err)
@@ -76,7 +77,7 @@ func (c *MCPToolConverter) convertSingleTool(serverName string, mcpTool MCPTool)
 }
 
 // convertInputSchemaToParameters 转换InputSchema到OpenAI参数格式
-func (c *MCPToolConverter) convertInputSchemaToParameters(inputSchema map[string]any) (jsonschema.Definition, error) {
+func (c *MCPToolConverter) convertInputSchemaToParameters(inputSchema any) (jsonschema.Definition, error) {
 	// 将map转换为JSON字符串再解析为jsonschema.Definition
 	schemaBytes, err := json.Marshal(inputSchema)
 	if err != nil {
@@ -115,10 +116,7 @@ func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx R
 	args["robot_context"] = robotCtx
 
 	// 构建MCP调用参数
-	params := MCPCallToolParams{
-		Name:      toolName,
-		Arguments: args,
-	}
+	params := &sdkmcp.CallToolParams{Name: toolName, Arguments: args}
 
 	// 调用MCP工具
 	result, err := c.manager.CallToolByName(ctx, serverName, params)
@@ -142,37 +140,16 @@ func (c *MCPToolConverter) parseToolName(fullName string) (serverName, toolName 
 	return "", "", fmt.Errorf("invalid tool name format: %s", fullName)
 }
 
-func (c *MCPToolConverter) formatToolResult(robotCtx RobotContext, result *MCPCallToolResult) (string, error) {
+func (c *MCPToolConverter) formatToolResult(robotCtx RobotContext, result *sdkmcp.CallToolResult) (string, error) {
 	if result.IsError {
-		return "", fmt.Errorf("tool execution error: %v", result.Content)
+		return "", fmt.Errorf("tool execution error")
 	}
-	for _, content := range result.Content {
-		switch content.Type {
-		case model.MsgTypeText:
-			message, ok := content.Data.(string)
-			if !ok || message == "" {
-				return "", fmt.Errorf("invalid text message format")
-			}
-			err := c.messageSender.SendTextMessage(robotCtx.FromWxID, message, content.Mentions...)
-			if err != nil {
-				return "", fmt.Errorf("failed to send text message: %w", err)
-			}
-		case model.MsgTypeApp:
-			// 发送App消息
-			xmlData, ok := content.Data.(string)
-			if !ok || xmlData == "" {
-				return "", fmt.Errorf("invalid app message format")
-			}
-			appMsgType := int(content.SubType)
-			err := c.messageSender.SendAppMessage(robotCtx.FromWxID, appMsgType, xmlData)
-			if err != nil {
-				return "", fmt.Errorf("failed to send app message: %w", err)
-			}
-		default:
-			//
-		}
+	// 直接将结果序列化为字符串返回，交由上层决定发送策略
+	b, err := json.Marshal(result)
+	if err != nil {
+		return "", err
 	}
-	return "工具执行成功", nil
+	return string(b), nil
 }
 
 // BuildSystemPromptWithMCPTools 构建包含MCP工具描述的系统提示词

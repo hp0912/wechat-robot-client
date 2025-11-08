@@ -10,6 +10,7 @@ import (
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
 
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 )
 
@@ -207,11 +208,11 @@ func (m *MCPManager) GetAllClients() []MCPClient {
 }
 
 // GetAllTools 获取所有MCP服务器的工具列表
-func (m *MCPManager) GetAllTools(ctx context.Context) (map[string][]MCPTool, error) {
+func (m *MCPManager) GetAllTools(ctx context.Context) (map[string][]*sdkmcp.Tool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	allTools := make(map[string][]MCPTool)
+	allTools := make(map[string][]*sdkmcp.Tool)
 
 	for _, client := range m.clients {
 		tools, err := client.ListTools(ctx)
@@ -230,7 +231,7 @@ func (m *MCPManager) GetAllTools(ctx context.Context) (map[string][]MCPTool, err
 }
 
 // CallTool 调用指定服务器的工具
-func (m *MCPManager) CallTool(ctx context.Context, serverID uint64, params MCPCallToolParams) (*MCPCallToolResult, error) {
+func (m *MCPManager) CallTool(ctx context.Context, serverID uint64, params *sdkmcp.CallToolParams) (*sdkmcp.CallToolResult, error) {
 	client, err := m.GetClient(serverID)
 	if err != nil {
 		return nil, err
@@ -248,7 +249,7 @@ func (m *MCPManager) CallTool(ctx context.Context, serverID uint64, params MCPCa
 }
 
 // CallToolByName 根据服务器名称调用工具
-func (m *MCPManager) CallToolByName(ctx context.Context, serverName string, params MCPCallToolParams) (*MCPCallToolResult, error) {
+func (m *MCPManager) CallToolByName(ctx context.Context, serverName string, params *sdkmcp.CallToolParams) (*sdkmcp.CallToolResult, error) {
 	client, err := m.GetClientByName(serverName)
 	if err != nil {
 		return nil, err

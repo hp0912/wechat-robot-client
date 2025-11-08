@@ -57,13 +57,15 @@ const (
 	TimeoutError        = -32004
 )
 
-// NewMCPError 创建MCP错误
+// NewMCPError 创建MCP错误（本地轻量错误结构，避免依赖已移除的协议镜像类型）
+type MCPError struct {
+	Code    int
+	Message string
+	Data    any
+}
+
 func NewMCPError(code int, message string, data any) *MCPError {
-	return &MCPError{
-		Code:    code,
-		Message: message,
-		Data:    data,
-	}
+	return &MCPError{Code: code, Message: message, Data: data}
 }
 
 // Error 实现error接口
