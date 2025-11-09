@@ -32,12 +32,10 @@ type StreamableClient struct {
 // NewStreamableClient 创建Streamable客户端
 func NewStreamableClient(config *model.MCPServer) *StreamableClient {
 	httpClient := &http.Client{
-		Timeout: time.Duration(config.ReadTimeout) * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: config.TLSSkipVerify != nil && *config.TLSSkipVerify,
 			},
-			MaxIdleConns:       10,
 			IdleConnTimeout:    90 * time.Second,
 			DisableCompression: false,
 		},

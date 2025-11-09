@@ -2,8 +2,10 @@ package mcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -79,15 +81,15 @@ func (m *MCPManager) AddServer(server *model.MCPServer) error {
 	}
 
 	// 连接到服务器
-	ctx, cancel := context.WithTimeout(m.ctx, time.Duration(server.ConnectTimeout)*time.Second)
-	defer cancel()
-
-	if err := client.Connect(ctx); err != nil {
+	// 使用管理器长期上下文，避免会话绑定 ctx 被提前取消
+	if err := client.Connect(m.ctx); err != nil {
 		return fmt.Errorf("failed to connect to mcp server: %w", err)
 	}
 
 	// 初始化MCP会话
-	serverInfo, err := client.Initialize(ctx)
+	initCtx, initCancel := context.WithTimeout(context.Background(), time.Duration(server.ConnectTimeout)*time.Second)
+	defer initCancel()
+	serverInfo, err := client.Initialize(initCtx)
 	if err != nil {
 		client.Disconnect()
 		return fmt.Errorf("failed to initialize mcp session: %w", err)
@@ -322,6 +324,9 @@ func (m *MCPManager) startHeartbeat(ctx context.Context, serverID uint64, client
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	maxRetry := 5
+	retryCount := 0
+
 	log.Printf("MCP server %d heartbeat started (interval: %v)", serverID, interval)
 
 	for {
@@ -343,6 +348,17 @@ func (m *MCPManager) startHeartbeat(ctx context.Context, serverID uint64, client
 				m.repo.IncrementErrorCount(serverID)
 				m.repo.UpdateConnectionError(serverID, err.Error())
 
+				// 忽略临时性关闭/重连中的错误，下轮再试
+				if errors.Is(err, context.Canceled) ||
+					strings.Contains(err.Error(), "client is closing") ||
+					strings.Contains(err.Error(), "reconnect") {
+					log.Printf("MCP %d heartbeat transient issue: %v", serverID, err)
+					retryCount++
+					if retryCount < maxRetry {
+						continue
+					}
+				}
+
 				go func(sid uint64) {
 					if err := m.ReloadServer(sid); err != nil {
 						log.Printf("Failed to reconnect MCP server %d: %v", sid, err)
@@ -352,6 +368,8 @@ func (m *MCPManager) startHeartbeat(ctx context.Context, serverID uint64, client
 				log.Printf("MCP server %d heartbeat stopped, waiting for reconnection", serverID)
 				return
 			}
+
+			retryCount = 0
 		}
 	}
 }
