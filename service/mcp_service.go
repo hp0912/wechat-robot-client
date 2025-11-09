@@ -88,6 +88,8 @@ func (s *MCPService) ChatWithMCPTools(
 		return s.chatWithoutTools(client, req)
 	}
 
+	req.Tools = tools
+
 	// 构建包含工具描述的系统提示词
 	if len(req.Messages) > 0 && req.Messages[0].Role == openai.ChatMessageRoleSystem {
 		enhancedPrompt, err := s.converter.BuildSystemPromptWithMCPTools(s.ctx, req.Messages[0].Content)
