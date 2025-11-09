@@ -127,8 +127,8 @@ func (s *MCPService) ChatWithMCPTools(
 			result, err := s.ExecuteToolCall(robotCtx, toolCall)
 			if err != nil {
 				// 工具执行失败，返回错误信息
-				result = fmt.Sprintf("Error: %v", err)
-				log.Printf("Tool execution failed: %v", err)
+				result = err.Error()
+				log.Println(result)
 			}
 
 			// 将工具结果添加到消息历史

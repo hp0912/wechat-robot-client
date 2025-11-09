@@ -103,7 +103,7 @@ func (m *MCPManager) AddServer(server *model.MCPServer) error {
 		server.Name, server.Transport, serverInfo.Version)
 
 	// 启动心跳检测（如果启用）
-	if server.HeartbeatEnable != nil && *server.HeartbeatEnable {
+	if server.HeartbeatEnable != nil && *server.HeartbeatEnable && server.HeartbeatInterval > 0 {
 		heartbeatCtx, heartbeatCancel := context.WithCancel(m.ctx)
 		m.heartbeatCancels[server.ID] = heartbeatCancel
 		go m.startHeartbeat(heartbeatCtx, server.ID, client, time.Duration(server.HeartbeatInterval)*time.Second)
@@ -334,16 +334,23 @@ func (m *MCPManager) startHeartbeat(ctx context.Context, serverID uint64, client
 				log.Printf("MCP server %d client disconnected, stopping heartbeat", serverID)
 				return
 			}
-			pingCtx, cancel := context.WithTimeout(m.ctx, 10*time.Second)
+
+			pingCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			err := client.Ping(pingCtx)
 			cancel()
 			if err != nil {
 				log.Printf("Heartbeat failed for MCP server %d: %v", serverID, err)
 				m.repo.IncrementErrorCount(serverID)
 				m.repo.UpdateConnectionError(serverID, err.Error())
-				if err := m.ReloadServer(serverID); err != nil {
-					log.Printf("Failed to reconnect MCP server %d: %v", serverID, err)
-				}
+
+				go func(sid uint64) {
+					if err := m.ReloadServer(sid); err != nil {
+						log.Printf("Failed to reconnect MCP server %d: %v", sid, err)
+					}
+				}(serverID)
+
+				log.Printf("MCP server %d heartbeat stopped, waiting for reconnection", serverID)
+				return
 			}
 		}
 	}

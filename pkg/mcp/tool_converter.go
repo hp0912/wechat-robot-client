@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
@@ -113,10 +114,18 @@ func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx R
 		}
 	}
 
-	args["robot_context"] = robotCtx
+	// 将 RobotContext 转换为 Meta（map[string]any）
+	metaBytes, err := json.Marshal(robotCtx)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal robot context: %w", err)
+	}
+	var meta map[string]any
+	if err := json.Unmarshal(metaBytes, &meta); err != nil {
+		return "", fmt.Errorf("failed to unmarshal robot context to meta: %w", err)
+	}
 
 	// 构建MCP调用参数
-	params := &sdkmcp.CallToolParams{Name: toolName, Arguments: args}
+	params := &sdkmcp.CallToolParams{Meta: meta, Name: toolName, Arguments: args}
 
 	// 调用MCP工具
 	result, err := c.manager.CallToolByName(ctx, serverName, params)
@@ -124,7 +133,7 @@ func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx R
 		return "", fmt.Errorf("failed to call mcp tool: %w", err)
 	}
 
-	return c.formatToolResult(robotCtx, result)
+	return c.formatToolResult(result)
 }
 
 // parseToolName 解析工具名称
@@ -140,9 +149,22 @@ func (c *MCPToolConverter) parseToolName(fullName string) (serverName, toolName 
 	return "", "", fmt.Errorf("invalid tool name format: %s", fullName)
 }
 
-func (c *MCPToolConverter) formatToolResult(robotCtx RobotContext, result *sdkmcp.CallToolResult) (string, error) {
+func (c *MCPToolConverter) formatToolResult(result *sdkmcp.CallToolResult) (string, error) {
 	if result.IsError {
-		return "", fmt.Errorf("tool execution error")
+		if len(result.Content) > 0 {
+			var errmsgs []string
+			for _, content := range result.Content {
+				if textContent, ok := content.(*sdkmcp.TextContent); ok {
+					if textContent.Text != "" {
+						errmsgs = append(errmsgs, textContent.Text)
+					}
+				}
+			}
+			if len(errmsgs) > 0 {
+				return "", fmt.Errorf("MCP 调用失败: %s", strings.Join(errmsgs, "\n"))
+			}
+		}
+		return "", fmt.Errorf("MCP 调用失败")
 	}
 	// 直接将结果序列化为字符串返回，交由上层决定发送策略
 	b, err := json.Marshal(result)
