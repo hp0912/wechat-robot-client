@@ -52,6 +52,9 @@ func (s *MCPServerService) CreateMCPServer(mcpServer *model.MCPServer) error {
 	if err := s.validateMCPServerName(mcpServer); err != nil {
 		return err
 	}
+	if mcpServer.HeartbeatEnable != nil && *mcpServer.HeartbeatEnable && mcpServer.HeartbeatInterval < 60 {
+		return fmt.Errorf("心跳间隔不能小于60秒")
+	}
 	now := time.Now()
 	mcpServer.CreatedAt = &now
 	mcpServer.UpdatedAt = &now
@@ -61,6 +64,9 @@ func (s *MCPServerService) CreateMCPServer(mcpServer *model.MCPServer) error {
 func (s *MCPServerService) UpdateMCPServer(mcpServer *model.MCPServer) error {
 	if err := s.validateMCPServerName(mcpServer); err != nil {
 		return err
+	}
+	if mcpServer.HeartbeatEnable != nil && *mcpServer.HeartbeatEnable && mcpServer.HeartbeatInterval < 60 {
+		return fmt.Errorf("心跳间隔不能小于60秒")
 	}
 	server, err := s.mcpServerRepo.FindByID(mcpServer.ID)
 	if err != nil {
