@@ -108,7 +108,7 @@ func (m *MCPManager) AddServer(server *model.MCPServer) error {
 	if server.HeartbeatEnable != nil && *server.HeartbeatEnable && server.HeartbeatInterval > 0 {
 		heartbeatCtx, heartbeatCancel := context.WithCancel(m.ctx)
 		m.heartbeatCancels[server.ID] = heartbeatCancel
-		go m.startHeartbeat(heartbeatCtx, server.ID, client, time.Duration(server.HeartbeatInterval)*time.Second)
+		go m.startHeartbeat(heartbeatCtx, server, client, time.Duration(server.HeartbeatInterval)*time.Second)
 	}
 
 	return nil
@@ -320,23 +320,23 @@ func (m *MCPManager) Shutdown() error {
 }
 
 // startHeartbeat 启动心跳检测
-func (m *MCPManager) startHeartbeat(ctx context.Context, serverID uint64, client MCPClient, interval time.Duration) {
+func (m *MCPManager) startHeartbeat(ctx context.Context, server *model.MCPServer, client MCPClient, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	maxRetry := 5
-	retryCount := 0
+	tempMaxRetry := 5
+	tempRetryCount := 0
 
-	log.Printf("MCP server %d heartbeat started (interval: %v)", serverID, interval)
+	log.Printf("MCP server %s heartbeat started (interval: %v)", server.Name, interval)
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("MCP server %d heartbeat context cancelled", serverID)
+			log.Printf("MCP server %s heartbeat context cancelled", server.Name)
 			return
 		case <-ticker.C:
 			if !client.IsConnected() {
-				log.Printf("MCP server %d client disconnected, stopping heartbeat", serverID)
+				log.Printf("MCP server %s client disconnected, stopping heartbeat", server.Name)
 				return
 			}
 
@@ -344,17 +344,17 @@ func (m *MCPManager) startHeartbeat(ctx context.Context, serverID uint64, client
 			err := client.Ping(pingCtx)
 			cancel()
 			if err != nil {
-				log.Printf("Heartbeat failed for MCP server %d: %v", serverID, err)
-				m.repo.IncrementErrorCount(serverID)
-				m.repo.UpdateConnectionError(serverID, err.Error())
+				log.Printf("Heartbeat failed for MCP server %s: %v", server.Name, err)
+				m.repo.IncrementErrorCount(server.ID)
+				m.repo.UpdateConnectionError(server.ID, err.Error())
 
 				// 忽略临时性关闭/重连中的错误，下轮再试
 				if errors.Is(err, context.Canceled) ||
 					strings.Contains(err.Error(), "client is closing") ||
 					strings.Contains(err.Error(), "reconnect") {
-					log.Printf("MCP %d heartbeat transient issue: %v", serverID, err)
-					retryCount++
-					if retryCount < maxRetry {
+					log.Printf("MCP %s heartbeat transient issue: %v", server.Name, err)
+					tempRetryCount++
+					if tempRetryCount < tempMaxRetry {
 						continue
 					}
 				}
@@ -363,13 +363,13 @@ func (m *MCPManager) startHeartbeat(ctx context.Context, serverID uint64, client
 					if err := m.ReloadServer(sid); err != nil {
 						log.Printf("Failed to reconnect MCP server %d: %v", sid, err)
 					}
-				}(serverID)
+				}(server.ID)
 
-				log.Printf("MCP server %d heartbeat stopped, waiting for reconnection", serverID)
+				log.Printf("MCP server %s heartbeat stopped, waiting for reconnection", server.Name)
 				return
 			}
 
-			retryCount = 0
+			tempRetryCount = 0
 		}
 	}
 }

@@ -108,7 +108,9 @@ func (c *BaseClient) updateStats(success bool, latency time.Duration) {
 	c.stats.RequestCount++
 	if success {
 		c.stats.SuccessCount++
+		c.stats.ErrorCount = 0
 	} else {
+		c.stats.SuccessCount = 0
 		c.stats.ErrorCount++
 	}
 	if c.stats.AverageLatency == 0 {
