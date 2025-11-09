@@ -46,15 +46,7 @@ func NewStreamableClient(config *model.MCPServer) *StreamableClient {
 
 func (c *StreamableClient) Auth(h sdkmcp.MethodHandler) sdkmcp.MethodHandler {
 	return func(ctx context.Context, method string, req sdkmcp.Request) (result sdkmcp.Result, err error) {
-		header := req.GetExtra().Header
-		if c.authHeader != "" {
-			header.Set("Authorization", c.authHeader)
-		}
-		for k, v := range c.headers {
-			if v != "" {
-				header.Set(k, v)
-			}
-		}
+		// TODO: 添加认证逻辑
 		return h(ctx, method, req)
 	}
 }
