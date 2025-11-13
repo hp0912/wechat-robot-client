@@ -121,3 +121,20 @@ func (s *MCPServer) DeleteMCPServer(c *gin.Context) {
 	}
 	resp.ToResponse(nil)
 }
+
+func (s *MCPServer) GetMCPServerTools(c *gin.Context) {
+	var req struct {
+		ID uint64 `form:"id" json:"id" binding:"required"`
+	}
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	data, err := service.NewMCPServerService(c).GetMCPServerTools(req.ID)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(data)
+}

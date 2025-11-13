@@ -2,10 +2,12 @@ package ai
 
 import (
 	"context"
+
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/sashabaranov/go-openai"
+
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/mcp"
-
-	"github.com/sashabaranov/go-openai"
 )
 
 type MCPService interface {
@@ -13,7 +15,8 @@ type MCPService interface {
 	Initialize() error
 	Shutdown(ctx context.Context) error
 	GetAllTools() ([]openai.Tool, error)
-	GetToolsByServer(serverName string) ([]openai.Tool, error)
+	GetToolsByServerName(serverName string) ([]openai.Tool, error)
+	GetToolsByServerID(serverID uint64) ([]*sdkmcp.Tool, error)
 	ExecuteToolCall(robotCtx mcp.RobotContext, toolCall openai.ToolCall) (string, error)
 	ChatWithMCPTools(
 		robotCtx mcp.RobotContext,

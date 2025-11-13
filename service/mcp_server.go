@@ -6,6 +6,9 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
@@ -131,4 +134,11 @@ func (s *MCPServerService) DeleteMCPServer(mcpServer *model.MCPServer) error {
 	}
 
 	return s.mcpServerRepo.Delete(mcpServer.ID)
+}
+
+func (s *MCPServerService) GetMCPServerTools(id uint64) ([]*sdkmcp.Tool, error) {
+	if vars.MCPService == nil {
+		return nil, fmt.Errorf("MCP服务未初始化")
+	}
+	return vars.MCPService.GetToolsByServerID(id)
 }

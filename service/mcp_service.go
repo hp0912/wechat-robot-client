@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sashabaranov/go-openai"
-	"gorm.io/gorm"
-
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/mcp"
 	"wechat-robot-client/repository"
+
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/sashabaranov/go-openai"
+	"gorm.io/gorm"
 )
 
 type MCPService struct {
@@ -56,9 +57,37 @@ func (s *MCPService) GetAllTools() ([]openai.Tool, error) {
 	return s.converter.ConvertMCPToolsToOpenAI(s.ctx)
 }
 
-// GetToolsByServer 获取指定服务器的工具
-func (s *MCPService) GetToolsByServer(serverName string) ([]openai.Tool, error) {
+// GetToolsByServerName 获取指定服务器的工具
+func (s *MCPService) GetToolsByServerName(serverName string) ([]openai.Tool, error) {
 	return s.converter.GetToolsByServer(s.ctx, serverName)
+}
+
+// GetToolsByServerID 获取指定MCP服务器提供的工具列表（MCP SDK原始格式）
+func (s *MCPService) GetToolsByServerID(serverID uint64) ([]*sdkmcp.Tool, error) {
+	// 检查服务器是否存在且已启用
+	server, err := s.mcpServerRepo.FindByID(serverID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find server: %w", err)
+	}
+	if server == nil {
+		return nil, fmt.Errorf("server not found")
+	}
+	if server.Enabled == nil || !*server.Enabled {
+		return nil, fmt.Errorf("server is not enabled")
+	}
+
+	// 通过manager获取客户端并列出工具
+	client, err := s.manager.GetClient(serverID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client: %w", err)
+	}
+
+	tools, err := client.ListTools(s.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list tools: %w", err)
+	}
+
+	return tools, nil
 }
 
 // ExecuteToolCall 执行工具调用
