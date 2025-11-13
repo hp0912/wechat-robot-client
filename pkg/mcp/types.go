@@ -35,14 +35,15 @@ type MCPConnectionStats struct {
 
 // RobotContext 在工具调用入参中透传的机器人上下文
 type RobotContext struct {
-	RobotID      int64
-	RobotCode    string
-	RobotRedisDB uint
-	RobotWxID    string
-	FromWxID     string
-	SenderWxID   string
-	MessageID    int64
-	RefMessageID int64
+	WeChatClientPort string
+	RobotID          int64
+	RobotCode        string
+	RobotRedisDB     uint
+	RobotWxID        string
+	FromWxID         string
+	SenderWxID       string
+	MessageID        int64
+	RefMessageID     int64
 }
 
 // MessageSender 发送微信消息的适配器

@@ -65,14 +65,15 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 		refMessageID = ctx.ReferMessage.ID
 	}
 	aiReply, err := aiChatService.Chat(mcp.RobotContext{
-		RobotID:      vars.RobotRuntime.RobotID,
-		RobotCode:    vars.RobotRuntime.RobotCode,
-		RobotRedisDB: vars.RobotRuntime.RobotRedisDB,
-		RobotWxID:    vars.RobotRuntime.WxID,
-		FromWxID:     ctx.Message.FromWxID,
-		SenderWxID:   ctx.Message.SenderWxID,
-		MessageID:    ctx.Message.ID,
-		RefMessageID: refMessageID,
+		WeChatClientPort: vars.WechatClientPort,
+		RobotID:          vars.RobotRuntime.RobotID,
+		RobotCode:        vars.RobotRuntime.RobotCode,
+		RobotRedisDB:     vars.RobotRuntime.RobotRedisDB,
+		RobotWxID:        vars.RobotRuntime.WxID,
+		FromWxID:         ctx.Message.FromWxID,
+		SenderWxID:       ctx.Message.SenderWxID,
+		MessageID:        ctx.Message.ID,
+		RefMessageID:     refMessageID,
 	}, aiMessages)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
