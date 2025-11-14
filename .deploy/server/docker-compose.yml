@@ -98,12 +98,27 @@ services:
     networks:
       - wechat-robot
 
-  jimeng-free-api:
-    image: registry.cn-shenzhen.aliyuncs.com/houhou/jimeng-free-api:latest
-    container_name: jimeng-free-api
+  jimeng-api:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/jimeng-api:latest
+    container_name: jimeng-api
     restart: always
     environment:
       - TZ=Asia/Shanghai
+    networks:
+      - wechat-robot
+
+  wechat-robot-mcp-server:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-mcp-server:latest
+    container_name: wechat-robot-mcp-server
+    restart: always
+    environment:
+      - GIN_MODE=release
+      - TZ=Asia/Shanghai
+      - MCP_SERVER_PORT=9000
+      - MYSQL_HOST=wechat-admin-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=mroot12345678
     networks:
       - wechat-robot
 
