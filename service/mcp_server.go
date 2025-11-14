@@ -78,6 +78,9 @@ func (s *MCPServerService) UpdateMCPServer(mcpServer *model.MCPServer) error {
 	if server == nil {
 		return fmt.Errorf("MCP服务器不存在")
 	}
+	if server.IsBuiltIn != nil && *server.IsBuiltIn {
+		return fmt.Errorf("官方 MCP 服务不支持编辑")
+	}
 	if server.Transport != mcpServer.Transport {
 		return fmt.Errorf("不允许修改MCP服务器类型")
 	}
