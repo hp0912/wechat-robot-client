@@ -585,7 +585,8 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 func (s *MessageService) MessageWebhook(syncResp robot.SyncMessage) {
 	if vars.Webhook.URL != "" {
 		req := resty.New().R().
-			SetHeader("Content-Type", "application/json;chartset=utf-8")
+			SetHeader("Content-Type", "application/json;chartset=utf-8").
+			SetBody(syncResp)
 
 		// 设置自定义 headers
 		if vars.Webhook.Headers != nil {
