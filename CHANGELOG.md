@@ -1,5 +1,35 @@
 # 更新日志
 
+## [2.0.0] - 2025/11/15
+
+### 破坏性更新
+
+- `wechat-robot-admin-backend`服务新增了一个必填环境变量`UUID_URL`，可填写为`http://wechat-slider:9000`
+
+- 表结构新增和更新，请按照 [SQL 升级脚本](https://github.com/hp0912/wechat-robot-admin-backend/blob/main/template/2_0_0.sql)进行升级
+
+- 需要更新`wechat-slider`服务的镜像，执行 `docker pull registry.cn-shenzhen.aliyuncs.com/houhou/wechat/wechat-slider-base:latest`
+
+- 移除 `jimeng-free-api` 服务，执行 `docker compose rm -s -f jimeng-free-api` 或者 `docker-compose rm -s -f jimeng-free-api`，哪个能用用哪个
+
+### 新特性
+
+- 完整的 MCP 协议支持
+
+- 开放微信消息 Webhook 回调
+
+### 体验性优化
+
+- iPad 协议新增支持 pprof 监控(启用方法: 机器人详情界面，更新镜像下拉框 -> 删除服务端容器 -> 创建服务端容器 (启用pprof))
+
+- 即梦逆向 api 由 [jimeng-free-api](https://github.com/LLM-Red-Team/jimeng-free-api) 迁移到 [jimeng-api](https://github.com/iptag/jimeng-api)，以支持更多功能
+
+- 优化机器人管理后台前端项目本地Docker构建(本地构建使用 dev.Dockerfile)
+
+### BUG 修复
+
+- 修复 iPad 协议提取 ticket 异常的问题
+
 ## [1.6.0] - 2025/10/12
 
 ### 体验性优化
