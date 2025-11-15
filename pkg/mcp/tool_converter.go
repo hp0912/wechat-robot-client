@@ -220,7 +220,7 @@ func (c *MCPToolConverter) BuildSystemPromptWithMCPTools(ctx context.Context, ba
 下面是你当前可以使用的 MCP 工具列表，请在需要时主动选择合适的工具进行调用：
 `
 
-	toolsDesc := "\n\n## 可用工具\n\n你可以调用以下工具来帮助回答用户的问题：\n\n"
+	toolsDesc := "\n\n## 可用工具列表\n\n"
 
 	for serverName, tools := range allTools {
 		toolsDesc += fmt.Sprintf("### 来自 %s 的工具：\n\n", serverName)
