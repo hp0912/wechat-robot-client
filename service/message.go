@@ -579,7 +579,7 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		}
 	}
 	// webhook 回调
-	go s.MessageWebhook(syncResp)
+	s.MessageWebhook(syncResp)
 }
 
 func (s *MessageService) MessageWebhook(syncResp robot.SyncMessage) {
@@ -611,7 +611,13 @@ func (s *MessageService) MessageWebhook(syncResp robot.SyncMessage) {
 			}
 		}
 
-		_, err := req.Post(vars.Webhook.URL)
+		webhookUrl := vars.Webhook.URL
+		if strings.Contains(webhookUrl, "?") {
+			webhookUrl += fmt.Sprintf("&robot_id=%d&robot_code=%s&robot_wxid=%s", vars.RobotRuntime.RobotID, vars.RobotRuntime.RobotCode, vars.RobotRuntime.WxID)
+		} else {
+			webhookUrl += fmt.Sprintf("?robot_id=%d&robot_code=%s&robot_wxid=%s", vars.RobotRuntime.RobotID, vars.RobotRuntime.RobotCode, vars.RobotRuntime.WxID)
+		}
+		_, err := req.Post(webhookUrl)
 		if err != nil {
 			log.Println("消息 webhook 调用失败: ", err.Error())
 		}
