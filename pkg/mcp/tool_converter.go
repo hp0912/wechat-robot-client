@@ -176,7 +176,6 @@ func (c *MCPToolConverter) formatToolResult(result *sdkmcp.CallToolResult) (stri
 
 // BuildSystemPromptWithMCPTools 构建包含MCP工具描述的系统提示词
 func (c *MCPToolConverter) BuildSystemPromptWithMCPTools(ctx context.Context, basePrompt string) (string, error) {
-	// 获取所有工具
 	allTools, err := c.manager.GetAllTools(ctx)
 	if err != nil {
 		return basePrompt, err
@@ -186,8 +185,42 @@ func (c *MCPToolConverter) BuildSystemPromptWithMCPTools(ctx context.Context, ba
 		return basePrompt, nil
 	}
 
-	// 构建工具描述
-	toolsDesc := "\n\n## 可用工具\n\n你可以调用以下工具来帮助回答用户的问题：\n\n"
+	intro := `你运行在一个支持 MCP（Model Context Protocol）工具的聊天应用环境中。
+当你自身能力不足或需要访问外部数据时，应主动调用这些工具来完成任务。
+
+1. 何时使用工具
+- 当需要访问或处理「外部数据」时（例如：查询、统计、搜索、总结群聊内容等）。
+- 当用户要求执行你自身无法完成的动作（例如：根据文本生成图片/音频/视频、操作第三方系统等）。
+- 当用户明确点名某个工具或某类能力时。
+- 当任务涉及具体时间区间、对象范围、过滤条件等，并且需要依赖工具才能得到准确结果时。
+
+2. 工具命名与选择
+- 每个工具在调用时的名称格式为：{serverName}__{toolName}。
+  例如：服务器名为 "calendar"，工具名为 "create_event"，实际调用名为 "calendar__create_event"。
+- 在选择工具时：
+  - 先根据工具描述判断是否符合用户意图；
+  - 如有多个类似工具，优先选择描述更精确、与当前场景更贴近的工具。
+
+3. 构造工具调用参数
+- 在调用工具前，应先向用户澄清目标、范围和约束（如时间区间、数量限制、过滤条件等）。
+- 构造参数时：
+  - 必须严格遵守工具参数的 JSON Schema 要求；
+  - 不要省略必填字段，不要编造关键参数；
+  - 对不确定的信息应先向用户确认，再发起调用。
+
+4. 处理工具返回结果
+- 工具可能返回结构化 JSON 或文本，你需要先理解其含义，再用自然语言为用户总结。
+- 若工具返回错误或空结果：
+  - 根据返回信息解释可能原因，不要编造结果；
+  - 必要时建议用户调整请求或参数。
+- 最终回答时：
+  - 使用简洁、结构化的方式呈现结果（例如分点说明、列表）；
+  - 除非用户明确要求，否则不要直接原样输出冗长的 JSON。
+
+下面是你当前可以使用的 MCP 工具列表，请在需要时主动选择合适的工具进行调用：
+`
+
+	toolsDesc := "\n\n## 可用工具列表\n\n"
 
 	for serverName, tools := range allTools {
 		toolsDesc += fmt.Sprintf("### 来自 %s 的工具：\n\n", serverName)
@@ -197,9 +230,9 @@ func (c *MCPToolConverter) BuildSystemPromptWithMCPTools(ctx context.Context, ba
 		toolsDesc += "\n"
 	}
 
-	toolsDesc += "请根据用户的需求，合理选择和使用这些工具。\n"
+	toolsDesc += "调用工具时，请根据上述规则谨慎选择工具并构造参数。\n"
 
-	return basePrompt + toolsDesc, nil
+	return basePrompt + intro + toolsDesc, nil
 }
 
 // GetToolsByServer 获取指定服务器的所有工具（OpenAI格式）

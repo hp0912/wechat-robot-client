@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"time"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -18,6 +19,22 @@ type StreamableClient struct {
 	url        string
 	authHeader string
 	headers    map[string]string
+}
+
+type authRoundTripper struct {
+	base       http.RoundTripper
+	authHeader string
+	headers    map[string]string
+}
+
+func (t *authRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if t.authHeader != "" {
+		req.Header.Set("Authorization", t.authHeader)
+	}
+	for k, v := range t.headers {
+		req.Header.Set(k, v)
+	}
+	return t.base.RoundTrip(req)
 }
 
 // NewStreamableClient 创建Streamable客户端
@@ -44,20 +61,25 @@ func NewStreamableClient(config *model.MCPServer) *StreamableClient {
 	}
 }
 
-func (c *StreamableClient) Auth(h sdkmcp.MethodHandler) sdkmcp.MethodHandler {
-	return func(ctx context.Context, method string, req sdkmcp.Request) (result sdkmcp.Result, err error) {
-		// TODO: 添加认证逻辑
-		return h(ctx, method, req)
-	}
-}
-
 // Connect 连接到MCP服务器
 func (c *StreamableClient) Connect(ctx context.Context) error {
 	if c.IsConnected() {
 		return ErrAlreadyConnected
 	}
 
-	transport := &sdkmcp.StreamableClientTransport{Endpoint: c.url}
+	httpClient := &http.Client{
+		Transport: &authRoundTripper{
+			base:       http.DefaultTransport,
+			authHeader: c.authHeader,
+			headers:    c.headers,
+		},
+	}
+
+	transport := &sdkmcp.StreamableClientTransport{
+		Endpoint:   c.url,
+		HTTPClient: httpClient,
+	}
+
 	clientName := c.config.ClientName
 	if clientName == "" {
 		clientName = "wechat-robot-mcp-client"
@@ -66,7 +88,6 @@ func (c *StreamableClient) Connect(ctx context.Context) error {
 		Name:    clientName,
 		Version: "1.0.0",
 	}, nil)
-	c.client.AddSendingMiddleware(c.Auth)
 
 	sess, err := c.client.Connect(ctx, transport, nil)
 	if err != nil {
