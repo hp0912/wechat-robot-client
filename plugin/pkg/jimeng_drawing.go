@@ -13,11 +13,11 @@ import (
 type JimengRequest struct {
 	Model          string  `json:"model"`
 	Prompt         string  `json:"prompt"`
+	Ratio          string  `json:"ratio"`
+	Resolution     string  `json:"resolution"`
 	NegativePrompt string  `json:"negative_prompt"`
-	Width          int     `json:"width"`
-	Height         int     `json:"height"`
 	SampleStrength float64 `json:"sample_strength"`
-	ResolutionType string  `json:"resolution_type"`
+	ResponseFormat string  `json:"response_format"`
 }
 
 type JimengConfig struct {
@@ -42,13 +42,16 @@ func JimengDrawing(config *JimengConfig) (string, error) {
 	}
 	// 设置默认值
 	if config.Model == "" {
-		config.Model = "jimeng-3.0"
+		config.Model = "jimeng-4.0"
 	}
-	if config.Width == 0 {
-		config.Width = 1024
+	if config.ResponseFormat == "" {
+		config.ResponseFormat = "url"
 	}
-	if config.Height == 0 {
-		config.Height = 1024
+	if config.Ratio == "" {
+		config.Ratio = "16:9"
+	}
+	if config.Resolution == "" {
+		config.Resolution = "2k"
 	}
 	if config.SampleStrength == 0 {
 		config.SampleStrength = 0.5
