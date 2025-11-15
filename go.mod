@@ -20,7 +20,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/redis/go-redis/v9 v9.10.0
-	github.com/sashabaranov/go-openai v1.40.1
+	github.com/sashabaranov/go-openai v1.41.2
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1186
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/hunyuan v1.0.1186
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.70
