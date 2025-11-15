@@ -1,10 +1,11 @@
 package router
 
 import (
+	"github.com/gin-gonic/gin"
+
 	"wechat-robot-client/controller"
 	"wechat-robot-client/middleware"
-
-	"github.com/gin-gonic/gin"
+	"wechat-robot-client/vars"
 )
 
 var chatHistoryCtl *controller.ChatHistory
@@ -22,7 +23,9 @@ var aiCallbackCtl *controller.AICallback
 var momentsCtl *controller.Moments
 var systemSettingsCtl *controller.SystemSettings
 var ossSettingsCtl *controller.OSSSettings
+var mcpServerCtl *controller.MCPServer
 var probeCtl *controller.Probe
+var pprofProxyCtl *controller.PprofProxy
 
 func initController() {
 	chatHistoryCtl = controller.NewChatHistoryController()
@@ -40,6 +43,8 @@ func initController() {
 	momentsCtl = controller.NewMomentsController()
 	systemSettingsCtl = controller.NewSystemSettingsController()
 	ossSettingsCtl = controller.NewOSSSettingsController()
+	mcpServerCtl = controller.NewMCPController()
+	pprofProxyCtl = controller.NewPprofProxyController(vars.PprofProxyURL)
 	probeCtl = controller.NewProbeController()
 }
 
@@ -103,6 +108,7 @@ func RegisterRouter(r *gin.Engine) error {
 	// 消息相关接口
 	api.POST("/robot/message/revoke", messageCtl.MessageRevoke)
 	api.POST("/robot/message/send/text", messageCtl.SendTextMessage)
+	api.POST("/robot/message/send/longtext", messageCtl.SendLongTextMessage)
 	api.POST("/robot/message/send/image", messageCtl.SendImageMessage)
 	api.POST("/robot/message/send/video", messageCtl.SendVideoMessage)
 	api.POST("/robot/message/send/voice", messageCtl.SendVoiceMessage)
@@ -120,6 +126,16 @@ func RegisterRouter(r *gin.Engine) error {
 	// OSS 设置相关接口
 	api.GET("/robot/oss-settings", ossSettingsCtl.GetOSSSettings)
 	api.POST("/robot/oss-settings", ossSettingsCtl.SaveOSSSettings)
+
+	// MCP 协议相关接口
+	api.GET("/robot/mcp/server", mcpServerCtl.GetMCPServer)
+	api.GET("/robot/mcp/servers", mcpServerCtl.GetMCPServers)
+	api.GET("/robot/mcp/server/tools", mcpServerCtl.GetMCPServerTools)
+	api.POST("/robot/mcp/server", mcpServerCtl.CreateMCPServer)
+	api.POST("/robot/mcp/server/enable", mcpServerCtl.EnableMCPServer)
+	api.POST("/robot/mcp/server/disable", mcpServerCtl.DisableMCPServer)
+	api.PUT("/robot/mcp/server", mcpServerCtl.UpdateMCPServer)
+	api.DELETE("/robot/mcp/server", mcpServerCtl.DeleteMCPServer)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
@@ -158,6 +174,11 @@ func RegisterRouter(r *gin.Engine) error {
 
 	// 微信小程序相关接口
 	api.POST("/robot/wxapp/qrcode-auth-login", controller.NewWXAppController().WxappQrcodeAuthLogin)
+
+	// Pprof 代理接口 - 代理项目B的pprof监控
+	pprofGroup := api.Group("/robot/pprof")
+	pprofGroup.GET("/*proxyPath", pprofProxyCtl.ProxyPprof)
+	pprofGroup.POST("/*proxyPath", pprofProxyCtl.ProxyPprof)
 
 	return nil
 }

@@ -15,14 +15,14 @@ import (
 type AICallbackService struct {
 	ctx        context.Context
 	aiTaskRepo *repository.AITask
-	msgRespo   *repository.Message
+	msgRepo    *repository.Message
 }
 
 func NewAICallbackService(ctx context.Context) *AICallbackService {
 	return &AICallbackService{
 		ctx:        ctx,
 		aiTaskRepo: repository.NewAITaskRepo(ctx, vars.DB),
-		msgRespo:   repository.NewMessageRepo(ctx, vars.DB),
+		msgRepo:    repository.NewMessageRepo(ctx, vars.DB),
 	}
 }
 
@@ -53,7 +53,7 @@ func (s *AICallbackService) DoubaoTTS(req dto.DoubaoTTSCallbackRequest) error {
 		return errors.New("任务不存在")
 	}
 
-	message, err := s.msgRespo.GetByID(aiTask.MessageID)
+	message, err := s.msgRepo.GetByID(aiTask.MessageID)
 	if err != nil {
 		log.Println("获取消息失败: ", aiTask.MessageID, err)
 		return err

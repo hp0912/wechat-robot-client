@@ -2,8 +2,10 @@ package plugins
 
 import (
 	"wechat-robot-client/interface/plugin"
+	"wechat-robot-client/pkg/mcp"
 	"wechat-robot-client/service"
 	"wechat-robot-client/utils"
+	"wechat-robot-client/vars"
 )
 
 type AIChatPlugin struct{}
@@ -30,24 +32,24 @@ func (p *AIChatPlugin) PostAction(ctx *plugin.MessageContext) {
 
 func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 	aiTriggerWord := ctx.Settings.GetAITriggerWord()
-	aiContext, err := ctx.MessageService.GetAIMessageContext(ctx.Message)
+	aiMessages, err := ctx.MessageService.GetAIMessageContext(ctx.Message)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 		return true
 	}
 	if ctx.Message.IsChatRoom {
-		for index := range aiContext {
+		for index := range aiMessages {
 			// 去除群聊中的AI触发词
-			aiContext[index].Content = utils.TrimAITriggerAll(aiContext[index].Content, aiTriggerWord)
-			for index2 := range aiContext[index].MultiContent {
+			aiMessages[index].Content = utils.TrimAITriggerAll(aiMessages[index].Content, aiTriggerWord)
+			for index2 := range aiMessages[index].MultiContent {
 				// 去除群聊中的AI触发词
-				aiContext[index].MultiContent[index2].Text = utils.TrimAITriggerAll(aiContext[index].MultiContent[index2].Text, aiTriggerWord)
+				aiMessages[index].MultiContent[index2].Text = utils.TrimAITriggerAll(aiMessages[index].MultiContent[index2].Text, aiTriggerWord)
 			}
 		}
 	}
 	// 去除触发词后，剩下的内容如果为空，则不进行AI聊天
-	if len(aiContext) > 0 {
-		lastMessage := aiContext[len(aiContext)-1]
+	if len(aiMessages) > 0 {
+		lastMessage := aiMessages[len(aiMessages)-1]
 		if lastMessage.Content == "" && len(lastMessage.MultiContent) == 0 {
 			if ctx.Message.IsChatRoom {
 				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "在呢", ctx.Message.SenderWxID)
@@ -58,7 +60,21 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 		}
 	}
 	aiChatService := service.NewAIChatService(ctx.Context, ctx.Settings)
-	aiReply, err := aiChatService.Chat(aiContext)
+	var refMessageID int64
+	if ctx.ReferMessage != nil {
+		refMessageID = ctx.ReferMessage.ID
+	}
+	aiReply, err := aiChatService.Chat(mcp.RobotContext{
+		WeChatClientPort: vars.WechatClientPort,
+		RobotID:          vars.RobotRuntime.RobotID,
+		RobotCode:        vars.RobotRuntime.RobotCode,
+		RobotRedisDB:     vars.RobotRuntime.RobotRedisDB,
+		RobotWxID:        vars.RobotRuntime.WxID,
+		FromWxID:         ctx.Message.FromWxID,
+		SenderWxID:       ctx.Message.SenderWxID,
+		MessageID:        ctx.Message.ID,
+		RefMessageID:     refMessageID,
+	}, aiMessages)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 		return true

@@ -12,6 +12,7 @@ import (
 
 type MessageServiceIface interface {
 	SendTextMessage(toWxID, content string, at ...string) error
+	SendAppMessage(toWxID string, appMsgType int, appMsgXml string) error
 	MsgUploadImg(toWxID string, image io.Reader) (*model.Message, error)
 	MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error
 	MsgSendVideo(toWxID string, video io.Reader, videoExt string) error

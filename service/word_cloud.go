@@ -13,19 +13,19 @@ import (
 )
 
 type WordCloudService struct {
-	ctx      context.Context
-	msgRespo *repository.Message
+	ctx     context.Context
+	msgRepo *repository.Message
 }
 
 func NewWordCloudService(ctx context.Context) *WordCloudService {
 	return &WordCloudService{
-		ctx:      ctx,
-		msgRespo: repository.NewMessageRepo(ctx, vars.DB),
+		ctx:     ctx,
+		msgRepo: repository.NewMessageRepo(ctx, vars.DB),
 	}
 }
 
 func (s *WordCloudService) WordCloudDaily(chatRoomID, aiTriggerWord string, startTime, endTime int64) ([]byte, error) {
-	messages, err := s.msgRespo.GetMessagesByTimeRange(vars.RobotRuntime.WxID, chatRoomID, startTime, endTime)
+	messages, err := s.msgRepo.GetMessagesByTimeRange(vars.RobotRuntime.WxID, chatRoomID, startTime, endTime)
 	if err != nil {
 		return nil, err
 	}

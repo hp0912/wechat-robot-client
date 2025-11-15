@@ -2,11 +2,13 @@ package vars
 
 import (
 	"time"
-	"wechat-robot-client/pkg/robot"
-	"wechat-robot-client/plugin"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+
+	"wechat-robot-client/interface/ai"
+	"wechat-robot-client/pkg/robot"
+	"wechat-robot-client/plugin"
 )
 
 // 微信机器人客户端监听端口
@@ -32,6 +34,13 @@ var RobotStartTimeout time.Duration
 // 机器人运行时实例
 var RobotRuntime = &robot.Robot{}
 
+var MCPService ai.MCPService
+
+var Webhook struct {
+	URL     string
+	Headers map[string]any
+}
+
 // 任务调度器实例
 var CronManager CronManagerInterface
 
@@ -42,6 +51,9 @@ var MusicSearchApi = "https://api.cenguigui.cn/api/music/netease/WyY_Dg.php"
 var ThirdPartyApiKey string
 
 var WordCloudUrl string
+
+// Pprof 代理目标地址
+var PprofProxyURL string
 
 var UploadFileChunkSize int64 = 50000
 

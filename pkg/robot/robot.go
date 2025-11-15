@@ -22,6 +22,8 @@ import (
 
 type Robot struct {
 	RobotID           int64
+	RobotCode         string
+	RobotRedisDB      uint
 	WxID              string
 	Status            model.RobotStatus
 	DeviceID          string
@@ -474,6 +476,21 @@ func (r *Robot) MsgSendGroupMassMsgText(req MsgSendGroupMassMsgTextRequest) (Msg
 		return MsgSendGroupMassMsgTextResponse{}, err
 	}
 	return resp, nil
+}
+
+func (r *Robot) SendAppMessage(toWxID string, appMsgType int, appMsgXml string) (appMessage SendAppResponse, err error) {
+	appMessage, err = r.Client.SendApp(SendAppRequest{
+		Wxid:   r.WxID,
+		ToWxid: toWxID,
+		Xml:    appMsgXml,
+		Type:   appMsgType,
+	})
+	if err != nil {
+		err = fmt.Errorf("发送聊天记录消息失败: %w", err)
+		return
+	}
+	appMessage.Content = appMsgXml
+	return
 }
 
 func (r *Robot) MsgUploadImg(toWxID string, image []byte) (MsgUploadImgResponse, error) {

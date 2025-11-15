@@ -37,6 +37,11 @@ func main() {
 	vars.CronManager = common_cron.NewCronManager()
 	vars.CronManager.Clear()
 	vars.CronManager.Start()
+	// 初始化MCP服务
+	err := startup.InitMCPService()
+	if err != nil {
+		log.Fatalf("初始化MCP服务失败: %v", err)
+	}
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))
 	app := gin.Default()
@@ -56,6 +61,7 @@ func main() {
 	shutdownManager.Register(redisConn)
 	shutdownManager.Register(vars.RobotRuntime)
 	shutdownManager.Register(vars.CronManager)
+	shutdownManager.Register(vars.MCPService)
 	// 开始监听停止信号
 	shutdownManager.Start()
 	// 启动服务
