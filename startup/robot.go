@@ -47,6 +47,16 @@ func InitWechatRobot() error {
 
 	vars.RobotRuntime.Client = client
 
+	systemSettings, err := service.NewSystemSettingService(context.Background()).GetSystemSettings()
+	if err == nil && systemSettings != nil {
+		if systemSettings.WebhookURL != nil {
+			vars.Webhook.URL = *systemSettings.WebhookURL
+		}
+		if systemSettings.WebhookHeaders != nil {
+			vars.Webhook.Headers = systemSettings.WebhookHeaders
+		}
+	}
+
 	// 检测微信机器人服务端是否启动
 	retryInterval := 10 * time.Second
 	retryTicker := time.NewTicker(retryInterval)

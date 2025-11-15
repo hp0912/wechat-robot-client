@@ -578,6 +578,43 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 			}
 		}
 	}
+	// webhook 回调
+	go s.MessageWebhook(syncResp)
+}
+
+func (s *MessageService) MessageWebhook(syncResp robot.SyncMessage) {
+	if vars.Webhook.URL != "" {
+		req := resty.New().R().
+			SetHeader("Content-Type", "application/json;chartset=utf-8")
+
+		// 设置自定义 headers
+		if vars.Webhook.Headers != nil {
+			for k, v := range vars.Webhook.Headers {
+				switch val := v.(type) {
+				case string:
+					// 单个字符串值
+					req.SetHeader(k, val)
+				case []string:
+					// 字符串数组,设置多个相同 key 的 header
+					for _, headerVal := range val {
+						req.SetHeader(k, headerVal)
+					}
+				case []any:
+					// any 数组,尝试转换为字符串
+					for _, item := range val {
+						if strVal, ok := item.(string); ok {
+							req.SetHeader(k, strVal)
+						}
+					}
+				}
+			}
+		}
+
+		_, err := req.Post(vars.Webhook.URL)
+		if err != nil {
+			log.Println("消息 webhook 调用失败: ", err.Error())
+		}
+	}
 }
 
 func (s *MessageService) SyncMessage() {

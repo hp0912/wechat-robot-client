@@ -36,6 +36,11 @@ var RobotRuntime = &robot.Robot{}
 
 var MCPService ai.MCPService
 
+var Webhook struct {
+	URL     string
+	Headers map[string]any
+}
+
 // 任务调度器实例
 var CronManager CronManagerInterface
 

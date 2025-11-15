@@ -109,7 +109,7 @@ func (c *Client) GetCachedInfo(wxid string) (resp LoginData, err error) {
 func (c *Client) BaseResponseErrCheck(baseResponse *BaseResponse) (err error) {
 	if baseResponse != nil && baseResponse.Ret != 0 {
 		if baseResponse.ErrMsg != nil && baseResponse.ErrMsg.String != nil && *baseResponse.ErrMsg.String != "" {
-			err = fmt.Errorf(*baseResponse.ErrMsg.String)
+			err = errors.New(*baseResponse.ErrMsg.String)
 			return
 		}
 	}
