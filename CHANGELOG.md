@@ -12,6 +12,8 @@
 
 - 移除 `jimeng-free-api` 服务，执行 `docker compose rm -s -f jimeng-free-api` 或者 `docker-compose rm -s -f jimeng-free-api`，哪个能用用哪个
 
+- 拉取最新代码获取最新`docker-compose.yml`文件，根据文件内容，手动拉一遍镜像，成功率更高。
+
 ### 新特性
 
 - 完整的 MCP 协议支持
