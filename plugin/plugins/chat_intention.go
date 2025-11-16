@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"wechat-robot-client/interface/plugin"
+	"wechat-robot-client/model"
 	"wechat-robot-client/service"
 	"wechat-robot-client/utils"
 )
@@ -13,6 +14,13 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 	if ctx.Message.IsChatRoom {
 		// 去除群聊中的AI触发词
 		messageContent = utils.TrimAITriggerAll(messageContent, aiTriggerWord)
+	}
+
+	// 临时处理，后面再优化
+	if messageContent == "" && ctx.ReferMessage != nil && ctx.ReferMessage.Type == model.MsgTypeImage {
+		autoUpload := NewAIImageUploadPlugin()
+		autoUpload.Run(ctx)
+		return
 	}
 
 	chatIntention := aiWorkflowService.ChatIntention(messageContent, ctx.ReferMessage)
@@ -34,17 +42,25 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
 		}
 	case service.ChatIntentionDrawAPicture:
-		isAIEnabled := ctx.Settings.IsAIDrawingEnabled()
-		if !isAIEnabled {
-			return
-		}
-		ctx.MessageContent = aiWorkflowService.GetDrawingPrompt(messageContent)
-		aiDrawing := NewAIDrawingPlugin()
-		aiDrawing.Run(ctx)
+		// isAIEnabled := ctx.Settings.IsAIDrawingEnabled()
+		// if !isAIEnabled {
+		// 	return
+		// }
+		// ctx.MessageContent = aiWorkflowService.GetDrawingPrompt(messageContent)
+		// aiDrawing := NewAIDrawingPlugin()
+		// aiDrawing.Run(ctx)
+
+		// 改为 MCP 工具处理
+		aiChat := NewAIChatPlugin()
+		aiChat.Run(ctx)
 	case service.ChatIntentionImageRecognizer:
-		// 如果AI闲聊已经开启，则AI图片识别默认开启
-		aImageRecognizer := NewAImageRecognizerPlugin()
-		aImageRecognizer.Run(ctx)
+		// // 如果AI闲聊已经开启，则AI图片识别默认开启
+		// aImageRecognizer := NewAImageRecognizerPlugin()
+		// aImageRecognizer.Run(ctx)
+
+		// 改为 MCP 工具处理
+		aiChat := NewAIChatPlugin()
+		aiChat.Run(ctx)
 	case service.ChatIntentionTTS:
 		isTTSEnabled := ctx.Settings.IsTTSEnabled()
 		if !isTTSEnabled {
@@ -64,13 +80,17 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		douyinVideoParse := NewDouyinVideoParsePlugin()
 		douyinVideoParse.Run(ctx)
 	case service.ChatIntentionEditPictures:
-		isAIEnabled := ctx.Settings.IsAIDrawingEnabled()
-		if !isAIEnabled {
-			return
-		}
-		ctx.MessageContent = messageContent
-		aImageEdit := NewAImageEditPlugin()
-		aImageEdit.Run(ctx)
+		// isAIEnabled := ctx.Settings.IsAIDrawingEnabled()
+		// if !isAIEnabled {
+		// 	return
+		// }
+		// ctx.MessageContent = messageContent
+		// aImageEdit := NewAImageEditPlugin()
+		// aImageEdit.Run(ctx)
+
+		// 改为 MCP 工具处理
+		aiChat := NewAIChatPlugin()
+		aiChat.Run(ctx)
 	case service.ChatIntentionApplyToJoinGroup:
 		ctx.MessageContent = messageContent
 		autoJoinGroup := NewAutoJoinGroupPlugin()
