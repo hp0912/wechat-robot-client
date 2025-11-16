@@ -792,6 +792,7 @@ func (s *MessageService) SendAppMessage(toWxID string, appMsgType int, appMsgXml
 	return nil
 }
 
+// 发送图片信息
 func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) (*model.Message, error) {
 	imageBytes, err := io.ReadAll(image)
 	if err != nil {
@@ -813,6 +814,46 @@ func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) (*model.Me
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
 		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	err = s.msgRepo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return &m, nil
+}
+
+// 分片发送图片信息
+func (s *MessageService) SendImageMessageStream(ctx context.Context, req dto.SendImageMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) (*model.Message, error) {
+	message, err := vars.RobotRuntime.SendImageMessageStream(robot.SendImageMessageStreamRequest{
+		ToWxid:      req.ToWxid,
+		ClientImgId: req.ClientImgId,
+		TotalLen:    req.FileSize,
+		StartPos:    req.ChunkIndex * vars.UploadFileChunkSize,
+	}, file, fileHeader)
+	if err != nil {
+		return nil, err
+	}
+	// 图片还没上传完
+	if message == nil {
+		return nil, nil
+	}
+
+	m := model.Message{
+		MsgId:              message.Newmsgid,
+		ClientMsgId:        message.Msgid,
+		Type:               model.MsgTypeImage,
+		Content:            "", // 获取不到图片的 xml 内容
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
+		FromWxID:           req.ToWxid,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsChatRoom:         strings.HasSuffix(req.ToWxid, "@chatroom"),
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
@@ -1042,6 +1083,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 	return nil
 }
 
+// 发送文件信息
 func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) error {
 	message, err := vars.RobotRuntime.MsgSendFile(robot.SendFileMessageRequest{
 		ToWxid:          req.ToWxid,

@@ -28,6 +28,7 @@ const (
 	MsgRevoke               = "/Msg/Revoke"
 	MsgSendTxt              = "/Msg/SendTxt"
 	MsgUploadImg            = "/Msg/UploadImg"
+	SendImageMessageStream  = "/Msg/SendImageMessageStream"
 	MsgSendVideo            = "/Msg/SendVideo"
 	MsgSendVoice            = "/Msg/SendVoice"
 	MsgSendApp              = "/Msg/SendApp"
