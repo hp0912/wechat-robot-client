@@ -159,6 +159,28 @@ func (m *Message) SendImageMessageStream(c *gin.Context) {
 	resp.ToResponse(nil)
 }
 
+func (m *Message) SendImageMessageByRemoteURL(c *gin.Context) {
+	var req dto.SendImageMessageByRemoteURLRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+
+	var result []string
+
+	for _, imageURL := range req.ImageURLs {
+		err := service.NewMessageService(c).SendImageMessageByRemoteURL(req.ToWxid, imageURL)
+		if err != nil {
+			result = append(result, "失败: "+imageURL+" 错误: "+err.Error())
+		} else {
+			result = append(result, "成功: "+imageURL)
+		}
+	}
+
+	resp.ToResponse(result)
+}
+
 func (m *Message) SendVideoMessage(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	// 获取表单文件

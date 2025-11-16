@@ -38,6 +38,11 @@ type SendImageMessageRequest struct {
 	TotalChunks int64  `form:"total_chunks" json:"total_chunks" binding:"required"`
 }
 
+type SendImageMessageByRemoteURLRequest struct {
+	ToWxid    string   `form:"to_wxid" json:"to_wxid" binding:"required"`
+	ImageURLs []string `form:"image_urls" json:"image_urls" binding:"required"`
+}
+
 type SendFileMessageRequest struct {
 	ToWxid          string `form:"to_wxid" json:"to_wxid" binding:"required"`
 	ClientAppDataId string `form:"client_app_data_id" json:"client_app_data_id" binding:"required"`

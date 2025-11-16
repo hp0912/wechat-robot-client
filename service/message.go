@@ -827,6 +827,168 @@ func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) (*model.Me
 	return &m, nil
 }
 
+// SendImageMessageByRemoteURL 根据远程URL发送图片（优先使用分片下载，不支持则回退到普通下载）
+func (s *MessageService) SendImageMessageByRemoteURL(toWxID string, imageURL string) error {
+	headResp, err := resty.New().R().Head(imageURL)
+	if err != nil {
+		return fmt.Errorf("获取图片信息失败: %w", err)
+	}
+
+	if headResp.StatusCode() != 200 {
+		return fmt.Errorf("获取图片信息失败，HTTP状态码: %d", headResp.StatusCode())
+	}
+
+	contentLength := headResp.RawResponse.ContentLength
+	if contentLength <= 0 {
+		log.Println("无法获取图片大小，使用普通下载方式")
+		return s.sendImageByNormalDownload(toWxID, imageURL)
+	}
+
+	acceptRanges := headResp.Header().Get("Accept-Ranges")
+	supportsRange := acceptRanges == "bytes"
+
+	if !supportsRange {
+		log.Println("服务器不支持 Range 请求，使用普通下载方式")
+		return s.sendImageByNormalDownload(toWxID, imageURL)
+	}
+
+	// 生成唯一的客户端图片ID
+	clientImgId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().Unix())
+
+	// 计算分片数量
+	chunkSize := vars.UploadImageChunkSize
+	totalChunks := (contentLength + chunkSize - 1) / chunkSize
+
+	// 分片下载并上传
+	for chunkIndex := range totalChunks {
+		start := int64(chunkIndex) * chunkSize
+		end := start + chunkSize - 1
+		if end >= contentLength {
+			end = contentLength - 1
+		}
+
+		// 使用 Range 请求下载分片
+		rangeHeader := fmt.Sprintf("bytes=%d-%d", start, end)
+		resp, err := resty.New().R().
+			SetHeader("Range", rangeHeader).
+			SetDoNotParseResponse(true).
+			Get(imageURL)
+		if err != nil {
+			return fmt.Errorf("下载图片分片失败 (chunk %d/%d): %w", chunkIndex+1, totalChunks, err)
+		}
+
+		// 如果第一个分片就不支持 Range，回退到普通下载
+		if chunkIndex == 0 && resp.StatusCode() != 206 && resp.StatusCode() != 200 {
+			resp.RawBody().Close()
+			log.Printf("Range 请求返回状态码 %d，回退到普通下载方式", resp.StatusCode())
+			return s.sendImageByNormalDownload(toWxID, imageURL)
+		}
+
+		if resp.StatusCode() != 206 && resp.StatusCode() != 200 {
+			resp.RawBody().Close()
+			return fmt.Errorf("下载图片分片失败，HTTP状态码: %d (chunk %d/%d)", resp.StatusCode(), chunkIndex+1, totalChunks)
+		}
+
+		// 读取分片数据
+		chunkData, err := io.ReadAll(resp.RawBody())
+		resp.RawBody().Close()
+		if err != nil {
+			return fmt.Errorf("读取分片数据失败 (chunk %d/%d): %w", chunkIndex+1, totalChunks, err)
+		}
+
+		// 创建分片请求
+		req := dto.SendImageMessageRequest{
+			ToWxid:      toWxID,
+			ClientImgId: clientImgId,
+			FileSize:    contentLength,
+			ChunkIndex:  int64(chunkIndex),
+			TotalChunks: totalChunks,
+		}
+
+		// 创建分片 reader
+		chunkReader := io.NopCloser(strings.NewReader(string(chunkData)))
+		chunkHeader := &multipart.FileHeader{
+			Filename: fmt.Sprintf("chunk_%d", chunkIndex),
+			Size:     int64(len(chunkData)),
+		}
+
+		// 发送分片
+		_, err = s.SendImageMessageStream(s.ctx, req, chunkReader, chunkHeader)
+		if err != nil {
+			return fmt.Errorf("发送图片分片失败 (chunk %d/%d): %w", chunkIndex+1, totalChunks, err)
+		}
+	}
+
+	return nil
+}
+
+// sendImageByNormalDownload 普通下载方式（一次性下载，分片上传）
+func (s *MessageService) sendImageByNormalDownload(toWxID string, imageURL string) error {
+	resp, err := resty.New().R().SetDoNotParseResponse(true).Get(imageURL)
+	if err != nil {
+		return fmt.Errorf("下载图片失败: %w", err)
+	}
+	defer resp.RawBody().Close()
+
+	if resp.StatusCode() != 200 {
+		return fmt.Errorf("下载图片失败，HTTP状态码: %d", resp.StatusCode())
+	}
+
+	// 读取整个图片到内存
+	imageData, err := io.ReadAll(resp.RawBody())
+	if err != nil {
+		return fmt.Errorf("读取图片数据失败: %w", err)
+	}
+
+	contentLength := int64(len(imageData))
+	if contentLength == 0 {
+		return fmt.Errorf("图片数据为空")
+	}
+
+	// 生成唯一的客户端图片ID
+	clientImgId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().Unix())
+
+	// 计算分片数量
+	chunkSize := vars.UploadImageChunkSize
+	totalChunks := (contentLength + chunkSize - 1) / chunkSize
+
+	// 分片上传
+	for chunkIndex := range totalChunks {
+		start := int64(chunkIndex) * chunkSize
+		end := start + chunkSize
+		if end > contentLength {
+			end = contentLength
+		}
+
+		// 提取当前分片数据
+		chunkData := imageData[start:end]
+
+		// 创建分片请求
+		req := dto.SendImageMessageRequest{
+			ToWxid:      toWxID,
+			ClientImgId: clientImgId,
+			FileSize:    contentLength,
+			ChunkIndex:  int64(chunkIndex),
+			TotalChunks: totalChunks,
+		}
+
+		// 创建分片 reader
+		chunkReader := io.NopCloser(strings.NewReader(string(chunkData)))
+		chunkHeader := &multipart.FileHeader{
+			Filename: fmt.Sprintf("chunk_%d", chunkIndex),
+			Size:     int64(len(chunkData)),
+		}
+
+		// 发送分片
+		_, err = s.SendImageMessageStream(s.ctx, req, chunkReader, chunkHeader)
+		if err != nil {
+			return fmt.Errorf("发送图片分片失败 (chunk %d/%d): %w", chunkIndex+1, totalChunks, err)
+		}
+	}
+
+	return nil
+}
+
 // 分片发送图片信息
 func (s *MessageService) SendImageMessageStream(ctx context.Context, req dto.SendImageMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) (*model.Message, error) {
 	message, err := vars.RobotRuntime.SendImageMessageStream(robot.SendImageMessageStreamRequest{
