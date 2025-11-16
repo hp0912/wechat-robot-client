@@ -903,6 +903,7 @@ func (s *MessageService) SendImageMessageByRemoteURL(toWxID string, imageURL str
 			FileSize:    contentLength,
 			ChunkIndex:  int64(chunkIndex),
 			TotalChunks: totalChunks,
+			ImageURL:    imageURL,
 		}
 
 		// 创建分片 reader
@@ -970,6 +971,7 @@ func (s *MessageService) sendImageByNormalDownload(toWxID string, imageURL strin
 			FileSize:    contentLength,
 			ChunkIndex:  int64(chunkIndex),
 			TotalChunks: totalChunks,
+			ImageURL:    imageURL,
 		}
 
 		// 创建分片 reader
@@ -1016,6 +1018,7 @@ func (s *MessageService) SendImageMessageStream(ctx context.Context, req dto.Sen
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
 		IsChatRoom:         strings.HasSuffix(req.ToWxid, "@chatroom"),
+		AttachmentUrl:      req.ImageURL,
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}

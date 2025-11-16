@@ -36,6 +36,7 @@ type SendImageMessageRequest struct {
 	FileSize    int64  `form:"file_size" json:"file_size" binding:"required"`
 	ChunkIndex  int64  `form:"chunk_index" json:"chunk_index"`
 	TotalChunks int64  `form:"total_chunks" json:"total_chunks" binding:"required"`
+	ImageURL    string `form:"image_url" json:"image_url"` // 冗余字段
 }
 
 type SendImageMessageByRemoteURLRequest struct {
