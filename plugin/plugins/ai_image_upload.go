@@ -79,6 +79,11 @@ func (p *AIImageUploadPlugin) Run(ctx *plugin.MessageContext) bool {
 		}
 	}
 
+	err := ctx.MessageService.SetMessageIsInContext(ctx.ReferMessage)
+	if err != nil {
+		log.Printf("更新消息上下文失败: %v", err)
+	}
+
 	p.SendMessage(ctx, "已经收到您的图片啦～")
 
 	return true

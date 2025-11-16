@@ -1472,7 +1472,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 		if msg.Type == model.MsgTypeText {
 			aiMessage.Content = re.ReplaceAllString(msg.Content, "")
 		}
-		if msg.Type == model.MsgTypeImage {
+		if msg.Type == model.MsgTypeImage && msg.AttachmentUrl != "" {
 			aiMessage.MultiContent = []openai.ChatMessagePart{
 				{
 					Type: openai.ChatMessagePartTypeImageURL,
