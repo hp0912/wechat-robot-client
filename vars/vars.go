@@ -55,7 +55,7 @@ var WordCloudUrl string
 // Pprof 代理目标地址
 var PprofProxyURL string
 
-var UploadImageChunkSize int64 = 65536
+var UploadImageChunkSize int64 = 50000
 var UploadFileChunkSize int64 = 50000
 
 var AtAllRegexp = `@所有人(?: | )`

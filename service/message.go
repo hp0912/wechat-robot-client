@@ -997,7 +997,7 @@ func (s *MessageService) SendImageMessageStream(ctx context.Context, req dto.Sen
 		ToWxid:      req.ToWxid,
 		ClientImgId: req.ClientImgId,
 		TotalLen:    req.FileSize,
-		StartPos:    req.ChunkIndex * vars.UploadFileChunkSize,
+		StartPos:    req.ChunkIndex * vars.UploadImageChunkSize,
 	}, file, fileHeader)
 	if err != nil {
 		return nil, err
