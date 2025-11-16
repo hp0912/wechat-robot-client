@@ -1489,6 +1489,9 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 				continue
 			}
 			referUser := xmlMessage.AppMsg.ReferMsg.ChatUsr
+			if referUser == "" {
+				referUser = xmlMessage.AppMsg.ReferMsg.FromUsr
+			}
 			// 如果引用的消息不是自己发的，也不是机器人发的，将消息内容添加到上下文
 			if referUser != msg.SenderWxID && referUser != vars.RobotRuntime.WxID {
 				// 引用的是第三人的文本消息，将引用的消息内容添加到上下文
@@ -1511,7 +1514,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					if err != nil {
 						continue
 					}
-					refreMsg, err := s.msgRepo.GetByID(referMsgID)
+					refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
 					if err != nil {
 						continue
 					}
@@ -1564,6 +1567,9 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 			} else {
 				aiMessage.Content = re.ReplaceAllString(xmlMessage.AppMsg.Title, "")
 			}
+		}
+		if strings.TrimSpace(aiMessage.Content) == "" && len(aiMessage.MultiContent) == 0 {
+			continue
 		}
 		aiMessages = append(aiMessages, aiMessage)
 	}
