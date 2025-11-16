@@ -30,6 +30,20 @@ type TextMessageItem struct {
 	CreatedAt int64  `json:"created_at"`
 }
 
+type SendImageMessageRequest struct {
+	ToWxid      string `form:"to_wxid" json:"to_wxid" binding:"required"`
+	ClientImgId string `form:"client_img_id" json:"client_img_id" binding:"required"`
+	FileSize    int64  `form:"file_size" json:"file_size" binding:"required"`
+	ChunkIndex  int64  `form:"chunk_index" json:"chunk_index"`
+	TotalChunks int64  `form:"total_chunks" json:"total_chunks" binding:"required"`
+	ImageURL    string `form:"image_url" json:"image_url"` // 冗余字段
+}
+
+type SendImageMessageByRemoteURLRequest struct {
+	ToWxid    string   `form:"to_wxid" json:"to_wxid" binding:"required"`
+	ImageURLs []string `form:"image_urls" json:"image_urls" binding:"required"`
+}
+
 type SendFileMessageRequest struct {
 	ToWxid          string `form:"to_wxid" json:"to_wxid" binding:"required"`
 	ClientAppDataId string `form:"client_app_data_id" json:"client_app_data_id" binding:"required"`

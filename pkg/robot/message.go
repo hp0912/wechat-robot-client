@@ -270,6 +270,14 @@ type MsgUploadImgRequest struct {
 	Base64 string `json:"Base64"`
 }
 
+type SendImageMessageStreamRequest struct {
+	Wxid        string
+	ToWxid      string
+	ClientImgId string
+	StartPos    int64
+	TotalLen    int64
+}
+
 type MsgUploadImgResponse struct {
 	BaseResponse
 	Msgid        int64            `json:"Msgid"`

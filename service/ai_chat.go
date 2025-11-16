@@ -103,17 +103,6 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 		Messages: aiMessages,
 		Stream:   false,
 	}
-	// 判断一下aiMessages是否包含图片，如果包含，则使用多模态模型
-	for _, msg := range aiMessages {
-		if len(msg.MultiContent) > 0 {
-			for _, part := range msg.MultiContent {
-				if part.Type == openai.ChatMessagePartTypeImageURL {
-					req.Model = aiConfig.ImageRecognitionModel
-					break
-				}
-			}
-		}
-	}
 	if aiConfig.MaxCompletionTokens > 0 {
 		req.MaxCompletionTokens = aiConfig.MaxCompletionTokens
 	}

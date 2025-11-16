@@ -107,6 +107,80 @@ func (m *Message) SendImageMessage(c *gin.Context) {
 	resp.ToResponse(nil)
 }
 
+func (m *Message) SendImageMessageStream(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	// 取得分片内容
+	file, fileHeader, err := c.Request.FormFile("chunk")
+	if err != nil {
+		resp.ToErrorResponse(errors.New("获取上传文件失败"))
+		return
+	}
+	defer file.Close()
+
+	if fileHeader.Size > vars.UploadImageChunkSize {
+		resp.ToErrorResponse(errors.New("单个分片大小不能超过64KB"))
+		return
+	}
+
+	var req dto.SendImageMessageRequest
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+
+	// 基本参数校验（额外）
+	if req.ChunkIndex < 0 || req.TotalChunks <= 0 || req.FileSize <= 0 || req.ChunkIndex >= req.TotalChunks {
+		resp.ToErrorResponse(errors.New("分片参数错误"))
+		return
+	}
+
+	// 检查文件类型（仅在第一个分片时检查）
+	if req.ChunkIndex == 0 {
+		ext := filepath.Ext(fileHeader.Filename)
+		allowedExts := map[string]bool{
+			".jpg":  true,
+			".jpeg": true,
+			".png":  true,
+			".gif":  true,
+			".webp": true,
+		}
+		if !allowedExts[ext] {
+			resp.ToErrorResponse(errors.New("不支持的图片格式"))
+			return
+		}
+	}
+
+	_, err = service.NewMessageService(c).SendImageMessageStream(c, req, file, fileHeader)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+
+	resp.ToResponse(nil)
+}
+
+func (m *Message) SendImageMessageByRemoteURL(c *gin.Context) {
+	var req dto.SendImageMessageByRemoteURLRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+
+	var result []string
+
+	for _, imageURL := range req.ImageURLs {
+		err := service.NewMessageService(c).SendImageMessageByRemoteURL(req.ToWxid, imageURL)
+		if err != nil {
+			result = append(result, "失败: "+imageURL+" 错误: "+err.Error())
+		} else {
+			result = append(result, "成功: "+imageURL)
+		}
+	}
+
+	resp.ToResponse(result)
+}
+
 func (m *Message) SendVideoMessage(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	// 获取表单文件

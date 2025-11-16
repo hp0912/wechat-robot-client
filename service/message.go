@@ -792,6 +792,7 @@ func (s *MessageService) SendAppMessage(toWxID string, appMsgType int, appMsgXml
 	return nil
 }
 
+// 发送图片信息
 func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) (*model.Message, error) {
 	imageBytes, err := io.ReadAll(image)
 	if err != nil {
@@ -813,6 +814,211 @@ func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) (*model.Me
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
 		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          message.CreateTime,
+		UpdatedAt:          time.Now().Unix(),
+	}
+	err = s.msgRepo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return &m, nil
+}
+
+// SendImageMessageByRemoteURL 根据远程URL发送图片（优先使用分片下载，不支持则回退到普通下载）
+func (s *MessageService) SendImageMessageByRemoteURL(toWxID string, imageURL string) error {
+	headResp, err := resty.New().R().Head(imageURL)
+	if err != nil {
+		return fmt.Errorf("获取图片信息失败: %w", err)
+	}
+
+	if headResp.StatusCode() != 200 {
+		return fmt.Errorf("获取图片信息失败，HTTP状态码: %d", headResp.StatusCode())
+	}
+
+	contentLength := headResp.RawResponse.ContentLength
+	if contentLength <= 0 {
+		log.Println("无法获取图片大小，使用普通下载方式")
+		return s.sendImageByNormalDownload(toWxID, imageURL)
+	}
+
+	acceptRanges := headResp.Header().Get("Accept-Ranges")
+	supportsRange := acceptRanges == "bytes"
+
+	if !supportsRange {
+		log.Println("服务器不支持 Range 请求，使用普通下载方式")
+		return s.sendImageByNormalDownload(toWxID, imageURL)
+	}
+
+	// 生成唯一的客户端图片ID
+	clientImgId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().Unix())
+
+	// 计算分片数量
+	chunkSize := vars.UploadImageChunkSize
+	totalChunks := (contentLength + chunkSize - 1) / chunkSize
+
+	// 分片下载并上传
+	for chunkIndex := range totalChunks {
+		start := int64(chunkIndex) * chunkSize
+		end := start + chunkSize - 1
+		if end >= contentLength {
+			end = contentLength - 1
+		}
+
+		// 使用 Range 请求下载分片
+		rangeHeader := fmt.Sprintf("bytes=%d-%d", start, end)
+		resp, err := resty.New().R().
+			SetHeader("Range", rangeHeader).
+			SetDoNotParseResponse(true).
+			Get(imageURL)
+		if err != nil {
+			return fmt.Errorf("下载图片分片失败 (chunk %d/%d): %w", chunkIndex+1, totalChunks, err)
+		}
+
+		// 如果第一个分片就不支持 Range，回退到普通下载
+		if chunkIndex == 0 && resp.StatusCode() != 206 && resp.StatusCode() != 200 {
+			resp.RawBody().Close()
+			log.Printf("Range 请求返回状态码 %d，回退到普通下载方式", resp.StatusCode())
+			return s.sendImageByNormalDownload(toWxID, imageURL)
+		}
+
+		if resp.StatusCode() != 206 && resp.StatusCode() != 200 {
+			resp.RawBody().Close()
+			return fmt.Errorf("下载图片分片失败，HTTP状态码: %d (chunk %d/%d)", resp.StatusCode(), chunkIndex+1, totalChunks)
+		}
+
+		// 读取分片数据
+		chunkData, err := io.ReadAll(resp.RawBody())
+		resp.RawBody().Close()
+		if err != nil {
+			return fmt.Errorf("读取分片数据失败 (chunk %d/%d): %w", chunkIndex+1, totalChunks, err)
+		}
+
+		// 创建分片请求
+		req := dto.SendImageMessageRequest{
+			ToWxid:      toWxID,
+			ClientImgId: clientImgId,
+			FileSize:    contentLength,
+			ChunkIndex:  int64(chunkIndex),
+			TotalChunks: totalChunks,
+			ImageURL:    imageURL,
+		}
+
+		// 创建分片 reader
+		chunkReader := io.NopCloser(strings.NewReader(string(chunkData)))
+		chunkHeader := &multipart.FileHeader{
+			Filename: fmt.Sprintf("chunk_%d", chunkIndex),
+			Size:     int64(len(chunkData)),
+		}
+
+		// 发送分片
+		_, err = s.SendImageMessageStream(s.ctx, req, chunkReader, chunkHeader)
+		if err != nil {
+			return fmt.Errorf("发送图片分片失败 (chunk %d/%d): %w", chunkIndex+1, totalChunks, err)
+		}
+	}
+
+	return nil
+}
+
+// sendImageByNormalDownload 普通下载方式（一次性下载，分片上传）
+func (s *MessageService) sendImageByNormalDownload(toWxID string, imageURL string) error {
+	resp, err := resty.New().R().SetDoNotParseResponse(true).Get(imageURL)
+	if err != nil {
+		return fmt.Errorf("下载图片失败: %w", err)
+	}
+	defer resp.RawBody().Close()
+
+	if resp.StatusCode() != 200 {
+		return fmt.Errorf("下载图片失败，HTTP状态码: %d", resp.StatusCode())
+	}
+
+	// 读取整个图片到内存
+	imageData, err := io.ReadAll(resp.RawBody())
+	if err != nil {
+		return fmt.Errorf("读取图片数据失败: %w", err)
+	}
+
+	contentLength := int64(len(imageData))
+	if contentLength == 0 {
+		return fmt.Errorf("图片数据为空")
+	}
+
+	// 生成唯一的客户端图片ID
+	clientImgId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().Unix())
+
+	// 计算分片数量
+	chunkSize := vars.UploadImageChunkSize
+	totalChunks := (contentLength + chunkSize - 1) / chunkSize
+
+	// 分片上传
+	for chunkIndex := range totalChunks {
+		start := int64(chunkIndex) * chunkSize
+		end := start + chunkSize
+		if end > contentLength {
+			end = contentLength
+		}
+
+		// 提取当前分片数据
+		chunkData := imageData[start:end]
+
+		// 创建分片请求
+		req := dto.SendImageMessageRequest{
+			ToWxid:      toWxID,
+			ClientImgId: clientImgId,
+			FileSize:    contentLength,
+			ChunkIndex:  int64(chunkIndex),
+			TotalChunks: totalChunks,
+			ImageURL:    imageURL,
+		}
+
+		// 创建分片 reader
+		chunkReader := io.NopCloser(strings.NewReader(string(chunkData)))
+		chunkHeader := &multipart.FileHeader{
+			Filename: fmt.Sprintf("chunk_%d", chunkIndex),
+			Size:     int64(len(chunkData)),
+		}
+
+		// 发送分片
+		_, err = s.SendImageMessageStream(s.ctx, req, chunkReader, chunkHeader)
+		if err != nil {
+			return fmt.Errorf("发送图片分片失败 (chunk %d/%d): %w", chunkIndex+1, totalChunks, err)
+		}
+	}
+
+	return nil
+}
+
+// 分片发送图片信息
+func (s *MessageService) SendImageMessageStream(ctx context.Context, req dto.SendImageMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) (*model.Message, error) {
+	message, err := vars.RobotRuntime.SendImageMessageStream(robot.SendImageMessageStreamRequest{
+		ToWxid:      req.ToWxid,
+		ClientImgId: req.ClientImgId,
+		TotalLen:    req.FileSize,
+		StartPos:    req.ChunkIndex * vars.UploadImageChunkSize,
+	}, file, fileHeader)
+	if err != nil {
+		return nil, err
+	}
+	// 图片还没上传完
+	if message == nil {
+		return nil, nil
+	}
+
+	m := model.Message{
+		MsgId:              message.Newmsgid,
+		ClientMsgId:        message.Msgid,
+		Type:               model.MsgTypeImage,
+		Content:            "", // 获取不到图片的 xml 内容
+		DisplayFullContent: "",
+		MessageSource:      message.MsgSource,
+		FromWxID:           req.ToWxid,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsChatRoom:         strings.HasSuffix(req.ToWxid, "@chatroom"),
+		AttachmentUrl:      req.ImageURL,
 		CreatedAt:          message.CreateTime,
 		UpdatedAt:          time.Now().Unix(),
 	}
@@ -1042,6 +1248,7 @@ func (s *MessageService) SendMusicMessage(toWxID string, songTitle string) error
 	return nil
 }
 
+// 发送文件信息
 func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) error {
 	message, err := vars.RobotRuntime.MsgSendFile(robot.SendFileMessageRequest{
 		ToWxid:          req.ToWxid,
@@ -1255,6 +1462,9 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []openai.ChatCompletionMessage {
 	var aiMessages []openai.ChatCompletionMessage
 	re := regexp.MustCompile(vars.TrimAtRegexp)
+
+	messageCtxMap := make(map[int64]bool)
+
 	for _, msg := range messages {
 		aiMessage := openai.ChatCompletionMessage{}
 		if msg.SenderWxID == vars.RobotRuntime.WxID {
@@ -1265,13 +1475,17 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 		if msg.Type == model.MsgTypeText {
 			aiMessage.Content = re.ReplaceAllString(msg.Content, "")
 		}
-		if msg.Type == model.MsgTypeImage {
+		if msg.Type == model.MsgTypeImage && msg.AttachmentUrl != "" {
 			aiMessage.MultiContent = []openai.ChatMessagePart{
 				{
 					Type: openai.ChatMessagePartTypeImageURL,
 					ImageURL: &openai.ChatMessageImageURL{
 						URL: msg.AttachmentUrl,
 					},
+				},
+				{
+					Type: openai.ChatMessagePartTypeText,
+					Text: "针对不支持多模态的大模型，图片地址: " + msg.AttachmentUrl,
 				},
 			}
 		}
@@ -1282,6 +1496,9 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 				continue
 			}
 			referUser := xmlMessage.AppMsg.ReferMsg.ChatUsr
+			if referUser == "" {
+				referUser = xmlMessage.AppMsg.ReferMsg.FromUsr
+			}
 			// 如果引用的消息不是自己发的，也不是机器人发的，将消息内容添加到上下文
 			if referUser != msg.SenderWxID && referUser != vars.RobotRuntime.WxID {
 				// 引用的是第三人的文本消息，将引用的消息内容添加到上下文
@@ -1304,7 +1521,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					if err != nil {
 						continue
 					}
-					refreMsg, err := s.msgRepo.GetByID(referMsgID)
+					refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
 					if err != nil {
 						continue
 					}
@@ -1320,7 +1537,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 						},
 						{
 							Type: openai.ChatMessagePartTypeText,
-							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, ""),
+							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, "") + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
 						},
 					}
 				}
@@ -1355,9 +1572,44 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					}
 				}
 			} else {
-				aiMessage.Content = re.ReplaceAllString(xmlMessage.AppMsg.Title, "")
+				if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeImage) {
+					referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
+					// 字符串转int64
+					referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
+					if err != nil {
+						continue
+					}
+					refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
+					if err != nil {
+						continue
+					}
+					if refreMsg == nil {
+						continue
+					}
+					if messageCtxMap[refreMsg.MsgId] {
+						continue
+					}
+					aiMessage.MultiContent = []openai.ChatMessagePart{
+						{
+							Type: openai.ChatMessagePartTypeImageURL,
+							ImageURL: &openai.ChatMessageImageURL{
+								URL: refreMsg.AttachmentUrl,
+							},
+						},
+						{
+							Type: openai.ChatMessagePartTypeText,
+							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, "") + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
+						},
+					}
+				} else {
+					aiMessage.Content = re.ReplaceAllString(xmlMessage.AppMsg.Title, "")
+				}
 			}
 		}
+		if strings.TrimSpace(aiMessage.Content) == "" && len(aiMessage.MultiContent) == 0 {
+			continue
+		}
+		messageCtxMap[msg.MsgId] = true
 		aiMessages = append(aiMessages, aiMessage)
 	}
 	return aiMessages

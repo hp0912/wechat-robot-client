@@ -493,11 +493,28 @@ func (r *Robot) SendAppMessage(toWxID string, appMsgType int, appMsgXml string) 
 	return
 }
 
+// 发送图片信息
 func (r *Robot) MsgUploadImg(toWxID string, image []byte) (MsgUploadImgResponse, error) {
 	base64Str := base64.StdEncoding.EncodeToString(image)
 	imageMessage, err := r.Client.MsgUploadImg(r.WxID, toWxID, base64Str)
 	if err != nil {
 		return MsgUploadImgResponse{}, err
+	}
+	return imageMessage, nil
+}
+
+// 分片发送图片信息
+func (r *Robot) SendImageMessageStream(req SendImageMessageStreamRequest, file io.Reader, fileHeader *multipart.FileHeader) (*MsgUploadImgResponse, error) {
+	req.Wxid = r.WxID
+	imageMessage, err := r.Client.SendImageMessageStream(req, file, fileHeader)
+	if err != nil {
+		return nil, err
+	}
+	if imageMessage == nil {
+		return nil, nil
+	}
+	if imageMessage.CreateTime == 0 {
+		return nil, nil
 	}
 	return imageMessage, nil
 }
