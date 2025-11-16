@@ -7,6 +7,8 @@ import (
 	"wechat-robot-client/utils"
 )
 
+// TODO 图片自动上传的时机处理
+
 func OnChatIntention(ctx *plugin.MessageContext) {
 	aiWorkflowService := service.NewAIWorkflowService(ctx.Context, ctx.Settings)
 	aiTriggerWord := ctx.Settings.GetAITriggerWord()
@@ -17,10 +19,13 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 	}
 
 	// 临时处理，后面再优化
-	if messageContent == "" && ctx.ReferMessage != nil && ctx.ReferMessage.Type == model.MsgTypeImage {
+	if ctx.ReferMessage != nil && ctx.ReferMessage.Type == model.MsgTypeImage {
+		ctx.MessageContent = messageContent
 		autoUpload := NewAIImageUploadPlugin()
 		autoUpload.Run(ctx)
-		return
+		if messageContent == "" {
+			return
+		}
 	}
 
 	chatIntention := aiWorkflowService.ChatIntention(messageContent, ctx.ReferMessage)

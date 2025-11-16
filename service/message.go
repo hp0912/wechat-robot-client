@@ -1462,6 +1462,9 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []openai.ChatCompletionMessage {
 	var aiMessages []openai.ChatCompletionMessage
 	re := regexp.MustCompile(vars.TrimAtRegexp)
+
+	messageCtxMap := make(map[int64]bool)
+
 	for _, msg := range messages {
 		aiMessage := openai.ChatCompletionMessage{}
 		if msg.SenderWxID == vars.RobotRuntime.WxID {
@@ -1479,6 +1482,10 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					ImageURL: &openai.ChatMessageImageURL{
 						URL: msg.AttachmentUrl,
 					},
+				},
+				{
+					Type: openai.ChatMessagePartTypeText,
+					Text: "针对不支持多模态的大模型，图片地址: " + msg.AttachmentUrl,
 				},
 			}
 		}
@@ -1530,7 +1537,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 						},
 						{
 							Type: openai.ChatMessagePartTypeText,
-							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, ""),
+							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, "") + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
 						},
 					}
 				}
@@ -1565,12 +1572,44 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					}
 				}
 			} else {
-				aiMessage.Content = re.ReplaceAllString(xmlMessage.AppMsg.Title, "")
+				if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeImage) {
+					referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
+					// 字符串转int64
+					referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
+					if err != nil {
+						continue
+					}
+					refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
+					if err != nil {
+						continue
+					}
+					if refreMsg == nil {
+						continue
+					}
+					if messageCtxMap[refreMsg.MsgId] {
+						continue
+					}
+					aiMessage.MultiContent = []openai.ChatMessagePart{
+						{
+							Type: openai.ChatMessagePartTypeImageURL,
+							ImageURL: &openai.ChatMessageImageURL{
+								URL: refreMsg.AttachmentUrl,
+							},
+						},
+						{
+							Type: openai.ChatMessagePartTypeText,
+							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, "") + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
+						},
+					}
+				} else {
+					aiMessage.Content = re.ReplaceAllString(xmlMessage.AppMsg.Title, "")
+				}
 			}
 		}
 		if strings.TrimSpace(aiMessage.Content) == "" && len(aiMessage.MultiContent) == 0 {
 			continue
 		}
+		messageCtxMap[msg.MsgId] = true
 		aiMessages = append(aiMessages, aiMessage)
 	}
 	return aiMessages
