@@ -115,6 +115,7 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/message/send/video", messageCtl.SendVideoMessage)
 	api.POST("/robot/message/send/voice", messageCtl.SendVoiceMessage)
 	api.POST("/robot/message/send/music", messageCtl.SendMusicMessage)
+	api.POST("/robot/message/send/app", messageCtl.SendAppMessage)
 	api.POST("/robot/message/send/file", messageCtl.SendFileMessage)
 
 	// 系统消息相关接口
