@@ -37,15 +37,19 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 	case service.ChatIntentionSing:
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "唱歌功能正在开发中，敬请期待！")
 	case service.ChatIntentionSongRequest:
-		title := aiWorkflowService.GetSongRequestTitle(messageContent)
-		if title == "" {
-			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "抱歉，我无法识别您想要点的歌曲。")
-			return
-		}
-		err := ctx.MessageService.SendMusicMessage(ctx.Message.FromWxID, title)
-		if err != nil {
-			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-		}
+		// title := aiWorkflowService.GetSongRequestTitle(messageContent)
+		// if title == "" {
+		// 	ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "抱歉，我无法识别您想要点的歌曲。")
+		// 	return
+		// }
+		// err := ctx.MessageService.SendMusicMessage(ctx.Message.FromWxID, title)
+		// if err != nil {
+		// 	ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
+		// }
+
+		// 改为 MCP 工具处理
+		aiChat := NewAIChatPlugin()
+		aiChat.Run(ctx)
 	case service.ChatIntentionDrawAPicture:
 		// isAIEnabled := ctx.Settings.IsAIDrawingEnabled()
 		// if !isAIEnabled {

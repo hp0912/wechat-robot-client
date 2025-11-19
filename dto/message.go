@@ -19,6 +19,12 @@ type SendLongTextMessageRequest struct {
 	Content string `form:"content" json:"content" binding:"required"`
 }
 
+type SendAppMessageRequest struct {
+	SendMessageCommonRequest
+	Type int    `form:"type" json:"type" binding:"required"`
+	XML  string `form:"xml" json:"xml" binding:"required"`
+}
+
 type SendMusicMessageRequest struct {
 	SendMessageCommonRequest
 	Song string `form:"song" json:"song" binding:"required"`
