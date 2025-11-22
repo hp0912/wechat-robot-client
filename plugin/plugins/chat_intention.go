@@ -71,12 +71,12 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		aiChat := NewAIChatPlugin()
 		aiChat.Run(ctx)
 	case service.ChatIntentionTTS:
-		isTTSEnabled := ctx.Settings.IsTTSEnabled()
-		if !isTTSEnabled {
-			return
-		}
-		aiTTS := NewAITTSPlugin()
-		aiTTS.Run(ctx)
+		// isTTSEnabled := ctx.Settings.IsTTSEnabled()
+		// if !isTTSEnabled {
+		// 	return
+		// }
+		// aiTTS := NewAITTSPlugin()
+		// aiTTS.Run(ctx)
 	case service.ChatIntentionLTTS:
 		isTTSEnabled := ctx.Settings.IsTTSEnabled()
 		if !isTTSEnabled {
@@ -101,9 +101,9 @@ func OnChatIntention(ctx *plugin.MessageContext) {
 		aiChat := NewAIChatPlugin()
 		aiChat.Run(ctx)
 	case service.ChatIntentionApplyToJoinGroup:
-		ctx.MessageContent = messageContent
-		autoJoinGroup := NewAutoJoinGroupPlugin()
-		autoJoinGroup.Run(ctx)
+		// ctx.MessageContent = messageContent
+		// autoJoinGroup := NewAutoJoinGroupPlugin()
+		// autoJoinGroup.Run(ctx)
 	case service.ChatIntentionAIDisabled:
 		// 关闭AI功能
 		// 没有权限管理，先关闭此功能

@@ -187,16 +187,10 @@ func (s *ChatRoomSettingsService) IsAITrigger() bool {
 		if s.globalSettings.ChatAIEnabled == nil || !*s.globalSettings.ChatAIEnabled {
 			return false
 		}
-		if s.IsAutoAITrigger(messageContent) {
-			return true
-		}
 		return *s.globalSettings.ChatAITrigger != "" && strings.HasPrefix(messageContent, *s.globalSettings.ChatAITrigger)
 	}
 	if s.chatRoomSettings.ChatAIEnabled == nil || !*s.chatRoomSettings.ChatAIEnabled {
 		return false
-	}
-	if s.IsAutoAITrigger(messageContent) {
-		return true
 	}
 	if s.chatRoomSettings.ChatAITrigger != nil && *s.chatRoomSettings.ChatAITrigger != "" {
 		return *s.chatRoomSettings.ChatAITrigger != "" && strings.HasPrefix(messageContent, *s.chatRoomSettings.ChatAITrigger)

@@ -47,7 +47,8 @@ func (p *FriendAIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 				log.Printf("更新消息上下文失败: %v", err)
 			}
 		}()
-		OnChatIntention(ctx)
+		aiChat := NewAIChatPlugin()
+		aiChat.Run(ctx)
 		return true
 	}
 	return false

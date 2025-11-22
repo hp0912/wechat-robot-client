@@ -161,13 +161,13 @@ func (c *MCPToolConverter) formatToolResult(result *sdkmcp.CallToolResult) (stri
 				}
 			}
 			if len(errmsgs) > 0 {
-				return "", fmt.Errorf("MCP 调用失败: %s", strings.Join(errmsgs, "\n"))
+				return "", fmt.Errorf("MCP调用失败: %s", strings.Join(errmsgs, "\n"))
 			}
 		}
-		return "", fmt.Errorf("MCP 调用失败")
+		return "", fmt.Errorf("MCP调用失败")
 	}
 	// 直接将结果序列化为字符串返回，交由上层决定发送策略
-	b, err := json.Marshal(result)
+	b, err := json.Marshal(result.StructuredContent)
 	if err != nil {
 		return "", err
 	}
@@ -209,10 +209,10 @@ func (c *MCPToolConverter) BuildSystemPromptWithMCPTools(ctx context.Context, ba
   - 对不确定的信息应先向用户确认，再发起调用。
 
 4. 处理工具返回结果
-- 禁止对工具返回的内容进行总结，应该原样将结果返回给用户。
 - 若工具返回错误或空结果：
   - 根据返回信息解释可能原因，不要编造结果；
   - 必要时建议用户调整请求或参数。
+- 如果工具调用无错误，则返回的结果必定是JSON数据，必须原样返回给用户。
 
 下面是你当前可以使用的 MCP 工具列表，请在需要时主动选择合适的工具进行调用：
 `

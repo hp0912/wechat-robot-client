@@ -11,7 +11,6 @@ import (
 	"math/rand"
 	"mime/multipart"
 	"os"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -835,7 +834,7 @@ func (s *MessageService) SendImageMessageByRemoteURL(toWxID string, imageURL str
 	}
 
 	if headResp.StatusCode() != 200 {
-		return fmt.Errorf("获取图片信息失败，HTTP状态码: %d", headResp.StatusCode())
+		log.Printf("获取图片信息失败，HTTP状态码: %d\n", headResp.StatusCode())
 	}
 
 	contentLength := headResp.RawResponse.ContentLength
@@ -844,8 +843,8 @@ func (s *MessageService) SendImageMessageByRemoteURL(toWxID string, imageURL str
 		return s.sendImageByNormalDownload(toWxID, imageURL)
 	}
 
-	acceptRanges := headResp.Header().Get("Accept-Ranges")
-	supportsRange := acceptRanges == "bytes"
+	acceptRanges := strings.ToLower(strings.TrimSpace(headResp.Header().Get("Accept-Ranges")))
+	supportsRange := acceptRanges != "" && acceptRanges != "none"
 
 	if !supportsRange {
 		log.Println("服务器不支持 Range 请求，使用普通下载方式")
@@ -1461,8 +1460,6 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 
 func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []openai.ChatCompletionMessage {
 	var aiMessages []openai.ChatCompletionMessage
-	re := regexp.MustCompile(vars.TrimAtRegexp)
-
 	messageCtxMap := make(map[int64]bool)
 
 	for _, msg := range messages {
@@ -1473,7 +1470,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 			aiMessage.Role = openai.ChatMessageRoleUser
 		}
 		if msg.Type == model.MsgTypeText {
-			aiMessage.Content = re.ReplaceAllString(msg.Content, "")
+			aiMessage.Content = msg.Content
 		}
 		if msg.Type == model.MsgTypeImage && msg.AttachmentUrl != "" {
 			aiMessage.MultiContent = []openai.ChatMessagePart{
@@ -1506,11 +1503,11 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					aiMessage.MultiContent = []openai.ChatMessagePart{
 						{
 							Type: openai.ChatMessagePartTypeText,
-							Text: re.ReplaceAllString(xmlMessage.AppMsg.ReferMsg.Content, ""),
+							Text: xmlMessage.AppMsg.ReferMsg.Content,
 						},
 						{
 							Type: openai.ChatMessagePartTypeText,
-							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, ""),
+							Text: xmlMessage.AppMsg.Title,
 						},
 					}
 				}
@@ -1537,7 +1534,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 						},
 						{
 							Type: openai.ChatMessagePartTypeText,
-							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, "") + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
+							Text: xmlMessage.AppMsg.Title + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
 						},
 					}
 				}
@@ -1563,11 +1560,11 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					aiMessage.MultiContent = []openai.ChatMessagePart{
 						{
 							Type: openai.ChatMessagePartTypeText,
-							Text: re.ReplaceAllString(subXmlMessage.AppMsg.Title, ""),
+							Text: subXmlMessage.AppMsg.Title,
 						},
 						{
 							Type: openai.ChatMessagePartTypeText,
-							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, ""),
+							Text: xmlMessage.AppMsg.Title,
 						},
 					}
 				}
@@ -1598,11 +1595,11 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 						},
 						{
 							Type: openai.ChatMessagePartTypeText,
-							Text: re.ReplaceAllString(xmlMessage.AppMsg.Title, "") + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
+							Text: xmlMessage.AppMsg.Title + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
 						},
 					}
 				} else {
-					aiMessage.Content = re.ReplaceAllString(xmlMessage.AppMsg.Title, "")
+					aiMessage.Content = xmlMessage.AppMsg.Title
 				}
 			}
 		}
