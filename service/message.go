@@ -1492,83 +1492,20 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 			if err != nil {
 				continue
 			}
-			referUser := xmlMessage.AppMsg.ReferMsg.ChatUsr
-			if referUser == "" {
-				referUser = xmlMessage.AppMsg.ReferMsg.FromUsr
+			// 引用的是文本消息，将引用的消息内容添加到上下文
+			if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeText) {
+				aiMessage.MultiContent = []openai.ChatMessagePart{
+					{
+						Type: openai.ChatMessagePartTypeText,
+						Text: xmlMessage.AppMsg.ReferMsg.Content,
+					},
+					{
+						Type: openai.ChatMessagePartTypeText,
+						Text: xmlMessage.AppMsg.Title,
+					},
+				}
 			}
-			// 如果引用的消息不是自己发的，也不是机器人发的，将消息内容添加到上下文
-			if referUser != msg.SenderWxID && referUser != vars.RobotRuntime.WxID {
-				// 引用的是第三人的文本消息，将引用的消息内容添加到上下文
-				if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeText) {
-					aiMessage.MultiContent = []openai.ChatMessagePart{
-						{
-							Type: openai.ChatMessagePartTypeText,
-							Text: xmlMessage.AppMsg.ReferMsg.Content,
-						},
-						{
-							Type: openai.ChatMessagePartTypeText,
-							Text: xmlMessage.AppMsg.Title,
-						},
-					}
-				}
-				if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeImage) {
-					referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
-					// 字符串转int64
-					referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
-					if err != nil {
-						continue
-					}
-					refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
-					if err != nil {
-						continue
-					}
-					if refreMsg == nil {
-						continue
-					}
-					aiMessage.MultiContent = []openai.ChatMessagePart{
-						{
-							Type: openai.ChatMessagePartTypeImageURL,
-							ImageURL: &openai.ChatMessageImageURL{
-								URL: refreMsg.AttachmentUrl,
-							},
-						},
-						{
-							Type: openai.ChatMessagePartTypeText,
-							Text: xmlMessage.AppMsg.Title + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
-						},
-					}
-				}
-				if xmlMessage.AppMsg.ReferMsg.Type == int(model.AppMsgTypequote) {
-					referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
-					// 字符串转int64
-					referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
-					if err != nil {
-						continue
-					}
-					refreMsg, err := s.msgRepo.GetByID(referMsgID)
-					if err != nil {
-						continue
-					}
-					if refreMsg == nil {
-						continue
-					}
-					var subXmlMessage robot.XmlMessage
-					err = vars.RobotRuntime.XmlDecoder(refreMsg.Content, &subXmlMessage)
-					if err != nil {
-						continue
-					}
-					aiMessage.MultiContent = []openai.ChatMessagePart{
-						{
-							Type: openai.ChatMessagePartTypeText,
-							Text: subXmlMessage.AppMsg.Title,
-						},
-						{
-							Type: openai.ChatMessagePartTypeText,
-							Text: xmlMessage.AppMsg.Title,
-						},
-					}
-				}
-			} else {
+			if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeImage) {
 				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
 				// 字符串转int64
 				referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
@@ -1582,36 +1519,47 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 				if refreMsg == nil {
 					continue
 				}
-				if messageCtxMap[refreMsg.MsgId] {
-					aiMessage.Content = xmlMessage.AppMsg.Title
-				} else {
-					if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeImage) {
-						aiMessage.MultiContent = []openai.ChatMessagePart{
-							{
-								Type: openai.ChatMessagePartTypeImageURL,
-								ImageURL: &openai.ChatMessageImageURL{
-									URL: refreMsg.AttachmentUrl,
-								},
-							},
-							{
-								Type: openai.ChatMessagePartTypeText,
-								Text: xmlMessage.AppMsg.Title + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
-							},
-						}
-					} else if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeText) {
-						aiMessage.MultiContent = []openai.ChatMessagePart{
-							{
-								Type: openai.ChatMessagePartTypeText,
-								Text: xmlMessage.AppMsg.ReferMsg.Content,
-							},
-							{
-								Type: openai.ChatMessagePartTypeText,
-								Text: xmlMessage.AppMsg.Title,
-							},
-						}
-					} else {
-						aiMessage.Content = xmlMessage.AppMsg.Title
-					}
+				aiMessage.MultiContent = []openai.ChatMessagePart{
+					{
+						Type: openai.ChatMessagePartTypeImageURL,
+						ImageURL: &openai.ChatMessageImageURL{
+							URL: refreMsg.AttachmentUrl,
+						},
+					},
+					{
+						Type: openai.ChatMessagePartTypeText,
+						Text: xmlMessage.AppMsg.Title + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
+					},
+				}
+			}
+			if xmlMessage.AppMsg.ReferMsg.Type == int(model.AppMsgTypequote) {
+				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
+				// 字符串转int64
+				referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
+				if err != nil {
+					continue
+				}
+				refreMsg, err := s.msgRepo.GetByID(referMsgID)
+				if err != nil {
+					continue
+				}
+				if refreMsg == nil {
+					continue
+				}
+				var subXmlMessage robot.XmlMessage
+				err = vars.RobotRuntime.XmlDecoder(refreMsg.Content, &subXmlMessage)
+				if err != nil {
+					continue
+				}
+				aiMessage.MultiContent = []openai.ChatMessagePart{
+					{
+						Type: openai.ChatMessagePartTypeText,
+						Text: subXmlMessage.AppMsg.Title,
+					},
+					{
+						Type: openai.ChatMessagePartTypeText,
+						Text: xmlMessage.AppMsg.Title,
+					},
 				}
 			}
 		}
