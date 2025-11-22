@@ -1569,37 +1569,49 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					}
 				}
 			} else {
-				if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeImage) {
-					referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
-					// 字符串转int64
-					referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
-					if err != nil {
-						continue
-					}
-					refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
-					if err != nil {
-						continue
-					}
-					if refreMsg == nil {
-						continue
-					}
-					if messageCtxMap[refreMsg.MsgId] {
-						continue
-					}
-					aiMessage.MultiContent = []openai.ChatMessagePart{
-						{
-							Type: openai.ChatMessagePartTypeImageURL,
-							ImageURL: &openai.ChatMessageImageURL{
-								URL: refreMsg.AttachmentUrl,
-							},
-						},
-						{
-							Type: openai.ChatMessagePartTypeText,
-							Text: xmlMessage.AppMsg.Title + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
-						},
-					}
-				} else {
+				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
+				// 字符串转int64
+				referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
+				if err != nil {
+					continue
+				}
+				refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
+				if err != nil {
+					continue
+				}
+				if refreMsg == nil {
+					continue
+				}
+				if messageCtxMap[refreMsg.MsgId] {
 					aiMessage.Content = xmlMessage.AppMsg.Title
+				} else {
+					if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeImage) {
+						aiMessage.MultiContent = []openai.ChatMessagePart{
+							{
+								Type: openai.ChatMessagePartTypeImageURL,
+								ImageURL: &openai.ChatMessageImageURL{
+									URL: refreMsg.AttachmentUrl,
+								},
+							},
+							{
+								Type: openai.ChatMessagePartTypeText,
+								Text: xmlMessage.AppMsg.Title + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
+							},
+						}
+					} else if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeText) {
+						aiMessage.MultiContent = []openai.ChatMessagePart{
+							{
+								Type: openai.ChatMessagePartTypeText,
+								Text: xmlMessage.AppMsg.ReferMsg.Content,
+							},
+							{
+								Type: openai.ChatMessagePartTypeText,
+								Text: xmlMessage.AppMsg.Title,
+							},
+						}
+					} else {
+						aiMessage.Content = xmlMessage.AppMsg.Title
+					}
 				}
 			}
 		}
