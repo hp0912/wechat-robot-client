@@ -111,7 +111,7 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 			for index2 := range aiMessages[index].MultiContent {
 				// 去除群聊中的AI触发词
 				multiContentText := utils.TrimAITriggerAll(aiMessages[index].MultiContent[index2].Text, aiTriggerWord)
-				if multiContentText == "" {
+				if multiContentText == "" && aiMessages[index].MultiContent[index2].ImageURL == nil {
 					if aiMessages[index].MultiContent[index2].Type == openai.ChatMessagePartTypeText {
 						multiContentText = "在吗？"
 					} else {
