@@ -16,6 +16,7 @@ type MessageServiceIface interface {
 	SendAppMessage(toWxID string, appMsgType int, appMsgXml string) error
 	MsgUploadImg(toWxID string, image io.Reader) (*model.Message, error)
 	SendImageMessageByRemoteURL(toWxID string, imageURL string) error
+	SendVideoMessageByRemoteURL(toWxID string, videoURL string) error
 	MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error
 	MsgSendVideo(toWxID string, video io.Reader, videoExt string) error
 	SendMusicMessage(toWxID string, songTitle string) error

@@ -1031,6 +1031,49 @@ func (s *MessageService) SendImageMessageStream(ctx context.Context, req dto.Sen
 	return &m, nil
 }
 
+// SendVideoMessageByRemoteURL 根据远程URL发送视频
+func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL string) error {
+	resp, err := resty.New().R().SetDoNotParseResponse(true).Get(videoURL)
+	if err != nil {
+		return fmt.Errorf("下载视频失败: %w", err)
+	}
+	defer resp.RawBody().Close()
+
+	if resp.StatusCode() != 200 {
+		return fmt.Errorf("下载视频失败，HTTP状态码: %d", resp.StatusCode())
+	}
+
+	tempFile, err := os.CreateTemp("", "video_*")
+	if err != nil {
+		return fmt.Errorf("创建临时文件失败: %w", err)
+	}
+	defer tempFile.Close()
+	defer os.Remove(tempFile.Name())
+
+	_, err = io.Copy(tempFile, resp.RawBody())
+	if err != nil {
+		return fmt.Errorf("将视频数据写入临时文件失败: %w", err)
+	}
+
+	tempFile.Seek(0, 0)
+
+	videoExt := "mp4"
+	if strings.Contains(videoURL, ".") {
+		parts := strings.Split(videoURL, ".")
+		if len(parts) > 0 {
+			ext := parts[len(parts)-1]
+			if idx := strings.Index(ext, "?"); idx != -1 {
+				ext = ext[:idx]
+			}
+			if ext != "" {
+				videoExt = ext
+			}
+		}
+	}
+
+	return s.MsgSendVideo(toWxID, tempFile, videoExt)
+}
+
 func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt string) error {
 	videoBytes, err := io.ReadAll(video)
 	if err != nil {

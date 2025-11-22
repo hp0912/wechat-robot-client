@@ -172,6 +172,13 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 						log.Println("发送图片消息失败: ", err.Error())
 					}
 				}
+			case ActionTypeSendVideoMessage:
+				for _, videoURL := range callToolResult.AttachmentURLList {
+					err := ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, videoURL)
+					if err != nil {
+						log.Println("发送视频消息失败: ", err.Error())
+					}
+				}
 			case ActionTypeSendVoiceMessage:
 				audioData, err := base64.StdEncoding.DecodeString(callToolResult.Text)
 				if err != nil {
