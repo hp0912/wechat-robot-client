@@ -156,11 +156,17 @@ func (s *MCPService) ChatWithMCPTools(
 
 			// 执行工具
 			result, err := s.ExecuteToolCall(robotCtx, toolCall)
-			if err != nil {
-				// 工具执行失败，返回错误信息
-				result = err.Error()
-				log.Println(result)
+			if err == nil {
+				return openai.ChatCompletionMessage{
+					Role:       openai.ChatMessageRoleAssistant,
+					Content:    result,
+					ToolCallID: toolCall.ID,
+				}, nil
 			}
+
+			// 工具执行失败，返回错误信息
+			result = err.Error()
+			log.Println(result)
 
 			// 将工具结果添加到消息历史
 			toolResultMsg := openai.ChatCompletionMessage{
@@ -170,8 +176,6 @@ func (s *MCPService) ChatWithMCPTools(
 			}
 			req.Messages = append(req.Messages, toolResultMsg)
 		}
-
-		// 继续下一轮，让AI处理工具结果
 	}
 
 	// 达到最大迭代次数，返回最后的消息

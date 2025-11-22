@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/go-resty/resty/v2"
 
@@ -59,6 +60,10 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 		douyinShareContent = ctx.ReferMessage.Content
 	} else {
 		douyinShareContent = ctx.Message.Content
+	}
+
+	if !strings.Contains(douyinShareContent, "https://v.douyin.com") {
+		return false
 	}
 
 	re := regexp.MustCompile(`https://[^\s]+`)
