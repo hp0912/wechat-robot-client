@@ -199,7 +199,7 @@ func (c *MCPToolConverter) BuildSystemPromptWithMCPTools(ctx context.Context, ba
   例如：服务器名为 "calendar"，工具名为 "create_event"，实际调用名为 "calendar__create_event"。
 - 在选择工具时：
   - 先根据工具描述判断是否符合用户意图；
-  - 如有多个类似工具，优先选择描述更精确、与当前场景更贴近的工具。比如，用户想进行图片编辑、图片混合、风格转换、内容合成等等时，优先选用「图片修改」「图生图」工具。
+  - 如有多个类似工具，优先选择描述更精确、与当前场景更贴近的工具。
 
 3. 构造工具调用参数
 - 在调用工具前，应先向用户澄清目标、范围和约束（如时间区间、数量限制、过滤条件等）。
