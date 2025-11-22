@@ -1058,16 +1058,28 @@ func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL str
 	tempFile.Seek(0, 0)
 
 	videoExt := "mp4"
-	if strings.Contains(videoURL, ".") {
-		parts := strings.Split(videoURL, ".")
-		if len(parts) > 0 {
-			ext := parts[len(parts)-1]
-			if idx := strings.Index(ext, "?"); idx != -1 {
-				ext = ext[:idx]
-			}
-			if ext != "" {
-				videoExt = ext
-			}
+	contentType := resp.Header().Get("Content-Type")
+	if contentType != "" {
+		// 从 Content-Type 获取视频格式
+		switch {
+		case strings.Contains(contentType, "video/mp4"):
+			videoExt = "mp4"
+		case strings.Contains(contentType, "video/avi"):
+			videoExt = "avi"
+		case strings.Contains(contentType, "video/quicktime"):
+			videoExt = "mov"
+		case strings.Contains(contentType, "video/x-msvideo"):
+			videoExt = "avi"
+		case strings.Contains(contentType, "video/x-matroska"):
+			videoExt = "mkv"
+		case strings.Contains(contentType, "video/webm"):
+			videoExt = "webm"
+		case strings.Contains(contentType, "video/x-flv"):
+			videoExt = "flv"
+		case strings.Contains(contentType, "video/3gpp"):
+			videoExt = "3gp"
+		case strings.Contains(contentType, "video/x-ms-wmv"):
+			videoExt = "wmv"
 		}
 	}
 
