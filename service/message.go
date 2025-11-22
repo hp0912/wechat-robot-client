@@ -1031,6 +1031,11 @@ func (s *MessageService) SendImageMessageStream(ctx context.Context, req dto.Sen
 	return &m, nil
 }
 
+// SendVideoMessageByRemoteURL 根据远程URL发送视频
+func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL string) error {
+	return nil
+}
+
 func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt string) error {
 	videoBytes, err := io.ReadAll(video)
 	if err != nil {
