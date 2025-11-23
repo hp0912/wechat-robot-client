@@ -828,26 +828,46 @@ func (s *MessageService) MsgUploadImg(toWxID string, image io.Reader) (*model.Me
 
 // SendImageMessageByRemoteURL 根据远程URL发送图片（优先使用分片下载，不支持则回退到普通下载）
 func (s *MessageService) SendImageMessageByRemoteURL(toWxID string, imageURL string) error {
-	headResp, err := resty.New().R().Head(imageURL)
+	// 使用 Range 请求第一个字节来探测是否支持分片下载
+	rangeHeader := "bytes=0-0"
+	testResp, err := resty.New().R().
+		SetHeader("Range", rangeHeader).
+		SetDoNotParseResponse(true).
+		Get(imageURL)
 	if err != nil {
 		return fmt.Errorf("获取图片信息失败: %w", err)
 	}
+	testResp.RawBody().Close()
 
-	if headResp.StatusCode() != 200 {
-		log.Printf("获取图片信息失败，HTTP状态码: %d\n", headResp.StatusCode())
+	if testResp.StatusCode() != 206 && testResp.StatusCode() != 200 {
+		log.Printf("获取图片信息失败，HTTP状态码: %d\n", testResp.StatusCode())
+		return fmt.Errorf("获取图片信息失败，HTTP状态码: %d", testResp.StatusCode())
 	}
 
-	contentLength := headResp.RawResponse.ContentLength
-	if contentLength <= 0 {
-		log.Println("无法获取图片大小，使用普通下载方式")
-		return s.sendImageByNormalDownload(toWxID, imageURL)
-	}
-
-	acceptRanges := strings.ToLower(strings.TrimSpace(headResp.Header().Get("Accept-Ranges")))
-	supportsRange := acceptRanges != "" && acceptRanges != "none"
+	// 如果返回 206，说明支持 Range 请求
+	supportsRange := testResp.StatusCode() == 206
 
 	if !supportsRange {
 		log.Println("服务器不支持 Range 请求，使用普通下载方式")
+		return s.sendImageByNormalDownload(toWxID, imageURL)
+	}
+
+	// 从 Content-Range 获取文件总大小
+	contentLength := testResp.RawResponse.ContentLength
+	contentRange := testResp.Header().Get("Content-Range")
+	if contentRange != "" {
+		// Content-Range 格式: bytes 0-0/总大小
+		parts := strings.Split(contentRange, "/")
+		if len(parts) == 2 {
+			total, err := strconv.ParseInt(parts[1], 10, 64)
+			if err == nil {
+				contentLength = total
+			}
+		}
+	}
+
+	if contentLength <= 1 {
+		log.Println("无法获取图片大小，使用普通下载方式")
 		return s.sendImageByNormalDownload(toWxID, imageURL)
 	}
 
@@ -1031,61 +1051,6 @@ func (s *MessageService) SendImageMessageStream(ctx context.Context, req dto.Sen
 	return &m, nil
 }
 
-// SendVideoMessageByRemoteURL 根据远程URL发送视频
-func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL string) error {
-	resp, err := resty.New().R().SetDoNotParseResponse(true).Get(videoURL)
-	if err != nil {
-		return fmt.Errorf("下载视频失败: %w", err)
-	}
-	defer resp.RawBody().Close()
-
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("下载视频失败，HTTP状态码: %d", resp.StatusCode())
-	}
-
-	tempFile, err := os.CreateTemp("", "video_*")
-	if err != nil {
-		return fmt.Errorf("创建临时文件失败: %w", err)
-	}
-	defer tempFile.Close()
-	defer os.Remove(tempFile.Name())
-
-	_, err = io.Copy(tempFile, resp.RawBody())
-	if err != nil {
-		return fmt.Errorf("将视频数据写入临时文件失败: %w", err)
-	}
-
-	tempFile.Seek(0, 0)
-
-	videoExt := "mp4"
-	contentType := resp.Header().Get("Content-Type")
-	if contentType != "" {
-		// 从 Content-Type 获取视频格式
-		switch {
-		case strings.Contains(contentType, "video/mp4"):
-			videoExt = "mp4"
-		case strings.Contains(contentType, "video/avi"):
-			videoExt = "avi"
-		case strings.Contains(contentType, "video/quicktime"):
-			videoExt = "mov"
-		case strings.Contains(contentType, "video/x-msvideo"):
-			videoExt = "avi"
-		case strings.Contains(contentType, "video/x-matroska"):
-			videoExt = "mkv"
-		case strings.Contains(contentType, "video/webm"):
-			videoExt = "webm"
-		case strings.Contains(contentType, "video/x-flv"):
-			videoExt = "flv"
-		case strings.Contains(contentType, "video/3gpp"):
-			videoExt = "3gp"
-		case strings.Contains(contentType, "video/x-ms-wmv"):
-			videoExt = "wmv"
-		}
-	}
-
-	return s.MsgSendVideo(toWxID, tempFile, videoExt)
-}
-
 func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt string) error {
 	videoBytes, err := io.ReadAll(video)
 	if err != nil {
@@ -1108,6 +1073,131 @@ func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt s
 		ToWxID:             vars.RobotRuntime.WxID,
 		SenderWxID:         vars.RobotRuntime.WxID,
 		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          time.Now().Unix(),
+		UpdatedAt:          time.Now().Unix(),
+	}
+	err = s.msgRepo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
+func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL string) error {
+	tempFile, err := os.CreateTemp("", "video_*")
+	if err != nil {
+		return fmt.Errorf("创建临时文件失败: %w", err)
+	}
+	tempFilePath := tempFile.Name()
+	defer os.Remove(tempFilePath)
+
+	// 尝试分片下载
+	chunkSize := int64(1024 * 1024)
+	// 先尝试请求第一个分片，检测是否支持 Range
+	rangeHeader := fmt.Sprintf("bytes=0-%d", chunkSize-1)
+	resp, err := resty.New().R().
+		SetHeader("Range", rangeHeader).
+		SetDoNotParseResponse(true).
+		Get(videoURL)
+	if err != nil {
+		tempFile.Close()
+		return fmt.Errorf("下载视频失败: %w", err)
+	}
+
+	// 如果返回 206，说明支持分片下载
+	if resp.StatusCode() == 206 {
+		log.Println("服务器支持 Range 请求，使用分片下载")
+		// 获取文件总大小
+		contentLength := resp.RawResponse.ContentLength
+		contentRange := resp.Header().Get("Content-Range")
+		if contentRange != "" {
+			// Content-Range 格式: bytes 0-1048575/总大小
+			parts := strings.Split(contentRange, "/")
+			if len(parts) == 2 {
+				total, err := strconv.ParseInt(parts[1], 10, 64)
+				if err == nil {
+					contentLength = total
+				}
+			}
+		}
+
+		// 写入第一个分片
+		_, err = io.Copy(tempFile, resp.RawBody())
+		resp.RawBody().Close()
+		if err != nil {
+			tempFile.Close()
+			return fmt.Errorf("写入第一个分片失败: %w", err)
+		}
+
+		// 下载剩余分片
+		for start := chunkSize; start < contentLength; start += chunkSize {
+			end := start + chunkSize - 1
+			if end >= contentLength {
+				end = contentLength - 1
+			}
+
+			rangeHeader := fmt.Sprintf("bytes=%d-%d", start, end)
+			chunkResp, err := resty.New().R().
+				SetHeader("Range", rangeHeader).
+				SetDoNotParseResponse(true).
+				Get(videoURL)
+			if err != nil {
+				tempFile.Close()
+				return fmt.Errorf("下载视频分片失败 (bytes %d-%d): %w", start, end, err)
+			}
+
+			if chunkResp.StatusCode() != 206 && chunkResp.StatusCode() != 200 {
+				chunkResp.RawBody().Close()
+				tempFile.Close()
+				return fmt.Errorf("下载视频分片失败，HTTP状态码: %d (bytes %d-%d)", chunkResp.StatusCode(), start, end)
+			}
+
+			_, err = io.Copy(tempFile, chunkResp.RawBody())
+			chunkResp.RawBody().Close()
+			if err != nil {
+				tempFile.Close()
+				return fmt.Errorf("写入视频分片失败 (bytes %d-%d): %w", start, end, err)
+			}
+		}
+	} else if resp.StatusCode() == 200 {
+		log.Println("服务器不支持 Range 请求，使用普通下载方式")
+		_, err = io.Copy(tempFile, resp.RawBody())
+		resp.RawBody().Close()
+		if err != nil {
+			tempFile.Close()
+			return fmt.Errorf("写入视频数据失败: %w", err)
+		}
+	} else {
+		resp.RawBody().Close()
+		tempFile.Close()
+		return fmt.Errorf("下载视频失败，HTTP状态码: %d", resp.StatusCode())
+	}
+
+	tempFile.Close()
+
+	message, err := vars.RobotRuntime.MsgSendVideoFromLocal(toWxID, tempFilePath)
+	if err != nil {
+		return err
+	}
+	if message == nil {
+		return errors.New("发送视频失败，获取视频结果为空")
+	}
+
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.Msgid,
+		Type:               model.MsgTypeVideo,
+		Content:            "", // 获取不到视频的 xml 内容
+		DisplayFullContent: "",
+		MessageSource:      "",
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
+		AttachmentUrl:      videoURL,
 		CreatedAt:          time.Now().Unix(),
 		UpdatedAt:          time.Now().Unix(),
 	}

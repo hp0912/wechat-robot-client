@@ -42,7 +42,7 @@
 
 - AI聊天，chat-gtp deepseek qwen 系列等等
 
-- AI绘图，豆包文生图，智谱文生图，即梦文生图，豆包图像编辑
+- AI绘图，豆包文生图，智谱文生图，即梦文生图，图生图，文生视频、图生视频
 
 - AI语音，文本转语音，长文本转语音
 
@@ -87,6 +87,8 @@
 - 支持A16登录
 
 - Mac 扫码登录支持自动过滑块。
+
+- 完整的 MCP 协议支持
 
 ## 使用方式
 
@@ -352,7 +354,7 @@ services:
 
 ## 官方交流群
 
-<img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20251009" alt="官方交流群" width="300">
+<img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20251123" alt="官方交流群" width="300">
 
 ## 效果展示
 
@@ -380,6 +382,12 @@ services:
       <td>全局AI设置</td>
       <td>
         <img src="https://img.houhoukang.com/wechat-robot/global-settings.png" alt="全局AI设置" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td>完整的 MCP 协议支持</td>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot/mcp.png" alt="mcp" width="300">
       </td>
     </tr>
     <tr>

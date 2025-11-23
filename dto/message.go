@@ -50,6 +50,11 @@ type SendImageMessageByRemoteURLRequest struct {
 	ImageURLs []string `form:"image_urls" json:"image_urls" binding:"required"`
 }
 
+type SendVideoMessageByRemoteURLRequest struct {
+	ToWxid    string   `form:"to_wxid" json:"to_wxid" binding:"required"`
+	VideoURLs []string `form:"video_urls" json:"video_urls" binding:"required"`
+}
+
 type SendFileMessageRequest struct {
 	ToWxid          string `form:"to_wxid" json:"to_wxid" binding:"required"`
 	ClientAppDataId string `form:"client_app_data_id" json:"client_app_data_id" binding:"required"`

@@ -113,6 +113,7 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/message/send/image/stream", messageCtl.SendImageMessageStream)
 	api.POST("/robot/message/send/image/url", messageCtl.SendImageMessageByRemoteURL)
 	api.POST("/robot/message/send/video", messageCtl.SendVideoMessage)
+	api.POST("/robot/message/send/video/url", messageCtl.SendVideoMessageByRemoteURL)
 	api.POST("/robot/message/send/voice", messageCtl.SendVoiceMessage)
 	api.POST("/robot/message/send/music", messageCtl.SendMusicMessage)
 	api.POST("/robot/message/send/app", messageCtl.SendAppMessage)

@@ -10,7 +10,6 @@ import (
 
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/pkg/robot"
-	"wechat-robot-client/plugin/pkg"
 	"wechat-robot-client/vars"
 )
 
@@ -110,7 +109,7 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 	}
 
 	_ = ctx.MessageService.ShareLink(ctx.Message.FromWxID, shareLink)
-	_ = pkg.SendVideoByURL(ctx.MessageService, ctx.Message.FromWxID, respData.Data.URL)
+	_ = ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, respData.Data.URL)
 
 	return true
 }

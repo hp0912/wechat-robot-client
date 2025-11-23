@@ -17,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
+
 	"wechat-robot-client/model"
 )
 
@@ -617,6 +619,190 @@ func (r *Robot) MsgSendVideo(toWxID string, video []byte, videoExt string) (vide
 	}
 
 	return
+}
+
+func (r *Robot) MsgSendVideoFromLocal(toWxID, tempFilePath string) (videoMessage *MsgSendVideoResponse, err error) {
+	reqTime := time.Now().Unix()
+	clientMsgId := fmt.Sprintf("%v_%v", r.WxID, reqTime)
+
+	videoExt := strings.ToLower(filepath.Ext(tempFilePath))
+	if videoExt == "" {
+		cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=format_name", "-of", "default=noprint_wrappers=1:nokey=1", tempFilePath)
+		output, err := cmd.Output()
+		if err != nil {
+			return nil, fmt.Errorf("检测视频格式失败: %w", err)
+		}
+		formatName := strings.TrimSpace(string(output))
+		if strings.Contains(formatName, ",") {
+			formatName = strings.Split(formatName, ",")[0]
+		}
+		switch formatName {
+		case "mov", "mp4", "m4a", "3gp", "3g2", "mj2":
+			videoExt = ".mp4"
+		case "avi":
+			videoExt = ".avi"
+		case "matroska", "webm":
+			videoExt = ".mkv"
+		case "flv":
+			videoExt = ".flv"
+		default:
+			videoExt = ".unknown"
+		}
+	}
+
+	var videoPath string
+	if videoExt != ".mp4" {
+		outFile, err := os.CreateTemp("", "video_output_*.mp4")
+		if err != nil {
+			return nil, fmt.Errorf("创建临时输出文件失败: %w", err)
+		}
+		defer os.Remove(outFile.Name())
+		outFile.Close()
+
+		cmd := exec.Command("ffmpeg",
+			"-i", tempFilePath,
+			"-c:v", "libx264",
+			"-c:a", "aac",
+			outFile.Name(),
+			"-y",
+		)
+		if err = cmd.Run(); err != nil {
+			return nil, fmt.Errorf("视频格式转换失败: %w", err)
+		}
+		videoPath = outFile.Name()
+	} else {
+		videoPath = tempFilePath
+	}
+
+	// 提取视频播放时长
+	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", videoPath)
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("获取视频时长失败: %w", err)
+	}
+
+	duration, err := strconv.ParseFloat(strings.TrimSpace(string(output)), 64)
+	if err != nil {
+		return nil, fmt.Errorf("解析视频时长失败: %w", err)
+	}
+	playLength := int64(duration)
+
+	// 根据临时文件提取缩略图
+	thumbFile, err := os.CreateTemp("", "video_thumb_*.jpg")
+	if err != nil {
+		return nil, fmt.Errorf("创建临时缩略图文件失败: %w", err)
+	}
+	defer os.Remove(thumbFile.Name())
+	thumbFile.Close()
+
+	cmd = exec.Command("ffmpeg", "-i", videoPath, "-ss", "00:00:01", "-vframes", "1", thumbFile.Name(), "-y")
+	if err = cmd.Run(); err != nil {
+		return nil, fmt.Errorf("提取缩略图失败: %w", err)
+	}
+
+	// 计算缩略图文件大小
+	thumbInfo, err := os.Stat(thumbFile.Name())
+	if err != nil {
+		return nil, fmt.Errorf("获取缩略图文件信息失败: %w", err)
+	}
+	thumbTotalLen := thumbInfo.Size()
+	if thumbTotalLen == 0 {
+		return nil, fmt.Errorf("缩略图文件为空")
+	}
+
+	// 计算视频文件大小
+	videoInfo, err := os.Stat(videoPath)
+	if err != nil {
+		return nil, fmt.Errorf("获取视频文件信息失败: %w", err)
+	}
+	videoTotalLen := videoInfo.Size()
+
+	// 分片上传视频缩略图
+	const chunkSize = int64(50000)
+	thumbFile, err = os.Open(thumbFile.Name())
+	if err != nil {
+		return nil, fmt.Errorf("打开缩略图文件失败: %w", err)
+	}
+	defer thumbFile.Close()
+
+	var thumbStartPos int64 = 0
+	for thumbStartPos < thumbTotalLen {
+		currentChunkSize := chunkSize
+		if thumbStartPos+currentChunkSize > thumbTotalLen {
+			currentChunkSize = thumbTotalLen - thumbStartPos
+		}
+
+		chunkData := make([]byte, currentChunkSize)
+		n, err := thumbFile.ReadAt(chunkData, thumbStartPos)
+		if err != nil && err != io.EOF {
+			return nil, fmt.Errorf("读取缩略图分片失败: %w", err)
+		}
+
+		chunkReader := bytes.NewReader(chunkData[:n])
+		thumbFileHeader := &multipart.FileHeader{
+			Filename: filepath.Base(thumbFile.Name()),
+			Size:     int64(n),
+		}
+
+		videoMessage, err = r.Client.MsgSendVideoThumbStream(MsgSendVideoStreamRequest{
+			Wxid:          r.WxID,
+			ToWxid:        toWxID,
+			ClientMsgId:   clientMsgId,
+			StartPos:      thumbStartPos,
+			ThumbTotalLen: thumbTotalLen,
+			VideoTotalLen: videoTotalLen,
+			PlayLength:    playLength,
+			ReqTime:       reqTime,
+		}, chunkReader, thumbFileHeader)
+		if err != nil {
+			return nil, fmt.Errorf("上传缩略图分片失败: %w", err)
+		}
+		thumbStartPos += currentChunkSize
+	}
+
+	// 分片上传视频 r.Client.MsgSendVideoStream
+	videoFile, err := os.Open(videoPath)
+	if err != nil {
+		return nil, fmt.Errorf("打开视频文件失败: %w", err)
+	}
+	defer videoFile.Close()
+
+	var videoStartPos int64 = 0
+	for videoStartPos < videoTotalLen {
+		currentChunkSize := chunkSize
+		if videoStartPos+currentChunkSize > videoTotalLen {
+			currentChunkSize = videoTotalLen - videoStartPos
+		}
+
+		chunkData := make([]byte, currentChunkSize)
+		n, err := videoFile.ReadAt(chunkData, videoStartPos)
+		if err != nil && err != io.EOF {
+			return nil, fmt.Errorf("读取视频分片失败: %w", err)
+		}
+
+		chunkReader := bytes.NewReader(chunkData[:n])
+		videoFileHeader := &multipart.FileHeader{
+			Filename: filepath.Base(videoFile.Name()),
+			Size:     int64(n),
+		}
+
+		videoMessage, err = r.Client.MsgSendVideoStream(MsgSendVideoStreamRequest{
+			Wxid:          r.WxID,
+			ToWxid:        toWxID,
+			ClientMsgId:   clientMsgId,
+			StartPos:      videoStartPos,
+			ThumbTotalLen: thumbTotalLen,
+			VideoTotalLen: videoTotalLen,
+			PlayLength:    playLength,
+			ReqTime:       reqTime,
+		}, chunkReader, videoFileHeader)
+		if err != nil {
+			return nil, fmt.Errorf("上传视频分片失败: %w", err)
+		}
+		videoStartPos += currentChunkSize
+	}
+
+	return videoMessage, nil
 }
 
 func (r *Robot) GetClosestSampleRate(frameRate int) int {
