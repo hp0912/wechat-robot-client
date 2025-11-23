@@ -227,6 +227,28 @@ func (m *Message) SendVideoMessage(c *gin.Context) {
 	resp.ToResponse(nil)
 }
 
+func (m *Message) SendVideoMessageByRemoteURL(c *gin.Context) {
+	var req dto.SendVideoMessageByRemoteURLRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+
+	var result []string
+
+	for _, videoURL := range req.VideoURLs {
+		err := service.NewMessageService(c).SendVideoMessageByRemoteURL(req.ToWxid, videoURL)
+		if err != nil {
+			result = append(result, "失败: "+videoURL+" 错误: "+err.Error())
+		} else {
+			result = append(result, "成功: "+videoURL)
+		}
+	}
+
+	resp.ToResponse(result)
+}
+
 func (m *Message) SendVoiceMessage(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	// 获取表单文件
