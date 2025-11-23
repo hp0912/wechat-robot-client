@@ -30,6 +30,8 @@ const (
 	MsgUploadImg            = "/Msg/UploadImg"
 	SendImageMessageStream  = "/Msg/SendImageMessageStream"
 	MsgSendVideo            = "/Msg/SendVideo"
+	MsgSendVideoThumbStream = "/Msg/SendVideoThumbStream"
+	MsgSendVideoStream      = "/Msg/SendVideoStream"
 	MsgSendVoice            = "/Msg/SendVoice"
 	MsgSendApp              = "/Msg/SendApp"
 	MsgSendEmoji            = "/Msg/SendEmoji"

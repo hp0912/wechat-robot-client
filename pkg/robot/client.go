@@ -560,6 +560,152 @@ func (c *Client) MsgSendVideo(req MsgSendVideoRequest) (videoMessage MsgSendVide
 	return
 }
 
+func (c *Client) GenVideoStreamFormData(req MsgSendVideoStreamRequest, file io.Reader, fileHeader *multipart.FileHeader) (*bytes.Buffer, *multipart.Writer, error) {
+	var requestBody bytes.Buffer
+	var part io.Writer
+	var err error
+	writer := multipart.NewWriter(&requestBody)
+	// 分片文件字段名与前端一致: chunk
+	part, err = writer.CreateFormFile("chunk", fileHeader.Filename)
+	if err != nil {
+		return &requestBody, writer, err
+	}
+	if _, err = io.Copy(part, file); err != nil {
+		return &requestBody, writer, err
+	}
+	// 追加其他字段
+	if err = writer.WriteField("Wxid", req.Wxid); err != nil {
+		return &requestBody, writer, err
+	}
+	if err = writer.WriteField("ToWxid", req.ToWxid); err != nil {
+		return &requestBody, writer, err
+	}
+	if err = writer.WriteField("ClientMsgId", req.ClientMsgId); err != nil {
+		return &requestBody, writer, err
+	}
+	if err = writer.WriteField("StartPos", strconv.FormatInt(req.StartPos, 10)); err != nil {
+		return &requestBody, writer, err
+	}
+	if err = writer.WriteField("ThumbTotalLen", strconv.FormatInt(req.ThumbTotalLen, 10)); err != nil {
+		return &requestBody, writer, err
+	}
+	if err = writer.WriteField("VideoTotalLen", strconv.FormatInt(req.VideoTotalLen, 10)); err != nil {
+		return &requestBody, writer, err
+	}
+	if err = writer.WriteField("PlayLength", strconv.FormatInt(req.PlayLength, 10)); err != nil {
+		return &requestBody, writer, err
+	}
+	if err = writer.WriteField("ReqTime", strconv.FormatInt(req.ReqTime, 10)); err != nil {
+		return &requestBody, writer, err
+	}
+	if err = writer.Close(); err != nil {
+		return &requestBody, writer, err
+	}
+	return &requestBody, writer, err
+}
+
+// MsgSendVideoThumbStream 分片上传视频缩略图
+func (c *Client) MsgSendVideoThumbStream(req MsgSendVideoStreamRequest, file io.Reader, fileHeader *multipart.FileHeader) (videoMessage *MsgSendVideoResponse, err error) {
+	if req.StartPos == 0 {
+		if err = c.limiter.Wait(context.Background()); err != nil {
+			return
+		}
+	}
+
+	var requestBody *bytes.Buffer
+	var writer *multipart.Writer
+
+	requestBody, writer, err = c.GenVideoStreamFormData(req, file, fileHeader)
+	if err != nil {
+		return
+	}
+
+	var robotRequest *http.Request
+	var robotResp *http.Response
+	robotRequest, err = http.NewRequest("POST", fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendVideoThumbStream), requestBody)
+	if err != nil {
+		return
+	}
+	robotRequest.Header.Set("Content-Type", writer.FormDataContentType())
+	robotClient := &http.Client{}
+	robotResp, err = robotClient.Do(robotRequest)
+	if err != nil {
+		return
+	}
+	defer robotResp.Body.Close()
+
+	if robotResp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("发送视频缩略图请求失败，状态码: %d", robotResp.StatusCode)
+		return
+	}
+
+	var respBody []byte
+	respBody, err = io.ReadAll(robotResp.Body)
+	if err != nil {
+		return
+	}
+
+	var result ClientResponse[MsgSendVideoResponse]
+	if err = json.Unmarshal(respBody, &result); err != nil {
+		return
+	}
+	if err = result.CheckError(nil); err != nil {
+		return
+	}
+
+	videoMessage = &result.Data
+
+	return
+}
+
+// MsgSendVideoStream 分片上传视频
+func (c *Client) MsgSendVideoStream(req MsgSendVideoStreamRequest, file io.Reader, fileHeader *multipart.FileHeader) (videoMessage *MsgSendVideoResponse, err error) {
+	var requestBody *bytes.Buffer
+	var writer *multipart.Writer
+
+	requestBody, writer, err = c.GenVideoStreamFormData(req, file, fileHeader)
+	if err != nil {
+		return
+	}
+
+	var robotRequest *http.Request
+	var robotResp *http.Response
+	robotRequest, err = http.NewRequest("POST", fmt.Sprintf("%s%s", c.Domain.BasePath(), MsgSendVideoStream), requestBody)
+	if err != nil {
+		return
+	}
+	robotRequest.Header.Set("Content-Type", writer.FormDataContentType())
+	robotClient := &http.Client{}
+	robotResp, err = robotClient.Do(robotRequest)
+	if err != nil {
+		return
+	}
+	defer robotResp.Body.Close()
+
+	if robotResp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("发送视频请求失败，状态码: %d", robotResp.StatusCode)
+		return
+	}
+
+	var respBody []byte
+	respBody, err = io.ReadAll(robotResp.Body)
+	if err != nil {
+		return
+	}
+
+	var result ClientResponse[MsgSendVideoResponse]
+	if err = json.Unmarshal(respBody, &result); err != nil {
+		return
+	}
+	if err = result.CheckError(nil); err != nil {
+		return
+	}
+
+	videoMessage = &result.Data
+
+	return
+}
+
 // MsgSendVoice 发送音频消息
 func (c *Client) MsgSendVoice(req MsgSendVoiceRequest) (voiceMessage MsgSendVoiceResponse, err error) {
 	if err = c.limiter.Wait(context.Background()); err != nil {

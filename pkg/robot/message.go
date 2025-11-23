@@ -300,6 +300,17 @@ type MsgSendVideoRequest struct {
 	PlayLength  int64  `json:"PlayLength"`
 }
 
+type MsgSendVideoStreamRequest struct {
+	Wxid          string
+	ToWxid        string
+	ClientMsgId   string
+	StartPos      int64
+	ThumbTotalLen int64
+	VideoTotalLen int64
+	PlayLength    int64
+	ReqTime       int64
+}
+
 type MsgSendVideoResponse struct {
 	BaseResponse
 	Msgid         int64  `json:"msgId"`

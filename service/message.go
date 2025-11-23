@@ -1121,6 +1121,42 @@ func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt s
 	return nil
 }
 
+func (s *MessageService) MsgSendVideoByRemoteURL(toWxID string, videoURL string) error {
+	tempFilePath := ""
+
+	message, err := vars.RobotRuntime.MsgSendVideoFromLocal(toWxID, tempFilePath)
+	if err != nil {
+		return err
+	}
+	if message == nil {
+		return errors.New("发送视频失败，获取视频结果为空")
+	}
+
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.Msgid,
+		Type:               model.MsgTypeVideo,
+		Content:            "", // 获取不到视频的 xml 内容
+		DisplayFullContent: "",
+		MessageSource:      "",
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
+		AttachmentUrl:      videoURL,
+		CreatedAt:          time.Now().Unix(),
+		UpdatedAt:          time.Now().Unix(),
+	}
+	err = s.msgRepo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
+	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
 func (s *MessageService) MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error {
 	videoBytes, err := io.ReadAll(voice)
 	if err != nil {
