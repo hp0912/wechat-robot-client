@@ -50,32 +50,31 @@ func (m *Message) GetByMsgID(msgId int64) (*model.Message, error) {
 func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) ([]*model.Message, int64, error) {
 	var messages []*model.Message
 	var total int64
-	query := m.DB.WithContext(m.Ctx).Model(&model.Message{})
-	// 判断是群聊还是单聊，决定关联哪张表
+
+	baseCountQuery := m.DB.WithContext(m.Ctx).Model(&model.Message{}).Where("from_wxid = ?", req.ContactID)
+	if req.Keyword != "" {
+		baseCountQuery = baseCountQuery.Where("content LIKE ?", "%"+req.Keyword+"%")
+	}
+	if err := baseCountQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	fetchQuery := m.DB.WithContext(m.Ctx).Model(&model.Message{})
 	if strings.HasSuffix(req.ContactID, "@chatroom") {
-		// 群聊，需要关联 chat_room_members 以获取发送者昵称和头像
-		query = query.
+		fetchQuery = fetchQuery.
 			Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 			Select("messages.*, IF(chat_room_members.remark != '' AND chat_room_members.remark IS NOT NULL, chat_room_members.remark, chat_room_members.nickname) AS sender_nickname, chat_room_members.avatar AS sender_avatar")
 	} else {
-		// 好友，需要关联 contacts 表
-		query = query.
+		fetchQuery = fetchQuery.
 			Joins("LEFT JOIN contacts ON contacts.wechat_id = messages.sender_wxid").
 			Select("messages.*, IF(contacts.remark != '' AND contacts.remark IS NOT NULL, contacts.remark, contacts.nickname) AS sender_nickname, contacts.avatar AS sender_avatar")
 	}
-	query = query.Where("from_wxid = ?", req.ContactID)
+	fetchQuery = fetchQuery.Where("from_wxid = ?", req.ContactID)
 	if req.Keyword != "" {
-		query = query.Where("content LIKE ?", "%"+req.Keyword+"%")
+		fetchQuery = fetchQuery.Where("content LIKE ?", "%"+req.Keyword+"%")
 	}
-	err := query.Count(&total).Error
-	if err != nil {
-		return nil, 0, err
-	}
-	err = query.Order("id DESC").
-		Offset(pager.OffSet).
-		Limit(pager.PageSize).
-		Find(&messages).Error
-	if err != nil {
+
+	if err := fetchQuery.Order("id DESC").Offset(pager.OffSet).Limit(pager.PageSize).Find(&messages).Error; err != nil {
 		return nil, 0, err
 	}
 	return messages, total, nil
