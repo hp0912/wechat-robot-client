@@ -122,6 +122,22 @@ services:
     networks:
       - wechat-robot
 
+  xiaohongshu-mcp:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/xiaohongshu-mcp:latest
+    container_name: xiaohongshu-mcp
+    restart: unless-stopped
+    tty: true
+    volumes:
+      - ./xiaohongshu-mcp/data:/app/data
+      - ./xiaohongshu-mcp/images:/app/images
+    environment:
+      - ROD_BROWSER_BIN=/usr/bin/google-chrome
+      - COOKIES_PATH=/app/data/cookies.json
+    ports:
+      - "9200:9000"
+    networks:
+      - wechat-robot
+      
   wechat-robot-admin-frontend:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-frontend:latest
     container_name: wechat-robot-admin-frontend
