@@ -58,70 +58,85 @@ func (c *MCPToolConverter) convertSingleTool(serverName string, mcpTool *sdkmcp.
 	toolName := fmt.Sprintf("%s__%s", serverName, mcpTool.Name)
 
 	// 转换inputSchema到OpenAI的参数格式
-	// mcpTool.InputSchema 是 any，通常为 map[string]any
-	parameters, err := c.convertInputSchemaToParameters(mcpTool.InputSchema)
+	params, noParams, err := c.convertInputSchemaToParameters(mcpTool.InputSchema)
 	if err != nil {
 		return openai.Tool{}, fmt.Errorf("failed to convert input schema: %w", err)
 	}
 
-	// 构建OpenAI工具
-	openaiTool := openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        toolName,
-			Description: mcpTool.Description,
-			Parameters:  parameters,
-		},
+	fn := &openai.FunctionDefinition{
+		Name:        toolName,
+		Description: mcpTool.Description,
 	}
 
-	return openaiTool, nil
+	// 只有在不是“无参数工具”时才设置 Parameters
+	if !noParams {
+		fn.Parameters = params
+	}
+
+	return openai.Tool{
+		Type:     openai.ToolTypeFunction,
+		Function: fn,
+	}, nil
 }
 
 // convertInputSchemaToParameters 转换InputSchema到OpenAI参数格式
-func (c *MCPToolConverter) convertInputSchemaToParameters(inputSchema any) (jsonschema.Definition, error) {
-	// 将map转换为JSON字符串再解析为jsonschema.Definition
+func (c *MCPToolConverter) convertInputSchemaToParameters(inputSchema any) (jsonschema.Definition, bool, error) {
+	if inputSchema == nil {
+		return jsonschema.Definition{}, true, nil
+	}
+
 	schemaBytes, err := json.Marshal(inputSchema)
 	if err != nil {
-		return jsonschema.Definition{}, err
+		return jsonschema.Definition{}, false, err
 	}
 
 	var params jsonschema.Definition
 	if err := json.Unmarshal(schemaBytes, &params); err != nil {
-		return jsonschema.Definition{}, err
+		return jsonschema.Definition{}, false, err
 	}
 
-	// 确保type为object
+	// 如果解析后啥都没有（没有 type / properties / required），也视为无参数
+	isEmpty := (params.Type == "" || params.Type == "object") &&
+		len(params.Properties) == 0 &&
+		len(params.Required) == 0
+	if isEmpty {
+		return jsonschema.Definition{}, true, nil
+	}
+
 	if params.Type == "" {
 		params.Type = jsonschema.Object
 	}
+	if params.Type == jsonschema.Object && params.Properties == nil {
+		params.Properties = make(map[string]jsonschema.Definition)
+	}
 
-	return params, nil
+	return params, false, nil
 }
 
 // ExecuteOpenAIToolCall 执行OpenAI函数调用
-func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx RobotContext, toolCall openai.ToolCall) (string, error) {
+func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx RobotContext, toolCall openai.ToolCall) (string, bool, error) {
 	// 解析工具名称，提取服务器名称和原始工具名称
 	serverName, toolName, err := c.parseToolName(toolCall.Function.Name)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	// 解析参数
 	var args map[string]any
 	if toolCall.Function.Arguments != "" {
 		if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
-			return "", fmt.Errorf("failed to parse tool arguments: %w", err)
+			return "", false, fmt.Errorf("failed to parse tool arguments: %w", err)
 		}
 	}
 
 	// 将 RobotContext 转换为 Meta（map[string]any）
 	metaBytes, err := json.Marshal(robotCtx)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal robot context: %w", err)
+		return "", false, fmt.Errorf("failed to marshal robot context: %w", err)
 	}
 	var meta map[string]any
 	if err := json.Unmarshal(metaBytes, &meta); err != nil {
-		return "", fmt.Errorf("failed to unmarshal robot context to meta: %w", err)
+		return "", false, fmt.Errorf("failed to unmarshal robot context to meta: %w", err)
 	}
 
 	// 构建MCP调用参数
@@ -130,7 +145,7 @@ func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx R
 	// 调用MCP工具
 	result, err := c.manager.CallToolByName(ctx, serverName, params)
 	if err != nil {
-		return "", fmt.Errorf("failed to call mcp tool: %w", err)
+		return "", false, fmt.Errorf("failed to call mcp tool: %w", err)
 	}
 
 	return c.formatToolResult(result)
@@ -149,7 +164,7 @@ func (c *MCPToolConverter) parseToolName(fullName string) (serverName, toolName 
 	return "", "", fmt.Errorf("invalid tool name format: %s", fullName)
 }
 
-func (c *MCPToolConverter) formatToolResult(result *sdkmcp.CallToolResult) (string, error) {
+func (c *MCPToolConverter) formatToolResult(result *sdkmcp.CallToolResult) (string, bool, error) {
 	if result.IsError {
 		if len(result.Content) > 0 {
 			var errmsgs []string
@@ -161,17 +176,33 @@ func (c *MCPToolConverter) formatToolResult(result *sdkmcp.CallToolResult) (stri
 				}
 			}
 			if len(errmsgs) > 0 {
-				return "", fmt.Errorf("MCP调用失败: %s", strings.Join(errmsgs, "\n"))
+				return "", false, fmt.Errorf("MCP调用失败: %s", strings.Join(errmsgs, "\n"))
 			}
 		}
-		return "", fmt.Errorf("MCP调用失败")
+		return "", false, fmt.Errorf("MCP调用失败")
+	}
+	if result.StructuredContent != nil {
+		type CallToolResult struct {
+			IsCallToolResult bool `json:"is_call_tool_result,omitempty" jsonschema:"是否为调用工具结果"`
+		}
+		var callToolResult CallToolResult
+		sb, err := json.Marshal(result.StructuredContent)
+		if err != nil {
+			return "", false, err
+		}
+		if err := json.Unmarshal(sb, &callToolResult); err != nil {
+			return "", false, err
+		}
+		if callToolResult.IsCallToolResult {
+			return string(sb), true, nil
+		}
 	}
 	// 直接将结果序列化为字符串返回，交由上层决定发送策略
-	b, err := json.Marshal(result.StructuredContent)
+	rb, err := json.Marshal(result)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	return string(b), nil
+	return string(rb), false, nil
 }
 
 // BuildSystemPromptWithMCPTools 构建包含MCP工具描述的系统提示词
