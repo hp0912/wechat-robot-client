@@ -17,7 +17,7 @@ type MCPService interface {
 	GetAllTools() ([]openai.Tool, error)
 	GetToolsByServerName(serverName string) ([]openai.Tool, error)
 	GetToolsByServerID(serverID uint64) ([]*sdkmcp.Tool, error)
-	ExecuteToolCall(robotCtx mcp.RobotContext, toolCall openai.ToolCall) (string, error)
+	ExecuteToolCall(robotCtx mcp.RobotContext, toolCall openai.ToolCall) (string, bool, error)
 	ChatWithMCPTools(
 		robotCtx mcp.RobotContext,
 		client *openai.Client,

@@ -14,7 +14,7 @@ import (
 	"wechat-robot-client/vars"
 )
 
-var mcpNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+var mcpNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_-]*$`)
 
 type MCPServerService struct {
 	ctx           context.Context

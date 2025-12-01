@@ -91,7 +91,7 @@ func (s *MCPService) GetToolsByServerID(serverID uint64) ([]*sdkmcp.Tool, error)
 }
 
 // ExecuteToolCall 执行工具调用
-func (s *MCPService) ExecuteToolCall(robotCtx mcp.RobotContext, toolCall openai.ToolCall) (string, error) {
+func (s *MCPService) ExecuteToolCall(robotCtx mcp.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
 	return s.converter.ExecuteOpenAIToolCall(s.ctx, robotCtx, toolCall)
 }
 
@@ -155,18 +155,21 @@ func (s *MCPService) ChatWithMCPTools(
 			log.Printf("Executing tool: %s", toolCall.Function.Name)
 
 			// 执行工具
-			result, err := s.ExecuteToolCall(robotCtx, toolCall)
+			result, immediately, err := s.ExecuteToolCall(robotCtx, toolCall)
 			if err == nil {
-				return openai.ChatCompletionMessage{
-					Role:       openai.ChatMessageRoleAssistant,
-					Content:    result,
-					ToolCallID: toolCall.ID,
-				}, nil
+				// 工具调用结果立即返回
+				if immediately {
+					return openai.ChatCompletionMessage{
+						Role:       openai.ChatMessageRoleAssistant,
+						Content:    result,
+						ToolCallID: toolCall.ID,
+					}, nil
+				}
+			} else {
+				// 工具执行失败，返回错误信息
+				result = err.Error()
+				log.Println(result)
 			}
-
-			// 工具执行失败，返回错误信息
-			result = err.Error()
-			log.Println(result)
 
 			// 将工具结果添加到消息历史
 			toolResultMsg := openai.ChatCompletionMessage{
