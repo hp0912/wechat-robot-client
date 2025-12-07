@@ -1618,18 +1618,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 			aiMessage.Content = msg.Content
 		}
 		if msg.Type == model.MsgTypeImage && msg.AttachmentUrl != "" {
-			aiMessage.MultiContent = []openai.ChatMessagePart{
-				{
-					Type: openai.ChatMessagePartTypeImageURL,
-					ImageURL: &openai.ChatMessageImageURL{
-						URL: msg.AttachmentUrl,
-					},
-				},
-				{
-					Type: openai.ChatMessagePartTypeText,
-					Text: "针对不支持多模态的大模型，图片地址: " + msg.AttachmentUrl,
-				},
-			}
+			aiMessage.Content = "图片地址: " + msg.AttachmentUrl
 		}
 		if msg.Type == model.MsgTypeApp && msg.AppMsgType == model.AppMsgTypequote {
 			var xmlMessage robot.XmlMessage
@@ -1664,18 +1653,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 				if refreMsg == nil {
 					continue
 				}
-				aiMessage.MultiContent = []openai.ChatMessagePart{
-					{
-						Type: openai.ChatMessagePartTypeImageURL,
-						ImageURL: &openai.ChatMessageImageURL{
-							URL: refreMsg.AttachmentUrl,
-						},
-					},
-					{
-						Type: openai.ChatMessagePartTypeText,
-						Text: xmlMessage.AppMsg.Title + "\n\n 针对不支持多模态的大模型，图片地址: " + refreMsg.AttachmentUrl,
-					},
-				}
+				aiMessage.Content = "图片地址: " + msg.AttachmentUrl
 			}
 			if xmlMessage.AppMsg.ReferMsg.Type == int(model.AppMsgTypequote) {
 				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
@@ -1705,6 +1683,29 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 						Type: openai.ChatMessagePartTypeText,
 						Text: xmlMessage.AppMsg.Title,
 					},
+				}
+			}
+			// 图片表情包 jpg
+			if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeEmoticon) {
+				aiMessage.Content = xmlMessage.AppMsg.Title
+			}
+			if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeApp) {
+				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
+				// 字符串转int64
+				referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
+				if err != nil {
+					continue
+				}
+				refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
+				if err != nil {
+					continue
+				}
+				if refreMsg == nil {
+					continue
+				}
+				// 动态表情包 gif
+				if refreMsg.AppMsgType == model.AppMsgTypeEmoji {
+					aiMessage.Content = xmlMessage.AppMsg.Title
 				}
 			}
 		}

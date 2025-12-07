@@ -12,16 +12,8 @@ func RegisterMessagePlugin() {
 	vars.MessagePlugin.Register(plugins.NewChatRoomAIChatSessionStartPlugin())
 	vars.MessagePlugin.Register(plugins.NewChatRoomAIChatSessionEndPlugin())
 	vars.MessagePlugin.Register(plugins.NewChatRoomAIChatPlugin())
-	// 群聊绘画插件
-	vars.MessagePlugin.Register(plugins.NewChatRoomAIDrawingSessionStartPlugin())
-	vars.MessagePlugin.Register(plugins.NewChatRoomAIDrawingSessionEndPlugin())
-	vars.MessagePlugin.Register(plugins.NewChatRoomAIDrawingPlugin())
 	// 朋友聊天插件
 	vars.MessagePlugin.Register(plugins.NewFriendAIChatPlugin())
-	// 朋友绘画插件
-	vars.MessagePlugin.Register(plugins.NewFriendAIDrawingSessionStartPlugin())
-	vars.MessagePlugin.Register(plugins.NewFriendAIDrawingSessionEndPlugin())
-	vars.MessagePlugin.Register(plugins.NewFriendAIDrawingPlugin())
 	// 群聊拍一拍交互插件
 	vars.MessagePlugin.Register(plugins.NewPatPlugin())
 	// 抖音解析插件
