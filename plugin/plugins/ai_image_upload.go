@@ -35,11 +35,7 @@ func (p *AIImageUploadPlugin) GetOSSFileURL(ctx *plugin.MessageContext) (string,
 	if err != nil {
 		return "", fmt.Errorf("获取OSS设置失败: %w", err)
 	}
-	if ossSettings == nil {
-		return "", fmt.Errorf("OSS设置为空")
-	}
 	if ossSettings.AutoUploadImage != nil && *ossSettings.AutoUploadImage {
-		ossSettingService := service.NewOSSSettingService(ctx.Context)
 		err := ossSettingService.UploadImageToOSS(ossSettings, ctx.ReferMessage)
 		if err != nil {
 			return "", fmt.Errorf("上传图片到OSS失败: %w", err)
