@@ -65,7 +65,7 @@ func (s *OSSSettingService) SaveOSSSettingService(req *model.OSSSettings) error 
 	return s.ossSettingsRepo.Update(req)
 }
 
-func (s *OSSSettingService) UploadImageToOSS(settings *model.OSSSettings, message *model.Message) error {
+func (s *OSSSettingService) UploadImageToOSSFromEncryptUrl(settings *model.OSSSettings, message *model.Message, encryptUrl string) error {
 	if settings.OSSProvider == "" {
 		return errors.New("OSS服务商未配置")
 	}
@@ -74,7 +74,7 @@ func (s *OSSSettingService) UploadImageToOSS(settings *model.OSSSettings, messag
 		if settings.AliyunOSSSettings == nil {
 			return errors.New("阿里云OSS配置项未配置")
 		}
-		err := s.UploadImageToAliyun(settings, message)
+		err := s.UploadImageToAliyun(settings, message, &encryptUrl)
 		if err != nil {
 			return err
 		}
@@ -82,7 +82,7 @@ func (s *OSSSettingService) UploadImageToOSS(settings *model.OSSSettings, messag
 		if settings.TencentCloudOSSSettings == nil {
 			return errors.New("腾讯云COS配置项未配置")
 		}
-		err := s.UploadImageToTencentCloud(settings, message)
+		err := s.UploadImageToTencentCloud(settings, message, &encryptUrl)
 		if err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func (s *OSSSettingService) UploadImageToOSS(settings *model.OSSSettings, messag
 		if settings.CloudflareR2Settings == nil {
 			return errors.New("cloudflare r2配置项未配置")
 		}
-		err := s.UploadImageToCloudflareR2(settings, message)
+		err := s.UploadImageToCloudflareR2(settings, message, &encryptUrl)
 		if err != nil {
 			return err
 		}
@@ -100,9 +100,85 @@ func (s *OSSSettingService) UploadImageToOSS(settings *model.OSSSettings, messag
 	return nil
 }
 
-func (s *OSSSettingService) UploadImageToAliyun(settings *model.OSSSettings, message *model.Message) error {
+func (s *OSSSettingService) UploadImageToOSS(settings *model.OSSSettings, message *model.Message) error {
+	if settings.OSSProvider == "" {
+		return errors.New("OSS服务商未配置")
+	}
+	switch settings.OSSProvider {
+	case model.OSSProviderAliyun:
+		if settings.AliyunOSSSettings == nil {
+			return errors.New("阿里云OSS配置项未配置")
+		}
+		err := s.UploadImageToAliyun(settings, message, nil)
+		if err != nil {
+			return err
+		}
+	case model.OSSProviderTencentCloud:
+		if settings.TencentCloudOSSSettings == nil {
+			return errors.New("腾讯云COS配置项未配置")
+		}
+		err := s.UploadImageToTencentCloud(settings, message, nil)
+		if err != nil {
+			return err
+		}
+	case model.OSSProviderCloudflare:
+		if settings.CloudflareR2Settings == nil {
+			return errors.New("cloudflare r2配置项未配置")
+		}
+		err := s.UploadImageToCloudflareR2(settings, message, nil)
+		if err != nil {
+			return err
+		}
+	default:
+		log.Printf("不支持的OSS服务商: %s", settings.OSSProvider)
+	}
+	return nil
+}
+
+func (s *OSSSettingService) DownloadImageFromEncryptUrl(imageUrl string) ([]byte, string, string, error) {
+	// 创建HTTP客户端
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// 发起GET请求
+	resp, err := client.Get(imageUrl)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("下载图片失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 检查HTTP状态码
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", "", fmt.Errorf("下载图片失败，状态码: %d", resp.StatusCode)
+	}
+
+	// 读取图片内容
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(resp.Body)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("读取图片内容失败: %w", err)
+	}
+
+	// 获取Content-Type
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	return buf.Bytes(), contentType, ".gif", nil
+}
+
+func (s *OSSSettingService) UploadImageToAliyun(settings *model.OSSSettings, message *model.Message, imageUrl *string) error {
 	attachDownloadService := NewAttachDownloadService(s.ctx)
-	imageBytes, contentType, extension, err := attachDownloadService.DownloadImage(message.ID)
+	var imageBytes []byte
+	var contentType, extension string
+	var err error
+	if imageUrl == nil {
+		imageBytes, contentType, extension, err = attachDownloadService.DownloadImage(message.ID)
+	} else {
+		imageBytes, contentType, extension, err = s.DownloadImageFromEncryptUrl(*imageUrl)
+	}
 	if err != nil {
 		return fmt.Errorf("下载图片失败: %w", err)
 	}
@@ -158,9 +234,16 @@ func (s *OSSSettingService) UploadImageToAliyun(settings *model.OSSSettings, mes
 	return nil
 }
 
-func (s *OSSSettingService) UploadImageToTencentCloud(settings *model.OSSSettings, message *model.Message) error {
+func (s *OSSSettingService) UploadImageToTencentCloud(settings *model.OSSSettings, message *model.Message, imageUrl *string) error {
 	attachDownloadService := NewAttachDownloadService(s.ctx)
-	imageBytes, contentType, extension, err := attachDownloadService.DownloadImage(message.ID)
+	var imageBytes []byte
+	var contentType, extension string
+	var err error
+	if imageUrl == nil {
+		imageBytes, contentType, extension, err = attachDownloadService.DownloadImage(message.ID)
+	} else {
+		imageBytes, contentType, extension, err = s.DownloadImageFromEncryptUrl(*imageUrl)
+	}
 	if err != nil {
 		return fmt.Errorf("下载图片失败: %w", err)
 	}
@@ -225,9 +308,16 @@ func (s *OSSSettingService) UploadImageToTencentCloud(settings *model.OSSSetting
 	return nil
 }
 
-func (s *OSSSettingService) UploadImageToCloudflareR2(settings *model.OSSSettings, message *model.Message) error {
+func (s *OSSSettingService) UploadImageToCloudflareR2(settings *model.OSSSettings, message *model.Message, imageUrl *string) error {
 	attachDownloadService := NewAttachDownloadService(s.ctx)
-	imageBytes, contentType, extension, err := attachDownloadService.DownloadImage(message.ID)
+	var imageBytes []byte
+	var contentType, extension string
+	var err error
+	if imageUrl == nil {
+		imageBytes, contentType, extension, err = attachDownloadService.DownloadImage(message.ID)
+	} else {
+		imageBytes, contentType, extension, err = s.DownloadImageFromEncryptUrl(*imageUrl)
+	}
 	if err != nil {
 		return fmt.Errorf("下载图片失败: %w", err)
 	}

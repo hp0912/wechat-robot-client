@@ -30,6 +30,8 @@ const (
 	ActionTypeSendAppMessage      ActionType = 7   // 发送应用消息
 	ActionTypeSendEmoticonMessage ActionType = 8   // 发送表情消息
 	ActionTypeJoinChatRoom        ActionType = 100 // 加入群聊
+	ActionTypeEmojiImage          ActionType = 200 // emoji -> image
+	ActionTypeEmojiGif            ActionType = 201 // emoji -> gif
 )
 
 type CallToolResult struct {
@@ -196,6 +198,41 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 				if err != nil {
 					p.SendMessage(ctx, err.Error())
 				}
+			case ActionTypeEmojiImage, ActionTypeEmojiGif:
+				imageURL := callToolResult.Text
+				if callToolResult.ActionType == ActionTypeEmojiImage {
+					err := ctx.MessageService.SendImageMessageByRemoteURL(ctx.Message.FromWxID, imageURL)
+					if err != nil {
+						log.Println("发送图片消息失败: ", err.Error())
+					}
+					return true
+				}
+				if ctx.ReferMessage.AttachmentUrl != "" {
+					p.SendMessage(ctx, fmt.Sprintf("动态表情包无法通过图片的方式发送，请通过链接手动下载: %s", ctx.ReferMessage.AttachmentUrl))
+					return true
+				}
+				ossSettingService := service.NewOSSSettingService(ctx.Context)
+				ossSettings, err := ossSettingService.GetOSSSettingService()
+				if err != nil {
+					p.SendMessage(ctx, "获取 OSS 配置失败，请联系管理员")
+					return true
+				}
+				if ossSettings == nil {
+					p.SendMessage(ctx, "获取 OSS 配置为空，请联系管理员")
+					return true
+				}
+				if ossSettings.AutoUploadImage != nil && *ossSettings.AutoUploadImage {
+					ossSettingService := service.NewOSSSettingService(ctx.Context)
+					err := ossSettingService.UploadImageToOSSFromEncryptUrl(ossSettings, ctx.ReferMessage, imageURL)
+					if err != nil {
+						p.SendMessage(ctx, "上传图片到 OSS 失败，请联系管理员")
+						return true
+					}
+					p.SendMessage(ctx, fmt.Sprintf("动态表情包无法通过图片的方式发送，请通过链接手动下载: %s", ctx.ReferMessage.AttachmentUrl))
+				} else {
+					p.SendMessage(ctx, "图片上传未开启，请联系管理员")
+				}
+
 			default:
 				p.SendMessage(ctx, "暂不支持的操作类型。")
 			}
