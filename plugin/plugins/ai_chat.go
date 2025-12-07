@@ -30,7 +30,7 @@ const (
 	ActionTypeSendAppMessage      ActionType = 7   // 发送应用消息
 	ActionTypeSendEmoticonMessage ActionType = 8   // 发送表情消息
 	ActionTypeJoinChatRoom        ActionType = 100 // 加入群聊
-	ActionTypeEmoji               ActionType = 200
+	ActionTypeEmoji               ActionType = 147 // 提取表情包
 )
 
 type CallToolResult struct {
