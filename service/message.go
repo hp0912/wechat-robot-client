@@ -1618,7 +1618,12 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 			aiMessage.Content = msg.Content
 		}
 		if msg.Type == model.MsgTypeImage && msg.AttachmentUrl != "" {
-			aiMessage.Content = "图片地址: " + msg.AttachmentUrl
+			aiMessage.MultiContent = []openai.ChatMessagePart{
+				{
+					Type: openai.ChatMessagePartTypeText,
+					Text: "图片地址: " + msg.AttachmentUrl,
+				},
+			}
 		}
 		if msg.Type == model.MsgTypeApp && msg.AppMsgType == model.AppMsgTypequote {
 			var xmlMessage robot.XmlMessage
@@ -1653,7 +1658,12 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 				if refreMsg == nil {
 					continue
 				}
-				aiMessage.Content = "图片地址: " + msg.AttachmentUrl
+				aiMessage.MultiContent = []openai.ChatMessagePart{
+					{
+						Type: openai.ChatMessagePartTypeText,
+						Text: xmlMessage.AppMsg.Title + "\n\n 图片地址: " + refreMsg.AttachmentUrl,
+					},
+				}
 			}
 			if xmlMessage.AppMsg.ReferMsg.Type == int(model.AppMsgTypequote) {
 				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
