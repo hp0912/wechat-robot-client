@@ -514,6 +514,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 2. 使用中文冒号
 3. 无需大标题
 4. 开始给出本群讨论风格的整体评价，例如活跃、太水、太黄、太暴力、话题不集中、无聊诸如此类
+5. 群友分享的链接资源要提取出来，并附加在总结的最后
 `
 	msg := fmt.Sprintf("群名称: %s\n聊天记录如下:\n%s", chatRoomName, strings.Join(content, "\n"))
 	// AI总结
