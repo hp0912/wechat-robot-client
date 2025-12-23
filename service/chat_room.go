@@ -497,6 +497,8 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		timeStr := time.Unix(message.CreatedAt, 0).Format("2006-01-02 15:04:05")
 		content = append(content, fmt.Sprintf(`[%s] {"%s": "%s"}--end--`, timeStr, message.Nickname, strings.ReplaceAll(message.Message, "\n", "。。")))
 	}
+
+	maxCompletionTokens := 2000
 	prompt := `你是一个中文的群聊总结的助手，你可以为一个微信的群聊记录，提取并总结每个时间段大家在重点讨论的话题内容。
 
 每一行代表一个人的发言，每一行的的格式为： {"[time] {nickname}": "{content}"}--end--
@@ -514,8 +516,8 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 2. 使用中文冒号
 3. 无需大标题
 4. 开始给出本群讨论风格的整体评价，例如活跃、太水、太黄、太暴力、话题不集中、无聊诸如此类
-5. 群友分享的链接资源要提取出来，并附加在总结的最后
-`
+5. 群友分享的链接资源要提取出来，并附加在总结的最后`
+	prompt = fmt.Sprintf("%s\n6. 总结结果不得超过%d字符", prompt, maxCompletionTokens)
 	msg := fmt.Sprintf("群名称: %s\n聊天记录如下:\n%s", chatRoomName, strings.Join(content, "\n"))
 	// AI总结
 	aiMessages := []openai.ChatCompletionMessage{
@@ -552,7 +554,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 			Model:               model,
 			Messages:            aiMessages,
 			Stream:              false,
-			MaxCompletionTokens: 2000,
+			MaxCompletionTokens: maxCompletionTokens,
 		},
 	)
 	if err != nil {
@@ -565,7 +567,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息总结失败，AI返回结果为空")
 		return nil
 	}
-	replyMsg := fmt.Sprintf("#消息总结\n让我们一起来看看群友们都聊了什么有趣的话题吧~\n\n%s", resp.Choices[0].Message.Content)
+	replyMsg := fmt.Sprintf("#消息总结\n让我们一起来看看群友们都聊了什么有趣的话题吧~\n\n本次总结由**%s**加持\n\n%s", model, resp.Choices[0].Message.Content)
 	msgService.SendLongTextMessage(setting.ChatRoomID, replyMsg)
 	return nil
 }
