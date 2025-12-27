@@ -58,7 +58,7 @@ func InitWechatRobot() error {
 	}
 
 	// 检测微信机器人服务端是否启动
-	retryInterval := 10 * time.Second
+	retryInterval := 3 * time.Second
 	retryTicker := time.NewTicker(retryInterval)
 	defer retryTicker.Stop()
 
