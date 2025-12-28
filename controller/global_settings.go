@@ -39,7 +39,7 @@ func (ct *GlobalSettings) SaveGlobalSettings(c *gin.Context) {
 		return
 	}
 	if req.ChatAIEnabled != nil && *req.ChatAIEnabled {
-		if req.ChatAPIKey == "" || req.ChatBaseURL == "" || req.WorkflowModel == "" || req.ChatModel == "" || req.ImageRecognitionModel == "" || req.ChatPrompt == "" {
+		if req.ChatAPIKey == "" || req.ChatBaseURL == "" || req.ChatModel == "" || req.ImageRecognitionModel == "" || req.ChatPrompt == "" {
 			resp.ToErrorResponse(errors.New("参数错误"))
 			return
 		}
