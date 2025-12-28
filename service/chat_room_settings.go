@@ -63,9 +63,6 @@ func (s *ChatRoomSettingsService) GetAIConfig() settings.AIConfig {
 		if s.globalSettings.ChatModel != "" {
 			aiConfig.Model = s.globalSettings.ChatModel
 		}
-		if s.globalSettings.WorkflowModel != "" {
-			aiConfig.WorkflowModel = s.globalSettings.WorkflowModel
-		}
 		if s.globalSettings.ImageRecognitionModel != "" {
 			aiConfig.ImageRecognitionModel = s.globalSettings.ImageRecognitionModel
 		}
@@ -97,9 +94,6 @@ func (s *ChatRoomSettingsService) GetAIConfig() settings.AIConfig {
 		}
 		if s.chatRoomSettings.ChatModel != nil && *s.chatRoomSettings.ChatModel != "" {
 			aiConfig.Model = *s.chatRoomSettings.ChatModel
-		}
-		if s.chatRoomSettings.WorkflowModel != nil && *s.chatRoomSettings.WorkflowModel != "" {
-			aiConfig.WorkflowModel = *s.chatRoomSettings.WorkflowModel
 		}
 		if s.chatRoomSettings.ImageRecognitionModel != nil && *s.chatRoomSettings.ImageRecognitionModel != "" {
 			aiConfig.ImageRecognitionModel = *s.chatRoomSettings.ImageRecognitionModel
