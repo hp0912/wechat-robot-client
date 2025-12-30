@@ -556,10 +556,12 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		go func() {
 			// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 			NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
-			NewChatRoomService(s.ctx).UpsertChatRoomMember(&model.ChatRoomMember{
-				ChatRoomID: m.FromWxID,
-				WechatID:   m.SenderWxID,
-			})
+			if strings.HasSuffix(m.FromWxID, "@chatroom") {
+				NewChatRoomService(s.ctx).UpsertChatRoomMember(&model.ChatRoomMember{
+					ChatRoomID: m.FromWxID,
+					WechatID:   m.SenderWxID,
+				})
+			}
 		}()
 	}
 	for _, contact := range syncResp.ModContacts {

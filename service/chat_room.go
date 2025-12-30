@@ -225,6 +225,8 @@ func (s *ChatRoomService) UpsertChatRoomMember(member *model.ChatRoomMember) err
 		member.IsLeaved = &isLeaved
 		return s.crmRepo.Create(member)
 	}
+
+	member.ID = existMember.ID
 	return s.crmRepo.Update(member)
 }
 
