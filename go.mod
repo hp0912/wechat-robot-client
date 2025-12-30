@@ -18,7 +18,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/h2non/filetype v1.1.3
 	github.com/joho/godotenv v1.5.1
-	github.com/modelcontextprotocol/go-sdk v1.1.0
+	github.com/modelcontextprotocol/go-sdk v1.2.0
 	github.com/redis/go-redis/v9 v9.10.0
 	github.com/sashabaranov/go-openai v1.41.2
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.70

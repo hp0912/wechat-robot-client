@@ -202,6 +202,32 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 	}
 }
 
+func (s *ChatRoomService) CreateChatRoomMember(member *model.ChatRoomMember) error {
+	return s.crmRepo.Create(member)
+}
+
+func (s *ChatRoomService) UpdateChatRoomMember(member *model.ChatRoomMember) error {
+	return s.crmRepo.Update(member)
+}
+
+func (s *ChatRoomService) UpsertChatRoomMember(member *model.ChatRoomMember) error {
+	existMember, err := s.crmRepo.GetChatRoomMember(member.ChatRoomID, member.WechatID)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now().Unix()
+	isLeaved := false
+	member.LastActiveAt = now
+
+	if existMember == nil {
+		member.JoinedAt = now
+		member.IsLeaved = &isLeaved
+		return s.crmRepo.Create(member)
+	}
+	return s.crmRepo.Update(member)
+}
+
 func (s *ChatRoomService) CreateChatRoom(contactIDs []string) error {
 	chatRoom, err := vars.RobotRuntime.CreateChatRoom(contactIDs)
 	if err != nil {
