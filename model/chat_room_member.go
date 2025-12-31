@@ -14,8 +14,6 @@ type ChatRoomMember struct {
 	Score                *int64 `gorm:"column:score;default:0" json:"score"`                                     // 积分
 	TemporaryScore       *int64 `gorm:"column:temporary_score;default:0" json:"temporary_score"`                 // 临时积分
 	TemporaryScoreExpiry *int64 `gorm:"column:temporary_score_expiry;default:0" json:"temporary_score_expiry"`   // 临时积分有效期
-	FrozenScore          *int64 `gorm:"column:frozen_score;default:0" json:"frozen_score"`                       // 冻结积分
-	FrozenTemporaryScore *int64 `gorm:"column:frozen_temporary_score;default:0" json:"frozen_temporary_score"`   // 冻结临时积分
 	Remark               string `gorm:"column:remark" json:"remark"`                                             // 备注
 	JoinedAt             int64  `gorm:"column:joined_at;not null" json:"joined_at"`                              // 加入时间
 	LastActiveAt         int64  `gorm:"column:last_active_at;not null" json:"last_active_at"`                    // 最近活跃时间

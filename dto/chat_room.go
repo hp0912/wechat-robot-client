@@ -8,9 +8,25 @@ type SyncChatRoomMemberRequest struct {
 	ChatRoomID string `form:"chat_room_id" json:"chat_room_id" binding:"required"`
 }
 
-type ChatRoomMemberRequest struct {
+type ChatRoomMemberListRequest struct {
 	ChatRoomID string `form:"chat_room_id" json:"chat_room_id" binding:"required"`
 	Keyword    string `form:"keyword" json:"keyword"`
+}
+
+type ChatRoomMemberRequest struct {
+	ChatRoomID string `form:"chat_room_id" json:"chat_room_id" binding:"required"`
+	WechatID   string `form:"wechat_id" json:"wechat_id" binding:"required"`
+}
+
+type UpdateChatRoomMemberRequest struct {
+	ChatRoomID           string  `form:"chat_room_id" json:"chat_room_id" binding:"required"`
+	WechatID             string  `form:"wechat_id" json:"wechat_id" binding:"required"`
+	IsAdmin              *bool   `form:"is_admin" json:"is_admin"`
+	IsBlacklisted        *bool   `form:"is_blacklisted" json:"is_blacklisted"`
+	TemporaryScoreAction *string `form:"temporary_score_action" json:"temporary_score_action"`
+	TemporaryScore       *int64  `form:"temporary_score" json:"temporary_score"`
+	ScoreAction          *string `form:"score_action" json:"score_action"`
+	Score                *int64  `form:"score" json:"score"`
 }
 
 type ChatRoomRequestBase struct {

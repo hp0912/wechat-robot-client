@@ -34,7 +34,7 @@ func (c *ChatRoomMember) GetByID(id int64) (*model.ChatRoomMember, error) {
 	return &chatRoomMember, nil
 }
 
-func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
+func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberListRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
 	var chatRoomMembers []*model.ChatRoomMember
 	var total int64
 	query := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{})
@@ -52,7 +52,7 @@ func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager ap
 	return chatRoomMembers, total, nil
 }
 
-func (c *ChatRoomMember) GetNotLeftMemberByChatRoomID(req dto.ChatRoomMemberRequest) ([]*model.ChatRoomMember, error) {
+func (c *ChatRoomMember) GetNotLeftMemberByChatRoomID(req dto.ChatRoomMemberListRequest) ([]*model.ChatRoomMember, error) {
 	var chatRoomMembers []*model.ChatRoomMember
 	query := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{})
 	query = query.Where("chat_room_id = ? AND is_leaved = 0", req.ChatRoomID)

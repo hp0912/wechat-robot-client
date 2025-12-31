@@ -274,7 +274,7 @@ func (s *ChatRoomService) InviteChatRoomMember(chatRoomID string, contactIDs []s
 		currentContactIDs = append(currentContactIDs, contact.WechatID)
 	}
 	// 当前群成员
-	currentMembers, err := s.GetNotLeftMembers(dto.ChatRoomMemberRequest{ChatRoomID: chatRoomID})
+	currentMembers, err := s.GetNotLeftMembers(dto.ChatRoomMemberListRequest{ChatRoomID: chatRoomID})
 	if err != nil {
 		return err
 	}
@@ -451,16 +451,24 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 	return s.crmRepo.GetChatRoomMemberByWeChatIDs(chatRoomID, memberWeChatIDs)
 }
 
-func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
+func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberListRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
 	return s.crmRepo.GetByChatRoomID(req, pager)
 }
 
-func (s *ChatRoomService) GetNotLeftMembers(req dto.ChatRoomMemberRequest) ([]*model.ChatRoomMember, error) {
+func (s *ChatRoomService) GetNotLeftMembers(req dto.ChatRoomMemberListRequest) ([]*model.ChatRoomMember, error) {
 	return s.crmRepo.GetNotLeftMemberByChatRoomID(req)
 }
 
 func (s *ChatRoomService) GetChatRoomMemberCount(chatRoomID string) (int64, error) {
 	return s.crmRepo.GetChatRoomMemberCount(chatRoomID)
+}
+
+func (s *ChatRoomService) GetChatRoomMember(req dto.ChatRoomMemberRequest) (*model.ChatRoomMember, error) {
+	return s.crmRepo.GetChatRoomMember(req.ChatRoomID, req.WechatID)
+}
+
+func (s *ChatRoomService) UpdateChatRoomMemberInfo(req dto.UpdateChatRoomMemberRequest) error {
+	return nil
 }
 
 func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSummary, error) {
