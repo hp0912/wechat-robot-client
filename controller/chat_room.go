@@ -81,7 +81,12 @@ func (cr *ChatRoom) UpdateChatRoomMember(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	err := service.NewChatRoomService(c).UpdateChatRoomMemberInfo(req)
+	var err error
+	if req.Batch {
+		err = service.NewChatRoomService(c).BatchUpdateChatRoomMemberInfo(req)
+	} else {
+		err = service.NewChatRoomService(c).UpdateChatRoomMemberInfo(req)
+	}
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

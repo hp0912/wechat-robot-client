@@ -18,15 +18,23 @@ type ChatRoomMemberRequest struct {
 	WechatID   string `form:"wechat_id" json:"wechat_id" binding:"required"`
 }
 
+type ScoreAction string
+
+const (
+	ScoreActionIncrease ScoreAction = "increase"
+	ScoreActionReduce   ScoreAction = "reduce"
+)
+
 type UpdateChatRoomMemberRequest struct {
-	ChatRoomID           string  `form:"chat_room_id" json:"chat_room_id" binding:"required"`
-	WechatID             string  `form:"wechat_id" json:"wechat_id" binding:"required"`
-	IsAdmin              *bool   `form:"is_admin" json:"is_admin"`
-	IsBlacklisted        *bool   `form:"is_blacklisted" json:"is_blacklisted"`
-	TemporaryScoreAction *string `form:"temporary_score_action" json:"temporary_score_action"`
-	TemporaryScore       *int64  `form:"temporary_score" json:"temporary_score"`
-	ScoreAction          *string `form:"score_action" json:"score_action"`
-	Score                *int64  `form:"score" json:"score"`
+	ChatRoomID           string       `form:"chat_room_id" json:"chat_room_id" binding:"required"`
+	WechatID             string       `form:"wechat_id" json:"wechat_id" binding:"required"`
+	Batch                bool         `form:"batch" json:"batch"`
+	IsAdmin              *bool        `form:"is_admin" json:"is_admin"`
+	IsBlacklisted        *bool        `form:"is_blacklisted" json:"is_blacklisted"`
+	TemporaryScoreAction *ScoreAction `form:"temporary_score_action" json:"temporary_score_action"`
+	TemporaryScore       *int64       `form:"temporary_score" json:"temporary_score"`
+	ScoreAction          *ScoreAction `form:"score_action" json:"score_action"`
+	Score                *int64       `form:"score" json:"score"`
 }
 
 type ChatRoomRequestBase struct {

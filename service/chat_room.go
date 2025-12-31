@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -20,6 +21,7 @@ import (
 	"wechat-robot-client/vars"
 
 	"github.com/sashabaranov/go-openai"
+	"gorm.io/gorm"
 )
 
 // 防抖逻辑：在 5 秒窗口内同一群聊只同步一次
@@ -467,7 +469,63 @@ func (s *ChatRoomService) GetChatRoomMember(req dto.ChatRoomMemberRequest) (*mod
 	return s.crmRepo.GetChatRoomMember(req.ChatRoomID, req.WechatID)
 }
 
+func (s *ChatRoomService) BatchUpdateChatRoomMemberInfo(req dto.UpdateChatRoomMemberRequest) error {
+	members, err := s.crmRepo.GetChatRoomMemberByWeChatID(req.WechatID)
+	if err != nil {
+		return err
+	}
+	for _, member := range members {
+		req.ChatRoomID = member.ChatRoomID
+		err = s.UpdateChatRoomMemberInfo(req)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *ChatRoomService) UpdateChatRoomMemberInfo(req dto.UpdateChatRoomMemberRequest) error {
+	existMember, err := s.crmRepo.GetChatRoomMember(req.ChatRoomID, req.WechatID)
+	if err != nil {
+		return err
+	}
+	if existMember == nil {
+		return fmt.Errorf("群成员不存在")
+	}
+
+	updates := make(map[string]any)
+	scoreUpdates := make(map[string]any)
+	if req.IsAdmin != nil {
+		updates["is_admin"] = *req.IsAdmin
+	}
+	if req.IsBlacklisted != nil {
+		updates["is_blacklisted"] = *req.IsBlacklisted
+	}
+
+	if req.TemporaryScoreAction != nil && req.TemporaryScore != nil {
+		switch *req.TemporaryScoreAction {
+		case dto.ScoreActionIncrease:
+			scoreUpdates["temporary_score"] = gorm.Expr("temporary_score + ?", *req.TemporaryScore)
+		case dto.ScoreActionReduce:
+			scoreUpdates["temporary_score"] = gorm.Expr("GREATEST(0, temporary_score - ?)", *req.TemporaryScore)
+		}
+	}
+
+	if req.ScoreAction != nil && req.Score != nil {
+		switch *req.ScoreAction {
+		case dto.ScoreActionIncrease:
+			scoreUpdates["score"] = gorm.Expr("score + ?", *req.Score)
+		case dto.ScoreActionReduce:
+			scoreUpdates["score"] = gorm.Expr("GREATEST(0, score - ?)", *req.Score)
+		}
+	}
+
+	maps.Copy(updates, scoreUpdates)
+
+	if len(updates) > 0 {
+		return s.crmRepo.AtomicUpdateScores(req.ChatRoomID, req.WechatID, updates)
+	}
+
 	return nil
 }
 
