@@ -4,6 +4,7 @@ import (
 	"errors"
 	"unicode/utf8"
 	"wechat-robot-client/dto"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
 
@@ -75,7 +76,7 @@ func (cr *ChatRoom) GetChatRoomMember(c *gin.Context) {
 }
 
 func (cr *ChatRoom) UpdateChatRoomMember(c *gin.Context) {
-	var req dto.UpdateChatRoomMemberRequest
+	var req model.UpdateChatRoomMember
 	resp := appx.NewResponse(c)
 	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
 		resp.ToErrorResponse(errors.New("参数错误"))

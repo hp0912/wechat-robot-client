@@ -469,7 +469,7 @@ func (s *ChatRoomService) GetChatRoomMember(req dto.ChatRoomMemberRequest) (*mod
 	return s.crmRepo.GetChatRoomMember(req.ChatRoomID, req.WechatID)
 }
 
-func (s *ChatRoomService) BatchUpdateChatRoomMemberInfo(req dto.UpdateChatRoomMemberRequest) error {
+func (s *ChatRoomService) BatchUpdateChatRoomMemberInfo(req model.UpdateChatRoomMember) error {
 	members, err := s.crmRepo.GetChatRoomMemberByWeChatID(req.WechatID)
 	if err != nil {
 		return err
@@ -484,7 +484,7 @@ func (s *ChatRoomService) BatchUpdateChatRoomMemberInfo(req dto.UpdateChatRoomMe
 	return nil
 }
 
-func (s *ChatRoomService) UpdateChatRoomMemberInfo(req dto.UpdateChatRoomMemberRequest) error {
+func (s *ChatRoomService) UpdateChatRoomMemberInfo(req model.UpdateChatRoomMember) error {
 	existMember, err := s.crmRepo.GetChatRoomMember(req.ChatRoomID, req.WechatID)
 	if err != nil {
 		return err
@@ -504,18 +504,18 @@ func (s *ChatRoomService) UpdateChatRoomMemberInfo(req dto.UpdateChatRoomMemberR
 
 	if req.TemporaryScoreAction != nil && req.TemporaryScore != nil {
 		switch *req.TemporaryScoreAction {
-		case dto.ScoreActionIncrease:
+		case model.ScoreActionIncrease:
 			scoreUpdates["temporary_score"] = gorm.Expr("temporary_score + ?", *req.TemporaryScore)
-		case dto.ScoreActionReduce:
+		case model.ScoreActionReduce:
 			scoreUpdates["temporary_score"] = gorm.Expr("GREATEST(0, temporary_score - ?)", *req.TemporaryScore)
 		}
 	}
 
 	if req.ScoreAction != nil && req.Score != nil {
 		switch *req.ScoreAction {
-		case dto.ScoreActionIncrease:
+		case model.ScoreActionIncrease:
 			scoreUpdates["score"] = gorm.Expr("score + ?", *req.Score)
-		case dto.ScoreActionReduce:
+		case model.ScoreActionReduce:
 			scoreUpdates["score"] = gorm.Expr("GREATEST(0, score - ?)", *req.Score)
 		}
 	}
