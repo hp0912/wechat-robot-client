@@ -151,12 +151,6 @@ func (s *ChatRoomSettingsService) IsTTSEnabled() bool {
 	return false
 }
 
-// 是否属于自动触发AI的指令
-func (s *ChatRoomSettingsService) IsAutoAITrigger(message string) bool {
-	matched, _ := NewAIWorkflowService(s.ctx, s).ChatIntentionSimple(message, nil)
-	return matched
-}
-
 func (s *ChatRoomSettingsService) IsAITrigger() bool {
 	messageContent := s.Message.Content
 	if s.Message.AppMsgType == model.AppMsgTypequote {

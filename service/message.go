@@ -1812,3 +1812,7 @@ func (s *MessageService) ChatRoomAIDisabled(chatRoomID string) error {
 	}
 	return nil
 }
+
+func (s *MessageService) GetChatRoomMember(chatRoomID string, wechatID string) (*model.ChatRoomMember, error) {
+	return s.crmRepo.GetChatRoomMember(chatRoomID, wechatID)
+}

@@ -46,6 +46,9 @@ func (p *DouyinVideoParsePlugin) GetLabels() []string {
 }
 
 func (p *DouyinVideoParsePlugin) PreAction(ctx *plugin.MessageContext) bool {
+	if ctx.Message.IsChatRoom {
+		return NewChatRoomCommonPlugin().PreAction(ctx)
+	}
 	return true
 }
 
@@ -62,6 +65,10 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 	}
 
 	if !strings.Contains(douyinShareContent, "https://v.douyin.com") {
+		return false
+	}
+
+	if !p.PreAction(ctx) {
 		return false
 	}
 
