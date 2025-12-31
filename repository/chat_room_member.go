@@ -34,7 +34,7 @@ func (c *ChatRoomMember) GetByID(id int64) (*model.ChatRoomMember, error) {
 	return &chatRoomMember, nil
 }
 
-func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
+func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberListRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
 	var chatRoomMembers []*model.ChatRoomMember
 	var total int64
 	query := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{})
@@ -52,7 +52,7 @@ func (c *ChatRoomMember) GetByChatRoomID(req dto.ChatRoomMemberRequest, pager ap
 	return chatRoomMembers, total, nil
 }
 
-func (c *ChatRoomMember) GetNotLeftMemberByChatRoomID(req dto.ChatRoomMemberRequest) ([]*model.ChatRoomMember, error) {
+func (c *ChatRoomMember) GetNotLeftMemberByChatRoomID(req dto.ChatRoomMemberListRequest) ([]*model.ChatRoomMember, error) {
 	var chatRoomMembers []*model.ChatRoomMember
 	query := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{})
 	query = query.Where("chat_room_id = ? AND is_leaved = 0", req.ChatRoomID)
@@ -75,6 +75,15 @@ func (c *ChatRoomMember) GetChatRoomMember(chatRoomID, wechatID string) (*model.
 		return nil, err
 	}
 	return &chatRoomMember, nil
+}
+
+func (c *ChatRoomMember) GetChatRoomMemberByWeChatID(wechatID string) ([]*model.ChatRoomMember, error) {
+	var chatRoomMember []*model.ChatRoomMember
+	err := c.DB.WithContext(c.Ctx).Where("wechat_id = ?", wechatID).Find(&chatRoomMember).Error
+	if err != nil {
+		return nil, err
+	}
+	return chatRoomMember, nil
 }
 
 func (c *ChatRoomMember) GetChatRoomMemberByWeChatIDs(chatRoomID string, wechatIDs []string) ([]*model.ChatRoomMember, error) {
@@ -167,4 +176,16 @@ func (c *ChatRoomMember) DeleteChatRoomMembers(memberIDs []string) error {
 		Update("is_leaved", 1).
 		Update("leaved_at", time.Now().Unix()).
 		Error
+}
+
+func (c *ChatRoomMember) AtomicUpdateScores(chatRoomID, wechatID string, updates map[string]any) error {
+	db := c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{}).
+		Where("chat_room_id = ? AND wechat_id = ?", chatRoomID, wechatID)
+	return db.Updates(updates).Error
+}
+
+func (c *ChatRoomMember) UpdateMemberInfo(chatRoomID, wechatID string, updates map[string]any) error {
+	return c.DB.WithContext(c.Ctx).Model(&model.ChatRoomMember{}).
+		Where("chat_room_id = ? AND wechat_id = ?", chatRoomID, wechatID).
+		Updates(updates).Error
 }

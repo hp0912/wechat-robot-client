@@ -14,8 +14,6 @@ type ChatRoomMember struct {
 	Score                *int64 `gorm:"column:score;default:0" json:"score"`                                     // 积分
 	TemporaryScore       *int64 `gorm:"column:temporary_score;default:0" json:"temporary_score"`                 // 临时积分
 	TemporaryScoreExpiry *int64 `gorm:"column:temporary_score_expiry;default:0" json:"temporary_score_expiry"`   // 临时积分有效期
-	FrozenScore          *int64 `gorm:"column:frozen_score;default:0" json:"frozen_score"`                       // 冻结积分
-	FrozenTemporaryScore *int64 `gorm:"column:frozen_temporary_score;default:0" json:"frozen_temporary_score"`   // 冻结临时积分
 	Remark               string `gorm:"column:remark" json:"remark"`                                             // 备注
 	JoinedAt             int64  `gorm:"column:joined_at;not null" json:"joined_at"`                              // 加入时间
 	LastActiveAt         int64  `gorm:"column:last_active_at;not null" json:"last_active_at"`                    // 最近活跃时间
@@ -25,4 +23,23 @@ type ChatRoomMember struct {
 // TableName 设置表名
 func (ChatRoomMember) TableName() string {
 	return "chat_room_members"
+}
+
+type ScoreAction string
+
+const (
+	ScoreActionIncrease ScoreAction = "increase"
+	ScoreActionReduce   ScoreAction = "reduce"
+)
+
+type UpdateChatRoomMember struct {
+	ChatRoomID           string       `form:"chat_room_id" json:"chat_room_id" binding:"required"`
+	WechatID             string       `form:"wechat_id" json:"wechat_id" binding:"required"`
+	Batch                bool         `form:"batch" json:"batch"`
+	IsAdmin              *bool        `form:"is_admin" json:"is_admin"`
+	IsBlacklisted        *bool        `form:"is_blacklisted" json:"is_blacklisted"`
+	TemporaryScoreAction *ScoreAction `form:"temporary_score_action" json:"temporary_score_action"`
+	TemporaryScore       *int64       `form:"temporary_score" json:"temporary_score"`
+	ScoreAction          *ScoreAction `form:"score_action" json:"score_action"`
+	Score                *int64       `form:"score" json:"score"`
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"unicode/utf8"
 	"wechat-robot-client/dto"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
 
@@ -29,7 +30,7 @@ func (cr *ChatRoom) SyncChatRoomMember(c *gin.Context) {
 }
 
 func (cr *ChatRoom) GetChatRoomMembers(c *gin.Context) {
-	var req dto.ChatRoomMemberRequest
+	var req dto.ChatRoomMemberListRequest
 	resp := appx.NewResponse(c)
 	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
 		resp.ToErrorResponse(errors.New("参数错误"))
@@ -45,7 +46,7 @@ func (cr *ChatRoom) GetChatRoomMembers(c *gin.Context) {
 }
 
 func (cr *ChatRoom) GetNotLeftMembers(c *gin.Context) {
-	var req dto.ChatRoomMemberRequest
+	var req dto.ChatRoomMemberListRequest
 	resp := appx.NewResponse(c)
 	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
 		resp.ToErrorResponse(errors.New("参数错误"))
@@ -57,6 +58,41 @@ func (cr *ChatRoom) GetNotLeftMembers(c *gin.Context) {
 		return
 	}
 	resp.ToResponse(list)
+}
+
+func (cr *ChatRoom) GetChatRoomMember(c *gin.Context) {
+	var req dto.ChatRoomMemberRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	member, err := service.NewChatRoomService(c).GetChatRoomMember(req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(member)
+}
+
+func (cr *ChatRoom) UpdateChatRoomMember(c *gin.Context) {
+	var req model.UpdateChatRoomMember
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	var err error
+	if req.Batch {
+		err = service.NewChatRoomService(c).BatchUpdateChatRoomMemberInfo(req)
+	} else {
+		err = service.NewChatRoomService(c).UpdateChatRoomMemberInfo(req)
+	}
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
 }
 
 func (cr *ChatRoom) CreateChatRoom(c *gin.Context) {

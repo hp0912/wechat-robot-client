@@ -9,9 +9,8 @@ import (
 func RegisterMessagePlugin() {
 	vars.MessagePlugin = plugin.NewMessagePlugin()
 	// 群聊聊天插件
-	vars.MessagePlugin.Register(plugins.NewChatRoomAIChatSessionStartPlugin())
-	vars.MessagePlugin.Register(plugins.NewChatRoomAIChatSessionEndPlugin())
 	vars.MessagePlugin.Register(plugins.NewChatRoomAIChatPlugin())
+	vars.MessagePlugin.Register(plugins.NewChatRoomMemberBlacklistPlugin())
 	// 朋友聊天插件
 	vars.MessagePlugin.Register(plugins.NewFriendAIChatPlugin())
 	// 群聊拍一拍交互插件

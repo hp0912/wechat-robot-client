@@ -3,7 +3,6 @@ package plugins
 import (
 	"log"
 	"wechat-robot-client/interface/plugin"
-	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 )
 
@@ -37,11 +36,9 @@ func (p *FriendAIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 	if ctx.Message != nil && ctx.Message.SenderWxID == vars.RobotRuntime.WxID {
 		return false
 	}
-	aiChatService := service.NewAIChatService(ctx.Context, ctx.Settings)
 	isAIEnabled := ctx.Settings.IsAIChatEnabled()
 	if isAIEnabled {
 		defer func() {
-			aiChatService.RenewAISession(ctx.Message)
 			err := ctx.MessageService.SetMessageIsInContext(ctx.Message)
 			if err != nil {
 				log.Printf("更新消息上下文失败: %v", err)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -20,6 +21,7 @@ import (
 	"wechat-robot-client/vars"
 
 	"github.com/sashabaranov/go-openai"
+	"gorm.io/gorm"
 )
 
 // 防抖逻辑：在 5 秒窗口内同一群聊只同步一次
@@ -274,7 +276,7 @@ func (s *ChatRoomService) InviteChatRoomMember(chatRoomID string, contactIDs []s
 		currentContactIDs = append(currentContactIDs, contact.WechatID)
 	}
 	// 当前群成员
-	currentMembers, err := s.GetNotLeftMembers(dto.ChatRoomMemberRequest{ChatRoomID: chatRoomID})
+	currentMembers, err := s.GetNotLeftMembers(dto.ChatRoomMemberListRequest{ChatRoomID: chatRoomID})
 	if err != nil {
 		return err
 	}
@@ -451,16 +453,80 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 	return s.crmRepo.GetChatRoomMemberByWeChatIDs(chatRoomID, memberWeChatIDs)
 }
 
-func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
+func (s *ChatRoomService) GetChatRoomMembers(req dto.ChatRoomMemberListRequest, pager appx.Pager) ([]*model.ChatRoomMember, int64, error) {
 	return s.crmRepo.GetByChatRoomID(req, pager)
 }
 
-func (s *ChatRoomService) GetNotLeftMembers(req dto.ChatRoomMemberRequest) ([]*model.ChatRoomMember, error) {
+func (s *ChatRoomService) GetNotLeftMembers(req dto.ChatRoomMemberListRequest) ([]*model.ChatRoomMember, error) {
 	return s.crmRepo.GetNotLeftMemberByChatRoomID(req)
 }
 
 func (s *ChatRoomService) GetChatRoomMemberCount(chatRoomID string) (int64, error) {
 	return s.crmRepo.GetChatRoomMemberCount(chatRoomID)
+}
+
+func (s *ChatRoomService) GetChatRoomMember(req dto.ChatRoomMemberRequest) (*model.ChatRoomMember, error) {
+	return s.crmRepo.GetChatRoomMember(req.ChatRoomID, req.WechatID)
+}
+
+func (s *ChatRoomService) BatchUpdateChatRoomMemberInfo(req model.UpdateChatRoomMember) error {
+	members, err := s.crmRepo.GetChatRoomMemberByWeChatID(req.WechatID)
+	if err != nil {
+		return err
+	}
+	for _, member := range members {
+		req.ChatRoomID = member.ChatRoomID
+		err = s.UpdateChatRoomMemberInfo(req)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *ChatRoomService) UpdateChatRoomMemberInfo(req model.UpdateChatRoomMember) error {
+	existMember, err := s.crmRepo.GetChatRoomMember(req.ChatRoomID, req.WechatID)
+	if err != nil {
+		return err
+	}
+	if existMember == nil {
+		return fmt.Errorf("群成员不存在")
+	}
+
+	updates := make(map[string]any)
+	scoreUpdates := make(map[string]any)
+	if req.IsAdmin != nil {
+		updates["is_admin"] = *req.IsAdmin
+	}
+	if req.IsBlacklisted != nil {
+		updates["is_blacklisted"] = *req.IsBlacklisted
+	}
+
+	if req.TemporaryScoreAction != nil && req.TemporaryScore != nil {
+		switch *req.TemporaryScoreAction {
+		case model.ScoreActionIncrease:
+			scoreUpdates["temporary_score"] = gorm.Expr("temporary_score + ?", *req.TemporaryScore)
+		case model.ScoreActionReduce:
+			scoreUpdates["temporary_score"] = gorm.Expr("GREATEST(0, temporary_score - ?)", *req.TemporaryScore)
+		}
+	}
+
+	if req.ScoreAction != nil && req.Score != nil {
+		switch *req.ScoreAction {
+		case model.ScoreActionIncrease:
+			scoreUpdates["score"] = gorm.Expr("score + ?", *req.Score)
+		case model.ScoreActionReduce:
+			scoreUpdates["score"] = gorm.Expr("GREATEST(0, score - ?)", *req.Score)
+		}
+	}
+
+	maps.Copy(updates, scoreUpdates)
+
+	if len(updates) > 0 {
+		return s.crmRepo.AtomicUpdateScores(req.ChatRoomID, req.WechatID, updates)
+	}
+
+	return nil
 }
 
 func (s *ChatRoomService) GetChatRoomSummary(chatRoomID string) (dto.ChatRoomSummary, error) {
