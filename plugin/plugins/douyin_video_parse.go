@@ -49,6 +49,9 @@ func (p *DouyinVideoParsePlugin) PreAction(ctx *plugin.MessageContext) bool {
 	if ctx.Message.IsChatRoom {
 		return NewChatRoomCommonPlugin().PreAction(ctx)
 	}
+	if !ctx.Settings.IsShortVideoParsingEnabled() {
+		return false
+	}
 	return true
 }
 

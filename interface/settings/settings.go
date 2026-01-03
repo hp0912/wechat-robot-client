@@ -33,6 +33,7 @@ type Settings interface {
 	IsAIChatEnabled() bool
 	IsAIDrawingEnabled() bool
 	IsTTSEnabled() bool
+	IsShortVideoParsingEnabled() bool
 	IsAITrigger() bool
 	GetAITriggerWord() string
 	GetPatConfig() PatConfig
