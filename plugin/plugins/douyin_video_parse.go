@@ -47,10 +47,13 @@ func (p *DouyinVideoParsePlugin) GetLabels() []string {
 
 func (p *DouyinVideoParsePlugin) PreAction(ctx *plugin.MessageContext) bool {
 	if ctx.Message.IsChatRoom {
-		return NewChatRoomCommonPlugin().PreAction(ctx)
-	}
-	if !ctx.Settings.IsShortVideoParsingEnabled() {
-		return false
+		next := NewChatRoomCommonPlugin().PreAction(ctx)
+		if !next {
+			return false
+		}
+		if !ctx.Settings.IsShortVideoParsingEnabled() {
+			return false
+		}
 	}
 	return true
 }
