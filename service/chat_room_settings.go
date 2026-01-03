@@ -151,6 +151,13 @@ func (s *ChatRoomSettingsService) IsTTSEnabled() bool {
 	return false
 }
 
+func (s *ChatRoomSettingsService) IsShortVideoParsingEnabled() bool {
+	if s.chatRoomSettings != nil && s.chatRoomSettings.ShortVideoParsingEnabled != nil {
+		return *s.chatRoomSettings.ShortVideoParsingEnabled
+	}
+	return false
+}
+
 func (s *ChatRoomSettingsService) IsAITrigger() bool {
 	messageContent := s.Message.Content
 	if s.Message.AppMsgType == model.AppMsgTypequote {

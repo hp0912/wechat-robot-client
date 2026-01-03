@@ -168,6 +168,10 @@ func (s *FriendSettingsService) IsTTSEnabled() bool {
 	return false
 }
 
+func (s *FriendSettingsService) IsShortVideoParsingEnabled() bool {
+	return true
+}
+
 func (s *FriendSettingsService) IsAITrigger() bool {
 	return s.IsAIChatEnabled()
 }
