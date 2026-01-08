@@ -28,6 +28,7 @@ type MessageServiceIface interface {
 	UpdateMessage(message *model.Message) error
 	ChatRoomAIDisabled(chatRoomID string) error
 	GetChatRoomMember(chatRoomID string, wechatID string) (*model.ChatRoomMember, error)
+	ToolsCompleted(toWxID, replyWxID string) error
 }
 
 type MessageContext struct {

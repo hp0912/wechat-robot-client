@@ -165,6 +165,8 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 				err := ctx.MessageService.SendLongTextMessage(ctx.Message.FromWxID, callToolResult.Text)
 				if err != nil {
 					p.SendMessage(ctx, err.Error())
+				} else {
+					_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 				}
 			case ActionTypeSendImageMessage:
 				for _, imageURL := range callToolResult.AttachmentURLList {
@@ -173,6 +175,7 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 						log.Println("发送图片消息失败: ", err.Error())
 					}
 				}
+				_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 			case ActionTypeSendVideoMessage:
 				for _, videoURL := range callToolResult.AttachmentURLList {
 					err := ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, videoURL)
@@ -180,22 +183,32 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 						log.Println("发送视频消息失败: ", err.Error())
 					}
 				}
+				_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 			case ActionTypeSendVoiceMessage:
 				audioData, err := base64.StdEncoding.DecodeString(callToolResult.Text)
 				if err != nil {
 					p.SendMessage(ctx, fmt.Sprintf("视频数据解码失败: %v", err))
 				}
 				audioReader := bytes.NewReader(audioData)
-				ctx.MessageService.MsgSendVoice(ctx.Message.FromWxID, audioReader, fmt.Sprintf(".%s", callToolResult.VoiceEncoding))
+				err = ctx.MessageService.MsgSendVoice(ctx.Message.FromWxID, audioReader, fmt.Sprintf(".%s", callToolResult.VoiceEncoding))
+				if err != nil {
+					p.SendMessage(ctx, fmt.Sprintf("发送语音消息失败: %v", err))
+				} else {
+					_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
+				}
 			case ActionTypeSendAppMessage:
 				err := ctx.MessageService.SendAppMessage(ctx.Message.FromWxID, callToolResult.AppType, callToolResult.AppXML)
 				if err != nil {
 					p.SendMessage(ctx, err.Error())
+				} else {
+					_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 				}
 			case ActionTypeJoinChatRoom:
 				err := service.NewChatRoomService(context.Background()).AutoInviteChatRoomMember(callToolResult.Text, []string{ctx.Message.FromWxID})
 				if err != nil {
 					p.SendMessage(ctx, err.Error())
+				} else {
+					_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 				}
 			case ActionTypeEmoji:
 				imageURL := callToolResult.Text
@@ -207,6 +220,7 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 						if err != nil {
 							log.Println("发送图片消息失败: ", err.Error())
 						}
+						_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 					}
 					return true
 				}
@@ -229,6 +243,7 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 						if err != nil {
 							log.Println("发送图片消息失败: ", err.Error())
 						}
+						_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 					}
 				} else {
 					p.SendMessage(ctx, "图片上传未开启，请联系管理员")
