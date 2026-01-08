@@ -755,6 +755,26 @@ func (s *MessageService) SendTextMessage(toWxID, content string, at ...string) e
 	return nil
 }
 
+func (s *MessageService) ToolsCompleted(toWxID, replyWxID string) error {
+	now := time.Now()
+	m := model.Message{
+		MsgId:              now.UnixNano() + rand.Int63n(1000),
+		ClientMsgId:        now.Unix(),
+		Type:               model.MsgTypeText,
+		Content:            "成功完成工具调用",
+		DisplayFullContent: "",
+		MessageSource:      "",
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		ReplyWxID:          replyWxID,
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          now.Unix(),
+		UpdatedAt:          now.Unix(),
+	}
+	return s.msgRepo.Create(&m)
+}
+
 // MsgSendGroupMassMsgText 文本消息群发接口
 func (s *MessageService) MsgSendGroupMassMsgText(toWxID []string, content string) error {
 	_, err := vars.RobotRuntime.MsgSendGroupMassMsgText(robot.MsgSendGroupMassMsgTextRequest{
