@@ -8,6 +8,29 @@
 
 请遵守相关法律法规，合法合规使用本项目。
 
+## 官方交流群
+
+> 官方交流群已经满 200 人，添加好友(<b>备注: WeChat-Robot</b>)加入官方交流群，基于风控考虑没开启自动通过好友，晚上统一处理。
+
+<table>
+  <thead>
+    <tr>
+      <th>官方交流群</th>
+      <th>微信赞赏码</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <img src="https://img.houhoukang.com/wechat-robot.jpg" alt="机器人列表" width="300" height="300">
+      </td>
+      <td>
+        <img src="https://img.houhoukang.com/weChat-robot-pay.jpg" alt="机器人列表" width="300" height="300">
+      </td>
+    </tr>
+  </tbody>
+</table>
+
 ## 项目依赖关系
 
 - 机器人管理后台
@@ -29,6 +52,8 @@
   - 词云服务: [https://github.com/hp0912/word-cloud-server](https://github.com/hp0912/word-cloud-server) golang写的词云效果不太好，用python写了一个单独的服务
 
   - 即梦绘图: [https://github.com/hp0912/jimeng-api](https://github.com/hp0912/jimeng-api) 即梦AI绘图逆向免费 api
+
+  - MCP 服务: [https://github.com/hp0912/wechat-robot-mcp-server](https://github.com/hp0912/wechat-robot-mcp-server) 官方内置 MCP 服务
 
   - UUID生成器: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-uuid:latest
 
@@ -351,10 +376,6 @@ services:
 
 # redis db 地址、密码别写错了
 ```
-
-## 官方交流群
-
-<img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20251207" alt="官方交流群" width="300">
 
 ## 效果展示
 
