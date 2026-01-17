@@ -57,8 +57,8 @@ func (p *PatPlugin) Run(ctx *plugin.MessageContext) bool {
 			log.Printf("反序列化豆包文本转语音配置失败: %v", err)
 			return true
 		}
-		doubaoConfig.Audio.VoiceType = patConfig.PatVoiceTimbre
-		doubaoConfig.Request.Text = patConfig.PatText
+		doubaoConfig.RequestBody.ReqParams.Speaker = patConfig.PatVoiceTimbre
+		doubaoConfig.RequestBody.ReqParams.Text = patConfig.PatText
 
 		audioBase64, err := pkg.DoubaoTTSSubmit(&doubaoConfig)
 		if err != nil {
@@ -71,7 +71,7 @@ func (p *PatPlugin) Run(ctx *plugin.MessageContext) bool {
 			return true
 		}
 		audioReader := bytes.NewReader(audioData)
-		ctx.MessageService.MsgSendVoice(ctx.Message.FromWxID, audioReader, fmt.Sprintf(".%s", doubaoConfig.Audio.Encoding))
+		ctx.MessageService.MsgSendVoice(ctx.Message.FromWxID, audioReader, fmt.Sprintf(".%s", doubaoConfig.RequestBody.ReqParams.AudioParams.Format))
 
 		return true
 	}
