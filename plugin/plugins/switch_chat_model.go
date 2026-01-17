@@ -23,7 +23,7 @@ func (p *SwitchChatModelPlugin) GetLabels() []string {
 }
 
 func (p *SwitchChatModelPlugin) PreAction(ctx *plugin.MessageContext) bool {
-	if ctx.MessageContent == "" || strings.HasPrefix(ctx.MessageContent, "#切换聊天模型") {
+	if ctx.MessageContent == "" || !strings.HasPrefix(ctx.MessageContent, "#切换聊天模型") {
 		return false
 	}
 	chatRoomMember, err := ctx.MessageService.GetChatRoomMember(ctx.Message.FromWxID, ctx.Message.SenderWxID)
