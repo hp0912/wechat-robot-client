@@ -63,14 +63,7 @@ func (p *DouyinVideoParsePlugin) PostAction(ctx *plugin.MessageContext) {
 }
 
 func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
-	var douyinShareContent string
-	if ctx.ReferMessage != nil {
-		douyinShareContent = ctx.ReferMessage.Content
-	} else {
-		douyinShareContent = ctx.Message.Content
-	}
-
-	if !strings.Contains(douyinShareContent, "https://v.douyin.com") {
+	if !strings.Contains(ctx.Message.Content, "https://v.douyin.com") {
 		return false
 	}
 
@@ -79,7 +72,7 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 	}
 
 	re := regexp.MustCompile(`https://[^\s]+`)
-	matches := re.FindAllString(douyinShareContent, -1)
+	matches := re.FindAllString(ctx.Message.Content, -1)
 	if len(matches) == 0 {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "未找到抖音链接")
 		return true
