@@ -14,7 +14,6 @@ type AIConfig struct {
 	ImageRecognitionModel string
 	Prompt                string
 	MaxCompletionTokens   int
-	ImageModel            model.ImageModel
 	ImageAISettings       datatypes.JSON
 	TTSSettings           datatypes.JSON
 	LTTSSettings          datatypes.JSON

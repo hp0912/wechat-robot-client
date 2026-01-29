@@ -45,7 +45,7 @@ func (ct *GlobalSettings) SaveGlobalSettings(c *gin.Context) {
 		}
 	}
 	if req.ImageAIEnabled != nil && *req.ImageAIEnabled {
-		if req.ImageModel == "" || req.ImageAISettings == nil {
+		if req.ImageAISettings == nil {
 			resp.ToErrorResponse(errors.New("参数错误"))
 			return
 		}

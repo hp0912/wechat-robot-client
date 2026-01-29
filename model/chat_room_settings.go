@@ -16,7 +16,6 @@ type ChatRoomSettings struct {
 	ChatPrompt                *string        `gorm:"column:chat_prompt;type:text;comment:聊天AI系统提示词" json:"chat_prompt"`
 	MaxCompletionTokens       *int           `gorm:"column:max_completion_tokens;default:0;comment:最大回复" json:"max_completion_tokens"`
 	ImageAIEnabled            *bool          `gorm:"column:image_ai_enabled;default:false;comment:是否启用AI绘图功能" json:"image_ai_enabled"`
-	ImageModel                *ImageModel    `gorm:"column:image_model;type:varchar(255);default:'';comment:绘图AI模型" json:"image_model"`
 	ImageAISettings           datatypes.JSON `gorm:"column:image_ai_settings;type:json;comment:绘图AI配置项" json:"image_ai_settings"`
 	TTSEnabled                *bool          `gorm:"column:tts_enabled;default:false;comment:是否启用AI文本转语音功能" json:"tts_enabled"`
 	TTSSettings               datatypes.JSON `gorm:"column:tts_settings;type:json;comment:文本转语音配置项" json:"tts_settings"`
