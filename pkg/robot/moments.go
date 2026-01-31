@@ -1,6 +1,36 @@
 package robot
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"strconv"
+	"strings"
+)
+
+type CDATAUint64 uint64
+
+func (c CDATAUint64) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	return e.EncodeElement(struct {
+		Data string `xml:",cdata"`
+	}{strconv.FormatUint(uint64(c), 10)}, start)
+}
+
+func (c *CDATAUint64) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var v string
+	if err := d.DecodeElement(&v, &start); err != nil {
+		return err
+	}
+	v = strings.TrimSpace(v)
+	if v == "" {
+		*c = 0
+		return nil
+	}
+	n, err := strconv.ParseUint(v, 10, 64)
+	if err != nil {
+		return err
+	}
+	*c = CDATAUint64(n)
+	return nil
+}
 
 type TimelineObject struct {
 	XMLName                xml.Name      `xml:"TimelineObject"`
@@ -13,16 +43,16 @@ type TimelineObject struct {
 	Private                uint32        `xml:"private"`
 	SightFolded            uint32        `xml:"sightFolded"`
 	ShowFlag               uint32        `xml:"showFlag"`
-	ContentAttr            string        `xml:"contentattr,omitempty"`
+	ContentAttr            string        `xml:"contentattr"`
 	SourceUserName         string        `xml:"sourceUserName"`
 	SourceNickName         string        `xml:"sourceNickName"`
 	PublicUserName         string        `xml:"publicUserName"`
 	PublicBrandContactType uint32        `xml:"publicBrandContactType"`
 	StatisticsData         string        `xml:"statisticsData"`
-	StatExtStr             string        `xml:"statExtStr,omitempty"`
-	CanvasInfoXML          string        `xml:"canvasInfoXml,omitempty"`
+	StatExtStr             string        `xml:"statExtStr"`
+	CanvasInfoXML          string        `xml:"canvasInfoXml"`
 	AppInfo                AppInfo       `xml:"appInfo"`
-	WeappInfo              WeappInfo     `xml:"weappInfo,omitempty"`
+	WeappInfo              WeappInfo     `xml:"weappInfo"`
 	ContentObject          ContentObject `xml:"ContentObject"`
 	ActionInfo             ActionInfo    `xml:"actionInfo"`
 	Location               Location      `xml:"location"`
@@ -44,7 +74,7 @@ type WeappInfo struct {
 
 type ContentObject struct {
 	ContentStyle    uint32    `xml:"contentStyle"`
-	ContentSubStyle string    `xml:"contentSubStyle,omitempty"`
+	ContentSubStyle uint32    `xml:"contentSubStyle"`
 	Title           string    `xml:"title"`
 	Description     string    `xml:"description"`
 	ContentUrl      string    `xml:"contentUrl"`
@@ -93,8 +123,8 @@ type Thumb struct {
 }
 
 type Size struct {
-	Width     string `xml:"width,attr"`
-	Height    string `xml:"height,attr"`
+	Width     string `xml:"width,attr,omitempty"`
+	Height    string `xml:"height,attr,omitempty"`
 	TotalSize string `xml:"totalSize,attr"`
 }
 
@@ -107,8 +137,8 @@ type ActionInfo struct {
 }
 
 type AppMsg struct {
-	MediaTagName  string `xml:"mediaTagName,omitempty"`
-	MessageExt    string `xml:"messageExt,omitempty"`
+	MediaTagName  string `xml:"mediaTagName"`
+	MessageExt    string `xml:"messageExt"`
 	MessageAction string `xml:"messageAction"`
 }
 
@@ -116,7 +146,7 @@ type Location struct {
 	PoiClassifyId   string `xml:"poiClassifyId,attr"`
 	PoiName         string `xml:"poiName,attr"`
 	PoiAddress      string `xml:"poiAddress,attr"`
-	PoiClassifyType string `xml:"poiClassifyType,attr"`
+	PoiClassifyType uint32 `xml:"poiClassifyType,attr"`
 	City            string `xml:"city,attr"`
 }
 

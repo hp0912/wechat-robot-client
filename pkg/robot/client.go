@@ -111,6 +111,8 @@ func (c *Client) BaseResponseErrCheck(baseResponse *BaseResponse) (err error) {
 		if baseResponse.ErrMsg != nil && baseResponse.ErrMsg.String != nil && *baseResponse.ErrMsg.String != "" {
 			err = errors.New(*baseResponse.ErrMsg.String)
 			return
+		} else {
+			err = fmt.Errorf("未知的错误代码: %d", baseResponse.Ret)
 		}
 	}
 	return
@@ -276,9 +278,13 @@ func (c *Client) LoginData62SMSApply(req Data62LoginRequest) (resp UnifyAuthResp
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data
@@ -325,9 +331,13 @@ func (c *Client) LoginA16Data(req A16LoginRequest) (resp UnifyAuthResponse, err 
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data
@@ -436,9 +446,13 @@ func (c *Client) MsgSendGroupMassMsgText(req MsgSendGroupMassMsgTextRequest) (ne
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	newMessages = result.Data
@@ -697,7 +711,16 @@ func (c *Client) MsgSendVideoStream(req MsgSendVideoStreamRequest, file io.Reade
 	if err = json.Unmarshal(respBody, &result); err != nil {
 		return
 	}
-	if err = result.CheckError(nil); err != nil {
+	if err = result.CheckError(err); err != nil {
+		err2 := c.BaseResponseErrCheck(&result.Data.BaseResponse)
+		if err2 != nil {
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
+			return
+		}
+		return
+	}
+	err = c.BaseResponseErrCheck(&result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 
@@ -794,12 +817,16 @@ func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader, fileH
 		return
 	}
 
-	if err = result.CheckError(nil); err != nil {
+	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 
@@ -918,9 +945,13 @@ func (c *Client) FriendGetFriendstate(Wxid, UserName string) (resp MMBizJsApiGet
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data
@@ -938,9 +969,13 @@ func (c *Client) FriendSearch(req FriendSearchRequest) (resp SearchContactRespon
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data
@@ -958,9 +993,13 @@ func (c *Client) FriendSendRequest(req FriendSendRequestParam) (resp VerifyUserR
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data
@@ -1034,9 +1073,13 @@ func (c *Client) FriendPassVerify(req FriendPassVerifyRequest) (verifyUserRespon
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	verifyUserResponse = result.Data
@@ -1290,9 +1333,13 @@ func (c *Client) FriendCircleComment(req FriendCircleCommentRequest) (resp SnsCo
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data
@@ -1308,9 +1355,13 @@ func (c *Client) FriendCircleGetDetail(req FriendCircleGetDetailRequest) (resp S
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data
@@ -1326,9 +1377,13 @@ func (c *Client) FriendCircleGetIdDetail(req FriendCircleGetIdDetailRequest) (re
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data
@@ -1388,9 +1443,13 @@ func (c *Client) FriendCircleUpload(wxid string, base64 string) (resp FriendCirc
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data
@@ -1422,9 +1481,13 @@ func (c *Client) FriendCircleOperation(req FriendCircleOperationRequest) (resp S
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data
@@ -1453,9 +1516,13 @@ func (c *Client) FriendCircleMessages(req FriendCircleMessagesRequest) (resp Fri
 	if err = result.CheckError(err); err != nil {
 		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
-			err = err2
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
+		return
+	}
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 	resp = result.Data

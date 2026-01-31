@@ -797,7 +797,26 @@ func (r *Robot) MsgSendVideoFromLocal(toWxID, tempFilePath string) (videoMessage
 			ReqTime:       reqTime,
 		}, chunkReader, videoFileHeader)
 		if err != nil {
-			return nil, fmt.Errorf("上传视频分片失败: %w", err)
+			retryErr := err
+			for range 3 {
+				time.Sleep(200 * time.Millisecond)
+				videoMessage, retryErr = r.Client.MsgSendVideoStream(MsgSendVideoStreamRequest{
+					Wxid:          r.WxID,
+					ToWxid:        toWxID,
+					ClientMsgId:   clientMsgId,
+					StartPos:      videoStartPos,
+					ThumbTotalLen: thumbTotalLen,
+					VideoTotalLen: videoTotalLen,
+					PlayLength:    playLength,
+					ReqTime:       reqTime,
+				}, chunkReader, videoFileHeader)
+				if retryErr == nil {
+					break
+				}
+			}
+			if retryErr != nil {
+				return nil, fmt.Errorf("上传视频分片失败(重试3次后仍失败): %w", retryErr)
+			}
 		}
 		videoStartPos += currentChunkSize
 	}
