@@ -28,18 +28,6 @@ const (
 	NewsTypeImage NewsType = "image" // 图片
 )
 
-type ImageModel string
-
-const (
-	ImageModelDoubao          ImageModel = "doubao"           // 豆包模型
-	ImageModelJimeng          ImageModel = "jimeng"           // 即梦模型
-	ImageModelGLM             ImageModel = "glm"              // 智谱模型
-	ImageModelHunyuan         ImageModel = "hunyuan"          // 腾讯混元模型
-	ImageModelStableDiffusion ImageModel = "stable-diffusion" // Stable Diffusion 模型
-	ImageModelMidjourney      ImageModel = "midjourney"       // Midjourney 模型
-	ImageModelOpenAI          ImageModel = "openai"           // OpenAI 模型
-)
-
 type GlobalSettings struct {
 	ID                        uint64         `gorm:"column:id;primaryKey;autoIncrement;comment:公共配置表主键ID" json:"id"`
 	ChatAIEnabled             *bool          `gorm:"column:chat_ai_enabled;default:false;comment:是否启用AI聊天功能" json:"chat_ai_enabled"`
@@ -51,7 +39,6 @@ type GlobalSettings struct {
 	ChatPrompt                string         `gorm:"column:chat_prompt;type:text;comment:聊天AI系统提示词" json:"chat_prompt"`
 	MaxCompletionTokens       *int           `gorm:"column:max_completion_tokens;default:0;comment:最大回复" json:"max_completion_tokens"`
 	ImageAIEnabled            *bool          `gorm:"column:image_ai_enabled;default:false;comment:是否启用AI绘图功能" json:"image_ai_enabled"`
-	ImageModel                ImageModel     `gorm:"column:image_model;type:varchar(255);default:'';comment:绘图AI模型" json:"image_model"`
 	ImageAISettings           datatypes.JSON `gorm:"column:image_ai_settings;type:json;comment:绘图AI配置项" json:"image_ai_settings"`
 	TTSEnabled                *bool          `gorm:"column:tts_enabled;default:false;comment:是否启用AI文本转语音功能" json:"tts_enabled"`
 	TTSSettings               datatypes.JSON `gorm:"column:tts_settings;type:json;comment:文本转语音配置项" json:"tts_settings"`
