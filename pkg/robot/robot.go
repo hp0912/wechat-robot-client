@@ -510,7 +510,15 @@ func (r *Robot) SendImageMessageStream(req SendImageMessageStreamRequest, file i
 	req.Wxid = r.WxID
 	imageMessage, err := r.Client.SendImageMessageStream(req, file, fileHeader)
 	if err != nil {
-		return nil, err
+		for range 3 {
+			imageMessage, err = r.Client.SendImageMessageStream(req, file, fileHeader)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	if imageMessage == nil {
 		return nil, nil

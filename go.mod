@@ -22,6 +22,7 @@ require (
 	github.com/redis/go-redis/v9 v9.10.0
 	github.com/sashabaranov/go-openai v1.41.2
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.70
+	golang.org/x/image v0.27.0
 	golang.org/x/time v0.12.0
 	gorm.io/datatypes v1.2.5
 	gorm.io/driver/mysql v1.5.7
@@ -77,7 +78,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/image v0.27.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.33.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
