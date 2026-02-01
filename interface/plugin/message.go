@@ -3,6 +3,8 @@ package plugin
 import (
 	"context"
 	"io"
+	"mime/multipart"
+	"wechat-robot-client/dto"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
@@ -16,6 +18,7 @@ type MessageServiceIface interface {
 	SendAppMessage(toWxID string, appMsgType int, appMsgXml string) error
 	MsgUploadImg(toWxID string, image io.Reader) (*model.Message, error)
 	SendImageMessageByRemoteURL(toWxID string, imageURL string) error
+	SendImageMessageStream(ctx context.Context, req dto.SendImageMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) (*model.Message, error)
 	SendVideoMessageByRemoteURL(toWxID string, videoURL string) error
 	MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error
 	MsgSendVideo(toWxID string, video io.Reader, videoExt string) error

@@ -547,7 +547,16 @@ func (c *Client) SendImageMessageStream(req SendImageMessageStreamRequest, file 
 	if err = json.Unmarshal(respBody, &result); err != nil {
 		return
 	}
-	if err = result.CheckError(nil); err != nil {
+	if err = result.CheckError(err); err != nil {
+		err2 := c.BaseResponseErrCheck(&result.Data.BaseResponse)
+		if err2 != nil {
+			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
+			return
+		}
+		return
+	}
+	err = c.BaseResponseErrCheck(&result.Data.BaseResponse)
+	if err != nil {
 		return
 	}
 

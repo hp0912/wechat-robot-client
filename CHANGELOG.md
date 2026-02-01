@@ -1,5 +1,19 @@
 # 更新日志
 
+## [2.4.0] - 2026/02/01
+
+### 破坏性更新
+
+- 表结构更新，请按照 [SQL 升级脚本](https://github.com/hp0912/wechat-robot-admin-backend/blob/main/template/2_4_0.sql)进行升级
+
+- AI 绘图配置数据结构有变化，请重新配置
+
+### 体验性优化
+
+- 支持解析抖音图片
+
+- AI 绘图新增造相(Z-Image)
+
 ## [2.3.0] - 2026/01/02
 
 ### 破坏性更新
@@ -127,9 +141,7 @@
 > `wechat-robot-admin-backend`服务需要新增两个环境变量，否则服务会启动失败
 >
 > - SLIDER_SERVER_BASE_URL=http://wechat-slider:9000
->
 > - SLIDER_TOKEN=xxxxxxx # 滑块验证码服务密钥，请加入官方交流群获取
->
 
 ## [1.4.0] - 2025/09/20
 
@@ -142,9 +154,7 @@
 > `wechat-robot-admin-backend`服务需要新增两个环境变量，否则服务会启动失败
 >
 > - ~~SLIDER_VERIFY_URL=http://wechat-slider:9000/api/v1/slider-verify-html~~
->
 > - ~~SLIDER_VERIFY_SUBMIT_URL=http://wechat-slider:9000/api/v1/security-verify~~
->
 
 ## [1.3.0] - 2025/09/19
 
