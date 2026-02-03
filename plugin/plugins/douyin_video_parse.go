@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	xdraw "golang.org/x/image/draw"
 	_ "golang.org/x/image/webp"
 
 	"wechat-robot-client/dto"
@@ -130,16 +131,23 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 	}
 
 	if len(respData.Data.Images) > 0 {
-		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("抖音图片解析成功\n作者: %s\n标题: %s\n%d张图片正在发送中...", respData.Data.Author, respData.Data.Title, len(respData.Data.Images)))
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("抖音图片解析成功\n作者: %s\n标题: %s\n\n%d张图片正在发送中...", respData.Data.Author, respData.Data.Title, len(respData.Data.Images)))
 
-		mergedImage, err := mergeImagesVertical(respData.Data.Images)
-		if err != nil {
-			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("图片拼接失败: %v", err))
-			return true
-		}
-		err = sendMergedImage(ctx, mergedImage)
-		if err != nil {
-			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送图片失败: %v", err))
+		imageURLs := respData.Data.Images
+		batchSize := 20
+		for i := 0; i < len(imageURLs); i += batchSize {
+			end := i + batchSize
+			end = min(end, len(imageURLs))
+
+			mergedImage, err := mergeImagesVertical(imageURLs[i:end])
+			if err != nil {
+				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("拼接失败(批次 %d-%d): %v", i+1, end, err))
+				continue
+			}
+			err = sendMergedImage(ctx, mergedImage)
+			if err != nil {
+				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送图片失败: %v", err))
+			}
 		}
 		return true
 	}
@@ -156,7 +164,6 @@ func mergeImagesVertical(imageURLs []string) ([]byte, error) {
 	client := resty.New()
 	images := make([]image.Image, 0, len(imageURLs))
 	maxWidth := 0
-	allHeight := 0
 
 	for _, imageURL := range imageURLs {
 		resp, err := client.R().SetDoNotParseResponse(true).Get(imageURL)
@@ -176,29 +183,38 @@ func mergeImagesVertical(imageURLs []string) ([]byte, error) {
 
 		bounds := img.Bounds()
 		width := bounds.Dx()
-		height := bounds.Dy()
 		if width > maxWidth {
 			maxWidth = width
 		}
-		allHeight += height
 		images = append(images, img)
 	}
 
-	if maxWidth == 0 || allHeight == 0 {
+	if maxWidth == 0 || len(images) == 0 {
 		return nil, fmt.Errorf("图片尺寸无效")
 	}
 
-	canvas := image.NewRGBA(image.Rect(0, 0, maxWidth, allHeight))
+	totalHeight := 0
+	for _, img := range images {
+		width := img.Bounds().Dx()
+		height := img.Bounds().Dy()
+		// 等比缩放计算高度
+		newHeight := int(float64(height) * float64(maxWidth) / float64(width))
+		totalHeight += newHeight
+	}
+
+	canvas := image.NewRGBA(image.Rect(0, 0, maxWidth, totalHeight))
 	draw.Draw(canvas, canvas.Bounds(), image.NewUniform(color.White), image.Point{}, draw.Src)
 
 	currentY := 0
 	for _, img := range images {
-		bounds := img.Bounds()
-		height := bounds.Dy()
-		width := bounds.Dx()
-		dstRect := image.Rect(0, currentY, width, currentY+height)
-		draw.Draw(canvas, dstRect, img, bounds.Min, draw.Over)
-		currentY += height
+		width := img.Bounds().Dx()
+		height := img.Bounds().Dy()
+		newHeight := int(float64(height) * float64(maxWidth) / float64(width))
+
+		dstRect := image.Rect(0, currentY, maxWidth, currentY+newHeight)
+		// 使用高质量缩放
+		xdraw.CatmullRom.Scale(canvas, dstRect, img, img.Bounds(), xdraw.Over, nil)
+		currentY += newHeight
 	}
 
 	var buf bytes.Buffer
