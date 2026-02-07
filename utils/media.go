@@ -1,6 +1,9 @@
 package utils
 
-import "bytes"
+import (
+	"bytes"
+	"slices"
+)
 
 // DetectMediaFormat 通过文件魔数（Magic Number）检测媒体格式
 // 支持常见图片格式：JPEG, PNG, GIF, WebP, AVIF, HEIC, BMP, ICO, TIFF
@@ -109,4 +112,10 @@ func DetectMediaFormat(data []byte) string {
 	}
 
 	return ".jpg" // 默认返回 jpg
+}
+
+func IsVideo(data []byte) bool {
+	format := DetectMediaFormat(data)
+	videoFormats := []string{".mp4", ".mov", ".avi", ".webm", ".flv", ".wmv", ".mkv", ".3gp"}
+	return slices.Contains(videoFormats, format)
 }
