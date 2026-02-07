@@ -19,6 +19,10 @@ func (p *ChatRoomAIChatPlugin) GetLabels() []string {
 	return []string{"text", "chat"}
 }
 
+func (p *ChatRoomAIChatPlugin) Match(ctx *plugin.MessageContext) bool {
+	return NewChatRoomCommonPlugin().Match(ctx)
+}
+
 func (p *ChatRoomAIChatPlugin) PreAction(ctx *plugin.MessageContext) bool {
 	return NewChatRoomCommonPlugin().PreAction(ctx)
 }
@@ -27,9 +31,9 @@ func (p *ChatRoomAIChatPlugin) PostAction(ctx *plugin.MessageContext) {
 
 }
 
-func (p *ChatRoomAIChatPlugin) Run(ctx *plugin.MessageContext) bool {
+func (p *ChatRoomAIChatPlugin) Run(ctx *plugin.MessageContext) {
 	if !p.PreAction(ctx) {
-		return false
+		return
 	}
 	isAIEnabled := ctx.Settings.IsAIChatEnabled()
 	isAITrigger := ctx.Settings.IsAITrigger()
@@ -42,9 +46,11 @@ func (p *ChatRoomAIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 				}
 			}()
 			aiChat := NewAIChatPlugin()
+			if !aiChat.Match(ctx) {
+				return
+			}
 			aiChat.Run(ctx)
-			return true
+			return
 		}
 	}
-	return false
 }

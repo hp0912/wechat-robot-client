@@ -21,6 +21,10 @@ func (p *AIImageUploadPlugin) GetLabels() []string {
 	return []string{"text", "internal", "chat"}
 }
 
+func (p *AIImageUploadPlugin) Match(ctx *plugin.MessageContext) bool {
+	return ctx.ReferMessage != nil
+}
+
 func (p *AIImageUploadPlugin) PreAction(ctx *plugin.MessageContext) bool {
 	return true
 }
@@ -57,23 +61,17 @@ func (p *AIImageUploadPlugin) SendMessage(ctx *plugin.MessageContext, aiReplyTex
 	}
 }
 
-func (p *AIImageUploadPlugin) Run(ctx *plugin.MessageContext) bool {
-	if ctx.ReferMessage == nil {
-		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "你需要引用一条图片消息。")
-		return true
-	}
+func (p *AIImageUploadPlugin) Run(ctx *plugin.MessageContext) {
 	if ctx.ReferMessage.AttachmentUrl == "" {
 		imageURL, err := p.GetOSSFileURL(ctx)
 		if err != nil {
 			log.Printf("图片上传失败: %v", err)
 			p.SendMessage(ctx, fmt.Sprintf("图片上传失败: %v，你可能没开启自动上传图片，请前往机器人详情 -> OSS 设置手动开启", err))
-			return true
+			return
 		}
 		if imageURL == "" {
 			p.SendMessage(ctx, "图片上传失败: 图片URL为空，你可能没开启自动上传图片，请前往机器人详情 -> OSS 设置手动开启")
-			return true
+			return
 		}
 	}
-
-	return true
 }

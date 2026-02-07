@@ -62,8 +62,8 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 		if !slices.Contains(messagePlugin.GetLabels(), "text") {
 			continue
 		}
-		abort := messagePlugin.Run(msgCtx)
-		if abort {
+		match := messagePlugin.Match(msgCtx)
+		if !match {
 			return
 		}
 	}
@@ -82,8 +82,8 @@ func (s *MessageService) ProcessImageMessage(message *model.Message) {
 		if !slices.Contains(messagePlugin.GetLabels(), "image") {
 			continue
 		}
-		abort := messagePlugin.Run(msgCtx)
-		if abort {
+		match := messagePlugin.Match(msgCtx)
+		if !match {
 			return
 		}
 	}
@@ -138,8 +138,8 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 		if !slices.Contains(messagePlugin.GetLabels(), "text") {
 			continue
 		}
-		abort := messagePlugin.Run(msgCtx)
-		if abort {
+		match := messagePlugin.Match(msgCtx)
+		if !match {
 			return
 		}
 	}
@@ -282,8 +282,8 @@ func (s *MessageService) ProcessPatMessage(message *model.Message, msgXml robot.
 	}
 	for _, messagePlugin := range vars.MessagePlugin.Plugins {
 		if slices.Contains(messagePlugin.GetLabels(), "pat") {
-			abort := messagePlugin.Run(msgCtx)
-			if abort {
+			match := messagePlugin.Match(msgCtx)
+			if !match {
 				return
 			}
 		}

@@ -25,6 +25,10 @@ func (p *PatPlugin) GetLabels() []string {
 	return []string{"pat"}
 }
 
+func (p *PatPlugin) Match(ctx *plugin.MessageContext) bool {
+	return ctx.Pat
+}
+
 func (p *PatPlugin) PreAction(ctx *plugin.MessageContext) bool {
 	return true
 }
@@ -33,29 +37,26 @@ func (p *PatPlugin) PostAction(ctx *plugin.MessageContext) {
 
 }
 
-func (p *PatPlugin) Run(ctx *plugin.MessageContext) bool {
-	if !ctx.Pat {
-		return false
-	}
+func (p *PatPlugin) Run(ctx *plugin.MessageContext) {
 	patConfig := ctx.Settings.GetPatConfig()
 	if !patConfig.PatEnabled {
-		return true
+		return
 	}
 	if patConfig.PatType == model.PatTypeText {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, patConfig.PatText)
-		return true
+		return
 	}
 	if patConfig.PatType == model.PatTypeVoice {
 		isTTSEnabled := ctx.Settings.IsTTSEnabled()
 		if !isTTSEnabled {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "文本转语音功能未开启，请联系管理员。")
-			return true
+			return
 		}
 		aiConfig := ctx.Settings.GetAIConfig()
 		var doubaoConfig pkg.DoubaoTTSConfig
 		if err := json.Unmarshal(aiConfig.TTSSettings, &doubaoConfig); err != nil {
 			log.Printf("反序列化豆包文本转语音配置失败: %v", err)
-			return true
+			return
 		}
 		doubaoConfig.RequestBody.ReqParams.Speaker = patConfig.PatVoiceTimbre
 		doubaoConfig.RequestBody.ReqParams.Text = patConfig.PatText
@@ -63,17 +64,16 @@ func (p *PatPlugin) Run(ctx *plugin.MessageContext) bool {
 		audioBase64, err := pkg.DoubaoTTSSubmit(&doubaoConfig)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("豆包文本转语音请求失败: %v", err), ctx.Message.SenderWxID)
-			return true
+			return
 		}
 		audioData, err := base64.StdEncoding.DecodeString(audioBase64)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("音频数据解码失败: %v", err), ctx.Message.SenderWxID)
-			return true
+			return
 		}
 		audioReader := bytes.NewReader(audioData)
 		ctx.MessageService.MsgSendVoice(ctx.Message.FromWxID, audioReader, fmt.Sprintf(".%s", doubaoConfig.RequestBody.ReqParams.AudioParams.Format))
 
-		return true
+		return
 	}
-	return true
 }

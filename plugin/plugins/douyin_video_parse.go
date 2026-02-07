@@ -9,6 +9,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	_ "image/png"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"regexp"
@@ -22,6 +23,7 @@ import (
 	"wechat-robot-client/dto"
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/pkg/robot"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 )
 
@@ -75,20 +77,20 @@ func (p *DouyinVideoParsePlugin) PostAction(ctx *plugin.MessageContext) {
 
 }
 
-func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
-	if !strings.Contains(ctx.Message.Content, "https://v.douyin.com") {
-		return false
-	}
+func (p *DouyinVideoParsePlugin) Match(ctx *plugin.MessageContext) bool {
+	return strings.Contains(ctx.Message.Content, "https://v.douyin.com")
+}
 
+func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 	if !p.PreAction(ctx) {
-		return false
+		return
 	}
 
 	re := regexp.MustCompile(`https://[^\s]+`)
 	matches := re.FindAllString(ctx.Message.Content, -1)
 	if len(matches) == 0 {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "未找到抖音链接")
-		return true
+		return
 	}
 
 	// 获取第一个匹配的链接
@@ -106,11 +108,11 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 		Post("https://api.pearktrue.cn/api/video/api.php")
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-		return true
+		return
 	}
 	if resp.StatusCode() != http.StatusOK {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, http.StatusText(resp.StatusCode()))
-		return true
+		return
 	}
 
 	if respData.Data.URL != "" {
@@ -127,7 +129,7 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 		_ = ctx.MessageService.ShareLink(ctx.Message.FromWxID, shareLink)
 		_ = ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, respData.Data.URL)
 
-		return true
+		return
 	}
 
 	if len(respData.Data.Images) > 0 {
@@ -139,8 +141,12 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 			end := i + batchSize
 			end = min(end, len(imageURLs))
 
-			mergedImage, err := mergeImagesVertical(imageURLs[i:end])
+			mergedImage, err := mergeImagesVertical(ctx, imageURLs[i:end])
 			if err != nil {
+				if isImageTooLargeError(err) {
+					p.sendImagesInSmallerBatches(ctx, imageURLs[i:end], 10)
+					continue
+				}
 				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("拼接失败(批次 %d-%d): %v", i+1, end, err))
 				continue
 			}
@@ -149,14 +155,33 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送图片失败: %v", err))
 			}
 		}
-		return true
+		return
 	}
 
 	ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "解析失败，可能是链接已失效或格式不正确")
-	return true
 }
 
-func mergeImagesVertical(imageURLs []string) ([]byte, error) {
+func (p *DouyinVideoParsePlugin) sendImagesInSmallerBatches(ctx *plugin.MessageContext, imageURLs []string, batchSize int) {
+	if batchSize <= 0 {
+		return
+	}
+	for i := 0; i < len(imageURLs); i += batchSize {
+		end := i + batchSize
+		end = min(end, len(imageURLs))
+
+		mergedImage, err := mergeImagesVertical(ctx, imageURLs[i:end])
+		if err != nil {
+			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("拼接失败(降级批次 %d-%d): %v", i+1, end, err))
+			continue
+		}
+		err = sendMergedImage(ctx, mergedImage)
+		if err != nil {
+			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送图片失败: %v", err))
+		}
+	}
+}
+
+func mergeImagesVertical(ctx *plugin.MessageContext, imageURLs []string) ([]byte, error) {
 	if len(imageURLs) == 0 {
 		return nil, fmt.Errorf("图片地址为空")
 	}
@@ -175,8 +200,22 @@ func mergeImagesVertical(imageURLs []string) ([]byte, error) {
 			return nil, fmt.Errorf("下载图片失败，HTTP状态码: %d", resp.StatusCode())
 		}
 
-		img, _, err := image.Decode(resp.RawBody())
+		bodyData := new(bytes.Buffer)
+		_, err = bodyData.ReadFrom(resp.RawBody())
 		resp.RawBody().Close()
+		if err != nil {
+			return nil, fmt.Errorf("读取响应体失败: %w", err)
+		}
+
+		if utils.IsVideo(bodyData.Bytes()) {
+			log.Printf("%s 解析到视频，跳过合并，直接发送视频消息\n", imageURL)
+			go func(toWxID, _imageURL string) {
+				_ = ctx.MessageService.SendVideoMessageByRemoteURL(toWxID, _imageURL)
+			}(ctx.Message.FromWxID, imageURL)
+			continue
+		}
+
+		img, _, err := image.Decode(bytes.NewReader(bodyData.Bytes()))
 		if err != nil {
 			return nil, fmt.Errorf("解析图片失败: %w", err)
 		}
@@ -200,6 +239,9 @@ func mergeImagesVertical(imageURLs []string) ([]byte, error) {
 		// 等比缩放计算高度
 		newHeight := int(float64(height) * float64(maxWidth) / float64(width))
 		totalHeight += newHeight
+	}
+	if maxWidth > jpegMaxDimension || totalHeight > jpegMaxDimension {
+		return nil, fmt.Errorf("image is too large to encode")
 	}
 
 	canvas := image.NewRGBA(image.Rect(0, 0, maxWidth, totalHeight))
@@ -225,10 +267,19 @@ func mergeImagesVertical(imageURLs []string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+const jpegMaxDimension = 65535
+
+func isImageTooLargeError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "image is too large to encode")
+}
+
 func sendMergedImage(ctx *plugin.MessageContext, imageData []byte) error {
 	contentLength := int64(len(imageData))
 	if contentLength == 0 {
-		return fmt.Errorf("图片数据为空")
+		return nil
 	}
 
 	fmt.Printf("抖音图片合并后大小: %dMB\n", contentLength/1024/1024)

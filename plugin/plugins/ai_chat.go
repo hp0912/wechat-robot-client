@@ -57,15 +57,19 @@ func (p *AIChatPlugin) GetLabels() []string {
 	return []string{"text", "internal", "chat"}
 }
 
+func (p *AIChatPlugin) Match(ctx *plugin.MessageContext) bool {
+	return true
+}
+
 func (p *AIChatPlugin) PreAction(ctx *plugin.MessageContext) bool {
 	if ctx.ReferMessage != nil {
 		if ctx.ReferMessage.Type == model.MsgTypeImage {
 			imageUpload := NewAIImageUploadPlugin()
-			result := imageUpload.Run(ctx)
-			if !result {
+			match := imageUpload.Match(ctx)
+			if !match {
 				return false
 			}
-
+			imageUpload.Run(ctx)
 			err := ctx.MessageService.SetMessageIsInContext(ctx.ReferMessage)
 			if err != nil {
 				log.Printf("更新消息上下文失败: %v", err)
@@ -91,16 +95,16 @@ func (p *AIChatPlugin) SendMessage(ctx *plugin.MessageContext, aiReplyText strin
 	}
 }
 
-func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
+func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 	if !p.PreAction(ctx) {
-		return true
+		return
 	}
 
 	aiTriggerWord := ctx.Settings.GetAITriggerWord()
 	aiMessages, err := ctx.MessageService.GetAIMessageContext(ctx.Message)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-		return true
+		return
 	}
 	if ctx.Message.IsChatRoom {
 		for index := range aiMessages {
@@ -141,7 +145,7 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 	}, aiMessages)
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-		return true
+		return
 	}
 	var aiReplyText string
 	if aiReply.Content != "" {
@@ -222,19 +226,19 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 						}
 						_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 					}
-					return true
+					return
 				}
 				ossSettingService := service.NewOSSSettingService(ctx.Context)
 				ossSettings, err := ossSettingService.GetOSSSettingService()
 				if err != nil {
 					p.SendMessage(ctx, "获取 OSS 配置失败，请联系管理员")
-					return true
+					return
 				}
 				if ossSettings.AutoUploadImage != nil && *ossSettings.AutoUploadImage {
 					err := ossSettingService.UploadImageToOSSFromEncryptUrl(ossSettings, ctx.ReferMessage, imageURL)
 					if err != nil {
 						p.SendMessage(ctx, "上传图片到 OSS 失败，请联系管理员")
-						return true
+						return
 					}
 					if strings.HasSuffix(ctx.ReferMessage.AttachmentUrl, "gif") {
 						p.SendMessage(ctx, fmt.Sprintf("表情下载地址: %s", ctx.ReferMessage.AttachmentUrl))
@@ -252,11 +256,9 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) bool {
 			default:
 				p.SendMessage(ctx, "暂不支持的操作类型。")
 			}
-			return true
+			return
 		}
 	}
 
 	p.SendMessage(ctx, aiReplyText)
-
-	return true
 }

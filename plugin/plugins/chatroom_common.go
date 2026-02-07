@@ -19,10 +19,11 @@ func (p *ChatRoomCommonPlugin) GetLabels() []string {
 	return []string{"text", "chat"}
 }
 
+func (p *ChatRoomCommonPlugin) Match(ctx *plugin.MessageContext) bool {
+	return ctx.Message.IsChatRoom
+}
+
 func (p *ChatRoomCommonPlugin) PreAction(ctx *plugin.MessageContext) bool {
-	if !ctx.Message.IsChatRoom {
-		return false
-	}
 	chatRoomMember, err := ctx.MessageService.GetChatRoomMember(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 	if err != nil {
 		log.Printf("获取群成员信息失败: %v", err)
@@ -43,6 +44,6 @@ func (p *ChatRoomCommonPlugin) PostAction(ctx *plugin.MessageContext) {
 
 }
 
-func (p *ChatRoomCommonPlugin) Run(ctx *plugin.MessageContext) bool {
-	return true
+func (p *ChatRoomCommonPlugin) Run(ctx *plugin.MessageContext) {
+
 }
