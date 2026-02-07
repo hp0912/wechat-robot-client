@@ -150,6 +150,9 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("拼接失败(批次 %d-%d): %v", i+1, end, err))
 				continue
 			}
+			if len(mergedImage) == 0 {
+				continue
+			}
 			err = sendMergedImage(ctx, mergedImage)
 			if err != nil {
 				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送图片失败: %v", err))
@@ -172,6 +175,9 @@ func (p *DouyinVideoParsePlugin) sendImagesInSmallerBatches(ctx *plugin.MessageC
 		mergedImage, err := mergeImagesVertical(ctx, imageURLs[i:end])
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("拼接失败(降级批次 %d-%d): %v", i+1, end, err))
+			continue
+		}
+		if len(mergedImage) == 0 {
 			continue
 		}
 		err = sendMergedImage(ctx, mergedImage)
@@ -228,8 +234,9 @@ func mergeImagesVertical(ctx *plugin.MessageContext, imageURLs []string) ([]byte
 		images = append(images, img)
 	}
 
+	// 有可能全是视频
 	if maxWidth == 0 || len(images) == 0 {
-		return nil, fmt.Errorf("图片尺寸无效")
+		return nil, nil
 	}
 
 	totalHeight := 0
