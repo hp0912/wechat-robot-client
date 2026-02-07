@@ -631,7 +631,7 @@ func (r *Robot) MsgSendVideo(toWxID string, video []byte, videoExt string) (vide
 
 func (r *Robot) MsgSendVideoFromLocal(toWxID, tempFilePath string) (videoMessage *MsgSendVideoResponse, err error) {
 	reqTime := time.Now().Unix()
-	clientMsgId := fmt.Sprintf("%v_%v", r.WxID, reqTime)
+	clientMsgId := fmt.Sprintf("%v_%v", r.WxID, time.Now().UnixNano())
 
 	videoExt := strings.ToLower(filepath.Ext(tempFilePath))
 	if videoExt == "" {

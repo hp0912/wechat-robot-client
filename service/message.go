@@ -64,8 +64,9 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 		}
 		match := messagePlugin.Match(msgCtx)
 		if !match {
-			return
+			continue
 		}
+		messagePlugin.Run(msgCtx)
 	}
 }
 
@@ -84,8 +85,9 @@ func (s *MessageService) ProcessImageMessage(message *model.Message) {
 		}
 		match := messagePlugin.Match(msgCtx)
 		if !match {
-			return
+			continue
 		}
+		messagePlugin.Run(msgCtx)
 	}
 }
 
@@ -140,8 +142,9 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 		}
 		match := messagePlugin.Match(msgCtx)
 		if !match {
-			return
+			continue
 		}
+		messagePlugin.Run(msgCtx)
 	}
 }
 
@@ -284,8 +287,9 @@ func (s *MessageService) ProcessPatMessage(message *model.Message, msgXml robot.
 		if slices.Contains(messagePlugin.GetLabels(), "pat") {
 			match := messagePlugin.Match(msgCtx)
 			if !match {
-				return
+				continue
 			}
+			messagePlugin.Run(msgCtx)
 		}
 	}
 }
@@ -898,7 +902,7 @@ func (s *MessageService) SendImageMessageByRemoteURL(toWxID string, imageURL str
 	}
 
 	// 生成唯一的客户端图片ID
-	clientImgId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().Unix())
+	clientImgId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().UnixNano())
 
 	// 计算分片数量
 	chunkSize := vars.UploadImageChunkSize
@@ -992,7 +996,7 @@ func (s *MessageService) sendImageByNormalDownload(toWxID string, imageURL strin
 	}
 
 	// 生成唯一的客户端图片ID
-	clientImgId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().Unix())
+	clientImgId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().UnixNano())
 
 	// 计算分片数量
 	chunkSize := vars.UploadImageChunkSize
