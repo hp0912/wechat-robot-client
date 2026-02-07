@@ -47,7 +47,8 @@ type MessageContext struct {
 type MessageHandler interface {
 	GetName() string
 	GetLabels() []string
+	Match(ctx *MessageContext) bool
 	PreAction(ctx *MessageContext) bool
 	PostAction(ctx *MessageContext)
-	Run(ctx *MessageContext) bool
+	Run(ctx *MessageContext)
 }

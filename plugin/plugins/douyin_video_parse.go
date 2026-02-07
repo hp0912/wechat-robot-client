@@ -75,20 +75,20 @@ func (p *DouyinVideoParsePlugin) PostAction(ctx *plugin.MessageContext) {
 
 }
 
-func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
-	if !strings.Contains(ctx.Message.Content, "https://v.douyin.com") {
-		return false
-	}
+func (p *DouyinVideoParsePlugin) Match(ctx *plugin.MessageContext) bool {
+	return strings.Contains(ctx.Message.Content, "https://v.douyin.com")
+}
 
+func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 	if !p.PreAction(ctx) {
-		return false
+		return
 	}
 
 	re := regexp.MustCompile(`https://[^\s]+`)
 	matches := re.FindAllString(ctx.Message.Content, -1)
 	if len(matches) == 0 {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "未找到抖音链接")
-		return true
+		return
 	}
 
 	// 获取第一个匹配的链接
@@ -106,11 +106,11 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 		Post("https://api.pearktrue.cn/api/video/api.php")
 	if err != nil {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, err.Error())
-		return true
+		return
 	}
 	if resp.StatusCode() != http.StatusOK {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, http.StatusText(resp.StatusCode()))
-		return true
+		return
 	}
 
 	if respData.Data.URL != "" {
@@ -127,7 +127,7 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 		_ = ctx.MessageService.ShareLink(ctx.Message.FromWxID, shareLink)
 		_ = ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, respData.Data.URL)
 
-		return true
+		return
 	}
 
 	if len(respData.Data.Images) > 0 {
@@ -149,11 +149,10 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) bool {
 				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送图片失败: %v", err))
 			}
 		}
-		return true
+		return
 	}
 
 	ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "解析失败，可能是链接已失效或格式不正确")
-	return true
 }
 
 func mergeImagesVertical(imageURLs []string) ([]byte, error) {

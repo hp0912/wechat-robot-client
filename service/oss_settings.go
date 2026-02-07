@@ -23,6 +23,7 @@ import (
 
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 )
 
@@ -135,54 +136,6 @@ func (s *OSSSettingService) UploadImageToOSS(settings *model.OSSSettings, messag
 	return nil
 }
 
-// detectImageFormat 通过魔数检测图片格式
-func (s *OSSSettingService) detectImageFormat(data []byte) string {
-	if len(data) < 12 {
-		return ".jpg" // 默认返回jpg
-	}
-
-	// PNG: 89 50 4E 47 0D 0A 1A 0A
-	if len(data) >= 8 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47 {
-		return ".png"
-	}
-
-	// JPEG: FF D8 FF
-	if len(data) >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF {
-		return ".jpg"
-	}
-
-	// GIF: 47 49 46 38 (GIF8)
-	if len(data) >= 4 && data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x38 {
-		return ".gif"
-	}
-
-	// WebP: 52 49 46 46 ... 57 45 42 50 (RIFF...WEBP)
-	if len(data) >= 12 && data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 &&
-		data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50 {
-		return ".webp"
-	}
-
-	// BMP: 42 4D
-	if len(data) >= 2 && data[0] == 0x42 && data[1] == 0x4D {
-		return ".bmp"
-	}
-
-	// ICO: 00 00 01 00
-	if len(data) >= 4 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x01 && data[3] == 0x00 {
-		return ".ico"
-	}
-
-	// TIFF: 49 49 2A 00 (little-endian) or 4D 4D 00 2A (big-endian)
-	if len(data) >= 4 {
-		if (data[0] == 0x49 && data[1] == 0x49 && data[2] == 0x2A && data[3] == 0x00) ||
-			(data[0] == 0x4D && data[1] == 0x4D && data[2] == 0x00 && data[3] == 0x2A) {
-			return ".tiff"
-		}
-	}
-
-	return ".jpg" // 默认返回jpg
-}
-
 func (s *OSSSettingService) DownloadImageFromEncryptUrl(imageUrl string) ([]byte, string, string, error) {
 	// 创建HTTP客户端
 	client := &http.Client{
@@ -216,7 +169,7 @@ func (s *OSSSettingService) DownloadImageFromEncryptUrl(imageUrl string) ([]byte
 
 	// 通过魔数检测图片格式
 	imageData := buf.Bytes()
-	extension := s.detectImageFormat(imageData)
+	extension := utils.DetectMediaFormat(imageData)
 
 	return imageData, contentType, extension, nil
 }

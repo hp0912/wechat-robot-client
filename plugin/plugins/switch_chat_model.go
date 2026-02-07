@@ -22,10 +22,11 @@ func (p *SwitchChatModelPlugin) GetLabels() []string {
 	return []string{"text", "chat"}
 }
 
+func (p *SwitchChatModelPlugin) Match(ctx *plugin.MessageContext) bool {
+	return strings.HasPrefix(ctx.MessageContent, "#切换聊天模型")
+}
+
 func (p *SwitchChatModelPlugin) PreAction(ctx *plugin.MessageContext) bool {
-	if ctx.MessageContent == "" || !strings.HasPrefix(ctx.MessageContent, "#切换聊天模型") {
-		return false
-	}
 	chatRoomMember, err := ctx.MessageService.GetChatRoomMember(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 	if err != nil {
 		log.Printf("获取群成员信息失败: %v", err)
@@ -49,15 +50,15 @@ func (p *SwitchChatModelPlugin) PreAction(ctx *plugin.MessageContext) bool {
 func (p *SwitchChatModelPlugin) PostAction(ctx *plugin.MessageContext) {
 }
 
-func (p *SwitchChatModelPlugin) Run(ctx *plugin.MessageContext) bool {
+func (p *SwitchChatModelPlugin) Run(ctx *plugin.MessageContext) {
 	if !p.PreAction(ctx) {
-		return false
+		return
 	}
 
 	parts := strings.Fields(ctx.MessageContent)
 	if len(parts) < 2 {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "请提供要切换的聊天模型名称，例如：#切换聊天模型 gpt-3.5-turbo", ctx.Message.SenderWxID)
-		return true
+		return
 	}
 	newModel := parts[1]
 	if ctx.Message.IsChatRoom {
@@ -65,36 +66,35 @@ func (p *SwitchChatModelPlugin) Run(ctx *plugin.MessageContext) bool {
 		chatRoomSettings, err := svc.GetChatRoomSettings(ctx.Message.FromWxID)
 		if err != nil {
 			log.Printf("获取群设置失败: %v", err)
-			return true
+			return
 		}
 		if chatRoomSettings == nil {
 			log.Printf("群设置不存在: 群ID=%s", ctx.Message.FromWxID)
-			return true
+			return
 		}
 		chatRoomSettings.ChatModel = &newModel
 		err = svc.SaveChatRoomSettings(chatRoomSettings)
 		if err != nil {
 			log.Printf("保存群设置失败: %v", err)
-			return true
+			return
 		}
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "已将聊天模型切换为："+newModel, ctx.Message.SenderWxID)
 	} else {
 		friendSettings, err := service.NewFriendSettingsService(context.Background()).GetFriendSettings(ctx.Message.FromWxID)
 		if err != nil {
 			log.Printf("获取群设置失败: %v", err)
-			return true
+			return
 		}
 		if friendSettings == nil {
 			log.Printf("群设置不存在: 群ID=%s", ctx.Message.FromWxID)
-			return true
+			return
 		}
 		friendSettings.ChatModel = &newModel
 		err = service.NewFriendSettingsService(context.Background()).SaveFriendSettings(friendSettings)
 		if err != nil {
 			log.Printf("保存好友设置失败: %v", err)
-			return true
+			return
 		}
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "已将聊天模型切换为："+newModel, ctx.Message.SenderWxID)
 	}
-	return true
 }

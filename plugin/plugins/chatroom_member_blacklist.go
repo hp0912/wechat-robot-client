@@ -22,16 +22,11 @@ func (p *ChatRoomMemberBlacklistPlugin) GetLabels() []string {
 	return []string{"text", "chat"}
 }
 
+func (p *ChatRoomMemberBlacklistPlugin) Match(ctx *plugin.MessageContext) bool {
+	return ctx.Message.IsChatRoom && ctx.ReferMessage != nil && ctx.MessageContent == "#加入黑名单"
+}
+
 func (p *ChatRoomMemberBlacklistPlugin) PreAction(ctx *plugin.MessageContext) bool {
-	if !ctx.Message.IsChatRoom {
-		return false
-	}
-	if ctx.ReferMessage == nil {
-		return false
-	}
-	if ctx.MessageContent != "#加入黑名单" {
-		return false
-	}
 	chatRoomMember, err := ctx.MessageService.GetChatRoomMember(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 	if err != nil {
 		log.Printf("获取群成员信息失败: %v", err)
@@ -55,9 +50,9 @@ func (p *ChatRoomMemberBlacklistPlugin) PreAction(ctx *plugin.MessageContext) bo
 func (p *ChatRoomMemberBlacklistPlugin) PostAction(ctx *plugin.MessageContext) {
 }
 
-func (p *ChatRoomMemberBlacklistPlugin) Run(ctx *plugin.MessageContext) bool {
+func (p *ChatRoomMemberBlacklistPlugin) Run(ctx *plugin.MessageContext) {
 	if !p.PreAction(ctx) {
-		return false
+		return
 	}
 	isBlacklisted := true
 	err := service.NewChatRoomService(context.Background()).BatchUpdateChatRoomMemberInfo(model.UpdateChatRoomMember{
@@ -67,7 +62,6 @@ func (p *ChatRoomMemberBlacklistPlugin) Run(ctx *plugin.MessageContext) bool {
 	})
 	if err != nil {
 		log.Printf("将群成员加入黑名单失败: %v", err)
-		return true
+		return
 	}
-	return true
 }
