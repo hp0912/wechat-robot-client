@@ -155,6 +155,23 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 	}
 	if aiReplyText == "" {
 		aiReplyText = "AI返回了空内容。"
+		if len(aiMessages) > 0 {
+			lastMessage := aiMessages[len(aiMessages)-1]
+			if strings.Contains(lastMessage.Content, "#调试") {
+				debugPayload := map[string]any{
+					"ai_messages": aiMessages,
+					"ai_reply":    aiReply,
+				}
+				debugBytes, err := json.Marshal(debugPayload)
+				if err != nil {
+					aiReplyText = fmt.Sprintf("调试数据序列化失败: %v", err)
+				} else {
+					aiReplyText = string(debugBytes)
+				}
+			}
+		} else {
+			aiReplyText = "没有获取到 AI 对话上下文，请联系管理员。"
+		}
 	}
 
 	// 检测是否是 MCP 工具调用结果
