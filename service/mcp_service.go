@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	"wechat-robot-client/interface/ai"
@@ -129,17 +130,11 @@ func (s *MCPService) ChatWithMCPTools(
 
 	// 迭代调用，支持多轮工具调用
 	for i := 0; i < maxIterations; i++ {
-		// 调用AI
-		resp, err := client.CreateChatCompletion(s.ctx, req)
+		// 调用AI（流式）
+		assistantMsg, err := s.streamChatCompletion(client, req)
 		if err != nil {
 			return openai.ChatCompletionMessage{}, fmt.Errorf("failed to call ai: %w", err)
 		}
-
-		if len(resp.Choices) == 0 {
-			return openai.ChatCompletionMessage{}, fmt.Errorf("ai returned empty response")
-		}
-
-		assistantMsg := resp.Choices[0].Message
 
 		// 检查是否需要调用工具
 		if len(assistantMsg.ToolCalls) == 0 {
@@ -197,16 +192,99 @@ func (s *MCPService) chatWithoutTools(
 	client *openai.Client,
 	req openai.ChatCompletionRequest,
 ) (openai.ChatCompletionMessage, error) {
-	resp, err := client.CreateChatCompletion(s.ctx, req)
+	return s.streamChatCompletion(client, req)
+}
+
+// streamChatCompletion 处理流式响应并返回完整消息
+func (s *MCPService) streamChatCompletion(
+	client *openai.Client,
+	req openai.ChatCompletionRequest,
+) (openai.ChatCompletionMessage, error) {
+	req.Stream = true
+
+	stream, err := client.CreateChatCompletionStream(s.ctx, req)
 	if err != nil {
-		return openai.ChatCompletionMessage{}, err
+		return openai.ChatCompletionMessage{}, fmt.Errorf("failed to create stream: %w", err)
+	}
+	defer stream.Close()
+
+	var assistantMsg openai.ChatCompletionMessage
+	assistantMsg.Role = openai.ChatMessageRoleAssistant
+	var toolCalls []openai.ToolCall
+	var finishReason openai.FinishReason
+
+	for {
+		response, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return openai.ChatCompletionMessage{}, fmt.Errorf("stream error: %w", err)
+		}
+
+		if len(response.Choices) == 0 {
+			continue
+		}
+
+		choice := response.Choices[0]
+		delta := choice.Delta
+
+		if delta.Role != "" {
+			assistantMsg.Role = delta.Role
+		}
+
+		assistantMsg.Content += delta.Content
+
+		if delta.Refusal != "" {
+			assistantMsg.Refusal += delta.Refusal
+		}
+
+		for _, tc := range delta.ToolCalls {
+			if tc.Index == nil {
+				continue
+			}
+			idx := *tc.Index
+
+			for len(toolCalls) <= idx {
+				toolCalls = append(toolCalls, openai.ToolCall{})
+			}
+
+			if tc.ID != "" {
+				toolCalls[idx].ID = tc.ID
+			}
+			if tc.Type != "" {
+				toolCalls[idx].Type = tc.Type
+			}
+			if tc.Function.Name != "" {
+				toolCalls[idx].Function.Name = tc.Function.Name
+			}
+			toolCalls[idx].Function.Arguments += tc.Function.Arguments
+		}
+
+		// 处理旧版 FunctionCall（向后兼容）
+		if delta.FunctionCall != nil {
+			if assistantMsg.FunctionCall == nil {
+				assistantMsg.FunctionCall = &openai.FunctionCall{}
+			}
+			if delta.FunctionCall.Name != "" {
+				assistantMsg.FunctionCall.Name = delta.FunctionCall.Name
+			}
+			assistantMsg.FunctionCall.Arguments += delta.FunctionCall.Arguments
+		}
+
+		if choice.FinishReason != "" {
+			finishReason = choice.FinishReason
+		}
 	}
 
-	if len(resp.Choices) == 0 {
-		return openai.ChatCompletionMessage{}, fmt.Errorf("ai returned empty response")
+	assistantMsg.ToolCalls = toolCalls
+
+	if finishReason != "" {
+		log.Printf("Stream finished with reason: %s, toolCalls: %d, content length: %d",
+			finishReason, len(toolCalls), len(assistantMsg.Content))
 	}
 
-	return resp.Choices[0].Message, nil
+	return assistantMsg, nil
 }
 
 // AddServer 添加MCP服务器

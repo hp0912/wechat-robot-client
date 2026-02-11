@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"wechat-robot-client/model"
 	"wechat-robot-client/utils"
 
@@ -67,7 +68,7 @@ func (s *AIMomentService) GetMomentMood(content string, momentSettings model.Mom
 		AdditionalProperties: false,
 	}
 
-	resp, err := client.CreateChatCompletion(
+	stream, err := client.CreateChatCompletionStream(
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:    momentSettings.WorkflowModel,
@@ -81,13 +82,30 @@ func (s *AIMomentService) GetMomentMood(content string, momentSettings model.Mom
 					Schema:      schema,
 				},
 			},
-			Stream: false,
+			Stream: true,
 		},
 	)
 	if err != nil {
 		return nil
 	}
-	err = schema.Unmarshal(resp.Choices[0].Message.Content, &result)
+	defer stream.Close()
+
+	// 拼接流式响应
+	var responseContent string
+	for {
+		response, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil
+		}
+		if len(response.Choices) > 0 {
+			responseContent += response.Choices[0].Delta.Content
+		}
+	}
+
+	err = schema.Unmarshal(responseContent, &result)
 	if err != nil {
 		return nil
 	}
@@ -120,17 +138,37 @@ func (s *AIMomentService) Comment(content string, momentSettings model.MomentSet
 	req := openai.ChatCompletionRequest{
 		Model:    momentSettings.CommentModel,
 		Messages: aiMessages,
-		Stream:   false,
+		Stream:   true,
 	}
 	if momentSettings.MaxCompletionTokens != nil && *momentSettings.MaxCompletionTokens > 0 {
 		req.MaxCompletionTokens = *momentSettings.MaxCompletionTokens
 	}
-	resp, err := client.CreateChatCompletion(context.Background(), req)
+
+	stream, err := client.CreateChatCompletionStream(context.Background(), req)
 	if err != nil {
 		return openai.ChatCompletionMessage{}, err
 	}
-	if len(resp.Choices) == 0 {
+	defer stream.Close()
+
+	// 拼接流式响应
+	var assistantMsg openai.ChatCompletionMessage
+	assistantMsg.Role = openai.ChatMessageRoleAssistant
+
+	for {
+		response, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return openai.ChatCompletionMessage{}, err
+		}
+		if len(response.Choices) > 0 {
+			assistantMsg.Content += response.Choices[0].Delta.Content
+		}
+	}
+
+	if assistantMsg.Content == "" {
 		return openai.ChatCompletionMessage{}, fmt.Errorf("AI返回了空内容，请联系管理员")
 	}
-	return resp.Choices[0].Message, nil
+	return assistantMsg, nil
 }
