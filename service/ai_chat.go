@@ -43,7 +43,7 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 		Stream:   false,
 	}
 	if aiConfig.MaxCompletionTokens > 0 {
-		req.MaxCompletionTokens = aiConfig.MaxCompletionTokens
+		// req.MaxCompletionTokens = aiConfig.MaxCompletionTokens
 	}
 	return vars.MCPService.ChatWithMCPTools(robotCtx, client, req, 0)
 }
