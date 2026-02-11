@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"maps"
 	"os"
@@ -641,13 +642,12 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		model = *setting.ChatRoomSummaryModel
 	}
 	ai := openai.NewClientWithConfig(aiConfig)
-	var resp openai.ChatCompletionResponse
-	resp, err = ai.CreateChatCompletion(
+	stream, err := ai.CreateChatCompletionStream(
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:               model,
 			Messages:            aiMessages,
-			Stream:              false,
+			Stream:              true,
 			MaxCompletionTokens: maxCompletionTokens,
 		},
 	)
@@ -656,12 +656,31 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息总结失败，错误信息: "+err.Error())
 		return err
 	}
+	defer stream.Close()
+
+	// 拼接流式响应
+	var summaryContent string
+	for {
+		response, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Printf("群聊记录总结流式读取失败: %v", err.Error())
+			msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息总结失败，错误信息: "+err.Error())
+			return err
+		}
+		if len(response.Choices) > 0 {
+			summaryContent += response.Choices[0].Delta.Content
+		}
+	}
+
 	// 返回消息为空
-	if resp.Choices[0].Message.Content == "" {
+	if summaryContent == "" {
 		msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息总结失败，AI返回结果为空")
 		return nil
 	}
-	replyMsg := fmt.Sprintf("#消息总结\n让我们一起来看看群友们都聊了什么有趣的话题吧~\n\n本次总结由**%s**加持\n\n%s", model, resp.Choices[0].Message.Content)
+	replyMsg := fmt.Sprintf("#消息总结\n让我们一起来看看群友们都聊了什么有趣的话题吧~\n\n本次总结由**%s**加持\n\n%s", model, summaryContent)
 	msgService.SendLongTextMessage(setting.ChatRoomID, replyMsg)
 	return nil
 }
