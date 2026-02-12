@@ -22,10 +22,10 @@
   <tbody>
     <tr>
       <td>
-        <img src="https://img.houhoukang.com/wechat-robot.jpg" alt="机器人列表" width="300" height="300">
+        <img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20260212" alt="官方交流群" width="300" height="300">
       </td>
       <td>
-        <img src="https://img.houhoukang.com/weChat-robot-pay.jpg" alt="机器人列表" width="300" height="300">
+        <img src="https://img.houhoukang.com/weChat-robot-pay.jpg" alt="赞赏码" width="300" height="300">
       </td>
     </tr>
   </tbody>
@@ -34,19 +34,16 @@
 ## 项目依赖关系
 
 - 机器人管理后台
-
   - 前端项目: [https://github.com/hp0912/wechat-robot-admin-frontend](https://github.com/hp0912/wechat-robot-admin-frontend)
 
   - 后端项目: [https://github.com/hp0912/wechat-robot-admin-backend](https://github.com/hp0912/wechat-robot-admin-backend)
 
 - 机器人客户端和服务端
-
   - 机器人客户端: [本项目](https://github.com/hp0912/wechat-robot-client)
 
   - 机器人服务端 **(源代码不公开)** [接口文档](ipad.swagger.yml)
 
 - 公共服务
-
   - 公众号认证服务: [https://github.com/hp0912/wechat-server](https://github.com/hp0912/wechat-server) fork的项目，微信公众号的后端，为管理后台(以及其他系统)提供微信登录验证功能
 
   - 词云服务: [https://github.com/hp0912/word-cloud-server](https://github.com/hp0912/word-cloud-server) golang写的词云效果不太好，用python写了一个单独的服务
@@ -122,9 +119,7 @@
 > 自部署前的准备
 >
 > - ~~你得有自己的公众号，用来集成公众号扫码登录，本项目只集成了公众号扫码登录~~
->
-> - 2025/08/29 新增支持通过登录密钥登录管理后台  (默认密钥： 12345678)
->
+> - 2025/08/29 新增支持通过登录密钥登录管理后台 (默认密钥： 12345678)
 > - 自己会安装 docker 和 docker-compose
 
 **直接使用现成系统**
@@ -177,7 +172,7 @@ docker-compose -f docker-compose2.yml up -d
 2. 配置 **微信服务器**
 
 > 如何配置，前往 [https://github.com/hp0912/wechat-server](https://github.com/hp0912/wechat-server) 查看详细教程。
-> 
+>
 > 在**微信服务器** `设置` `个人设置` `生成访问令牌`生成的令牌，填入`docker-compose.yml`的`WECHAT_SERVER_TOKEN`的环境变量中，将你自己的公众号二维码链接填入`WECHAT_OFFICIAL_ACCOUNT_AUTH_URL`环境变量中。
 
 3. 重启服务
@@ -200,13 +195,9 @@ docker-compose up -d
 > 自部署前的准备 (跟本地部署一样，只不过服务器安装docker有点门槛)
 >
 > - ~~你得有自己的公众号，用来集成公众号扫码登录，本项目只集成了公众号扫码登录~~
->
 > - 2025/08/29 新增支持通过登录密钥登录管理后台
->
 > - 服务器安装 docker 和 docker-compose
->
 > - 服务器安装 nginx
->
 > - 域名解析，将你的自定义域名解析到你自己的服务器(有公网IP)
 
 ```vim
@@ -228,7 +219,7 @@ docker-compose up -d
 
 > `.deploy/server/nginx.conf`这个文件配置了服务转发规则，`wechat-server.xxx.com`(改成你自己的域名) 域名转发到3000端口，也就是`docker-compose.yml`里面的`wechat-server`服务。
 >
->`wechat-robot.xxx.com`(改成你自己的域名) 域名，`api/v1`开头的路由转发到3002端口，也就是`docker-compose.yml`里面的`wechat-robot-admin-backend`服务，剩下路由转发到3001端口，也就是`docker-compose.yml`里面的`wechat-robot-admin-fontend`服务
+> `wechat-robot.xxx.com`(改成你自己的域名) 域名，`api/v1`开头的路由转发到3002端口，也就是`docker-compose.yml`里面的`wechat-robot-admin-backend`服务，剩下路由转发到3001端口，也就是`docker-compose.yml`里面的`wechat-robot-admin-fontend`服务
 >
 > 将这个文件覆盖服务器上的 `/etc/nginx/sites-available/default`
 
@@ -357,7 +348,7 @@ services:
     networks:
       - wechat-robot
     ports:
-      - '3010:9000'
+      - "3010:9000"
     environment:
       WECHAT_PORT: 9000
       REDIS_HOST: wechat-admin-redis
