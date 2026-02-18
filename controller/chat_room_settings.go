@@ -76,6 +76,18 @@ func (ct *ChatRoomSettings) SaveChatRoomSettings(c *gin.Context) {
 			}
 		}
 	}
+	if req.WxhbNotifyEnabled != nil && *req.WxhbNotifyEnabled {
+		if req.WxhbNotifyMemberList == nil || *req.WxhbNotifyMemberList == "" {
+			resp.ToErrorResponse(errors.New("参数错误"))
+			return
+		}
+	}
+	if req.PodcastEnabled != nil && *req.PodcastEnabled {
+		if req.PodcastConfig == nil {
+			resp.ToErrorResponse(errors.New("参数错误"))
+			return
+		}
+	}
 	err := service.NewChatRoomSettingsService(c).SaveChatRoomSettings(&req)
 	if err != nil {
 		resp.ToErrorResponse(err)
