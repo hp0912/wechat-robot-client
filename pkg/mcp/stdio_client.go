@@ -1,8 +1,13 @@
 package mcp
 
 import (
+	"bufio"
 	"context"
+	"io"
+	"log"
+	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"wechat-robot-client/model"
@@ -15,7 +20,7 @@ type StdioClient struct {
 	*BaseClient
 	client    *sdkmcp.Client
 	session   *sdkmcp.ClientSession
-	transport *sdkmcp.CommandTransport
+	transport *sdkmcp.IOTransport
 }
 
 func NewStdioClient(config *model.MCPServer) *StdioClient {
@@ -32,16 +37,50 @@ func (c *StdioClient) Connect(ctx context.Context) error {
 	if c.config.WorkingDir != "" {
 		cmd.Dir = c.config.WorkingDir
 	}
+
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	if stderrPipe, err := cmd.StderrPipe(); err == nil {
+		go func() {
+			scanner := bufio.NewScanner(stderrPipe)
+			for scanner.Scan() {
+				log.Printf("[mcp-stdio][%s] %s", c.config.Name, scanner.Text())
+			}
+			if err := scanner.Err(); err != nil {
+				log.Printf("[mcp-stdio][%s] stderr scan error: %v", c.config.Name, err)
+			}
+		}()
+	}
+
 	if env, err := c.config.GetEnv(); err == nil && len(env) > 0 {
 		// 追加自定义环境变量
-		envList := cmd.Env
+		envList := os.Environ()
 		for k, v := range env {
 			envList = append(envList, k+"="+v)
 		}
 		cmd.Env = envList
 	}
 
-	c.transport = &sdkmcp.CommandTransport{Command: cmd}
+	stdinPipe, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	go func() {
+		if err := cmd.Wait(); err != nil {
+			log.Printf("[mcp-stdio][%s] process exited: %v", c.config.Name, err)
+		}
+	}()
+
+	filteredStdoutReader := newMCPStdoutFilter(stdoutPipe, c.config.Name)
+	c.transport = &sdkmcp.IOTransport{Reader: filteredStdoutReader, Writer: stdinPipe}
 	c.client = sdkmcp.NewClient(&sdkmcp.Implementation{Name: "wechat-robot-mcp-client", Version: "1.0.0"}, nil)
 
 	sess, err := c.client.Connect(ctx, c.transport, nil)
@@ -163,4 +202,70 @@ func (c *StdioClient) Ping(ctx context.Context) error {
 	c.updateStats(err == nil, time.Since(start))
 
 	return err
+}
+
+type mcpStdoutFilter struct {
+	serverName string
+	raw        io.ReadCloser
+	pipeReader *io.PipeReader
+	pipeWriter *io.PipeWriter
+}
+
+func newMCPStdoutFilter(raw io.ReadCloser, serverName string) *mcpStdoutFilter {
+	pipeReader, pipeWriter := io.Pipe()
+	f := &mcpStdoutFilter{
+		serverName: serverName,
+		raw:        raw,
+		pipeReader: pipeReader,
+		pipeWriter: pipeWriter,
+	}
+	go f.run()
+	return f
+}
+
+func (f *mcpStdoutFilter) Read(p []byte) (int, error) {
+	return f.pipeReader.Read(p)
+}
+
+func (f *mcpStdoutFilter) Close() error {
+	_ = f.pipeReader.Close()
+	_ = f.pipeWriter.Close()
+	return f.raw.Close()
+}
+
+func (f *mcpStdoutFilter) run() {
+	reader := bufio.NewReader(f.raw)
+	for {
+		line, err := reader.ReadString('\n')
+		if line != "" {
+			trimmed := strings.TrimSpace(line)
+			if isLikelyJSONRPCLine(trimmed) {
+				if _, werr := io.WriteString(f.pipeWriter, trimmed+"\n"); werr != nil {
+					_ = f.pipeWriter.CloseWithError(werr)
+					return
+				}
+			} else {
+				log.Printf("[mcp-stdio][%s][stdout-ignored] %s", f.serverName, trimmed)
+			}
+		}
+
+		if err != nil {
+			if err == io.EOF {
+				_ = f.pipeWriter.Close()
+				return
+			}
+			_ = f.pipeWriter.CloseWithError(err)
+			return
+		}
+	}
+}
+
+func isLikelyJSONRPCLine(line string) bool {
+	if line == "" {
+		return false
+	}
+	if !strings.HasPrefix(line, "{") {
+		return false
+	}
+	return strings.Contains(line, `"jsonrpc"`) && (strings.Contains(line, `"id"`) || strings.Contains(line, `"method"`) || strings.Contains(line, `"result"`) || strings.Contains(line, `"error"`))
 }
