@@ -135,6 +135,54 @@ type AppMessage struct {
 	MD5               string       `xml:"md5"`
 	StatExtStr        string       `xml:"statextstr"`
 	ReferMsg          ReferMessage `xml:"refermsg"`
+	WcPayInfo         WcPayInfo    `xml:"wcpayinfo"`
+	Emoji             EmojiInfo    `xml:"emoji"`
+}
+
+type WcPayInfo struct {
+	TemplateID             string `xml:"templateid"`
+	URL                    string `xml:"url"`
+	IconURL                string `xml:"iconurl"`
+	ReceiverTitle          string `xml:"receivertitle"`
+	SenderTitle            string `xml:"sendertitle"`
+	SceneText              string `xml:"scenetext"`
+	SenderDesc             string `xml:"senderdes"`
+	ReceiverDesc           string `xml:"receiverdes"`
+	NativeURL              string `xml:"nativeurl"`
+	SceneID                string `xml:"sceneid"`
+	InnerType              string `xml:"innertype"`
+	PayMsgID               string `xml:"paymsgid"`
+	ExpressionURL          string `xml:"expressionurl"`
+	ExpressionType         string `xml:"expressiontype"`
+	LocalLogoIcon          string `xml:"locallogoicon"`
+	InvalidTime            string `xml:"invalidtime"`
+	SenderC2CShowSourceURL string `xml:"senderc2cshowsourceurl"`
+	SenderC2CShowSourceMD5 string `xml:"senderc2cshowsourcemd5"`
+	ReceiverC2CSourceURL   string `xml:"receiverc2cshowsourceurl"`
+	ReceiverC2CSourceMD5   string `xml:"receiverc2cshowsourcemd5"`
+	RecShowSourceURL       string `xml:"recshowsourceurl"`
+	RecShowSourceMD5       string `xml:"recshowsourcemd5"`
+	DetailShowSourceURL    string `xml:"detailshowsourceurl"`
+	DetailShowSourceMD5    string `xml:"detailshowsourcemd5"`
+	CorpName               string `xml:"corpname"`
+	CoverInfo              string `xml:"coverinfo"`
+	ExclusiveRecvUsername  string `xml:"exclusive_recv_username"`
+}
+
+type EmojiInfo struct {
+	MD5          string `xml:"md5"`
+	Type         int    `xml:"type"`
+	Width        int    `xml:"width"`
+	Height       int    `xml:"height"`
+	Len          int    `xml:"len"`
+	AesKey       string `xml:"aeskey"`
+	CDNURL       string `xml:"cdnurl"`
+	EncryptURL   string `xml:"encrypturl"`
+	ExternURL    string `xml:"externurl"`
+	ExternMD5    string `xml:"externmd5"`
+	ProductID    string `xml:"productid"`
+	DesignerID   string `xml:"designerid"`
+	AttachedText string `xml:"attachedtext"`
 }
 
 type ReferMessage struct {
