@@ -148,10 +148,34 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 	}
 }
 
+func (s *MessageService) ProcessRedEnvelopesMessage(message *model.Message) {
+	msgCtx := &plugin.MessageContext{
+		Context:        s.ctx,
+		Settings:       s.settings,
+		Message:        message,
+		MessageContent: message.Content,
+		MessageService: s,
+	}
+	for _, messagePlugin := range vars.MessagePlugin.Plugins {
+		if !slices.Contains(messagePlugin.GetLabels(), "red-envelopes") {
+			continue
+		}
+		match := messagePlugin.Match(msgCtx)
+		if !match {
+			continue
+		}
+		messagePlugin.Run(msgCtx)
+	}
+}
+
 // ProcessAppMessage 处理应用消息
 func (s *MessageService) ProcessAppMessage(message *model.Message) {
 	if message.AppMsgType == model.AppMsgTypequote {
 		s.ProcessReferMessage(message)
+		return
+	}
+	if message.AppMsgType == model.AppMsgTypeRedEnvelopes {
+		s.ProcessRedEnvelopesMessage(message)
 		return
 	}
 	if message.AppMsgType == model.AppMsgTypeUrl {

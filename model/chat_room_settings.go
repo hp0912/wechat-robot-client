@@ -21,6 +21,10 @@ type ChatRoomSettings struct {
 	TTSSettings               datatypes.JSON `gorm:"column:tts_settings;type:json;comment:文本转语音配置项" json:"tts_settings"`
 	LTTSSettings              datatypes.JSON `gorm:"column:ltts_settings;type:json;comment:长文本转语音配置项" json:"ltts_settings"`
 	ShortVideoParsingEnabled  *bool          `gorm:"column:short_video_parsing_enabled;default:true;comment:是否启用短视频解析功能" json:"short_video_parsing_enabled"`
+	WxhbNotifyEnabled         *bool          `gorm:"column:wxhb_notify_enabled;default:true;comment:是否启用微信红包通知功能" json:"wxhb_notify_enabled"`
+	WxhbNotifyMemberList      *string        `gorm:"column:wxhb_notify_member_list;comment:微信红包通知的成员列表，逗号分隔的微信ID" json:"wxhb_notify_member_list"`
+	PodcastEnabled            *bool          `gorm:"column:podcast_enabled;default:true;comment:是否启用播客功能" json:"podcast_enabled"`
+	PodcastConfig             datatypes.JSON `gorm:"column:podcast_config;type:json;comment:播客配置项" json:"podcast_config"`
 	PatEnabled                *bool          `gorm:"column:pat_enabled;default:false;comment:是否启用拍一拍功能" json:"pat_enabled"`
 	PatType                   PatType        `gorm:"column:pat_type;type:enum('text','voice');default:'text';comment:拍一拍方式：text-文本，voice-语音" json:"pat_type"`
 	PatText                   string         `gorm:"column:pat_text;type:varchar(255);default:'';comment:拍一拍的文本" json:"pat_text"`
