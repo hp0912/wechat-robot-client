@@ -108,35 +108,44 @@ type XmlMessage struct {
 }
 
 type AppMessage struct {
-	AppID             string       `xml:"appid,attr"`
-	SDKVer            string       `xml:"sdkver,attr"`
-	Title             string       `xml:"title"`
-	Des               string       `xml:"des"`
-	Action            string       `xml:"action"`
-	Type              int          `xml:"type"`
-	ShowType          int          `xml:"showtype"`
-	SoundType         int          `xml:"soundtype"`
-	MediaTagName      string       `xml:"mediatagname"`
-	MessageExt        string       `xml:"messageext"`
-	MessageAction     string       `xml:"messageaction"`
-	Content           string       `xml:"content"`
-	ContentAttr       int          `xml:"contentattr"`
-	URL               string       `xml:"url"`
-	LowURL            string       `xml:"lowurl"`
-	DataURL           string       `xml:"dataurl"`
-	LowDataURL        string       `xml:"lowdataurl"`
-	SongAlbumURL      string       `xml:"songalbumurl"`
-	SongLyric         string       `xml:"songlyric"`
-	AppAttach         AppAttach    `xml:"appattach"`
-	ExtInfo           string       `xml:"extinfo"`
-	SourceUsername    string       `xml:"sourceusername"`
-	SourceDisplayName string       `xml:"sourcedisplayname"`
-	ThumbURL          string       `xml:"thumburl"`
-	MD5               string       `xml:"md5"`
-	StatExtStr        string       `xml:"statextstr"`
-	ReferMsg          ReferMessage `xml:"refermsg"`
-	WcPayInfo         WcPayInfo    `xml:"wcpayinfo"`
-	Emoji             EmojiInfo    `xml:"emoji"`
+	XMLName           xml.Name       `xml:"appmsg"`
+	AppID             string         `xml:"appid,attr"`
+	SDKVer            string         `xml:"sdkver,attr"`
+	Title             string         `xml:"title"`
+	Des               string         `xml:"des"`
+	Action            string         `xml:"action"`
+	Type              int            `xml:"type"`
+	ShowType          int            `xml:"showtype"`
+	SoundType         int            `xml:"soundtype"`
+	MediaTagName      string         `xml:"mediatagname"`
+	MessageExt        string         `xml:"messageext"`
+	MessageAction     string         `xml:"messageaction"`
+	Content           string         `xml:"content"`
+	ContentAttr       int            `xml:"contentattr"`
+	StreamVideo       int            `xml:"streamvideo"`
+	URL               string         `xml:"url"`
+	LowURL            string         `xml:"lowurl"`
+	DataURL           string         `xml:"dataurl"`
+	LowDataURL        string         `xml:"lowdataurl"`
+	SongAlbumURL      string         `xml:"songalbumurl"`
+	SongLyric         string         `xml:"songlyric"`
+	AppAttach         AppAttach      `xml:"appattach"`
+	ExtInfo           string         `xml:"extinfo"`
+	SourceUsername    string         `xml:"sourceusername"`
+	SourceDisplayName string         `xml:"sourcedisplayname"`
+	ThumbURL          string         `xml:"thumburl"`
+	MD5               string         `xml:"md5"`
+	StatExtStr        string         `xml:"statextstr"`
+	MusicShareItem    MusicShareItem `xml:"musicShareItem"`
+	ReferMsg          ReferMessage   `xml:"refermsg"`
+	WcPayInfo         WcPayInfo      `xml:"wcpayinfo"`
+	Emoji             EmojiInfo      `xml:"emoji"`
+}
+
+type MusicShareItem struct {
+	MVSingerName  string `xml:"mvSingerName"`
+	MVAlbumName   string `xml:"mvAlbumName"`
+	MusicDuration int64  `xml:"musicDuration"`
 }
 
 type WcPayInfo struct {

@@ -97,6 +97,11 @@ type AppAttach struct {
 	AttachID        string `xml:"attachid"`
 	EmoticonMD5     string `xml:"emoticonmd5"`
 	CDNAttachURL    string `xml:"cdnattachurl"`
+	CDNThumbURL     string `xml:"cdnthumburl"`
+	CDNThumbMD5     string `xml:"cdnthumbmd5"`
+	CDNThumbLength  int64  `xml:"cdnthumblength"`
+	CDNThumbWidth   int    `xml:"cdnthumbwidth"`
+	CDNThumbHeight  int    `xml:"cdnthumbheight"`
 	CDNThumbAESKey  string `xml:"cdnthumbaeskey"`
 	AESKey          string `xml:"aeskey"`
 	EncryVer        int    `xml:"encryver"`
@@ -123,7 +128,7 @@ type FileSecretXml struct {
 type AppInfo struct {
 	ID            string `xml:"id"`
 	Version       string `xml:"version,omitempty"`
-	AppName       string `xml:"appName,omitempty"`
+	AppName       string `xml:"appname,omitempty"`
 	InstallUrl    string `xml:"installUrl,omitempty"`
 	FromUrl       string `xml:"fromUrl,omitempty"`
 	IsForceUpdate uint32 `xml:"isForceUpdate"`
