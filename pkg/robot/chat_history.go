@@ -3,7 +3,9 @@ package robot
 import (
 	"encoding/xml"
 	"fmt"
+	"regexp"
 	"strings"
+	"unicode"
 )
 
 type ChatHistoryMessage struct {
@@ -160,6 +162,70 @@ type DataItem struct {
 	Link             string                `xml:"link,omitempty"`
 }
 
+var re = regexp.MustCompile(`@([^ | ]+?)(?: | |$)`)
+
+func rewriteContentWithMentions(nickname, content string) string {
+	nickname = strings.TrimSpace(nickname)
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return ""
+	}
+
+	matches := re.FindAllStringSubmatch(content, -1)
+	if len(matches) == 0 {
+		if nickname == "" {
+			return content
+		}
+		return nickname + " 说: " + content
+	}
+
+	names := make([]string, 0, len(matches))
+	seen := make(map[string]struct{}, len(matches))
+	for _, m := range matches {
+		if len(m) < 2 {
+			continue
+		}
+		name := strings.TrimSpace(m[1])
+		if name == "" {
+			continue
+		}
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		names = append(names, name)
+	}
+
+	clean := strings.TrimSpace(re.ReplaceAllString(content, ""))
+	if len(names) == 0 {
+		if nickname == "" {
+			return clean
+		}
+		if clean == "" {
+			return ""
+		}
+		return nickname + " 说: " + clean
+	}
+
+	prefix := "对 " + strings.Join(names, "、") + " 说: "
+	if nickname != "" {
+		prefix = nickname + " " + prefix
+	}
+	if clean == "" {
+		return strings.TrimSpace(prefix)
+	}
+	return prefix + clean
+}
+
+func containsLetterOrNumber(s string) bool {
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsNumber(r) {
+			return true
+		}
+	}
+	return false
+}
+
 func ExtractChatHistoryMessageRecords(recordInfo *RecordInfo) []ChatHistoryMessageRecord {
 	if recordInfo == nil || len(recordInfo.DataList.Items) == 0 {
 		return nil
@@ -169,10 +235,10 @@ func ExtractChatHistoryMessageRecords(recordInfo *RecordInfo) []ChatHistoryMessa
 	var walk func(items []DataItem)
 	walk = func(items []DataItem) {
 		for _, item := range items {
-			if item.DataType == 1 || item.DataType == 17 {
+			if item.DataType == 1 {
 				nickname := strings.TrimSpace(item.SourceName)
-				content := strings.TrimSpace(item.DataDesc)
-				if nickname != "" || content != "" {
+				content := rewriteContentWithMentions(nickname, item.DataDesc)
+				if content != "" && containsLetterOrNumber(item.DataDesc) {
 					records = append(records, ChatHistoryMessageRecord{
 						Nickname: nickname,
 						Content:  content,

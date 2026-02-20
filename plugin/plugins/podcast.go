@@ -151,8 +151,6 @@ func (p *PodcastPlugin) Run(ctx *plugin.MessageContext) {
 				speakers := []string{
 					"zh_female_mizaitongxue_v2_saturn_bigtts",
 					"zh_male_dayixiansheng_v2_saturn_bigtts",
-					"zh_male_liufei_v2_saturn_bigtts",
-					"zh_male_xiaolei_v2_saturn_bigtts",
 				}
 				nicknameSpeaker := make(map[string]string, len(messageRecords))
 				nextSpeakerIdx := 0

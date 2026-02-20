@@ -216,13 +216,14 @@ func Podcast(secrets PodcastSecrets, config PodcastConfig) (string, error) {
 				// 播客结束
 				case EventType_PodcastRoundEnd:
 					var data struct {
-						IsError bool `json:"is_error"`
+						IsError  bool   `json:"is_error"`
+						ErrorMsg string `json:"error_msg"`
 					}
 					if err := json.Unmarshal(msg.Payload, &data); err != nil {
 						return "", fmt.Errorf("反序列化失败: %v", err)
 					}
 					if data.IsError {
-						return "", fmt.Errorf("播客round结束, 有错误发生")
+						return "", fmt.Errorf("播客round结束, 有错误发生%s", data.ErrorMsg)
 					}
 					isPodcastRoundEnd = true
 					lastRoundID = currentRound
