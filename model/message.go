@@ -42,6 +42,7 @@ const (
 	AppMsgTypeEmotion               AppMessageType = 15     // Emotion
 	AppMsgTypeCardTicket            AppMessageType = 16     // 名片消息
 	AppMsgTypeRealtimeShareLocation AppMessageType = 17     // 地理位置消息
+	AppMsgTypeChatHistory           AppMessageType = 19     // ChatHistory
 	AppMsgTypequote                 AppMessageType = 57     // 引用消息
 	AppMsgTypeAttachUploading       AppMessageType = 74     // 附件上传中
 	AppMsgTypeTransfers             AppMessageType = 2000   // 转账消息
