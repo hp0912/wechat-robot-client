@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"log"
 	"strings"
 
 	"wechat-robot-client/interface/plugin"
@@ -37,7 +38,21 @@ func (p *PodcastPlugin) Match(ctx *plugin.MessageContext) bool {
 }
 
 func (p *PodcastPlugin) PreAction(ctx *plugin.MessageContext) bool {
-	if !NewChatRoomCommonPlugin().PreAction(ctx) {
+	chatRoomMember, err := ctx.MessageService.GetChatRoomMember(ctx.Message.FromWxID, ctx.Message.SenderWxID)
+	if err != nil {
+		log.Printf("获取群成员信息失败: %v", err)
+		return false
+	}
+	if chatRoomMember == nil {
+		log.Printf("群成员信息不存在: 群ID=%s, 成员微信ID=%s", ctx.Message.FromWxID, ctx.Message.SenderWxID)
+		return false
+	}
+	if chatRoomMember.IsBlacklisted != nil && *chatRoomMember.IsBlacklisted {
+		log.Printf("群成员[%s]在黑名单中，跳过AI回复", chatRoomMember.Nickname)
+		return false
+	}
+	if chatRoomMember.IsAdmin == nil || !*chatRoomMember.IsAdmin {
+		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "您配使用这个指令吗？")
 		return false
 	}
 
@@ -102,7 +117,8 @@ func (p *PodcastPlugin) Run(ctx *plugin.MessageContext) {
 				return
 			}
 		case model.MsgTypeApp:
-			if ctx.ReferMessage.AppMsgType == model.AppMsgTypeUrl {
+			switch ctx.ReferMessage.AppMsgType {
+			case model.AppMsgTypeUrl:
 				var xmlMessage robot.XmlMessage
 				if err := vars.RobotRuntime.XmlDecoder(ctx.ReferMessage.Content, &xmlMessage); err != nil {
 					ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "引用消息解析失败")
@@ -110,7 +126,54 @@ func (p *PodcastPlugin) Run(ctx *plugin.MessageContext) {
 				}
 				p.PodcastConfig.Action = 0
 				p.PodcastConfig.InputInfo.InputURL = strings.ReplaceAll(xmlMessage.AppMsg.URL, "&amp;", "&")
-			} else {
+			case model.AppMsgTypeChatHistory:
+				var historyMessage robot.ChatHistoryMessage
+				var messageRecords []robot.ChatHistoryMessageRecord
+				if err := vars.RobotRuntime.XmlDecoder(ctx.ReferMessage.Content, &historyMessage); err != nil {
+					ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "引用消息解析失败")
+					return
+				}
+				recordInfo, err := historyMessage.AppMsg.RecordItem.ParseRecordInfo()
+				if err != nil {
+					ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "聊天记录解析失败")
+					return
+				}
+				if recordInfo == nil || len(recordInfo.DataList.Items) == 0 {
+					ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "聊天记录内容为空")
+					return
+				}
+
+				messageRecords = robot.ExtractChatHistoryMessageRecords(recordInfo)
+				if len(messageRecords) == 0 {
+					ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "聊天记录内容为空")
+					return
+				}
+				speakers := []string{
+					"zh_female_mizaitongxue_v2_saturn_bigtts",
+					"zh_male_dayixiansheng_v2_saturn_bigtts",
+					"zh_male_liufei_v2_saturn_bigtts",
+					"zh_male_xiaolei_v2_saturn_bigtts",
+				}
+				nicknameSpeaker := make(map[string]string, len(messageRecords))
+				nextSpeakerIdx := 0
+
+				var nlpTests []podcast.NLPText
+				for _, r := range messageRecords {
+					nickname := strings.TrimSpace(r.Nickname)
+					speaker, ok := nicknameSpeaker[nickname]
+					if !ok {
+						speaker = speakers[nextSpeakerIdx%len(speakers)]
+						nicknameSpeaker[nickname] = speaker
+						nextSpeakerIdx++
+					}
+					nlpTests = append(nlpTests, podcast.NLPText{
+						Speaker: speaker,
+						Text:    r.Content,
+					})
+				}
+				p.PodcastConfig.Action = 3
+				p.PodcastConfig.NLPTexts = nlpTests
+			default:
 				ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "暂不支持的消息类型")
 				return
 			}

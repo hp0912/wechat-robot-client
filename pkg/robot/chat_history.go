@@ -1,6 +1,10 @@
 package robot
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"fmt"
+	"strings"
+)
 
 type ChatHistoryMessage struct {
 	XMLName      xml.Name           `xml:"msg"`
@@ -9,6 +13,11 @@ type ChatHistoryMessage struct {
 	Scene        int                `xml:"scene,omitempty"`
 	AppInfo      ChatHistoryAppInfo `xml:"appinfo,omitempty"`
 	CommentURL   string             `xml:"commenturl,omitempty"`
+}
+
+type ChatHistoryMessageRecord struct {
+	Nickname string `json:"nickname"`
+	Content  string `json:"content"`
 }
 
 type ChatHistoryAppMsg struct {
@@ -25,7 +34,72 @@ type ChatHistoryAppMsg struct {
 }
 
 type ChatHistoryRecordItem struct {
+	// XML holds the raw inner XML of <recorditem>.
+	// It is primarily used when marshaling (so callers can inject CDATA as-is).
 	XML string `xml:",innerxml"`
+	// Text holds the decoded text content of <recorditem> (CDATA becomes plain text).
+	Text string `xml:"-"`
+}
+
+func (r *ChatHistoryRecordItem) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var aux struct {
+		Inner string `xml:",innerxml"`
+		Text  string `xml:",chardata"`
+	}
+	if err := d.DecodeElement(&aux, &start); err != nil {
+		return err
+	}
+
+	r.XML = aux.Inner
+	r.Text = strings.TrimSpace(aux.Text)
+	if r.Text == "" {
+		r.Text = strings.TrimSpace(extractFirstCDATA(aux.Inner))
+		if r.Text == "" {
+			r.Text = strings.TrimSpace(aux.Inner)
+		}
+	}
+	return nil
+}
+
+// ParseRecordInfo parses the payload inside <recorditem> into a RecordInfo tree.
+// The payload is usually XML inside CDATA, e.g. "<recordinfo>...</recordinfo>".
+// If the payload is empty or "(null)", it returns (nil, nil).
+func (r ChatHistoryRecordItem) ParseRecordInfo() (*RecordInfo, error) {
+	payload := strings.TrimSpace(r.Text)
+	if payload == "" {
+		payload = strings.TrimSpace(extractFirstCDATA(r.XML))
+		if payload == "" {
+			payload = strings.TrimSpace(r.XML)
+		}
+	}
+
+	if payload == "" || payload == "(null)" {
+		return nil, nil
+	}
+	if !strings.Contains(payload, "<") {
+		return nil, fmt.Errorf("recorditem payload does not look like XML: %q", payload)
+	}
+
+	var recordInfo RecordInfo
+	if err := xml.Unmarshal([]byte(payload), &recordInfo); err != nil {
+		return nil, fmt.Errorf("unmarshal recorditem payload: %w", err)
+	}
+	return &recordInfo, nil
+}
+
+func extractFirstCDATA(s string) string {
+	const start = "<![CDATA["
+	const end = "]]>"
+	startIdx := strings.Index(s, start)
+	if startIdx < 0 {
+		return ""
+	}
+	startIdx += len(start)
+	endIdx := strings.Index(s[startIdx:], end)
+	if endIdx < 0 {
+		return ""
+	}
+	return s[startIdx : startIdx+endIdx]
 }
 
 type ChatHistoryAppAttach struct {
@@ -84,6 +158,39 @@ type DataItem struct {
 	CDNDataURL       string                `xml:"cdndataurl,omitempty"`
 	FullMD5          string                `xml:"fullmd5,omitempty"`
 	Link             string                `xml:"link,omitempty"`
+}
+
+func ExtractChatHistoryMessageRecords(recordInfo *RecordInfo) []ChatHistoryMessageRecord {
+	if recordInfo == nil || len(recordInfo.DataList.Items) == 0 {
+		return nil
+	}
+
+	records := make([]ChatHistoryMessageRecord, 0)
+	var walk func(items []DataItem)
+	walk = func(items []DataItem) {
+		for _, item := range items {
+			if item.DataType == 1 || item.DataType == 17 {
+				nickname := strings.TrimSpace(item.SourceName)
+				content := strings.TrimSpace(item.DataDesc)
+				if nickname != "" || content != "" {
+					records = append(records, ChatHistoryMessageRecord{
+						Nickname: nickname,
+						Content:  content,
+					})
+				}
+			}
+
+			if item.DataType == 17 && item.RecordXML != nil {
+				nestedItems := item.RecordXML.RecordInfo.DataList.Items
+				if len(nestedItems) > 0 {
+					walk(nestedItems)
+				}
+			}
+		}
+	}
+
+	walk(recordInfo.DataList.Items)
+	return records
 }
 
 type RecordXML struct {
