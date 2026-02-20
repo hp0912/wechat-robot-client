@@ -120,6 +120,8 @@ func (p *PodcastPlugin) Run(ctx *plugin.MessageContext) {
 		}
 	}
 
+	ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "正在生成播客，请稍候...")
+
 	var audioURL string
 	var err error
 

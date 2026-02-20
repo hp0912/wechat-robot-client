@@ -1,0 +1,122 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        position: relative;
+        width: 832px;
+        height: 468px;
+        margin: 0 auto;
+        padding: 16px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .container::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: url("./background.jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 1;
+        z-index: 0;
+      }
+
+      .container > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .date {
+        font-size: 24px;
+        font-weight: 600;
+        background: linear-gradient(90deg, #000 0%, #d3cece 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .content {
+        height: 80%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .detail {
+        font-size: 16px;
+        line-height: 24px;
+        color: rgb(52, 51, 51);
+      }
+
+      .count {
+        font-size: 20px;
+        font-weight: 600;
+        color: rgb(232, 101, 101);
+      }
+
+      .quote {
+        font-size: 14px;
+        font-style: italic;
+        color: rgb(73, 71, 71);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="date">
+        {{.Summary.Year}}年 {{.Summary.Month}} 月 {{.Summary.Date}}
+        日，{{.Summary.Week}}
+      </div>
+      <div class="content">
+        <div class="detail">
+          <div>早上好，</div>
+          <div>
+            群内成员一共
+            <span class="count">{{.Summary.MemberTotalCount}}</span> 名，
+          </div>
+          {{if and (eq .Summary.MemberJoinCount 0) (eq .Summary.MemberLeaveCount
+          0)}}
+          <div>没有人加入，也没有人离开，</div>
+          {{else if and (gt .Summary.MemberJoinCount 0) (gt
+          .Summary.MemberLeaveCount 0)}}
+          <div>
+            有
+            <span class="count">{{.Summary.MemberJoinCount}}</span>
+            人加入，但是也有
+            <span class="count">{{.Summary.MemberLeaveCount}}</span> 人离开，
+          </div>
+          {{else if gt .Summary.MemberJoinCount 0}}
+          <div>
+            有
+            <span class="count">{{.Summary.MemberJoinCount}}</span>
+            人加入，没有人离开，
+          </div>
+          {{else}}
+          <div>
+            没有人加入，有
+            <span class="count">{{.Summary.MemberLeaveCount}}</span> 人离开，
+          </div>
+          {{end}}
+          <div>
+            共有
+            <span class="count">{{.Summary.MemberChatCount}}</span> 人侃侃而谈
+            <span class="count">{{.Summary.MessageCount}}</span> 句。
+          </div>
+        </div>
+        <div class="quote">{{.DailyWords}}</div>
+      </div>
+    </div>
+  </body>
+</html>
