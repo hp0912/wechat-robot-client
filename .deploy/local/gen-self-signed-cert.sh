@@ -81,7 +81,8 @@ CN = localhost
 
 [ v3_req ]
 subjectAltName = @alt_names
-keyUsage = keyEncipherment, dataEncipherment
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
 EOF
 
@@ -110,7 +111,7 @@ openssl req \
   -newkey rsa:2048 \
   -keyout "$CERT_DIR/tls.key" \
   -out "$CERT_DIR/tls.crt" \
-  -config "$TMP_CONF" >/dev/null 2>&1
+  -config "$TMP_CONF" -extensions v3_req >/dev/null 2>&1
 
 chmod 600 "$CERT_DIR/tls.key" || true
 chmod 644 "$CERT_DIR/tls.crt" || true

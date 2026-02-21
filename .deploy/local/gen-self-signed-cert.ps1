@@ -46,7 +46,8 @@ $confLines = @(
   '',
   '[ v3_req ]',
   'subjectAltName = @alt_names',
-  'keyUsage = keyEncipherment, dataEncipherment',
+  'basicConstraints = CA:FALSE',
+  'keyUsage = critical, digitalSignature, keyEncipherment',
   'extendedKeyUsage = serverAuth',
   '',
   '[ alt_names ]',
@@ -71,7 +72,7 @@ foreach ($ip in $IpAddresses) {
 $confLines | Set-Content -Encoding ascii $confPath
 
 try {
-  & $openssl req -x509 -nodes -days $Days -newkey rsa:2048 -keyout $keyPath -out $crtPath -config $confPath | Out-Null
+  & $openssl req -x509 -nodes -days $Days -newkey rsa:2048 -keyout $keyPath -out $crtPath -config $confPath -extensions v3_req | Out-Null
 }
 finally {
   Remove-Item -Force -ErrorAction SilentlyContinue $confPath
