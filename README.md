@@ -123,6 +123,7 @@
 > - ~~你得有自己的公众号，用来集成公众号扫码登录，本项目只集成了公众号扫码登录~~
 > - 2025/08/29 新增支持通过登录密钥登录管理后台 (默认密钥： 12345678)
 > - 自己会安装 docker 和 docker-compose
+> - 系统已安装 OpenSSL (或者 Git for Windows，Mac 电脑一般自带 OpenSSL)，用于 https 证书签名
 
 **直接使用现成系统**
 
@@ -143,6 +144,12 @@ cd ./wechat-robot-client/.deploy/local
 
 # 先创建一个docker网络，如果以前没创建过的话
 docker network create wechat-robot
+
+# 生成 https 证书，windows 系统 / MacOS 系统
+# windows，<A_LAN_IP> 替换成局域网 ip
+powershell -ExecutionPolicy Bypass -File ./gen-self-signed-cert.ps1 -IpAddresses <A_LAN_IP>
+# mac 电脑，windows 电脑如果有 Git Bash 也可以用这个命令，<A_LAN_IP> 替换成局域网 ip
+sh .deploy/local/gen-self-signed-cert.sh --ip <A_LAN_IP>
 
 # 通过docker-compose启动容器，下面两个命令，哪个能用就用哪个
 docker compose up -d
@@ -184,7 +191,7 @@ docker compose up -d
 docker-compose up -d
 ```
 
-4. 访问 http://127.0.0.1:8080 **机器人管理后台**
+4. 访问 https://127.0.0.1:8443 **机器人管理后台**
 
 5. 使用个人微信扫码登录 / 输入登录密钥登录 (默认密钥： 12345678)
 
