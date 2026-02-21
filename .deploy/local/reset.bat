@@ -2,7 +2,7 @@
 
 REM 停止并移除容器
 docker compose down
-docker compose -f docker-compose2.yml down
+docker compose -f docker-compose.yml down
 
 REM 删除数据文件夹和文件
 rmdir /s /q wechat_admin_mysql_data
@@ -16,6 +16,6 @@ docker pull registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-client:latest
 docker pull registry.cn-shenzhen.aliyuncs.com/houhou/wechat-ipad:latest
 
 REM 重启服务
-docker compose -f docker-compose2.yml up -d
+docker compose -f docker-compose.yml up -d
 
 pause
