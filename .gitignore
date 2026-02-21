@@ -4,3 +4,8 @@ dev-wechat-ipad.yml
 wechat-robot-client
 pkg/good_morning/test_output
 __debug*
+
+# local self-signed certs (do not commit)
+.deploy/local/secrets/nginx/*.key
+.deploy/local/secrets/nginx/*.crt
+.deploy/local/secrets/nginx/*.pem
