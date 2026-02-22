@@ -137,7 +137,22 @@ services:
       - "9200:9000"
     networks:
       - wechat-robot
-      
+
+  netease-cloud-music:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/netease-cloud-music:latest
+    container_name: netease-cloud-music
+    restart: unless-stopped
+    tty: true
+    environment:
+      - ENABLE_GENERAL_UNBLOCK=true
+      - ENABLE_FLAC=true
+      - SELECT_MAX_BR=true
+      - FOLLOW_SOURCE_ORDER=true
+    ports:
+      - "3000:3000"
+    networks:
+      - wechat-robot
+     
   wechat-robot-admin-frontend:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-robot-admin-frontend:latest
     container_name: wechat-robot-admin-frontend

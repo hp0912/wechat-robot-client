@@ -20,6 +20,7 @@ type MessageServiceIface interface {
 	SendImageMessageByRemoteURL(toWxID string, imageURL string) error
 	SendImageMessageStream(ctx context.Context, req dto.SendImageMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) (*model.Message, error)
 	SendVideoMessageByRemoteURL(toWxID string, videoURL string) error
+	SendFileMessage(ctx context.Context, req dto.SendFileMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) error
 	MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error
 	MsgSendVideo(toWxID string, video io.Reader, videoExt string) error
 	SendMusicMessage(toWxID string, songTitle string) error
