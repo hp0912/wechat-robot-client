@@ -3,15 +3,20 @@ package plugins
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/jpeg"
 	_ "image/png"
+	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/url"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -134,6 +139,15 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 
 	if len(respData.Data.Images) > 0 {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("抖音图片解析成功\n作者: %s\n标题: %s\n\n%d张图片正在发送中...", respData.Data.Author, respData.Data.Title, len(respData.Data.Images)))
+
+		if respData.Data.MusicURL != "" {
+			go func(musicurl string) {
+				err := sendFileByRemoteURL(ctx, musicurl)
+				if err != nil {
+					ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送抖音音频失败: %v", err))
+				}
+			}(respData.Data.MusicURL)
+		}
 
 		imageURLs := respData.Data.Images
 		batchSize := 20
@@ -315,6 +329,76 @@ func sendMergedImage(ctx *plugin.MessageContext, imageData []byte) error {
 		}
 
 		if _, err := ctx.MessageService.SendImageMessageStream(context.Background(), req, chunkReader, chunkHeader); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func sendFileByRemoteURL(ctx *plugin.MessageContext, fileURL string) error {
+	resp, err := resty.New().R().SetDoNotParseResponse(true).Get(fileURL)
+	if err != nil {
+		return fmt.Errorf("下载文件失败: %w", err)
+	}
+	defer resp.RawBody().Close()
+
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("下载文件失败，HTTP状态码: %d", resp.StatusCode())
+	}
+
+	fileData, err := io.ReadAll(resp.RawBody())
+	if err != nil {
+		return fmt.Errorf("读取文件数据失败: %w", err)
+	}
+	if len(fileData) == 0 {
+		return fmt.Errorf("文件数据为空")
+	}
+
+	parsedURL, err := url.Parse(fileURL)
+	if err != nil {
+		return fmt.Errorf("解析文件URL失败: %w", err)
+	}
+	filename := path.Base(parsedURL.Path)
+	if filename == "" || filename == "/" || filename == "." {
+		filename = "douyin_music.mp3"
+	}
+
+	fileMD5Bytes := md5.Sum(fileData)
+	fileHash := hex.EncodeToString(fileMD5Bytes[:])
+	fileSize := int64(len(fileData))
+	chunkSize := vars.UploadFileChunkSize
+	if chunkSize <= 0 {
+		chunkSize = 50000
+	}
+	totalChunks := (fileSize + chunkSize - 1) / chunkSize
+	clientAppDataID := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().UnixNano())
+
+	for chunkIndex := range totalChunks {
+		start := int64(chunkIndex) * chunkSize
+		end := min(start+chunkSize, fileSize)
+		chunkData := fileData[start:end]
+
+		req := dto.SendFileMessageRequest{
+			ToWxid:          ctx.Message.FromWxID,
+			ClientAppDataId: clientAppDataID,
+			Filename:        filename,
+			FileHash:        fileHash,
+			FileSize:        fileSize,
+			ChunkIndex:      int64(chunkIndex),
+			TotalChunks:     totalChunks,
+		}
+
+		chunkReader := bytes.NewReader(chunkData)
+		chunkHeader := &multipart.FileHeader{
+			Filename: filename,
+			Size:     int64(len(chunkData)),
+		}
+
+		if err = ctx.MessageService.SendFileMessage(context.Background(), req, chunkReader, chunkHeader); err != nil {
+			if strings.Contains(err.Error(), "context canceled") || strings.Contains(err.Error(), "context deadline exceeded") {
+				return fmt.Errorf("发送文件超时")
+			}
 			return err
 		}
 	}

@@ -122,6 +122,21 @@ services:
     networks:
       - wechat-robot
 
+  netease-cloud-music:
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/netease-cloud-music:latest
+    container_name: netease-cloud-music
+    restart: unless-stopped
+    tty: true
+    environment:
+      - ENABLE_GENERAL_UNBLOCK=true
+      - ENABLE_FLAC=true
+      - SELECT_MAX_BR=true
+      - FOLLOW_SOURCE_ORDER=true
+    ports:
+      - "3000:3000"
+    networks:
+      - wechat-robot
+     
   xiaohongshu-mcp:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/xiaohongshu-mcp:latest
     container_name: xiaohongshu-mcp
