@@ -71,6 +71,11 @@ func (p *ChatRoomWxhbNotifyPlugin) Run(ctx *plugin.MessageContext) {
 		return
 	}
 
+	if xmlMessage.AppMsg.WcPayInfo.SceneID == "1001" {
+		log.Println("群收款通知~")
+		return
+	}
+
 	notifyTargets := p.buildNotifyTargets(ctx.Message.SenderWxID, xmlMessage.AppMsg.WcPayInfo.ExclusiveRecvUsername)
 	if len(notifyTargets) == 0 {
 		return
