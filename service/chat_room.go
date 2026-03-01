@@ -178,7 +178,35 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 				err = s.crmRepo.Update(&updateMember)
 				if err != nil {
 					log.Printf("标记群[%s]成员[%s]为已离开失败: %v", chatRoomID, dbMember.WechatID, err)
+				}
+				chatRoomSettings, err := s.crsRepo.GetChatRoomSettings(chatRoomID)
+				if err != nil {
+					log.Printf("获取群[%s]设置失败: %v", chatRoomID, err)
 					continue
+				}
+				if chatRoomSettings == nil {
+					log.Printf("群[%s]设置不存在", chatRoomID)
+					continue
+				}
+				if chatRoomSettings.WxhbNotifyMemberList != nil && *chatRoomSettings.WxhbNotifyMemberList != "" {
+					wxhbNotifyMemberList := strings.Split(*chatRoomSettings.WxhbNotifyMemberList, ",")
+					if slices.Contains(wxhbNotifyMemberList, dbMember.WechatID) {
+						// 从红包通知列表中移除已离开的成员
+						var newNotifyMemberList []string
+						for _, memberID := range wxhbNotifyMemberList {
+							if memberID != dbMember.WechatID {
+								newNotifyMemberList = append(newNotifyMemberList, memberID)
+							}
+						}
+						newNotifyMemberListStr := strings.Join(newNotifyMemberList, ",")
+						err = s.crsRepo.Update(&model.ChatRoomSettings{
+							ID:                   chatRoomSettings.ID,
+							WxhbNotifyMemberList: &newNotifyMemberListStr,
+						})
+						if err != nil {
+							log.Printf("更新群[%s]设置失败: %v", chatRoomID, err)
+						}
+					}
 				}
 			}
 		}
