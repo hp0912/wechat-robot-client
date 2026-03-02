@@ -26,6 +26,7 @@ var ossSettingsCtl *controller.OSSSettings
 var mcpServerCtl *controller.MCPServer
 var probeCtl *controller.Probe
 var pprofProxyCtl *controller.PprofProxy
+var skillCtl *controller.SkillController
 
 func initController() {
 	chatHistoryCtl = controller.NewChatHistoryController()
@@ -46,6 +47,7 @@ func initController() {
 	mcpServerCtl = controller.NewMCPController()
 	pprofProxyCtl = controller.NewPprofProxyController(vars.PprofProxyURL)
 	probeCtl = controller.NewProbeController()
+	skillCtl = controller.NewSkillController()
 }
 
 func RegisterRouter(r *gin.Engine) error {
@@ -142,6 +144,14 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/mcp/server/disable", mcpServerCtl.DisableMCPServer)
 	api.PUT("/robot/mcp/server", mcpServerCtl.UpdateMCPServer)
 	api.DELETE("/robot/mcp/server", mcpServerCtl.DeleteMCPServer)
+
+	// Agent Skills 技能管理接口
+	api.GET("/robot/skills", skillCtl.GetAllSkills)
+	api.GET("/robot/skill", skillCtl.GetSkill)
+	api.POST("/robot/skill/install", skillCtl.InstallSkill)
+	api.POST("/robot/skill/enable", skillCtl.EnableSkill)
+	api.POST("/robot/skill/disable", skillCtl.DisableSkill)
+	api.DELETE("/robot/skill", skillCtl.UninstallSkill)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)

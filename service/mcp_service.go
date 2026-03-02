@@ -9,7 +9,9 @@ import (
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/mcp"
+	"wechat-robot-client/pkg/skills"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/vars"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/sashabaranov/go-openai"
@@ -107,10 +109,18 @@ func (s *MCPService) ChatWithMCPTools(
 		maxIterations = 5 // 默认最多5轮工具调用
 	}
 
-	// 获取所有可用工具
+	// 获取所有可用 MCP 工具
 	tools, err := s.GetAllTools()
 	if err != nil {
 		return openai.ChatCompletionMessage{}, fmt.Errorf("failed to get tools: %w", err)
+	}
+
+	// 获取 Skills 工具（如果 SkillService 已初始化）
+	var skillExecutor *skills.SkillToolExecutor
+	if vars.SkillService != nil {
+		skillExecutor = vars.SkillService.GetExecutor()
+		skillTools := skillExecutor.GetOpenAITools()
+		tools = append(tools, skillTools...)
 	}
 
 	// 如果没有可用工具，直接调用AI
@@ -125,6 +135,13 @@ func (s *MCPService) ChatWithMCPTools(
 		enhancedPrompt, err := s.converter.BuildSystemPromptWithMCPTools(s.ctx, req.Messages[0].Content)
 		if err == nil {
 			req.Messages[0].Content = enhancedPrompt
+		}
+		// 追加 Skills 部分到系统提示词
+		if vars.SkillService != nil {
+			skillsSection := vars.SkillService.GetManager().BuildSystemPromptSkillsSection()
+			if skillsSection != "" {
+				req.Messages[0].Content += skillsSection
+			}
 		}
 	}
 
@@ -149,8 +166,19 @@ func (s *MCPService) ChatWithMCPTools(
 		for _, toolCall := range assistantMsg.ToolCalls {
 			log.Printf("Executing tool: %s", toolCall.Function.Name)
 
-			// 执行工具
-			result, immediately, err := s.ExecuteToolCall(robotCtx, toolCall)
+			var result string
+			var immediately bool
+			var err error
+
+			// 判断是否为 Skills 工具调用
+			if skillExecutor != nil && skillExecutor.IsSkillTool(toolCall.Function.Name) {
+				result, err = skillExecutor.ExecuteToolCall(toolCall)
+				immediately = false
+			} else {
+				// MCP 工具调用
+				result, immediately, err = s.ExecuteToolCall(robotCtx, toolCall)
+			}
+
 			if err == nil {
 				// 工具调用结果立即返回
 				if immediately {
