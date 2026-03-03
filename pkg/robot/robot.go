@@ -356,7 +356,7 @@ func (r *Robot) DownloadVoice(ctx context.Context, message model.Message) ([]byt
 		return nil, "", "", ctx.Err()
 	}
 
-	cmd := exec.CommandContext(ctx, "silk-convert", inFile.Name(), "wav")
+	cmd := exec.CommandContext(ctx, "/usr/local/bin/silk/converter", inFile.Name(), "wav")
 	if err = cmd.Run(); err != nil {
 		return nil, "", "", fmt.Errorf("silk-convert执行转换错误: %w", err)
 	}
@@ -976,7 +976,7 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 		silkFilename := strings.Replace(pcmFile.Name(), ".pcm", ".silk", 1)
 		defer os.Remove(silkFilename)
 
-		cmd = exec.Command("silk-encoder", pcmFile.Name(), silkFilename, "-tencent")
+		cmd = exec.Command("/usr/local/bin/silk/encoder", pcmFile.Name(), silkFilename, "-tencent")
 		if err = cmd.Run(); err != nil {
 			err = fmt.Errorf("decoder转换pcm文件到silk文件错误: %w", err)
 			return
