@@ -1,14 +1,31 @@
 package skills
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 )
+
+// SkillRepository 数据库持久化接口（由 repository 层实现）
+type SkillRepository interface {
+	// FindAll 查询所有 Skill 记录
+	FindAll() ([]SkillRecord, error)
+	// Upsert 插入或更新一条记录
+	Upsert(record SkillRecord) error
+	// Delete 按名称删除
+	Delete(name string) error
+}
+
+// SkillRecord 存储层的 Skill 记录（与 GORM model 解耦）
+type SkillRecord struct {
+	Name        string      `json:"name"`
+	Path        string      `json:"path"`
+	Enabled     bool        `json:"enabled"`
+	Source      SkillSource `json:"source"`
+	InstalledAt time.Time   `json:"installed_at"`
+}
 
 // Manager Skills 管理器，负责发现、加载、激活、安装技能
 type Manager struct {
@@ -19,21 +36,20 @@ type Manager struct {
 	// Skill 存储根目录
 	baseDir string
 
-	// 配置文件路径
-	configPath string
+	// 数据库持久化
+	repo SkillRepository
 
 	// Installer
 	installer *Installer
 }
 
 // NewManager 创建 Skills 管理器
-func NewManager(baseDir string) *Manager {
-	configPath := filepath.Join(baseDir, "skills.json")
+func NewManager(baseDir string, repo SkillRepository) *Manager {
 	return &Manager{
-		skills:     make(map[string]*Skill),
-		baseDir:    baseDir,
-		configPath: configPath,
-		installer:  NewInstaller(baseDir),
+		skills:    make(map[string]*Skill),
+		baseDir:   baseDir,
+		repo:      repo,
+		installer: NewInstaller(baseDir),
 	}
 }
 
@@ -44,11 +60,11 @@ func (m *Manager) Initialize() error {
 		return fmt.Errorf("failed to create skills directory: %w", err)
 	}
 
-	// 加载配置
-	config, err := m.loadConfig()
+	// 从数据库加载配置
+	records, err := m.repo.FindAll()
 	if err != nil {
-		log.Printf("[Skills] Warning: failed to load config, will discover from disk: %v", err)
-		config = &SkillConfig{}
+		log.Printf("[Skills] Warning: failed to load config from DB: %v", err)
+		records = nil
 	}
 
 	// 发现磁盘上的 Skill
@@ -58,9 +74,9 @@ func (m *Manager) Initialize() error {
 	}
 
 	// 构建配置索引
-	configIndex := make(map[string]*SkillEntry)
-	for i := range config.Skills {
-		configIndex[config.Skills[i].Name] = &config.Skills[i]
+	configIndex := make(map[string]*SkillRecord)
+	for i := range records {
+		configIndex[records[i].Name] = &records[i]
 	}
 
 	m.mu.Lock()
@@ -89,10 +105,8 @@ func (m *Manager) Initialize() error {
 		log.Printf("[Skills] Loaded skill: %s (%s)", skill.Name, skill.Description)
 	}
 
-	// 保存最新配置
-	if err := m.saveConfig(); err != nil {
-		log.Printf("[Skills] Warning: failed to save config: %v", err)
-	}
+	// 保存最新配置到数据库
+	m.syncToDB()
 
 	log.Printf("[Skills] Manager initialized with %d skills", len(m.skills))
 	return nil
@@ -181,10 +195,8 @@ func (m *Manager) InstallFromGit(req SkillInstallRequest) (*Skill, error) {
 	m.skills[skill.Name] = skill
 	m.mu.Unlock()
 
-	// 保存配置
-	if err := m.saveConfig(); err != nil {
-		log.Printf("[Skills] Warning: failed to save config after install: %v", err)
-	}
+	// 保存配置到数据库
+	m.saveSkillToDB(skill)
 
 	log.Printf("[Skills] Installed skill: %s from %s", skill.Name, req.RepoURL)
 	return skill, nil
@@ -206,9 +218,9 @@ func (m *Manager) Uninstall(name string) error {
 		log.Printf("[Skills] Warning: failed to remove skill directory: %v", err)
 	}
 
-	// 保存配置
-	if err := m.saveConfig(); err != nil {
-		log.Printf("[Skills] Warning: failed to save config after uninstall: %v", err)
+	// 从数据库删除
+	if err := m.repo.Delete(name); err != nil {
+		log.Printf("[Skills] Warning: failed to delete skill from DB: %v", err)
 	}
 
 	log.Printf("[Skills] Uninstalled skill: %s", name)
@@ -227,9 +239,7 @@ func (m *Manager) Enable(name string) error {
 
 	skill.Enabled = true
 
-	if err := m.saveConfig(); err != nil {
-		log.Printf("[Skills] Warning: failed to save config: %v", err)
-	}
+	m.saveSkillToDB(skill)
 	return nil
 }
 
@@ -245,9 +255,7 @@ func (m *Manager) Disable(name string) error {
 
 	skill.Enabled = false
 
-	if err := m.saveConfig(); err != nil {
-		log.Printf("[Skills] Warning: failed to save config: %v", err)
-	}
+	m.saveSkillToDB(skill)
 	return nil
 }
 
@@ -301,6 +309,7 @@ func (m *Manager) BuildSystemPromptSkillsSection() string {
 当你判断用户的任务与某个 Skill 相关时，请调用 activate_skill 工具来加载该 Skill 的完整指令。
 加载后请严格按照 Skill 指令执行任务。
 如果需要读取 Skill 附带的资源文件（如 scripts/、references/ 等），请调用 read_skill_resource 工具。
+如果 Skill 指令要求运行脚本（如 Python/Shell 脚本），请调用 execute_skill_script 工具执行。
 `...)
 
 	return string(sb)
@@ -365,43 +374,71 @@ func (m *Manager) BuildSkillTools() []map[string]interface{} {
 	return tools
 }
 
-// loadConfig 加载配置文件
-func (m *Manager) loadConfig() (*SkillConfig, error) {
-	data, err := os.ReadFile(m.configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return &SkillConfig{}, nil
-		}
-		return nil, err
+// syncToDB 将所有内存中的 Skill 同步到数据库
+func (m *Manager) syncToDB() {
+	for _, skill := range m.skills {
+		m.saveSkillToDB(skill)
 	}
-
-	var config SkillConfig
-	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, err
-	}
-	return &config, nil
 }
 
-// saveConfig 保存配置文件（调用方须持有锁或在锁内调用）
-func (m *Manager) saveConfig() error {
-	config := SkillConfig{
-		Skills: make([]SkillEntry, 0, len(m.skills)),
+// saveSkillToDB 将单个 Skill 保存到数据库
+func (m *Manager) saveSkillToDB(skill *Skill) {
+	record := SkillRecord{
+		Name:        skill.Name,
+		Path:        skill.Path,
+		Enabled:     skill.Enabled,
+		Source:      skill.Source,
+		InstalledAt: skill.InstalledAt,
+	}
+	if err := m.repo.Upsert(record); err != nil {
+		log.Printf("[Skills] Warning: failed to save skill '%s' to DB: %v", skill.Name, err)
+	}
+}
+
+// UpdateSkill 热更新 Skill（从 Git 重新拉取最新版本）
+func (m *Manager) UpdateSkill(name string) (*Skill, error) {
+	m.mu.RLock()
+	existing, ok := m.skills[name]
+	m.mu.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("skill '%s' not found", name)
 	}
 
-	for _, skill := range m.skills {
-		config.Skills = append(config.Skills, SkillEntry{
-			Name:        skill.Name,
-			Path:        skill.Path,
-			Enabled:     skill.Enabled,
-			Source:      skill.Source,
-			InstalledAt: skill.InstalledAt,
-		})
+	if existing.Source.Type != "git" {
+		return nil, fmt.Errorf("skill '%s' is not installed from git, cannot update", name)
 	}
 
-	data, err := json.MarshalIndent(config, "", "  ")
+	// 重新从 Git 安装（InstallFromGit 内部会先删再装）
+	req := SkillInstallRequest{
+		RepoURL: existing.Source.RepoURL,
+		SubPath: existing.Source.SubPath,
+		Ref:     existing.Source.Ref,
+	}
+
+	skillDir, err := m.installer.InstallFromGit(req.RepoURL, req.SubPath, req.Ref)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to update skill from git: %w", err)
 	}
 
-	return os.WriteFile(m.configPath, data, 0644)
+	// 重新加载 Skill
+	skill, err := LoadSkillFull(skillDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to reload skill after update: %w", err)
+	}
+
+	// 保留原有状态
+	skill.Enabled = existing.Enabled
+	skill.InstalledAt = existing.InstalledAt
+	skill.Source = existing.Source
+
+	m.mu.Lock()
+	m.skills[skill.Name] = skill
+	m.mu.Unlock()
+
+	// 保存到数据库
+	m.saveSkillToDB(skill)
+
+	log.Printf("[Skills] Updated skill: %s from %s", skill.Name, req.RepoURL)
+	return skill, nil
 }

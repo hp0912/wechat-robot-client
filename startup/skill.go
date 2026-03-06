@@ -9,6 +9,6 @@ import (
 const DefaultSkillsDir = "/data/skills"
 
 func InitSkillService() error {
-	vars.SkillService = service.NewSkillService(DefaultSkillsDir)
+	vars.SkillService = service.NewSkillService(DefaultSkillsDir, vars.DB)
 	return vars.SkillService.Initialize()
 }

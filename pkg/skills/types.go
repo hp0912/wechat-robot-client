@@ -60,17 +60,3 @@ type SkillInstallRequest struct {
 	// Git 分支/标签，默认 main
 	Ref string `json:"ref"`
 }
-
-// SkillConfig 持久化的 Skill 配置（保存到 JSON 文件）
-type SkillConfig struct {
-	Skills []SkillEntry `json:"skills"`
-}
-
-// SkillEntry 配置文件中的每个 Skill 条目
-type SkillEntry struct {
-	Name        string      `json:"name"`
-	Path        string      `json:"path"`
-	Enabled     bool        `json:"enabled"`
-	Source      SkillSource `json:"source"`
-	InstalledAt time.Time   `json:"installed_at"`
-}

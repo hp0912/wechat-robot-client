@@ -172,3 +172,28 @@ func (s *SkillController) DisableSkill(c *gin.Context) {
 
 	resp.ToResponse(nil)
 }
+
+// UpdateSkill 热更新 Skill（从 Git 重新拉取最新版本）
+func (s *SkillController) UpdateSkill(c *gin.Context) {
+	var req struct {
+		Name string `json:"name" binding:"required"`
+	}
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+
+	if vars.SkillService == nil {
+		resp.ToErrorResponse(errors.New("Skills 服务未初始化"))
+		return
+	}
+
+	skill, err := vars.SkillService.UpdateSkill(req.Name)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+
+	resp.ToResponse(skill)
+}

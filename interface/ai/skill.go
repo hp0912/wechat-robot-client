@@ -26,4 +26,6 @@ type SkillService interface {
 	GetAllSkills() []*skills.Skill
 	// GetSkill 获取单个 Skill
 	GetSkill(name string) (*skills.Skill, bool)
+	// UpdateSkill 热更新 Skill（从 Git 重新拉取）
+	UpdateSkill(name string) (*skills.Skill, error)
 }

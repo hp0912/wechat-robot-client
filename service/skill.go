@@ -1,11 +1,17 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"time"
+
+	"gorm.io/gorm"
 
 	"wechat-robot-client/interface/ai"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/skills"
+	"wechat-robot-client/repository"
 )
 
 // SkillService Skills 技能管理服务
@@ -18,8 +24,9 @@ type SkillService struct {
 var _ ai.SkillService = (*SkillService)(nil)
 
 // NewSkillService 创建 Skills 服务
-func NewSkillService(skillsDir string) *SkillService {
-	manager := skills.NewManager(skillsDir)
+func NewSkillService(skillsDir string, db *gorm.DB) *SkillService {
+	repo := newSkillRepoAdapter(db)
+	manager := skills.NewManager(skillsDir, repo)
 	executor := skills.NewSkillToolExecutor(manager)
 	return &SkillService{
 		manager:  manager,
@@ -84,4 +91,65 @@ func (s *SkillService) GetAllSkills() []*skills.Skill {
 // GetSkill 获取单个 Skill
 func (s *SkillService) GetSkill(name string) (*skills.Skill, bool) {
 	return s.manager.GetSkill(name)
+}
+
+// UpdateSkill 热更新 Skill（从 Git 重新拉取最新版本）
+func (s *SkillService) UpdateSkill(name string) (*skills.Skill, error) {
+	return s.manager.UpdateSkill(name)
+}
+
+// skillRepoAdapter 将 repository.SkillRepo 适配为 skills.SkillRepository 接口
+type skillRepoAdapter struct {
+	db *gorm.DB
+}
+
+func newSkillRepoAdapter(db *gorm.DB) *skillRepoAdapter {
+	return &skillRepoAdapter{db: db}
+}
+
+func (a *skillRepoAdapter) FindAll() ([]skills.SkillRecord, error) {
+	repo := repository.NewSkillRepo(context.Background(), a.db)
+	models, err := repo.FindAll()
+	if err != nil {
+		return nil, err
+	}
+	records := make([]skills.SkillRecord, 0, len(models))
+	for _, m := range models {
+		records = append(records, skills.SkillRecord{
+			Name:        m.Name,
+			Path:        m.Path,
+			Enabled:     m.IsEnabled(),
+			Source:      repository.ToSkillSource(m),
+			InstalledAt: ptrTimeVal(m.InstalledAt),
+		})
+	}
+	return records, nil
+}
+
+func (a *skillRepoAdapter) Upsert(record skills.SkillRecord) error {
+	repo := repository.NewSkillRepo(context.Background(), a.db)
+	enabled := record.Enabled
+	installedAt := record.InstalledAt
+	m := &model.Skill{
+		Name:        record.Name,
+		Path:        record.Path,
+		Enabled:     &enabled,
+		SourceType:  model.SkillSourceType(record.Source.Type),
+		Source:      repository.SourceToJSON(record.Source),
+		InstalledAt: &installedAt,
+	}
+	return repo.Upsert(m)
+}
+
+func (a *skillRepoAdapter) Delete(name string) error {
+	repo := repository.NewSkillRepo(context.Background(), a.db)
+	return repo.Delete(name)
+}
+
+// ptrTimeVal safely dereferences a *time.Time pointer
+func ptrTimeVal(t *time.Time) time.Time {
+	if t != nil {
+		return *t
+	}
+	return time.Time{}
 }
