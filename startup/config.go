@@ -11,6 +11,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// DefaultSkillsDir 默认的 Skills 存储目录
+const DefaultSkillsDir = "/data/skills"
+
 func LoadConfig() error {
 	loadEnvConfig()
 	return nil
@@ -84,4 +87,9 @@ func loadEnvConfig() {
 	vars.WordCloudUrl = os.Getenv("WORD_CLOUD_URL")
 	// pprof 代理地址
 	vars.PprofProxyURL = os.Getenv("PPROF_PROXY_URL")
+	// Skills 存储目录
+	vars.SkillsDir = os.Getenv("SKILLS_DIR")
+	if vars.SkillsDir == "" {
+		vars.SkillsDir = DefaultSkillsDir
+	}
 }

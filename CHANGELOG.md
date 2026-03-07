@@ -1,5 +1,19 @@
 # 更新日志
 
+## [3.0.0] - 2026/03/07
+
+### 破坏性更新
+
+- 表结构更新，请按照 [SQL 升级脚本](https://github.com/hp0912/wechat-robot-admin-backend/blob/main/template/3_0_0.sql)进行升级
+
+- `wechat-robot-admin-backend` 服务需要新增一个环境变量：HOST_DATA_DIR: ${PWD} # 自动取 docker-compose.yml 所在目录的绝对路径，详情见 docker-compose.yml 文件
+
+### 新功能
+
+- 内置 Agent Skills 引擎
+
+- 新增群红包通知功能，支持通知指定的多个人
+
 ## [2.6.0] - 2026/02/22
 
 ### 破坏性更新

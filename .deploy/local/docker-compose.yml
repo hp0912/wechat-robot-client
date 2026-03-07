@@ -183,6 +183,7 @@ services:
       SLIDER_SERVER_BASE_URL: http://wechat-slider:9000
       SLIDER_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VfaWRzIjpbXSwiZXhwIjoxNzY5NzY5NDY5LCJuYmYiOjE3NjcxNzc0NjksImlhdCI6MTc2NzE3NzQ2OX0.qgMWEdyHaP8_kFDAhc-aQyKF6jxlJxbXOALabcewCrw # 自行修改，加入官方交流群获取
       UUID_URL: http://wechat-slider:9000
+      HOST_DATA_DIR: ${PWD}  # 自动取 docker-compose.yml 所在目录的绝对路径
       MYSQL_DRIVER: mysql
       MYSQL_HOST: wechat-admin-mysql
       MYSQL_PORT: 3306

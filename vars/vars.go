@@ -36,6 +36,9 @@ var RobotRuntime = &robot.Robot{}
 
 var MCPService ai.MCPService
 
+var SkillsDir string
+var SkillService ai.SkillService
+
 var Webhook struct {
 	URL     string
 	Headers map[string]any
