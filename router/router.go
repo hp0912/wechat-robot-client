@@ -151,8 +151,8 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/skill/install", skillCtl.InstallSkill)
 	api.POST("/robot/skill/enable", skillCtl.EnableSkill)
 	api.POST("/robot/skill/disable", skillCtl.DisableSkill)
-	api.POST("/robot/skill/update", skillCtl.UpdateSkill)
-	api.DELETE("/robot/skill", skillCtl.UninstallSkill)
+	api.PUT("/robot/skill/update", skillCtl.UpdateSkill)
+	api.DELETE("/robot/skill/uninstall", skillCtl.UninstallSkill)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
