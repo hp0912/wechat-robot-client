@@ -130,6 +130,7 @@ func (a *skillRepoAdapter) Upsert(record skills.SkillRecord) error {
 	repo := repository.NewSkillRepo(context.Background(), a.db)
 	enabled := record.Enabled
 	installedAt := record.InstalledAt
+	now := time.Now()
 	m := &model.Skill{
 		Name:        record.Name,
 		Path:        record.Path,
@@ -137,8 +138,20 @@ func (a *skillRepoAdapter) Upsert(record skills.SkillRecord) error {
 		SourceType:  model.SkillSourceType(record.Source.Type),
 		Source:      repository.SourceToJSON(record.Source),
 		InstalledAt: &installedAt,
+		CreatedAt:   &now,
+		UpdatedAt:   &now,
 	}
-	return repo.Upsert(m)
+
+	existing, err := repo.FindByName(record.Name)
+	if err != nil {
+		return err
+	}
+	if existing != nil {
+		m.ID = existing.ID
+		m.CreatedAt = existing.CreatedAt
+		return repo.Update(m)
+	}
+	return repo.Create(m)
 }
 
 func (a *skillRepoAdapter) Delete(name string) error {
