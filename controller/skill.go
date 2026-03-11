@@ -198,31 +198,6 @@ func (s *SkillController) UpdateSkill(c *gin.Context) {
 	resp.ToResponse(skill)
 }
 
-// GetSkillEnvVars 获取 Skill 的环境变量列表
-func (s *SkillController) GetSkillEnvVars(c *gin.Context) {
-	var req struct {
-		Name string `form:"name" json:"name" binding:"required"`
-	}
-	resp := appx.NewResponse(c)
-	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
-		resp.ToErrorResponse(errors.New("参数错误"))
-		return
-	}
-
-	if vars.SkillService == nil {
-		resp.ToErrorResponse(errors.New("Skills 服务未初始化"))
-		return
-	}
-
-	skill, ok := vars.SkillService.GetSkill(req.Name)
-	if !ok {
-		resp.ToErrorResponse(errors.New("Skill 不存在"))
-		return
-	}
-
-	resp.ToResponse(skill.EnvVars)
-}
-
 // SetSkillEnvVars 设置 Skill 的环境变量列表
 func (s *SkillController) SetSkillEnvVars(c *gin.Context) {
 	var req struct {
