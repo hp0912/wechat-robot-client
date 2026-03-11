@@ -28,4 +28,6 @@ type SkillService interface {
 	GetSkill(name string) (*skills.Skill, bool)
 	// UpdateSkill 热更新 Skill（从 Git 重新拉取）
 	UpdateSkill(name string) (*skills.Skill, error)
+	// SetEnvVars 设置 Skill 的环境变量列表
+	SetEnvVars(name string, envVars []skills.EnvVar) error
 }

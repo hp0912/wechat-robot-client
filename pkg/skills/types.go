@@ -2,6 +2,13 @@ package skills
 
 import "time"
 
+// EnvVar Skill 的单个环境变量
+type EnvVar struct {
+	Key         string `json:"key"`
+	Value       string `json:"value"`
+	Description string `json:"description,omitempty"`
+}
+
 // SkillMetadata SKILL.md frontmatter 解析后的元数据
 type SkillMetadata struct {
 	Name          string            `yaml:"name" json:"name"`
@@ -31,6 +38,9 @@ type Skill struct {
 
 	// 是否已启用
 	Enabled bool `json:"enabled"`
+
+	// 环境变量列表
+	EnvVars []EnvVar `json:"env_vars,omitempty"`
 }
 
 // SkillSource 技能来源

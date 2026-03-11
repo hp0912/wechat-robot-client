@@ -98,6 +98,11 @@ func (s *SkillService) UpdateSkill(name string) (*skills.Skill, error) {
 	return s.manager.UpdateSkill(name)
 }
 
+// SetEnvVars 设置 Skill 的环境变量
+func (s *SkillService) SetEnvVars(name string, envVars []skills.EnvVar) error {
+	return s.manager.SetEnvVars(name, envVars)
+}
+
 // skillRepoAdapter 将 repository.SkillRepo 适配为 skills.SkillRepository 接口
 type skillRepoAdapter struct {
 	db *gorm.DB
@@ -120,6 +125,7 @@ func (a *skillRepoAdapter) FindAll() ([]skills.SkillRecord, error) {
 			Path:        m.Path,
 			Enabled:     m.IsEnabled(),
 			Source:      repository.ToSkillSource(m),
+			EnvVars:     repository.ToSkillEnvVars(m),
 			InstalledAt: ptrTimeVal(m.InstalledAt),
 		})
 	}
@@ -137,6 +143,7 @@ func (a *skillRepoAdapter) Upsert(record skills.SkillRecord) error {
 		Enabled:     &enabled,
 		SourceType:  model.SkillSourceType(record.Source.Type),
 		Source:      repository.SourceToJSON(record.Source),
+		EnvVars:     repository.EnvVarsToJSON(record.EnvVars),
 		InstalledAt: &installedAt,
 		CreatedAt:   &now,
 		UpdatedAt:   &now,

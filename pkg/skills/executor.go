@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -245,6 +246,17 @@ func (e *SkillToolExecutor) executeScript(argsJSON string) (string, error) {
 
 	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 	cmd.Dir = skill.Path
+
+	// 注入 Skill 环境变量（继承进程环境，再追加 Skill 配置的变量）
+	if len(skill.EnvVars) > 0 {
+		env := os.Environ()
+		for _, ev := range skill.EnvVars {
+			if ev.Key != "" {
+				env = append(env, ev.Key+"="+ev.Value)
+			}
+		}
+		cmd.Env = env
+	}
 
 	output, err := cmd.CombinedOutput()
 	result := string(output)

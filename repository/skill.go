@@ -79,3 +79,22 @@ func SourceToJSON(src skills.SkillSource) []byte {
 	data, _ := json.Marshal(src)
 	return data
 }
+
+// ToSkillEnvVars 从 model.Skill 解析出 []skills.EnvVar
+func ToSkillEnvVars(s *model.Skill) []skills.EnvVar {
+	if s.EnvVars == nil {
+		return nil
+	}
+	var envVars []skills.EnvVar
+	_ = json.Unmarshal([]byte(s.EnvVars), &envVars)
+	return envVars
+}
+
+// EnvVarsToJSON 将 []skills.EnvVar 序列化为 datatypes.JSON
+func EnvVarsToJSON(envVars []skills.EnvVar) []byte {
+	if len(envVars) == 0 {
+		return nil
+	}
+	data, _ := json.Marshal(envVars)
+	return data
+}
