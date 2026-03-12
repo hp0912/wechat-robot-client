@@ -188,6 +188,10 @@ func (s *MCPService) ChatWithMCPTools(
 						ToolCallID: toolCall.ID,
 					}, nil
 				}
+				// 工具返回空结果时，补充默认提示，避免API报错
+				if result == "" {
+					result = "Tool executed successfully (no output)."
+				}
 			} else {
 				// 工具执行失败，返回错误信息
 				result = err.Error()
