@@ -4,7 +4,7 @@
 
 ### 破坏性更新
 
-- 表结构更新，请按照 [SQL 升级脚本](https://github.com/hp0912/wechat-robot-admin-backend/blob/main/template/3_0_1.sql)进行升级
+- 表结构更新，请按照 [SQL 升级脚本](https://github.com/hp0912/wechat-robot-admin-backend/blob/main/template/3_1_0.sql)进行升级
 
 ### 新功能
 
