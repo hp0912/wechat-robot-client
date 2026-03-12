@@ -26,6 +26,18 @@ ROBOT_REF_MESSAGE_ID: 如果是引用消息，则是引用的消息的 ID
 
 - 新暴露了支持发送本地文件的发送图片/视频/文件/语音的接口(用于 Skills)
 
+```
+Body 公共参数
+{
+  "to_wxid": "",
+  "file_path": ""
+}
+[POST] http://127.0.0.1:{ROBOT_WECHAT_CLIENT_PORT}/api/v1/robot/message/send/image/local
+[POST] http://127.0.0.1:{ROBOT_WECHAT_CLIENT_PORT}/api/v1/robot/message/send/video/local
+[POST] http://127.0.0.1:{ROBOT_WECHAT_CLIENT_PORT}/api/v1/robot/message/send/voice/local
+[POST] http://127.0.0.1:{ROBOT_WECHAT_CLIENT_PORT}/api/v1/robot/message/send/file/local
+```
+
 ## [3.0.0] - 2026/03/07
 
 ### 破坏性更新

@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"wechat-robot-client/interface/ai"
+	"wechat-robot-client/pkg/qdrantx"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/plugin"
 )
@@ -39,6 +40,14 @@ var MCPService ai.MCPService
 var SkillsDir string
 var SkillService ai.SkillService
 
+// Qdrant 客户端
+var QdrantClient *qdrantx.QdrantClient
+
+// RAG & 记忆相关服务
+var MemoryService ai.MemoryService
+var RAGService ai.RAGService
+var KnowledgeService ai.KnowledgeService
+
 var Webhook struct {
 	URL     string
 	Headers map[string]any
@@ -48,7 +57,6 @@ var Webhook struct {
 var CronManager CronManagerInterface
 
 // 歌曲搜索Api
-// var MusicSearchApi = "https://www.hhlqilongzhu.cn/api/joox/juhe_music.php"
 var MusicSearchApi = "https://api.cenguigui.cn/api/music/netease/WyY_Dg.php"
 
 var ThirdPartyApiKey string

@@ -27,6 +27,7 @@ var mcpServerCtl *controller.MCPServer
 var probeCtl *controller.Probe
 var pprofProxyCtl *controller.PprofProxy
 var skillCtl *controller.SkillController
+var knowledgeCtl *controller.Knowledge
 
 func initController() {
 	chatHistoryCtl = controller.NewChatHistoryController()
@@ -48,6 +49,7 @@ func initController() {
 	pprofProxyCtl = controller.NewPprofProxyController(vars.PprofProxyURL)
 	probeCtl = controller.NewProbeController()
 	skillCtl = controller.NewSkillController()
+	knowledgeCtl = controller.NewKnowledgeController()
 }
 
 func RegisterRouter(r *gin.Engine) error {
@@ -158,6 +160,17 @@ func RegisterRouter(r *gin.Engine) error {
 	api.PUT("/robot/skill/update", skillCtl.UpdateSkill)
 	api.DELETE("/robot/skill/uninstall", skillCtl.UninstallSkill)
 	api.POST("/robot/skill/env-vars", skillCtl.SetSkillEnvVars)
+
+	// 知识库 & 记忆管理接口
+	api.POST("/robot/knowledge/document", knowledgeCtl.AddDocument)
+	api.DELETE("/robot/knowledge/document", knowledgeCtl.DeleteDocument)
+	api.GET("/robot/knowledge/documents", knowledgeCtl.ListDocuments)
+	api.GET("/robot/knowledge/categories", knowledgeCtl.GetCategories)
+	api.POST("/robot/knowledge/search", knowledgeCtl.SearchKnowledge)
+	api.POST("/robot/knowledge/reindex", knowledgeCtl.ReindexAll)
+	api.POST("/robot/memory", knowledgeCtl.SaveMemory)
+	api.POST("/robot/memory/search", knowledgeCtl.SearchMemory)
+	api.DELETE("/robot/memory", knowledgeCtl.DeleteMemory)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
