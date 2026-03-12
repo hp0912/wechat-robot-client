@@ -22,6 +22,7 @@ type Skill struct {
 	Enabled     *bool           `gorm:"column:enabled;default:true;comment:是否启用" json:"enabled"`
 	SourceType  SkillSourceType `gorm:"column:source_type;type:varchar(20);default:'local';comment:来源类型：local/git" json:"source_type"`
 	Source      datatypes.JSON  `gorm:"column:source;type:json;comment:来源详情(JSON)" json:"source"`
+	EnvVars     datatypes.JSON  `gorm:"column:env_vars;type:json;comment:环境变量列表(JSON)" json:"env_vars"`
 	InstalledAt *time.Time      `gorm:"column:installed_at;type:datetime;comment:安装时间" json:"installed_at"`
 	CreatedAt   *time.Time      `gorm:"column:created_at;type:datetime;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`
 	UpdatedAt   *time.Time      `gorm:"column:updated_at;type:datetime;not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`

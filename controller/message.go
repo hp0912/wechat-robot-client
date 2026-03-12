@@ -17,6 +17,20 @@ func NewMessageController() *Message {
 	return &Message{}
 }
 
+func (m *Message) sendLocalFileMessage(c *gin.Context, handler func(*service.MessageService, dto.SendLocalFileMessageRequest) error) {
+	var req dto.SendLocalFileMessageRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	if err := handler(service.NewMessageService(c), req); err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
+
 func (m *Message) MessageRevoke(c *gin.Context) {
 	var req dto.MessageCommonRequest
 	resp := appx.NewResponse(c)
@@ -181,6 +195,12 @@ func (m *Message) SendImageMessageByRemoteURL(c *gin.Context) {
 	resp.ToResponse(result)
 }
 
+func (m *Message) SendImageMessageByLocalPath(c *gin.Context) {
+	m.sendLocalFileMessage(c, func(messageService *service.MessageService, req dto.SendLocalFileMessageRequest) error {
+		return messageService.SendImageMessageByLocalPath(req.ToWxid, req.FilePath)
+	})
+}
+
 func (m *Message) SendVideoMessage(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	// 获取表单文件
@@ -249,6 +269,12 @@ func (m *Message) SendVideoMessageByRemoteURL(c *gin.Context) {
 	resp.ToResponse(result)
 }
 
+func (m *Message) SendVideoMessageByLocalPath(c *gin.Context) {
+	m.sendLocalFileMessage(c, func(messageService *service.MessageService, req dto.SendLocalFileMessageRequest) error {
+		return messageService.SendVideoMessageByLocalPath(req.ToWxid, req.FilePath)
+	})
+}
+
 func (m *Message) SendVoiceMessage(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	// 获取表单文件
@@ -290,6 +316,12 @@ func (m *Message) SendVoiceMessage(c *gin.Context) {
 		return
 	}
 	resp.ToResponse(nil)
+}
+
+func (m *Message) SendVoiceMessageByLocalPath(c *gin.Context) {
+	m.sendLocalFileMessage(c, func(messageService *service.MessageService, req dto.SendLocalFileMessageRequest) error {
+		return messageService.SendVoiceMessageByLocalPath(req.ToWxid, req.FilePath)
+	})
 }
 
 func (m *Message) SendAppMessage(c *gin.Context) {
@@ -359,4 +391,10 @@ func (m *Message) SendFileMessage(c *gin.Context) {
 	}
 
 	resp.ToResponse(nil)
+}
+
+func (m *Message) SendFileMessageByLocalPath(c *gin.Context) {
+	m.sendLocalFileMessage(c, func(messageService *service.MessageService, req dto.SendLocalFileMessageRequest) error {
+		return messageService.SendFileMessageByLocalPath(req.ToWxid, req.FilePath)
+	})
 }

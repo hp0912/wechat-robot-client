@@ -1,8 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"crypto/md5"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -11,6 +14,7 @@ import (
 	"math/rand"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -1106,6 +1110,34 @@ func (s *MessageService) SendImageMessageStream(ctx context.Context, req dto.Sen
 	return &m, nil
 }
 
+func (s *MessageService) SendImageMessageByLocalPath(toWxID string, imagePath string) error {
+	_, _, err := validateLocalFileForSend(imagePath, map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".gif":  true,
+		".webp": true,
+	}, 0, "图片")
+	if err != nil {
+		return err
+	}
+
+	clientImgId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().UnixNano())
+	return streamLocalFileChunks(imagePath, vars.UploadImageChunkSize, func(chunkIndex, totalChunks, totalSize int64, chunkReader io.Reader, fileHeader *multipart.FileHeader) error {
+		_, err := s.SendImageMessageStream(s.ctx, dto.SendImageMessageRequest{
+			ToWxid:      toWxID,
+			ClientImgId: clientImgId,
+			FileSize:    totalSize,
+			ChunkIndex:  chunkIndex,
+			TotalChunks: totalChunks,
+		}, chunkReader, fileHeader)
+		if err != nil {
+			return fmt.Errorf("发送图片分片失败 (chunk %d/%d): %w", chunkIndex+1, totalChunks, err)
+		}
+		return nil
+	})
+}
+
 func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt string) error {
 	videoBytes, err := io.ReadAll(video)
 	if err != nil {
@@ -1136,6 +1168,50 @@ func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt s
 		log.Println("入库消息失败: ", err)
 	}
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
+	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
+func (s *MessageService) SendVideoMessageByLocalPath(toWxID string, videoPath string) error {
+	_, _, err := validateLocalFileForSend(videoPath, map[string]bool{
+		".mp4":  true,
+		".avi":  true,
+		".mov":  true,
+		".mkv":  true,
+		".flv":  true,
+		".webm": true,
+	}, 0, "视频")
+	if err != nil {
+		return err
+	}
+
+	message, err := vars.RobotRuntime.MsgSendVideoFromLocal(toWxID, videoPath)
+	if err != nil {
+		return err
+	}
+	if message == nil {
+		return errors.New("发送视频失败，获取视频结果为空")
+	}
+
+	m := model.Message{
+		MsgId:              message.NewMsgId,
+		ClientMsgId:        message.Msgid,
+		Type:               model.MsgTypeVideo,
+		Content:            "",
+		DisplayFullContent: "",
+		MessageSource:      "",
+		FromWxID:           toWxID,
+		ToWxID:             vars.RobotRuntime.WxID,
+		SenderWxID:         vars.RobotRuntime.WxID,
+		IsChatRoom:         strings.HasSuffix(toWxID, "@chatroom"),
+		CreatedAt:          time.Now().Unix(),
+		UpdatedAt:          time.Now().Unix(),
+	}
+	err = s.msgRepo.Create(&m)
+	if err != nil {
+		log.Println("入库消息失败: ", err)
+	}
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
 	return nil
@@ -1299,6 +1375,25 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice io.Reader, voiceExt s
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
 
 	return nil
+}
+
+func (s *MessageService) SendVoiceMessageByLocalPath(toWxID string, voicePath string) error {
+	_, voiceExt, err := validateLocalFileForSend(voicePath, map[string]bool{
+		".amr": true,
+		".mp3": true,
+		".wav": true,
+	}, 50*1024*1024, "音频")
+	if err != nil {
+		return err
+	}
+
+	voiceFile, err := os.Open(voicePath)
+	if err != nil {
+		return fmt.Errorf("打开本地音频文件失败: %w", err)
+	}
+	defer voiceFile.Close()
+
+	return s.MsgSendVoice(toWxID, voiceFile, voiceExt)
 }
 
 func (s *MessageService) SendLongTextMessage(toWxID string, longText string) error {
@@ -1489,6 +1584,192 @@ func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMe
 	}
 	// 插入一条联系人记录，获取联系人列表接口获取不到未保存到通讯录的群聊
 	NewContactService(s.ctx).InsertOrUpdateContactActiveTime(m.FromWxID)
+
+	return nil
+}
+
+func (s *MessageService) SendFileMessageByLocalPath(toWxID string, localFilePath string) error {
+	_, _, err := validateLocalFileForSend(localFilePath, nil, 0, "文件")
+	if err != nil {
+		return err
+	}
+
+	fileHash, err := calculateFileMD5(localFilePath)
+	if err != nil {
+		return fmt.Errorf("计算文件哈希失败: %w", err)
+	}
+
+	clientAppDataId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().UnixNano())
+	filename := filepath.Base(localFilePath)
+
+	return streamLocalFileChunks(localFilePath, vars.UploadFileChunkSize, func(chunkIndex, totalChunks, totalSize int64, chunkReader io.Reader, fileHeader *multipart.FileHeader) error {
+		err := s.SendFileMessage(s.ctx, dto.SendFileMessageRequest{
+			ToWxid:          toWxID,
+			ClientAppDataId: clientAppDataId,
+			Filename:        filename,
+			FileHash:        fileHash,
+			FileSize:        totalSize,
+			ChunkIndex:      chunkIndex,
+			TotalChunks:     totalChunks,
+		}, chunkReader, fileHeader)
+		if err != nil {
+			return fmt.Errorf("发送文件分片失败 (chunk %d/%d): %w", chunkIndex+1, totalChunks, err)
+		}
+		return nil
+	})
+}
+
+func validateLocalFileForSend(filePath string, allowedExts map[string]bool, maxSize int64, fileType string) (os.FileInfo, string, error) {
+	trimmedPath := strings.TrimSpace(filePath)
+	if trimmedPath == "" {
+		return nil, "", errors.New("本地文件路径不能为空")
+	}
+
+	fileInfo, err := os.Stat(trimmedPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, "", errors.New("本地文件不存在")
+		}
+		return nil, "", fmt.Errorf("读取本地%s信息失败: %w", fileType, err)
+	}
+	if fileInfo.IsDir() {
+		return nil, "", errors.New("本地文件路径不能是目录")
+	}
+	if fileInfo.Size() <= 0 {
+		return nil, "", fmt.Errorf("本地%s内容为空", fileType)
+	}
+	if maxSize > 0 && fileInfo.Size() > maxSize {
+		return nil, "", fmt.Errorf("%s大小不能超过%dMB", fileType, maxSize/(1024*1024))
+	}
+
+	fileExt := strings.ToLower(filepath.Ext(trimmedPath))
+	if len(allowedExts) == 0 {
+		return fileInfo, fileExt, nil
+	}
+	if allowedExts[fileExt] {
+		return fileInfo, fileExt, nil
+	}
+
+	detectedExt, err := detectFileExtByMagic(trimmedPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("检测本地%s类型失败: %w", fileType, err)
+	}
+	if allowedExts[detectedExt] {
+		return fileInfo, detectedExt, nil
+	}
+
+	return nil, "", fmt.Errorf("不支持的%s格式", fileType)
+}
+
+func detectFileExtByMagic(filePath string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("打开本地文件失败: %w", err)
+	}
+	defer file.Close()
+
+	header := make([]byte, 512)
+	n, err := file.Read(header)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return "", fmt.Errorf("读取文件头失败: %w", err)
+	}
+	header = header[:n]
+
+	switch {
+	case len(header) >= 3 && bytes.Equal(header[:3], []byte{0xFF, 0xD8, 0xFF}):
+		return ".jpg", nil
+	case len(header) >= 8 && bytes.Equal(header[:8], []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}):
+		return ".png", nil
+	case len(header) >= 6 && (bytes.Equal(header[:6], []byte("GIF87a")) || bytes.Equal(header[:6], []byte("GIF89a"))):
+		return ".gif", nil
+	case len(header) >= 12 && bytes.Equal(header[:4], []byte("RIFF")) && bytes.Equal(header[8:12], []byte("WEBP")):
+		return ".webp", nil
+	case len(header) >= 9 && (bytes.Equal(header[:6], []byte("#!AMR\n")) || bytes.Equal(header[:9], []byte("#!AMR-WB\n"))):
+		return ".amr", nil
+	case len(header) >= 12 && bytes.Equal(header[:4], []byte("RIFF")) && bytes.Equal(header[8:12], []byte("WAVE")):
+		return ".wav", nil
+	case len(header) >= 3 && bytes.Equal(header[:3], []byte("ID3")):
+		return ".mp3", nil
+	case len(header) >= 2 && header[0] == 0xFF && header[1]&0xE0 == 0xE0:
+		return ".mp3", nil
+	case len(header) >= 12 && bytes.Equal(header[:4], []byte("RIFF")) && bytes.Equal(header[8:11], []byte("AVI")):
+		return ".avi", nil
+	case len(header) >= 3 && bytes.Equal(header[:3], []byte("FLV")):
+		return ".flv", nil
+	case len(header) >= 4 && bytes.Equal(header[:4], []byte{0x1A, 0x45, 0xDF, 0xA3}):
+		return ".mkv", nil
+	case len(header) >= 12 && bytes.Equal(header[4:8], []byte("ftyp")):
+		brand := string(header[8:12])
+		if strings.HasPrefix(brand, "qt") {
+			return ".mov", nil
+		}
+		return ".mp4", nil
+	default:
+		return "", nil
+	}
+}
+
+func calculateFileMD5(filePath string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("打开本地文件失败: %w", err)
+	}
+	defer file.Close()
+
+	hash := md5.New()
+	if _, err = io.Copy(hash, file); err != nil {
+		return "", fmt.Errorf("读取本地文件失败: %w", err)
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func streamLocalFileChunks(filePath string, chunkSize int64, handler func(chunkIndex, totalChunks, totalSize int64, chunkReader io.Reader, fileHeader *multipart.FileHeader) error) error {
+	if chunkSize <= 0 {
+		return errors.New("分片大小必须大于0")
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("打开本地文件失败: %w", err)
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("读取本地文件信息失败: %w", err)
+	}
+	if fileInfo.Size() <= 0 {
+		return errors.New("本地文件内容为空")
+	}
+
+	totalSize := fileInfo.Size()
+	totalChunks := (totalSize + chunkSize - 1) / chunkSize
+	filename := filepath.Base(filePath)
+
+	for chunkIndex := range totalChunks {
+		currentChunkSize := chunkSize
+		remaining := totalSize - chunkIndex*chunkSize
+		if remaining < currentChunkSize {
+			currentChunkSize = remaining
+		}
+
+		chunkData := make([]byte, int(currentChunkSize))
+		n, err := io.ReadFull(file, chunkData)
+		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+			return fmt.Errorf("读取本地文件分片失败: %w", err)
+		}
+		if n == 0 {
+			return errors.New("读取本地文件分片失败: 数据为空")
+		}
+
+		if err := handler(chunkIndex, totalChunks, totalSize, bytes.NewReader(chunkData[:n]), &multipart.FileHeader{
+			Filename: filename,
+			Size:     int64(n),
+		}); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

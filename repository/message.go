@@ -283,3 +283,26 @@ func (m *Message) Update(data *model.Message) error {
 func (c *Message) Delete(data *model.Message) error {
 	return c.DB.WithContext(c.Ctx).Unscoped().Delete(data).Error
 }
+
+// GetMessagesByRange 获取指定 ID 范围内的文本消息
+func (m *Message) GetMessagesByRange(firstMsgID, lastMsgID int64, limit int) ([]*model.Message, error) {
+	var messages []*model.Message
+	err := m.DB.WithContext(m.Ctx).
+		Where("id >= ? AND id <= ?", firstMsgID, lastMsgID).
+		Where("`type` = 1").
+		Order("id ASC").
+		Limit(limit).
+		Find(&messages).Error
+	return messages, err
+}
+
+// GetRecentTextMessages 获取最近的文本消息（用于异步向量化）
+func (m *Message) GetRecentTextMessages(sinceID int64, limit int) ([]*model.Message, error) {
+	var messages []*model.Message
+	err := m.DB.WithContext(m.Ctx).
+		Where("id > ? AND `type` = 1 AND content != ''", sinceID).
+		Order("id ASC").
+		Limit(limit).
+		Find(&messages).Error
+	return messages, err
+}

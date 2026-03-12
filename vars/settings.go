@@ -18,6 +18,12 @@ type RedisSettingS struct {
 	Db       int
 }
 
+type QdrantSettingS struct {
+	Host   string
+	Port   int
+	ApiKey string
+}
+
 type RabbitmqSettingS struct {
 	Host     string
 	Port     string
@@ -28,4 +34,5 @@ type RabbitmqSettingS struct {
 
 var MysqlSettings = &MysqlSettingS{}
 var RedisSettings = &RedisSettingS{}
+var QdrantSettings = &QdrantSettingS{}
 var RabbitmqSettings = &RabbitmqSettingS{}

@@ -27,6 +27,7 @@ var mcpServerCtl *controller.MCPServer
 var probeCtl *controller.Probe
 var pprofProxyCtl *controller.PprofProxy
 var skillCtl *controller.SkillController
+var knowledgeCtl *controller.Knowledge
 
 func initController() {
 	chatHistoryCtl = controller.NewChatHistoryController()
@@ -48,6 +49,7 @@ func initController() {
 	pprofProxyCtl = controller.NewPprofProxyController(vars.PprofProxyURL)
 	probeCtl = controller.NewProbeController()
 	skillCtl = controller.NewSkillController()
+	knowledgeCtl = controller.NewKnowledgeController()
 }
 
 func RegisterRouter(r *gin.Engine) error {
@@ -116,12 +118,16 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/message/send/image", messageCtl.SendImageMessage)
 	api.POST("/robot/message/send/image/stream", messageCtl.SendImageMessageStream)
 	api.POST("/robot/message/send/image/url", messageCtl.SendImageMessageByRemoteURL)
+	api.POST("/robot/message/send/image/local", messageCtl.SendImageMessageByLocalPath)
 	api.POST("/robot/message/send/video", messageCtl.SendVideoMessage)
 	api.POST("/robot/message/send/video/url", messageCtl.SendVideoMessageByRemoteURL)
+	api.POST("/robot/message/send/video/local", messageCtl.SendVideoMessageByLocalPath)
 	api.POST("/robot/message/send/voice", messageCtl.SendVoiceMessage)
+	api.POST("/robot/message/send/voice/local", messageCtl.SendVoiceMessageByLocalPath)
 	api.POST("/robot/message/send/music", messageCtl.SendMusicMessage)
 	api.POST("/robot/message/send/app", messageCtl.SendAppMessage)
 	api.POST("/robot/message/send/file", messageCtl.SendFileMessage)
+	api.POST("/robot/message/send/file/local", messageCtl.SendFileMessageByLocalPath)
 
 	// 系统消息相关接口
 	api.GET("/robot/system-messages", systemMessageCtl.GetRecentMonthMessages)
@@ -153,6 +159,18 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/skill/disable", skillCtl.DisableSkill)
 	api.PUT("/robot/skill/update", skillCtl.UpdateSkill)
 	api.DELETE("/robot/skill/uninstall", skillCtl.UninstallSkill)
+	api.POST("/robot/skill/env-vars", skillCtl.SetSkillEnvVars)
+
+	// 知识库 & 记忆管理接口
+	api.POST("/robot/knowledge/document", knowledgeCtl.AddDocument)
+	api.DELETE("/robot/knowledge/document", knowledgeCtl.DeleteDocument)
+	api.GET("/robot/knowledge/documents", knowledgeCtl.ListDocuments)
+	api.GET("/robot/knowledge/categories", knowledgeCtl.GetCategories)
+	api.POST("/robot/knowledge/search", knowledgeCtl.SearchKnowledge)
+	api.POST("/robot/knowledge/reindex", knowledgeCtl.ReindexAll)
+	api.POST("/robot/memory", knowledgeCtl.SaveMemory)
+	api.POST("/robot/memory/search", knowledgeCtl.SearchMemory)
+	api.DELETE("/robot/memory", knowledgeCtl.DeleteMemory)
 
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)

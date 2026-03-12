@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"wechat-robot-client/pkg/robotctx"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
@@ -123,14 +126,14 @@ func (e *SkillToolExecutor) IsSkillTool(toolName string) bool {
 }
 
 // ExecuteToolCall 执行 Skills 工具调用，返回结果字符串
-func (e *SkillToolExecutor) ExecuteToolCall(toolCall openai.ToolCall) (string, error) {
+func (e *SkillToolExecutor) ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, error) {
 	switch toolCall.Function.Name {
 	case ToolNameActivate:
 		return e.executeActivate(toolCall.Function.Arguments)
 	case ToolNameReadResource:
 		return e.executeReadResource(toolCall.Function.Arguments)
 	case ToolNameExecuteScript:
-		return e.executeScript(toolCall.Function.Arguments)
+		return e.executeScript(robotCtx, toolCall.Function.Arguments)
 	default:
 		return "", fmt.Errorf("unknown skill tool: %s", toolCall.Function.Name)
 	}
@@ -189,7 +192,7 @@ func (e *SkillToolExecutor) executeReadResource(argsJSON string) (string, error)
 }
 
 // executeScript 执行 execute_skill_script
-func (e *SkillToolExecutor) executeScript(argsJSON string) (string, error) {
+func (e *SkillToolExecutor) executeScript(robotCtx robotctx.RobotContext, argsJSON string) (string, error) {
 	var args struct {
 		SkillName  string `json:"skill_name"`
 		ScriptPath string `json:"script_path"`
@@ -245,6 +248,16 @@ func (e *SkillToolExecutor) executeScript(argsJSON string) (string, error) {
 
 	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 	cmd.Dir = skill.Path
+
+	// 注入环境变量（继承进程环境 → Skill 配置变量 → RobotContext）
+	env := os.Environ()
+	for _, ev := range skill.EnvVars {
+		if ev.Key != "" {
+			env = append(env, ev.Key+"="+ev.Value)
+		}
+	}
+	env = append(env, robotCtx.ToEnvVars()...)
+	cmd.Env = env
 
 	output, err := cmd.CombinedOutput()
 	result := string(output)

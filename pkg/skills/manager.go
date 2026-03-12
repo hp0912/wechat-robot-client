@@ -24,6 +24,7 @@ type SkillRecord struct {
 	Path        string      `json:"path"`
 	Enabled     bool        `json:"enabled"`
 	Source      SkillSource `json:"source"`
+	EnvVars     []EnvVar    `json:"env_vars,omitempty"`
 	InstalledAt time.Time   `json:"installed_at"`
 }
 
@@ -93,6 +94,7 @@ func (m *Manager) Initialize() error {
 		if entry, ok := configIndex[skill.Name]; ok {
 			skill.Enabled = entry.Enabled
 			skill.Source = entry.Source
+			skill.EnvVars = entry.EnvVars
 			skill.InstalledAt = entry.InstalledAt
 		} else {
 			// 新发现的 Skill 默认启用
@@ -388,11 +390,27 @@ func (m *Manager) saveSkillToDB(skill *Skill) {
 		Path:        skill.Path,
 		Enabled:     skill.Enabled,
 		Source:      skill.Source,
+		EnvVars:     skill.EnvVars,
 		InstalledAt: skill.InstalledAt,
 	}
 	if err := m.repo.Upsert(record); err != nil {
 		log.Printf("[Skills] Warning: failed to save skill '%s' to DB: %v", skill.Name, err)
 	}
+}
+
+// SetEnvVars 设置 Skill 的环境变量
+func (m *Manager) SetEnvVars(name string, envVars []EnvVar) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	skill, ok := m.skills[name]
+	if !ok {
+		return fmt.Errorf("skill '%s' not found", name)
+	}
+
+	skill.EnvVars = envVars
+	m.saveSkillToDB(skill)
+	return nil
 }
 
 // UpdateSkill 热更新 Skill（从 Git 重新拉取最新版本）
