@@ -8,6 +8,11 @@ type SendMessageCommonRequest struct {
 	ToWxid string `form:"to_wxid" json:"to_wxid" binding:"required"`
 }
 
+type SendLocalFileMessageRequest struct {
+	ToWxid   string `form:"to_wxid" json:"to_wxid" binding:"required"`
+	FilePath string `form:"file_path" json:"file_path" binding:"required"`
+}
+
 type SendTextMessageRequest struct {
 	SendMessageCommonRequest
 	Content string   `form:"content" json:"content" binding:"required"`
