@@ -1,5 +1,29 @@
 # 更新日志
 
+## [3.0.1] - 2026/03/12
+
+### 破坏性更新
+
+- 表结构更新，请按照 [SQL 升级脚本](https://github.com/hp0912/wechat-robot-admin-backend/blob/main/template/3_0_1.sql)进行升级
+
+### 新功能
+
+- `Agent Skills 引擎`注入机器人上下文环境变量
+
+```
+ROBOT_WECHAT_CLIENT_PORT: 机器人客户端服务端口，可用于在 SKILL 脚本直接调用客户端接口 `http://127.0.0.1:{ROBOT_WECHAT_CLIENT_PORT}/api/v1/xxxxx`
+ROBOT_ID: 机器人实例 ID
+ROBOT_CODE: 机器人实例编码
+ROBOT_REDIS_DB: 机器人的 Redis DB
+ROBOT_WX_ID: 机器人的微信 ID
+ROBOT_FROM_WX_ID: 微信消息来源(群聊 ID 或者好友微信 ID)
+ROBOT_SENDER_WX_ID: 微信消息发送人的微信 ID
+ROBOT_MESSAGE_ID: 微信消息 ID
+ROBOT_REF_MESSAGE_ID: 如果是引用消息，则是引用的消息的 ID
+```
+
+- 支持注入自定义环境变量，可用于配置 SKILL 脚本的私密数据
+
 ## [3.0.0] - 2026/03/07
 
 ### 破坏性更新

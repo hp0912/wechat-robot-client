@@ -172,7 +172,7 @@ func (s *MCPService) ChatWithMCPTools(
 
 			// 判断是否为 Skills 工具调用
 			if skillExecutor != nil && skillExecutor.IsSkillTool(toolCall.Function.Name) {
-				result, err = skillExecutor.ExecuteToolCall(toolCall)
+				result, err = skillExecutor.ExecuteToolCall(robotCtx, toolCall)
 				immediately = false
 			} else {
 				// MCP 工具调用
