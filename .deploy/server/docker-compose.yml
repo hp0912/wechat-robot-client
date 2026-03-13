@@ -59,7 +59,7 @@ services:
       - ./qdrant_data:/qdrant/storage
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
-      - QDRANT__SERVICE__API_KEY=1234567890 # 自行修改，向量库的 API 密钥
+      - QDRANT__SERVICE__API_KEY=x1234567890 # 自行修改，向量库的 API 密钥
 
   wechat-server:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-server:latest
@@ -215,6 +215,9 @@ services:
       REDIS_HOST: wechat-admin-redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: r12345678
+      QDRANT_HOST: wechat-admin-qdrant
+      QDRANT_PORT: 6334
+      QDRANT_API_KEY: x1234567890 # 自行修改
       THIRD_PARTY_API_KEY: t123456 # 自行修改 AI语音合成的 key
     depends_on:
       wechat-admin-redis:
