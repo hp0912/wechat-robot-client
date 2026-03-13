@@ -26,6 +26,9 @@ func main() {
 	if err := startup.SetupVars(); err != nil {
 		log.Fatalf("初始化失败: %v", err)
 	}
+	if err := startup.AutoMigrate(); err != nil {
+		log.Fatalf("自动迁移失败: %v", err)
+	}
 	shutdownManager := shutdown.NewShutdownManager(30 * time.Second)
 	// 注册消息处理插件
 	startup.RegisterMessagePlugin()

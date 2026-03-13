@@ -49,3 +49,38 @@ type SearchMemoryRequest struct {
 type DeleteMemoryRequest struct {
 	ID int64 `json:"id" binding:"required"`
 }
+
+// AddImageKnowledgeRequest 添加图片知识库文档请求
+type AddImageKnowledgeRequest struct {
+	Title       string `json:"title" binding:"required"`
+	Description string `json:"description"`
+	ImageURL    string `json:"image_url" binding:"required"`
+	Category    string `json:"category"`
+}
+
+// DeleteImageKnowledgeRequest 删除图片知识库文档请求
+type DeleteImageKnowledgeRequest struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
+}
+
+// ListImageKnowledgeRequest 图片知识库列表请求
+type ListImageKnowledgeRequest struct {
+	Category string `form:"category"`
+	Page     int    `form:"page"`
+	PageSize int    `form:"page_size"`
+}
+
+// SearchImageKnowledgeByTextRequest 以文搜图请求
+type SearchImageKnowledgeByTextRequest struct {
+	Query    string `json:"query" binding:"required"`
+	Category string `json:"category"`
+	Limit    int    `json:"limit"`
+}
+
+// SearchImageKnowledgeByImageRequest 以图搜图请求
+type SearchImageKnowledgeByImageRequest struct {
+	ImageURL string `json:"image_url" binding:"required"`
+	Category string `json:"category"`
+	Limit    int    `json:"limit"`
+}

@@ -13,8 +13,9 @@ import (
 
 // VectorStoreService 向量存储服务
 type VectorStoreService struct {
-	qdrant    *qdrantx.QdrantClient
-	embedding *EmbeddingService
+	qdrant         *qdrantx.QdrantClient
+	embedding      *EmbeddingService
+	imageEmbedding *ImageEmbeddingService
 }
 
 // NewVectorStoreService 创建向量存储服务
@@ -23,6 +24,11 @@ func NewVectorStoreService(qdrant *qdrantx.QdrantClient, embedding *EmbeddingSer
 		qdrant:    qdrant,
 		embedding: embedding,
 	}
+}
+
+// SetImageEmbedding 设置图片嵌入服务
+func (s *VectorStoreService) SetImageEmbedding(svc *ImageEmbeddingService) {
+	s.imageEmbedding = svc
 }
 
 // IndexMessage 将消息内容向量化并存入 Qdrant
@@ -181,6 +187,87 @@ func (s *VectorStoreService) SearchKnowledge(ctx context.Context, robotCode stri
 // DeleteVectors 删除向量
 func (s *VectorStoreService) DeleteVectors(ctx context.Context, collection string, ids []string) error {
 	return s.qdrant.DeleteByIDs(ctx, collection, ids)
+}
+
+// IndexImageKnowledge 将图片向量化并存入 Qdrant image_knowledge 集合
+func (s *VectorStoreService) IndexImageKnowledge(ctx context.Context, robotCode string, docID int64, imageURL, title, description, category string) (string, error) {
+	if s.imageEmbedding == nil {
+		return "", fmt.Errorf("image embedding service not configured")
+	}
+
+	vector, err := s.imageEmbedding.EmbedImage(ctx, imageURL)
+	if err != nil {
+		return "", fmt.Errorf("embed image: %w", err)
+	}
+
+	id := s.qdrant.GenerateID()
+	payload := map[string]*pb.Value{
+		"robot_code":  qdrantx.NewPayloadValue(robotCode),
+		"doc_id":      qdrantx.NewPayloadIntValue(docID),
+		"image_url":   qdrantx.NewPayloadValue(imageURL),
+		"title":       qdrantx.NewPayloadValue(title),
+		"description": qdrantx.NewPayloadValue(description),
+		"category":    qdrantx.NewPayloadValue(category),
+	}
+
+	if err := s.qdrant.Upsert(ctx, qdrantx.CollectionImageKnowledge, id, vector, payload); err != nil {
+		return "", fmt.Errorf("upsert image knowledge vector: %w", err)
+	}
+	return id, nil
+}
+
+// SearchImageKnowledgeByText 以文搜图：用文本查询搜索图片知识库
+func (s *VectorStoreService) SearchImageKnowledgeByText(ctx context.Context, robotCode, query, category string, topK int) ([]ai.VectorSearchResult, error) {
+	if s.imageEmbedding == nil {
+		return nil, fmt.Errorf("image embedding service not configured")
+	}
+
+	vector, err := s.imageEmbedding.EmbedText(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("embed text query for image search: %w", err)
+	}
+
+	filter := s.buildImageKnowledgeFilter(robotCode, category)
+
+	results, err := s.qdrant.Search(ctx, qdrantx.CollectionImageKnowledge, vector, uint64(topK), filter)
+	if err != nil {
+		return nil, err
+	}
+	return s.convertResults(results), nil
+}
+
+// SearchImageKnowledgeByImage 以图搜图：用图片搜索相似图片
+func (s *VectorStoreService) SearchImageKnowledgeByImage(ctx context.Context, robotCode, imageURL, category string, topK int) ([]ai.VectorSearchResult, error) {
+	if s.imageEmbedding == nil {
+		return nil, fmt.Errorf("image embedding service not configured")
+	}
+
+	vector, err := s.imageEmbedding.EmbedImage(ctx, imageURL)
+	if err != nil {
+		return nil, fmt.Errorf("embed image for image search: %w", err)
+	}
+
+	filter := s.buildImageKnowledgeFilter(robotCode, category)
+
+	results, err := s.qdrant.Search(ctx, qdrantx.CollectionImageKnowledge, vector, uint64(topK), filter)
+	if err != nil {
+		return nil, err
+	}
+	return s.convertResults(results), nil
+}
+
+func (s *VectorStoreService) buildImageKnowledgeFilter(robotCode, category string) *pb.Filter {
+	var conditions []*pb.Condition
+	if robotCode != "" {
+		conditions = append(conditions, qdrantx.BuildMatchFilter("robot_code", robotCode))
+	}
+	if category != "" {
+		conditions = append(conditions, qdrantx.BuildMatchFilter("category", category))
+	}
+	if len(conditions) > 0 {
+		return &pb.Filter{Must: conditions}
+	}
+	return nil
 }
 
 func (s *VectorStoreService) convertResults(points []*pb.ScoredPoint) []ai.VectorSearchResult {

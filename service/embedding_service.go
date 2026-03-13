@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	embeddingModel         = openai.SmallEmbedding3
 	embeddingCacheDuration = 24 * time.Hour
 	embeddingCachePrefix   = "emb:"
 )
@@ -24,14 +23,20 @@ const (
 // EmbeddingService 向量化服务
 type EmbeddingService struct {
 	client *openai.Client
+	model  openai.EmbeddingModel
 }
 
 // NewEmbeddingService 创建向量化服务
-func NewEmbeddingService(baseURL, apiKey string) *EmbeddingService {
+func NewEmbeddingService(baseURL, apiKey, model string) *EmbeddingService {
 	config := openai.DefaultConfig(apiKey)
 	config.BaseURL = baseURL
+	embModel := openai.EmbeddingModel(model)
+	if model == "" {
+		embModel = openai.SmallEmbedding3
+	}
 	return &EmbeddingService{
 		client: openai.NewClientWithConfig(config),
+		model:  embModel,
 	}
 }
 
@@ -43,7 +48,7 @@ func (s *EmbeddingService) Embed(ctx context.Context, text string) ([]float32, e
 
 	resp, err := s.client.CreateEmbeddings(ctx, openai.EmbeddingRequest{
 		Input: []string{text},
-		Model: embeddingModel,
+		Model: s.model,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("embedding failed: %w", err)
@@ -65,7 +70,7 @@ func (s *EmbeddingService) EmbedBatch(ctx context.Context, texts []string) ([][]
 
 	resp, err := s.client.CreateEmbeddings(ctx, openai.EmbeddingRequest{
 		Input: texts,
-		Model: embeddingModel,
+		Model: s.model,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("batch embedding failed: %w", err)
@@ -79,7 +84,7 @@ func (s *EmbeddingService) EmbedBatch(ctx context.Context, texts []string) ([][]
 }
 
 func (s *EmbeddingService) cacheKey(text string) string {
-	hash := sha256.Sum256([]byte(text))
+	hash := sha256.Sum256([]byte(string(s.model) + ":" + text))
 	return embeddingCachePrefix + hex.EncodeToString(hash[:16])
 }
 
