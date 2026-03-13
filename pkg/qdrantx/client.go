@@ -10,11 +10,12 @@ import (
 )
 
 const (
-	CollectionMessages  = "messages"
-	CollectionMemories  = "memories"
-	CollectionKnowledge = "knowledge"
-	// text-embedding-3-small 维度
-	EmbeddingDimension = 1536
+	CollectionMessages       = "messages"
+	CollectionMemories       = "memories"
+	CollectionKnowledge      = "knowledge"
+	CollectionImageKnowledge = "image_knowledge"
+	// text-embedding-3-small 默认维度
+	DefaultEmbeddingDimension = 1536
 )
 
 // QdrantClient 封装 Qdrant 客户端
@@ -36,41 +37,49 @@ func NewQdrantClient(host string, port int, apiKey string) (*QdrantClient, error
 	return &QdrantClient{client: client}, nil
 }
 
-// InitCollections 初始化所有需要的集合
-func (q *QdrantClient) InitCollections(ctx context.Context) error {
+// InitCollections 初始化文本相关集合（messages, memories, knowledge）
+func (q *QdrantClient) InitCollections(ctx context.Context, dimension uint64) error {
 	collections := []string{CollectionMessages, CollectionMemories, CollectionKnowledge}
 	for _, name := range collections {
-		exists, err := q.client.CollectionExists(ctx, name)
-		if err != nil {
-			return fmt.Errorf("check collection %s: %w", name, err)
+		if err := q.InitCollection(ctx, name, dimension); err != nil {
+			return err
 		}
-		if exists {
-			continue
-		}
-		err = q.client.CreateCollection(ctx, &pb.CreateCollection{
-			CollectionName: name,
-			VectorsConfig: pb.NewVectorsConfig(&pb.VectorParams{
-				Size:     uint64(EmbeddingDimension),
-				Distance: pb.Distance_Cosine,
-			}),
-		})
-		if err != nil {
-			return fmt.Errorf("create collection %s: %w", name, err)
-		}
-		// 为 payload 字段创建索引
-		if err := q.createPayloadIndexes(ctx, name); err != nil {
-			log.Printf("[Qdrant] 创建索引失败 %s: %v", name, err)
-		}
-		log.Printf("[Qdrant] 创建集合 %s 成功", name)
 	}
+	return nil
+}
+
+// InitCollection 初始化单个集合
+func (q *QdrantClient) InitCollection(ctx context.Context, name string, dimension uint64) error {
+	exists, err := q.client.CollectionExists(ctx, name)
+	if err != nil {
+		return fmt.Errorf("check collection %s: %w", name, err)
+	}
+	if exists {
+		return nil
+	}
+	err = q.client.CreateCollection(ctx, &pb.CreateCollection{
+		CollectionName: name,
+		VectorsConfig: pb.NewVectorsConfig(&pb.VectorParams{
+			Size:     dimension,
+			Distance: pb.Distance_Cosine,
+		}),
+	})
+	if err != nil {
+		return fmt.Errorf("create collection %s: %w", name, err)
+	}
+	if err := q.createPayloadIndexes(ctx, name); err != nil {
+		log.Printf("[Qdrant] 创建索引失败 %s: %v", name, err)
+	}
+	log.Printf("[Qdrant] 创建集合 %s 成功", name)
 	return nil
 }
 
 func (q *QdrantClient) createPayloadIndexes(ctx context.Context, collection string) error {
 	indexes := map[string][]string{
-		CollectionMessages:  {"robot_code", "contact_wxid", "chat_room_id", "sender_wxid"},
-		CollectionMemories:  {"robot_code", "contact_wxid", "type"},
-		CollectionKnowledge: {"robot_code", "category", "title"},
+		CollectionMessages:       {"robot_code", "contact_wxid", "chat_room_id", "sender_wxid"},
+		CollectionMemories:       {"robot_code", "contact_wxid", "type"},
+		CollectionKnowledge:      {"robot_code", "category", "title"},
+		CollectionImageKnowledge: {"robot_code", "category", "title"},
 	}
 	fields, ok := indexes[collection]
 	if !ok {

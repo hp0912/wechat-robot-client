@@ -172,6 +172,15 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/memory/search", knowledgeCtl.SearchMemory)
 	api.DELETE("/robot/memory", knowledgeCtl.DeleteMemory)
 
+	// 图片知识库接口
+	api.POST("/robot/image-knowledge/document", knowledgeCtl.AddImageDocument)
+	api.DELETE("/robot/image-knowledge/document", knowledgeCtl.DeleteImageDocument)
+	api.GET("/robot/image-knowledge/documents", knowledgeCtl.ListImageDocuments)
+	api.GET("/robot/image-knowledge/categories", knowledgeCtl.GetImageCategories)
+	api.POST("/robot/image-knowledge/search/text", knowledgeCtl.SearchImageByText)
+	api.POST("/robot/image-knowledge/search/image", knowledgeCtl.SearchImageByImage)
+	api.POST("/robot/image-knowledge/reindex", knowledgeCtl.ReindexAllImages)
+
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
 	api.GET("/robot/chat/file/download", attachDownloadCtl.DownloadFile)

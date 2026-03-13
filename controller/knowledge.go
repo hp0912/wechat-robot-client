@@ -186,3 +186,156 @@ func (k *Knowledge) DeleteMemory(c *gin.Context) {
 	}
 	resp.ToResponse(nil)
 }
+
+// --- 图片知识库接口 ---
+
+// AddImageDocument 添加图片知识库文档
+func (k *Knowledge) AddImageDocument(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	var req dto.AddImageKnowledgeRequest
+	if ok, _ := appx.BindAndValid(c, &req); !ok {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	if vars.ImageKnowledgeService == nil {
+		resp.ToErrorResponse(errors.New("图片知识库服务未初始化，请先配置图片嵌入模型"))
+		return
+	}
+	err := vars.ImageKnowledgeService.AddImageDocument(c.Request.Context(), req.Title, req.Description, req.ImageURL, req.Category)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
+
+// DeleteImageDocument 删除图片知识库文档
+func (k *Knowledge) DeleteImageDocument(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	var req dto.DeleteImageKnowledgeRequest
+	if ok, _ := appx.BindAndValid(c, &req); !ok {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	if vars.ImageKnowledgeService == nil {
+		resp.ToErrorResponse(errors.New("图片知识库服务未初始化"))
+		return
+	}
+	ctx := c.Request.Context()
+	var err error
+	if req.ID > 0 {
+		err = vars.ImageKnowledgeService.DeleteImageDocumentByID(ctx, req.ID)
+	} else if req.Title != "" {
+		err = vars.ImageKnowledgeService.DeleteImageDocument(ctx, req.Title)
+	} else {
+		resp.ToErrorResponse(errors.New("请提供 id 或 title"))
+		return
+	}
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
+
+// ListImageDocuments 获取图片知识库文档列表
+func (k *Knowledge) ListImageDocuments(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	var req dto.ListImageKnowledgeRequest
+	if ok, _ := appx.BindAndValid(c, &req); !ok {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	if vars.ImageKnowledgeService == nil {
+		resp.ToErrorResponse(errors.New("图片知识库服务未初始化"))
+		return
+	}
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.PageSize <= 0 {
+		req.PageSize = 20
+	}
+	docs, total, err := vars.ImageKnowledgeService.ListImageDocuments(c.Request.Context(), req.Category, req.Page, req.PageSize)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponseList(docs, total)
+}
+
+// GetImageCategories 获取图片知识库分类列表
+func (k *Knowledge) GetImageCategories(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	if vars.ImageKnowledgeService == nil {
+		resp.ToErrorResponse(errors.New("图片知识库服务未初始化"))
+		return
+	}
+	categories, err := vars.ImageKnowledgeService.GetCategories(c.Request.Context())
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(categories)
+}
+
+// SearchImageByText 以文搜图
+func (k *Knowledge) SearchImageByText(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	var req dto.SearchImageKnowledgeByTextRequest
+	if ok, _ := appx.BindAndValid(c, &req); !ok {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	if vars.ImageKnowledgeService == nil {
+		resp.ToErrorResponse(errors.New("图片知识库服务未初始化"))
+		return
+	}
+	if req.Limit <= 0 {
+		req.Limit = 5
+	}
+	results, err := vars.ImageKnowledgeService.SearchByText(c.Request.Context(), req.Query, req.Category, req.Limit)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(results)
+}
+
+// SearchImageByImage 以图搜图
+func (k *Knowledge) SearchImageByImage(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	var req dto.SearchImageKnowledgeByImageRequest
+	if ok, _ := appx.BindAndValid(c, &req); !ok {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	if vars.ImageKnowledgeService == nil {
+		resp.ToErrorResponse(errors.New("图片知识库服务未初始化"))
+		return
+	}
+	if req.Limit <= 0 {
+		req.Limit = 5
+	}
+	results, err := vars.ImageKnowledgeService.SearchByImage(c.Request.Context(), req.ImageURL, req.Category, req.Limit)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(results)
+}
+
+// ReindexAllImages 重建图片知识库索引
+func (k *Knowledge) ReindexAllImages(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	if vars.ImageKnowledgeService == nil {
+		resp.ToErrorResponse(errors.New("图片知识库服务未初始化"))
+		return
+	}
+	go func() {
+		if err := vars.ImageKnowledgeService.ReindexAll(c.Request.Context()); err != nil {
+			// 异步执行，日志记录即可
+		}
+	}()
+	resp.ToResponse("image reindex started")
+}
