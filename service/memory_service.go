@@ -10,6 +10,7 @@ import (
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 
 	"github.com/sashabaranov/go-openai"
@@ -86,7 +87,7 @@ func (s *MemoryService) ExtractMemoriesFromConversation(contactWxID, chatRoomID 
 
 func (s *MemoryService) callLLMExtract(ctx context.Context, conversation string) ([]extractedMemory, error) {
 	config := openai.DefaultConfig(s.aiAPIKey)
-	config.BaseURL = s.aiBaseURL
+	config.BaseURL = utils.NormalizeAIBaseURL(s.aiBaseURL)
 	client := openai.NewClientWithConfig(config)
 
 	systemPrompt := `你是一个记忆提取助手。分析以下对话内容，提取值得长期记住的信息。

@@ -9,6 +9,7 @@ import (
 	"math"
 	"time"
 
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 
 	"github.com/redis/go-redis/v9"
@@ -16,6 +17,7 @@ import (
 )
 
 const (
+	embeddingDimensions    = 1536
 	embeddingCacheDuration = 24 * time.Hour
 	embeddingCachePrefix   = "emb:"
 )
@@ -29,7 +31,7 @@ type EmbeddingService struct {
 // NewEmbeddingService 创建向量化服务
 func NewEmbeddingService(baseURL, apiKey, model string) *EmbeddingService {
 	config := openai.DefaultConfig(apiKey)
-	config.BaseURL = baseURL
+	config.BaseURL = utils.NormalizeAIBaseURL(baseURL)
 	embModel := openai.EmbeddingModel(model)
 	if model == "" {
 		embModel = openai.SmallEmbedding3
@@ -47,8 +49,9 @@ func (s *EmbeddingService) Embed(ctx context.Context, text string) ([]float32, e
 	}
 
 	resp, err := s.client.CreateEmbeddings(ctx, openai.EmbeddingRequest{
-		Input: []string{text},
-		Model: s.model,
+		Input:      []string{text},
+		Model:      s.model,
+		Dimensions: embeddingDimensions,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("embedding failed: %w", err)
@@ -69,8 +72,9 @@ func (s *EmbeddingService) EmbedBatch(ctx context.Context, texts []string) ([][]
 	}
 
 	resp, err := s.client.CreateEmbeddings(ctx, openai.EmbeddingRequest{
-		Input: texts,
-		Model: s.model,
+		Input:      texts,
+		Model:      s.model,
+		Dimensions: embeddingDimensions,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("batch embedding failed: %w", err)
