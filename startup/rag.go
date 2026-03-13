@@ -8,6 +8,20 @@ import (
 	"wechat-robot-client/vars"
 )
 
+func ptrStringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+func ptrIntValue(value *int) int {
+	if value == nil {
+		return 0
+	}
+	return *value
+}
+
 // InitRAGService 初始化 RAG 相关服务（Qdrant、Embedding、VectorStore、Memory、RAG、Knowledge、ImageKnowledge）
 func InitRAGService() error {
 	ctx := context.Background()
@@ -28,6 +42,18 @@ func InitRAGService() error {
 	if err != nil {
 		return err
 	}
+	textEmbeddingModel := ""
+	imageEmbeddingModel := ""
+	imageEmbeddingBaseURL := ""
+	imageEmbeddingAPIKey := ""
+	imageEmbeddingDimension := 0
+	if globalSettings != nil {
+		textEmbeddingModel = ptrStringValue(globalSettings.TextEmbeddingModel)
+		imageEmbeddingModel = ptrStringValue(globalSettings.ImageEmbeddingModel)
+		imageEmbeddingBaseURL = ptrStringValue(globalSettings.ImageEmbeddingBaseURL)
+		imageEmbeddingAPIKey = ptrStringValue(globalSettings.ImageEmbeddingAPIKey)
+		imageEmbeddingDimension = ptrIntValue(globalSettings.ImageEmbeddingDimension)
+	}
 
 	// 3. 初始化文本向量集合
 	textDimension := uint64(qdrantx.DefaultEmbeddingDimension)
@@ -37,8 +63,8 @@ func InitRAGService() error {
 	log.Println("Qdrant 连接成功，文本向量集合已初始化")
 
 	// 4. 初始化图片向量集合（如果配置了图片嵌入模型）
-	if globalSettings != nil && globalSettings.ImageEmbeddingModel != "" && globalSettings.ImageEmbeddingDimension > 0 {
-		if err := qdrantClient.InitCollection(ctx, qdrantx.CollectionImageKnowledge, uint64(globalSettings.ImageEmbeddingDimension)); err != nil {
+	if globalSettings != nil && imageEmbeddingModel != "" && imageEmbeddingDimension > 0 {
+		if err := qdrantClient.InitCollection(ctx, qdrantx.CollectionImageKnowledge, uint64(imageEmbeddingDimension)); err != nil {
 			return err
 		}
 		log.Println("Qdrant 图片向量集合已初始化")
@@ -50,23 +76,22 @@ func InitRAGService() error {
 	}
 
 	// 5. 初始化文本 Embedding 服务（支持可配置模型）
-	textEmbeddingModel := globalSettings.TextEmbeddingModel
 	embeddingSvc := service.NewEmbeddingService(globalSettings.ChatBaseURL, globalSettings.ChatAPIKey, textEmbeddingModel)
 
 	// 6. 初始化 VectorStore 服务
 	vectorStoreSvc := service.NewVectorStoreService(qdrantClient, embeddingSvc)
 
 	// 7. 初始化图片 Embedding 服务（如果配置了图片嵌入模型）
-	if globalSettings.ImageEmbeddingModel != "" && globalSettings.ImageEmbeddingDimension > 0 {
-		imageBaseURL := globalSettings.ImageEmbeddingBaseURL
+	if imageEmbeddingModel != "" && imageEmbeddingDimension > 0 {
+		imageBaseURL := imageEmbeddingBaseURL
 		if imageBaseURL == "" {
 			imageBaseURL = globalSettings.ChatBaseURL
 		}
-		imageAPIKey := globalSettings.ImageEmbeddingAPIKey
+		imageAPIKey := imageEmbeddingAPIKey
 		if imageAPIKey == "" {
 			imageAPIKey = globalSettings.ChatAPIKey
 		}
-		imageEmbeddingSvc := service.NewImageEmbeddingService(imageBaseURL, imageAPIKey, globalSettings.ImageEmbeddingModel)
+		imageEmbeddingSvc := service.NewImageEmbeddingService(imageBaseURL, imageAPIKey, imageEmbeddingModel)
 		vectorStoreSvc.SetImageEmbedding(imageEmbeddingSvc)
 
 		// 初始化图片知识库服务
