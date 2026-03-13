@@ -3,7 +3,6 @@ package startup
 import (
 	"context"
 	"log"
-	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/qdrantx"
 	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
@@ -91,17 +90,6 @@ func InitRAGService() error {
 
 	// 10. 初始化 Knowledge 服务
 	vars.KnowledgeService = service.NewKnowledgeService(vars.DB, vectorStoreSvc)
-
-	// 11. AutoMigrate 新模型
-	if err := vars.DB.AutoMigrate(
-		&model.Memory{},
-		&model.ConversationSession{},
-		&model.KnowledgeDocument{},
-		&model.ImageKnowledgeDocument{},
-		&model.EmbeddingTask{},
-	); err != nil {
-		return err
-	}
 	log.Println("RAG 服务初始化完成")
 
 	return nil
