@@ -67,7 +67,7 @@ func (s *MemoryService) ExtractMemoriesFromConversation(contactWxID, chatRoomID 
 			role = "助手"
 		}
 		if msg.Content != "" {
-			conversationText.WriteString(fmt.Sprintf("%s: %s\n", role, msg.Content))
+			fmt.Fprintf(&conversationText, "%s: %s\n", role, msg.Content)
 		}
 	}
 
@@ -201,7 +201,7 @@ func (s *MemoryService) GetRelevantMemories(ctx context.Context, contactWxID, qu
 
 	// 向量搜索命中的，直接从 payload 构造（或从 DB 获取完整数据）
 	for _, vr := range vectorResults {
-		if vr.Score < 0.3 { // 相似度阈值
+		if vr.Score < 0.5 { // 相似度阈值
 			continue
 		}
 		for _, m := range dbMemories {
@@ -354,7 +354,7 @@ func (s *MemoryService) generateSessionSummary(ctx context.Context, session *mod
 
 	var conversationText strings.Builder
 	for _, msg := range messages {
-		conversationText.WriteString(fmt.Sprintf("%s: %s\n", msg.SenderWxID, msg.Content))
+		fmt.Fprintf(&conversationText, "%s: %s\n", msg.SenderWxID, msg.Content)
 	}
 
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{

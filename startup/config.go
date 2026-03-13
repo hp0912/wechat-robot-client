@@ -65,11 +65,11 @@ func loadEnvConfig() {
 	// qdrant
 	vars.QdrantSettings.Host = os.Getenv("QDRANT_HOST")
 	if vars.QdrantSettings.Host == "" {
-		// log.Fatalf("QDRANT_HOST 环境变量未设置")
+		log.Fatalf("QDRANT_HOST 环境变量未设置")
 	}
 	qdrantPort := os.Getenv("QDRANT_PORT")
 	if qdrantPort == "" {
-		// log.Fatalf("QDRANT_PORT 环境变量未设置")
+		log.Fatalf("QDRANT_PORT 环境变量未设置")
 	} else {
 		port, err := strconv.Atoi(qdrantPort)
 		if err != nil {
@@ -79,7 +79,7 @@ func loadEnvConfig() {
 	}
 	vars.QdrantSettings.ApiKey = os.Getenv("QDRANT_API_KEY")
 	if vars.QdrantSettings.ApiKey == "" {
-		// log.Fatalf("QDRANT_API_KEY 环境变量未设置")
+		log.Fatalf("QDRANT_API_KEY 环境变量未设置")
 	}
 
 	// rabbitmq
