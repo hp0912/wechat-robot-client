@@ -75,7 +75,7 @@ func (s *RAGService) BuildEnhancedPrompt(basePrompt string, retrieved *ai.Retrie
 	if len(retrieved.UserMemories) > 0 {
 		sb.WriteString("\n\n## 关于这个用户你记住的信息:\n")
 		for _, m := range retrieved.UserMemories {
-			sb.WriteString(fmt.Sprintf("- [%s] %s: %s\n", m.Type, m.Key, m.Content))
+			fmt.Fprintf(&sb, "- [%s] %s: %s\n", m.Type, m.Key, m.Content)
 		}
 	}
 
@@ -92,7 +92,7 @@ func (s *RAGService) BuildEnhancedPrompt(basePrompt string, retrieved *ai.Retrie
 		for _, msg := range retrieved.RelevantMessages {
 			content := msg.Payload["content"]
 			if content != "" {
-				sb.WriteString(fmt.Sprintf("- %s\n", content))
+				fmt.Fprintf(&sb, "- %s\n", content)
 			}
 		}
 	}
@@ -105,7 +105,7 @@ func (s *RAGService) BuildEnhancedPrompt(basePrompt string, retrieved *ai.Retrie
 			content := doc.Payload["content"]
 			if content != "" {
 				if title != "" {
-					sb.WriteString(fmt.Sprintf("### %s\n", title))
+					fmt.Fprintf(&sb, "### %s\n", title)
 				}
 				sb.WriteString(content)
 				sb.WriteString("\n\n")

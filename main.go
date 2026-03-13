@@ -47,9 +47,9 @@ func main() {
 		log.Printf("[Skills] 初始化Skills服务失败（非致命）: %v", err)
 	}
 	// 初始化RAG & 记忆服务
-	// if err := startup.InitRAGService(); err != nil {
-	// 	log.Printf("[RAG] 初始化RAG服务失败（非致命）: %v", err)
-	// }
+	if err := startup.InitRAGService(); err != nil {
+		log.Printf("[RAG] 初始化RAG服务失败（非致命）: %v", err)
+	}
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))
 	app := gin.Default()
