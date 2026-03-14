@@ -74,6 +74,7 @@ type GlobalSettings struct {
 	ImageEmbeddingBaseURL     *string        `gorm:"column:image_embedding_base_url;type:varchar(255);default:'';comment:图片嵌入API地址(为空时复用ChatBaseURL)" json:"image_embedding_base_url"`
 	ImageEmbeddingAPIKey      *string        `gorm:"column:image_embedding_api_key;type:varchar(255);default:'';comment:图片嵌入API密钥(为空时复用ChatAPIKey)" json:"image_embedding_api_key"`
 	ImageEmbeddingDimension   *int           `gorm:"column:image_embedding_dimension;default:0;comment:图片嵌入向量维度" json:"image_embedding_dimension"`
+	MemoryEnabled             *bool          `gorm:"column:memory_enabled;not null;default:true;comment:是否启用长期记忆功能" json:"memory_enabled"`
 }
 
 // TableName 设置表名

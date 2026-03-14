@@ -33,14 +33,16 @@ func (s *RAGService) RetrieveContext(ctx context.Context, contactWxID, chatRoomI
 	result := &ai.RetrievedContext{}
 
 	// 1. 获取用户相关记忆
-	if memories, err := s.memorySvc.GetRelevantMemories(ctx, contactWxID, query, 10); err == nil {
-		result.UserMemories = memories
-	} else {
-		log.Printf("[RAG] 获取记忆失败: %v", err)
-	}
+	if s.memorySvc != nil {
+		if memories, err := s.memorySvc.GetRelevantMemories(ctx, contactWxID, query, 10); err == nil {
+			result.UserMemories = memories
+		} else {
+			log.Printf("[RAG] 获取记忆失败: %v", err)
+		}
 
-	// 2. 获取上轮对话摘要
-	result.SessionSummary = s.memorySvc.GetLastSessionSummary(ctx, contactWxID, chatRoomID)
+		// 2. 获取上轮对话摘要
+		result.SessionSummary = s.memorySvc.GetLastSessionSummary(ctx, contactWxID, chatRoomID)
+	}
 
 	// 3. 语义搜索历史消息
 	if s.vectorStore != nil {
@@ -126,6 +128,7 @@ func (s *RAGService) IndexMessage(ctx context.Context, msg *model.Message) {
 	chatRoomID := ""
 	if msg.IsChatRoom {
 		chatRoomID = msg.FromWxID
+		contactWxID = msg.SenderWxID
 	}
 
 	if _, err := s.vectorStore.IndexMessage(ctx, vars.RobotRuntime.RobotCode, msg.ID, msg.Content, contactWxID, chatRoomID, msg.SenderWxID, msg.CreatedAt); err != nil {

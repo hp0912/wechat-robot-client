@@ -285,12 +285,16 @@ func (c *Message) Delete(data *model.Message) error {
 }
 
 // GetMessagesByRange 获取指定 ID 范围内的文本消息
-func (m *Message) GetMessagesByRange(firstMsgID, lastMsgID int64, limit int) ([]*model.Message, error) {
+// senderWxIDs 为可选过滤项，不为空时只返回这些 sender 的消息（用于群聊按成员隔离）
+func (m *Message) GetMessagesByRange(firstMsgID, lastMsgID int64, limit int, senderWxIDs ...string) ([]*model.Message, error) {
 	var messages []*model.Message
-	err := m.DB.WithContext(m.Ctx).
+	query := m.DB.WithContext(m.Ctx).
 		Where("id >= ? AND id <= ?", firstMsgID, lastMsgID).
-		Where("`type` = 1").
-		Order("id ASC").
+		Where("`type` = 1")
+	if len(senderWxIDs) > 0 {
+		query = query.Where("sender_wxid IN ?", senderWxIDs)
+	}
+	err := query.Order("id ASC").
 		Limit(limit).
 		Find(&messages).Error
 	return messages, err

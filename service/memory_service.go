@@ -346,9 +346,15 @@ func (s *MemoryService) generateSessionSummary(ctx context.Context, session *mod
 	config.BaseURL = s.aiBaseURL
 	client := openai.NewClientWithConfig(config)
 
-	// 获取会话内的消息
+	// 获取会话内的消息；群聊时只取该成员与机器人之间的对话
 	msgRepo := repository.NewMessageRepo(ctx, s.db)
-	messages, err := msgRepo.GetMessagesByRange(session.FirstMsgID, session.LastMsgID, 50)
+	var messages []*model.Message
+	var err error
+	if session.ChatRoomID != "" {
+		messages, err = msgRepo.GetMessagesByRange(session.FirstMsgID, session.LastMsgID, 1000, session.ContactWxID, vars.RobotRuntime.WxID)
+	} else {
+		messages, err = msgRepo.GetMessagesByRange(session.FirstMsgID, session.LastMsgID, 1000)
+	}
 	if err != nil || len(messages) == 0 {
 		return "", fmt.Errorf("get session messages: %w", err)
 	}
