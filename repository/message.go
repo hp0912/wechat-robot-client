@@ -324,6 +324,30 @@ func (m *Message) GetChatRoomTextMessagesByTimeRange(chatRoomID, selfWxID string
 	return messages, nil
 }
 
+// GetRecentChatRoomMessages 获取群聊最近N条文本消息（排除指定发送者，限最近15分钟），并JOIN群成员昵称
+func (m *Message) GetRecentChatRoomMessages(chatRoomID string, excludeWxIDs []string, limit int) ([]*model.Message, error) {
+	var messages []*model.Message
+	fifteenMinutesAgo := time.Now().Add(-15 * time.Minute).Unix()
+	query := m.DB.WithContext(m.Ctx).Model(&model.Message{}).
+		Select("messages.*, IF(chat_room_members.remark != '' AND chat_room_members.remark IS NOT NULL, chat_room_members.remark, chat_room_members.nickname) AS sender_nickname").
+		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
+		Where("messages.from_wxid = ?", chatRoomID).
+		Where("messages.`type` = 1").
+		Where("messages.content != ''").
+		Where("messages.created_at >= ?", fifteenMinutesAgo)
+	if len(excludeWxIDs) > 0 {
+		query = query.Where("messages.sender_wxid NOT IN ?", excludeWxIDs)
+	}
+	err := query.Order("messages.id DESC").Limit(limit).Find(&messages).Error
+	if err != nil {
+		return nil, err
+	}
+	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+		messages[i], messages[j] = messages[j], messages[i]
+	}
+	return messages, nil
+}
+
 // GetRecentTextMessages 获取最近的文本消息（用于异步向量化）
 func (m *Message) GetRecentTextMessages(sinceID int64, limit int) ([]*model.Message, error) {
 	var messages []*model.Message
