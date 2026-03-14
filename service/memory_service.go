@@ -346,7 +346,7 @@ func (s *MemoryService) SummarizeExpiredSessions(inactiveMinutes int) {
 
 func (s *MemoryService) generateSessionSummary(ctx context.Context, session *model.ConversationSession) (string, error) {
 	config := openai.DefaultConfig(s.aiAPIKey)
-	config.BaseURL = s.aiBaseURL
+	config.BaseURL = utils.NormalizeAIBaseURL(s.aiBaseURL)
 	client := openai.NewClientWithConfig(config)
 
 	// 获取会话内的消息；群聊时只取该成员与机器人之间的对话
