@@ -37,6 +37,10 @@ func main() {
 	if err := startup.InitWechatRobot(); err != nil {
 		log.Fatalf("启动微信机器人失败: %v", err)
 	}
+	// 初始化RAG & 记忆服务
+	if err := startup.InitRAGService(); err != nil {
+		log.Printf("[RAG] 初始化RAG服务失败（非致命）: %v", err)
+	}
 	// 初始化定时任务
 	vars.CronManager = common_cron.NewCronManager()
 	vars.CronManager.Clear()
@@ -58,10 +62,6 @@ func main() {
 	// 初始化Skills服务
 	if err := startup.InitSkillService(); err != nil {
 		log.Printf("[Skills] 初始化Skills服务失败（非致命）: %v", err)
-	}
-	// 初始化RAG & 记忆服务
-	if err := startup.InitRAGService(); err != nil {
-		log.Printf("[RAG] 初始化RAG服务失败（非致命）: %v", err)
 	}
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))

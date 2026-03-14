@@ -40,4 +40,5 @@ func (cron *MemoryMaintenanceCron) Register() {
 	if err != nil {
 		log.Printf("[MemoryCron] 注册定时任务失败: %v", err)
 	}
+	log.Println("[MemoryCron] 记忆维护定时任务注册成功")
 }

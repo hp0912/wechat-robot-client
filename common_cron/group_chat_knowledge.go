@@ -37,4 +37,5 @@ func (cron *GroupChatKnowledgeCron) Register() {
 	if err != nil {
 		log.Printf("[GroupChatKnowledgeCron] 注册定时任务失败: %v", err)
 	}
+	log.Println("[GroupChatKnowledgeCron] 自动提取群聊知识定时任务注册成功")
 }
