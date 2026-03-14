@@ -307,14 +307,17 @@ func (s *MemoryService) TouchSession(ctx context.Context, contactWxID, chatRoomI
 	s.sessionRepo.Create(newSession)
 }
 
-// GetLastSessionSummary 获取上一轮对话摘要
+// GetLastSessionSummary 获取上一轮对话摘要，动态将其中的 wxid 替换为当前昵称
 func (s *MemoryService) GetLastSessionSummary(ctx context.Context, contactWxID, chatRoomID string) string {
 	summary, err := s.sessionRepo.GetLatestSummary(contactWxID, chatRoomID)
 	if err != nil {
 		log.Printf("[Memory] 获取会话摘要失败: %v", err)
 		return ""
 	}
-	return summary
+	if summary == "" {
+		return ""
+	}
+	return s.replaceWxIDsInText(ctx, contactWxID, chatRoomID, summary)
 }
 
 // SummarizeExpiredSessions 总结过期会话
@@ -346,9 +349,15 @@ func (s *MemoryService) generateSessionSummary(ctx context.Context, session *mod
 	config.BaseURL = s.aiBaseURL
 	client := openai.NewClientWithConfig(config)
 
-	// 获取会话内的消息
+	// 获取会话内的消息；群聊时只取该成员与机器人之间的对话
 	msgRepo := repository.NewMessageRepo(ctx, s.db)
-	messages, err := msgRepo.GetMessagesByRange(session.FirstMsgID, session.LastMsgID, 50)
+	var messages []*model.Message
+	var err error
+	if session.ChatRoomID != "" {
+		messages, err = msgRepo.GetMessagesByRange(session.FirstMsgID, session.LastMsgID, 1000, session.ContactWxID, vars.RobotRuntime.WxID)
+	} else {
+		messages, err = msgRepo.GetMessagesByRange(session.FirstMsgID, session.LastMsgID, 1000)
+	}
 	if err != nil || len(messages) == 0 {
 		return "", fmt.Errorf("get session messages: %w", err)
 	}
@@ -378,4 +387,47 @@ func (s *MemoryService) generateSessionSummary(ctx context.Context, session *mod
 		return "", fmt.Errorf("empty response")
 	}
 	return strings.TrimSpace(resp.Choices[0].Message.Content), nil
+}
+
+// replaceWxIDsInText 将文本中出现的 wxid 动态替换为当前昵称
+func (s *MemoryService) replaceWxIDsInText(ctx context.Context, contactWxID, chatRoomID, text string) string {
+	// 替换机器人 wxid
+	if robotWxID := vars.RobotRuntime.WxID; robotWxID != "" && strings.Contains(text, robotWxID) {
+		text = strings.ReplaceAll(text, robotWxID, "助手")
+	}
+
+	// 替换用户 wxid
+	if contactWxID != "" && strings.Contains(text, contactWxID) {
+		if nickname := s.resolveContactNickname(ctx, contactWxID, chatRoomID); nickname != "" {
+			text = strings.ReplaceAll(text, contactWxID, nickname)
+		}
+	}
+
+	return text
+}
+
+// resolveContactNickname 查询联系人当前昵称（优先备注，其次昵称）
+func (s *MemoryService) resolveContactNickname(ctx context.Context, contactWxID, chatRoomID string) string {
+	if chatRoomID != "" {
+		memberRepo := repository.NewChatRoomMemberRepo(ctx, s.db)
+		member, err := memberRepo.GetChatRoomMember(chatRoomID, contactWxID)
+		if err == nil && member != nil {
+			if member.Remark != "" {
+				return member.Remark
+			}
+			return member.Nickname
+		}
+	} else {
+		contactRepo := repository.NewContactRepo(ctx, s.db)
+		contact, err := contactRepo.GetContact(contactWxID)
+		if err == nil && contact != nil {
+			if contact.Remark != "" {
+				return contact.Remark
+			}
+			if contact.Nickname != nil {
+				return *contact.Nickname
+			}
+		}
+	}
+	return ""
 }

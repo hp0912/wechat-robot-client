@@ -34,7 +34,7 @@ func (r *ConversationSession) GetActiveSession(contactWxID, chatRoomID string) (
 	var session model.ConversationSession
 	query := r.DB.WithContext(r.Ctx).Where("is_active = ?", true)
 	if chatRoomID != "" {
-		query = query.Where("chat_room_id = ?", chatRoomID)
+		query = query.Where("chat_room_id = ? AND contact_wxid = ?", chatRoomID, contactWxID)
 	} else {
 		query = query.Where("contact_wxid = ?", contactWxID)
 	}
@@ -51,7 +51,7 @@ func (r *ConversationSession) GetLatestSummary(contactWxID, chatRoomID string) (
 	query := r.DB.WithContext(r.Ctx).
 		Where("is_active = ? AND summary != ''", false)
 	if chatRoomID != "" {
-		query = query.Where("chat_room_id = ?", chatRoomID)
+		query = query.Where("chat_room_id = ? AND contact_wxid = ?", chatRoomID, contactWxID)
 	} else {
 		query = query.Where("contact_wxid = ?", contactWxID)
 	}

@@ -69,6 +69,7 @@ type GlobalSettings struct {
 	MorningEnabled            *bool          `gorm:"column:morning_enabled;default:false;comment:是否启用早安问候功能" json:"morning_enabled"`
 	MorningCron               string         `gorm:"column:morning_cron;type:varchar(100);default:'';comment:早安问候的定时任务表达式" json:"morning_cron"`
 	FriendSyncCron            string         `gorm:"column:friend_sync_cron;type:varchar(100);default:'';comment:好友同步的定时任务表达式" json:"friend_sync_cron"`
+	MemoryEnabled             *bool          `gorm:"column:memory_enabled;not null;default:true;comment:是否启用长期记忆功能" json:"memory_enabled"`
 	TextEmbeddingModel        *string        `gorm:"column:text_embedding_model;type:varchar(100);default:'';comment:文本嵌入模型名称" json:"text_embedding_model"`
 	ImageEmbeddingModel       *string        `gorm:"column:image_embedding_model;type:varchar(100);default:'';comment:图片嵌入模型名称" json:"image_embedding_model"`
 	ImageEmbeddingBaseURL     *string        `gorm:"column:image_embedding_base_url;type:varchar(255);default:'';comment:图片嵌入API地址(为空时复用ChatBaseURL)" json:"image_embedding_base_url"`

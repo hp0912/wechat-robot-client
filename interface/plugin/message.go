@@ -17,9 +17,13 @@ type MessageServiceIface interface {
 	SendLongTextMessage(toWxID string, longText string) error
 	SendAppMessage(toWxID string, appMsgType int, appMsgXml string) error
 	MsgUploadImg(toWxID string, image io.Reader) (*model.Message, error)
+	SendImageMessageByLocalPath(toWxID string, imagePath string) error
 	SendImageMessageByRemoteURL(toWxID string, imageURL string) error
-	SendImageMessageStream(ctx context.Context, req dto.SendImageMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) (*model.Message, error)
+	SendVideoMessageByLocalPath(toWxID string, videoPath string) error
 	SendVideoMessageByRemoteURL(toWxID string, videoURL string) error
+	SendVoiceMessageByLocalPath(toWxID string, voicePath string) error
+	SendFileMessageByLocalPath(toWxID string, localFilePath string) error
+	SendImageMessageStream(ctx context.Context, req dto.SendImageMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) (*model.Message, error)
 	SendFileMessage(ctx context.Context, req dto.SendFileMessageRequest, file io.Reader, fileHeader *multipart.FileHeader) error
 	MsgSendVoice(toWxID string, voice io.Reader, voiceExt string) error
 	MsgSendVideo(toWxID string, video io.Reader, videoExt string) error

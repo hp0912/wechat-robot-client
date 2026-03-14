@@ -7,6 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/model"
@@ -41,6 +45,52 @@ type CallToolResult struct {
 	AppXML            string     `json:"app_xml,omitempty" jsonschema:"应用消息的XML内容"`
 	VoiceEncoding     string     `json:"voice_encoding,omitempty" jsonschema:"语音消息的编码格式"`
 	AttachmentURLList []string   `json:"attachment_url_list,omitempty" jsonschema:"附件消息的URL"`
+}
+
+type structuredReplyType string
+
+const (
+	structuredReplyTypeImage  structuredReplyType = "image"
+	structuredReplyTypeVideo  structuredReplyType = "video"
+	structuredReplyTypeVoice  structuredReplyType = "voice"
+	structuredReplyTypeFile   structuredReplyType = "file"
+	structuredReplyTypeAppMsg structuredReplyType = "appmsg"
+)
+
+type structuredReplyBlock struct {
+	Start   int
+	End     int
+	Type    structuredReplyType
+	Content string
+	AppType int
+}
+
+type structuredReplyPattern struct {
+	Type    structuredReplyType
+	Pattern *regexp.Regexp
+}
+
+var structuredReplyPatterns = []structuredReplyPattern{
+	{
+		Type:    structuredReplyTypeImage,
+		Pattern: regexp.MustCompile(`(?s)<wechat-robot-image-url>(.*?)</wechat-robot-image-url>`),
+	},
+	{
+		Type:    structuredReplyTypeVideo,
+		Pattern: regexp.MustCompile(`(?s)<wechat-robot-video-url>(.*?)</wechat-robot-video-url>`),
+	},
+	{
+		Type:    structuredReplyTypeVoice,
+		Pattern: regexp.MustCompile(`(?s)<wechat-robot-voice-url>(.*?)</wechat-robot-voice-url>`),
+	},
+	{
+		Type:    structuredReplyTypeFile,
+		Pattern: regexp.MustCompile(`(?s)<wechat-robot-file-url>(.*?)</wechat-robot-file-url>`),
+	},
+	{
+		Type:    structuredReplyTypeAppMsg,
+		Pattern: regexp.MustCompile(`(?s)<wechat-robot-appmsg\s+type=['"](\d+)['"]>(.*?)</wechat-robot-appmsg>`),
+	},
 }
 
 type AIChatPlugin struct{}
@@ -93,6 +143,129 @@ func (p *AIChatPlugin) SendMessage(ctx *plugin.MessageContext, aiReplyText strin
 	} else {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, aiReplyText)
 	}
+}
+
+func isRemoteStructuredReplyContent(content string) bool {
+	trimmedContent := strings.ToLower(strings.TrimSpace(content))
+	return strings.HasPrefix(trimmedContent, "http://") || strings.HasPrefix(trimmedContent, "https://")
+}
+
+func extractStructuredReplyBlocks(aiReplyText string) ([]structuredReplyBlock, string) {
+	var blocks []structuredReplyBlock
+	for _, pattern := range structuredReplyPatterns {
+		matches := pattern.Pattern.FindAllStringSubmatchIndex(aiReplyText, -1)
+		for _, match := range matches {
+			if len(match) < 4 {
+				continue
+			}
+			block := structuredReplyBlock{
+				Start:   match[0],
+				End:     match[1],
+				Type:    pattern.Type,
+				Content: strings.TrimSpace(aiReplyText[match[2]:match[3]]),
+			}
+			if pattern.Type == structuredReplyTypeAppMsg {
+				if len(match) < 6 {
+					continue
+				}
+				appType, err := strconv.Atoi(aiReplyText[match[2]:match[3]])
+				if err != nil {
+					continue
+				}
+				block.AppType = appType
+				block.Content = strings.TrimSpace(aiReplyText[match[4]:match[5]])
+			}
+			blocks = append(blocks, block)
+		}
+	}
+
+	if len(blocks) == 0 {
+		return nil, aiReplyText
+	}
+
+	sort.Slice(blocks, func(i, j int) bool {
+		if blocks[i].Start == blocks[j].Start {
+			return blocks[i].End < blocks[j].End
+		}
+		return blocks[i].Start < blocks[j].Start
+	})
+
+	filteredBlocks := make([]structuredReplyBlock, 0, len(blocks))
+	var remainingText strings.Builder
+	current := 0
+	for _, block := range blocks {
+		if block.Start < current {
+			continue
+		}
+		remainingText.WriteString(aiReplyText[current:block.Start])
+		current = block.End
+		filteredBlocks = append(filteredBlocks, block)
+	}
+	remainingText.WriteString(aiReplyText[current:])
+
+	return filteredBlocks, remainingText.String()
+}
+
+func (p *AIChatPlugin) handleStructuredReplyBlocks(ctx *plugin.MessageContext, aiReplyText string) bool {
+	blocks, remainingText := extractStructuredReplyBlocks(aiReplyText)
+	if len(blocks) == 0 {
+		return false
+	}
+
+	for _, block := range blocks {
+		switch block.Type {
+		case structuredReplyTypeImage:
+			if isRemoteStructuredReplyContent(block.Content) {
+				if err := ctx.MessageService.SendImageMessageByRemoteURL(ctx.Message.FromWxID, block.Content); err != nil {
+					log.Println("发送结构化图片消息失败: ", err.Error())
+				}
+				continue
+			}
+			if err := ctx.MessageService.SendImageMessageByLocalPath(ctx.Message.FromWxID, block.Content); err != nil {
+				log.Println("发送结构化图片消息失败: ", err.Error())
+			}
+			_ = os.Remove(block.Content)
+		case structuredReplyTypeVideo:
+			if isRemoteStructuredReplyContent(block.Content) {
+				if err := ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, block.Content); err != nil {
+					log.Println("发送结构化视频消息失败: ", err.Error())
+				}
+				continue
+			}
+			if err := ctx.MessageService.SendVideoMessageByLocalPath(ctx.Message.FromWxID, block.Content); err != nil {
+				log.Println("发送结构化视频消息失败: ", err.Error())
+			}
+			_ = os.Remove(block.Content)
+		case structuredReplyTypeVoice:
+			if isRemoteStructuredReplyContent(block.Content) {
+				log.Println("结构化语音消息暂不支持远程路径: ", block.Content)
+				continue
+			}
+			if err := ctx.MessageService.SendVoiceMessageByLocalPath(ctx.Message.FromWxID, block.Content); err != nil {
+				log.Println("发送结构化语音消息失败: ", err.Error())
+			}
+			_ = os.Remove(block.Content)
+		case structuredReplyTypeFile:
+			if isRemoteStructuredReplyContent(block.Content) {
+				log.Println("结构化文件消息暂不支持远程路径: ", block.Content)
+				continue
+			}
+			if err := ctx.MessageService.SendFileMessageByLocalPath(ctx.Message.FromWxID, block.Content); err != nil {
+				log.Println("发送结构化文件消息失败: ", err.Error())
+			}
+			_ = os.Remove(block.Content)
+		case structuredReplyTypeAppMsg:
+			if err := ctx.MessageService.SendAppMessage(ctx.Message.FromWxID, block.AppType, block.Content); err != nil {
+				log.Println("发送结构化应用消息失败: ", err.Error())
+			}
+		}
+	}
+
+	if trimmedText := strings.TrimSpace(remainingText); trimmedText != "" {
+		p.SendMessage(ctx, trimmedText)
+	}
+	_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
+	return true
 }
 
 func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
@@ -175,7 +348,7 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 	}
 
 	// 检测是否是 MCP 工具调用结果
-	if strings.HasPrefix(aiReplyText, "{") {
+	if strings.HasPrefix(strings.TrimSpace(aiReplyText), "{") {
 		var callToolResult CallToolResult
 		err = json.Unmarshal([]byte(aiReplyText), &callToolResult)
 		if err == nil && callToolResult.IsCallToolResult {
@@ -275,6 +448,10 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 			}
 			return
 		}
+	}
+
+	if p.handleStructuredReplyBlocks(ctx, aiReplyText) {
+		return
 	}
 
 	p.SendMessage(ctx, aiReplyText)
