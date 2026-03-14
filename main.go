@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 	"wechat-robot-client/common_cron"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/shutdown"
 	"wechat-robot-client/router"
 	"wechat-robot-client/startup"
@@ -40,6 +41,15 @@ func main() {
 	vars.CronManager = common_cron.NewCronManager()
 	vars.CronManager.Clear()
 	vars.CronManager.Start()
+	// 注册全局配置变更回调：定时任务
+	vars.SettingsObserver.Register("定时任务", func(settings *model.GlobalSettings) error {
+		vars.CronManager.Clear()
+		vars.CronManager.SetGlobalSettings(settings)
+		if vars.RobotRuntime.Status == model.RobotStatusOnline {
+			vars.CronManager.Start()
+		}
+		return nil
+	})
 	// 初始化MCP服务
 	err := startup.InitMCPService()
 	if err != nil {

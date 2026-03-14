@@ -29,15 +29,11 @@ func (s *GlobalSettingsService) SaveGlobalSettings(data *model.GlobalSettings) e
 	if err != nil {
 		return err
 	}
-	// 重置公共定时任务
+	// 重新读取最新的完整配置，通知所有观察者
 	newData, err := s.GetGlobalSettings()
 	if err != nil {
 		return err
 	}
-	vars.CronManager.Clear()
-	vars.CronManager.SetGlobalSettings(newData)
-	if vars.RobotRuntime.Status == model.RobotStatusOnline {
-		vars.CronManager.Start()
-	}
+	vars.SettingsObserver.NotifyAll(newData)
 	return nil
 }
