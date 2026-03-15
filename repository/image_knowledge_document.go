@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/appx"
 
 	"gorm.io/gorm"
 )
@@ -62,7 +63,7 @@ func (r *ImageKnowledgeDocument) GetByTitle(title string) ([]*model.ImageKnowled
 }
 
 // List 分页获取图片知识库文档
-func (r *ImageKnowledgeDocument) List(category string, page, pageSize int) ([]*model.ImageKnowledgeDocument, int64, error) {
+func (r *ImageKnowledgeDocument) List(category string, pager appx.Pager) ([]*model.ImageKnowledgeDocument, int64, error) {
 	var docs []*model.ImageKnowledgeDocument
 	var total int64
 
@@ -73,19 +74,8 @@ func (r *ImageKnowledgeDocument) List(category string, page, pageSize int) ([]*m
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	err := query.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&docs).Error
+	err := query.Order("id DESC").Offset(pager.OffSet).Limit(pager.PageSize).Find(&docs).Error
 	return docs, total, err
-}
-
-// GetCategories 获取所有图片知识分类
-func (r *ImageKnowledgeDocument) GetCategories() ([]string, error) {
-	var categories []string
-	err := r.DB.WithContext(r.Ctx).
-		Model(&model.ImageKnowledgeDocument{}).
-		Distinct("category").
-		Where("category != ''").
-		Pluck("category", &categories).Error
-	return categories, err
 }
 
 // GetAllVectorIDs 获取某个 title 下所有的向量 ID

@@ -29,6 +29,7 @@ func autoMigrateTasks() []migrateTask {
 				&model.KnowledgeDocument{},
 				&model.ImageKnowledgeDocument{},
 				&model.EmbeddingTask{},
+				&model.KnowledgeCategory{},
 			},
 		},
 	}

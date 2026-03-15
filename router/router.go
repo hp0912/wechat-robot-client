@@ -28,6 +28,7 @@ var probeCtl *controller.Probe
 var pprofProxyCtl *controller.PprofProxy
 var skillCtl *controller.SkillController
 var knowledgeCtl *controller.Knowledge
+var knowledgeCategoryCtl *controller.KnowledgeCategory
 
 func initController() {
 	chatHistoryCtl = controller.NewChatHistoryController()
@@ -50,6 +51,7 @@ func initController() {
 	probeCtl = controller.NewProbeController()
 	skillCtl = controller.NewSkillController()
 	knowledgeCtl = controller.NewKnowledgeController()
+	knowledgeCategoryCtl = controller.NewKnowledgeCategoryController()
 }
 
 func RegisterRouter(r *gin.Engine) error {
@@ -161,11 +163,17 @@ func RegisterRouter(r *gin.Engine) error {
 	api.DELETE("/robot/skill/uninstall", skillCtl.UninstallSkill)
 	api.POST("/robot/skill/env-vars", skillCtl.SetSkillEnvVars)
 
+	// 知识库分类管理接口
+	api.GET("/robot/knowledge/categories", knowledgeCategoryCtl.List)
+	api.POST("/robot/knowledge/category", knowledgeCategoryCtl.Create)
+	api.PUT("/robot/knowledge/category", knowledgeCategoryCtl.Update)
+	api.DELETE("/robot/knowledge/category", knowledgeCategoryCtl.Delete)
+
 	// 知识库 & 记忆管理接口
 	api.POST("/robot/knowledge/document", knowledgeCtl.AddDocument)
+	api.PUT("/robot/knowledge/document", knowledgeCtl.UpdateDocument)
 	api.DELETE("/robot/knowledge/document", knowledgeCtl.DeleteDocument)
 	api.GET("/robot/knowledge/documents", knowledgeCtl.ListDocuments)
-	api.GET("/robot/knowledge/categories", knowledgeCtl.GetCategories)
 	api.POST("/robot/knowledge/search", knowledgeCtl.SearchKnowledge)
 	api.POST("/robot/knowledge/reindex", knowledgeCtl.ReindexAll)
 	api.POST("/robot/memory", knowledgeCtl.SaveMemory)
@@ -176,7 +184,6 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/image-knowledge/document", knowledgeCtl.AddImageDocument)
 	api.DELETE("/robot/image-knowledge/document", knowledgeCtl.DeleteImageDocument)
 	api.GET("/robot/image-knowledge/documents", knowledgeCtl.ListImageDocuments)
-	api.GET("/robot/image-knowledge/categories", knowledgeCtl.GetImageCategories)
 	api.POST("/robot/image-knowledge/search/text", knowledgeCtl.SearchImageByText)
 	api.POST("/robot/image-knowledge/search/image", knowledgeCtl.SearchImageByImage)
 	api.POST("/robot/image-knowledge/reindex", knowledgeCtl.ReindexAllImages)

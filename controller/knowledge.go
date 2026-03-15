@@ -35,6 +35,25 @@ func (k *Knowledge) AddDocument(c *gin.Context) {
 	resp.ToResponse(nil)
 }
 
+// UpdateDocument 更新知识库文档
+func (k *Knowledge) UpdateDocument(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	var req dto.UpdateKnowledgeDocumentRequest
+	if ok, _ := appx.BindAndValid(c, &req); !ok {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	if req.Source == "" {
+		req.Source = "manual"
+	}
+	err := vars.KnowledgeService.UpdateDocument(c.Request.Context(), req.ID, req.Title, req.Content, req.Source)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
+
 // DeleteDocument 删除知识库文档
 func (k *Knowledge) DeleteDocument(c *gin.Context) {
 	resp := appx.NewResponse(c)
@@ -68,29 +87,13 @@ func (k *Knowledge) ListDocuments(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	if req.Page <= 0 {
-		req.Page = 1
-	}
-	if req.PageSize <= 0 {
-		req.PageSize = 20
-	}
-	docs, total, err := vars.KnowledgeService.ListDocuments(c.Request.Context(), req.Category, req.Page, req.PageSize)
+	pager := appx.InitPager(c)
+	docs, total, err := vars.KnowledgeService.ListDocuments(c.Request.Context(), req.Category, pager)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
 	resp.ToResponseList(docs, total)
-}
-
-// GetCategories 获取知识库分类列表
-func (k *Knowledge) GetCategories(c *gin.Context) {
-	resp := appx.NewResponse(c)
-	categories, err := vars.KnowledgeService.GetCategories(c.Request.Context())
-	if err != nil {
-		resp.ToErrorResponse(err)
-		return
-	}
-	resp.ToResponse(categories)
 }
 
 // SearchKnowledge 搜索知识库
@@ -250,33 +253,13 @@ func (k *Knowledge) ListImageDocuments(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("图片知识库服务未初始化"))
 		return
 	}
-	if req.Page <= 0 {
-		req.Page = 1
-	}
-	if req.PageSize <= 0 {
-		req.PageSize = 20
-	}
-	docs, total, err := vars.ImageKnowledgeService.ListImageDocuments(c.Request.Context(), req.Category, req.Page, req.PageSize)
+	pager := appx.InitPager(c)
+	docs, total, err := vars.ImageKnowledgeService.ListImageDocuments(c.Request.Context(), req.Category, pager)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
 	resp.ToResponseList(docs, total)
-}
-
-// GetImageCategories 获取图片知识库分类列表
-func (k *Knowledge) GetImageCategories(c *gin.Context) {
-	resp := appx.NewResponse(c)
-	if vars.ImageKnowledgeService == nil {
-		resp.ToErrorResponse(errors.New("图片知识库服务未初始化"))
-		return
-	}
-	categories, err := vars.ImageKnowledgeService.GetCategories(c.Request.Context())
-	if err != nil {
-		resp.ToErrorResponse(err)
-		return
-	}
-	resp.ToResponse(categories)
 }
 
 // SearchImageByText 以文搜图

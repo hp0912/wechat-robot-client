@@ -21,7 +21,7 @@ import (
 var groupChatKnowledgeLastTime sync.Map
 
 type GroupChatKnowledgeService struct {
-	ctx    context.Context
+	ctx     context.Context
 	msgRepo *repository.Message
 	ctRepo  *repository.Contact
 	gsRepo  *repository.GlobalSettings
@@ -29,7 +29,7 @@ type GroupChatKnowledgeService struct {
 
 func NewGroupChatKnowledgeService(ctx context.Context) *GroupChatKnowledgeService {
 	return &GroupChatKnowledgeService{
-		ctx:    ctx,
+		ctx:     ctx,
 		msgRepo: repository.NewMessageRepo(ctx, vars.DB),
 		ctRepo:  repository.NewContactRepo(ctx, vars.DB),
 		gsRepo:  repository.NewGlobalSettingsRepo(ctx, vars.DB),
