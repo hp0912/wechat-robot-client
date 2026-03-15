@@ -113,11 +113,6 @@ func (s *KnowledgeService) ListDocuments(ctx context.Context, category string, p
 	return s.docRepo.List(category, page, pageSize)
 }
 
-// GetCategories 获取所有知识分类
-func (s *KnowledgeService) GetCategories(ctx context.Context) ([]string, error) {
-	return s.docRepo.GetCategories()
-}
-
 // SearchKnowledge 搜索知识库（混合检索：向量 + 关键词）
 func (s *KnowledgeService) SearchKnowledge(ctx context.Context, query, category string, limit int) ([]ai.VectorSearchResult, error) {
 	if s.vectorStore == nil {

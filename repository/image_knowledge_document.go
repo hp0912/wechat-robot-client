@@ -77,17 +77,6 @@ func (r *ImageKnowledgeDocument) List(category string, page, pageSize int) ([]*m
 	return docs, total, err
 }
 
-// GetCategories 获取所有图片知识分类
-func (r *ImageKnowledgeDocument) GetCategories() ([]string, error) {
-	var categories []string
-	err := r.DB.WithContext(r.Ctx).
-		Model(&model.ImageKnowledgeDocument{}).
-		Distinct("category").
-		Where("category != ''").
-		Pluck("category", &categories).Error
-	return categories, err
-}
-
 // GetAllVectorIDs 获取某个 title 下所有的向量 ID
 func (r *ImageKnowledgeDocument) GetAllVectorIDs(title string) ([]string, error) {
 	var ids []string

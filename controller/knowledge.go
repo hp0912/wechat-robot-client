@@ -82,17 +82,6 @@ func (k *Knowledge) ListDocuments(c *gin.Context) {
 	resp.ToResponseList(docs, total)
 }
 
-// GetCategories 获取知识库分类列表
-func (k *Knowledge) GetCategories(c *gin.Context) {
-	resp := appx.NewResponse(c)
-	categories, err := vars.KnowledgeService.GetCategories(c.Request.Context())
-	if err != nil {
-		resp.ToErrorResponse(err)
-		return
-	}
-	resp.ToResponse(categories)
-}
-
 // SearchKnowledge 搜索知识库
 func (k *Knowledge) SearchKnowledge(c *gin.Context) {
 	resp := appx.NewResponse(c)
@@ -262,21 +251,6 @@ func (k *Knowledge) ListImageDocuments(c *gin.Context) {
 		return
 	}
 	resp.ToResponseList(docs, total)
-}
-
-// GetImageCategories 获取图片知识库分类列表
-func (k *Knowledge) GetImageCategories(c *gin.Context) {
-	resp := appx.NewResponse(c)
-	if vars.ImageKnowledgeService == nil {
-		resp.ToErrorResponse(errors.New("图片知识库服务未初始化"))
-		return
-	}
-	categories, err := vars.ImageKnowledgeService.GetCategories(c.Request.Context())
-	if err != nil {
-		resp.ToErrorResponse(err)
-		return
-	}
-	resp.ToResponse(categories)
 }
 
 // SearchImageByText 以文搜图

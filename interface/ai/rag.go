@@ -48,7 +48,6 @@ type KnowledgeService interface {
 	DeleteDocument(ctx context.Context, title string) error
 	DeleteDocumentByID(ctx context.Context, id int64) error
 	ListDocuments(ctx context.Context, category string, page, pageSize int) ([]*model.KnowledgeDocument, int64, error)
-	GetCategories(ctx context.Context) ([]string, error)
 	SearchKnowledge(ctx context.Context, query, category string, limit int) ([]VectorSearchResult, error)
 	ReindexAll(ctx context.Context) error
 }
@@ -59,7 +58,6 @@ type ImageKnowledgeService interface {
 	DeleteImageDocument(ctx context.Context, title string) error
 	DeleteImageDocumentByID(ctx context.Context, id int64) error
 	ListImageDocuments(ctx context.Context, category string, page, pageSize int) ([]*model.ImageKnowledgeDocument, int64, error)
-	GetCategories(ctx context.Context) ([]string, error)
 	SearchByText(ctx context.Context, query, category string, limit int) ([]VectorSearchResult, error)
 	SearchByImage(ctx context.Context, imageURL, category string, limit int) ([]VectorSearchResult, error)
 	ReindexAll(ctx context.Context) error

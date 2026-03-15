@@ -95,11 +95,6 @@ func (s *ImageKnowledgeService) ListImageDocuments(ctx context.Context, category
 	return s.docRepo.List(category, page, pageSize)
 }
 
-// GetCategories 获取所有图片知识分类
-func (s *ImageKnowledgeService) GetCategories(ctx context.Context) ([]string, error) {
-	return s.docRepo.GetCategories()
-}
-
 // SearchByText 以文搜图
 func (s *ImageKnowledgeService) SearchByText(ctx context.Context, query, category string, limit int) ([]ai.VectorSearchResult, error) {
 	if s.vectorStore == nil {

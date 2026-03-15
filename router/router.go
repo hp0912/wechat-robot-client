@@ -164,7 +164,7 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/skill/env-vars", skillCtl.SetSkillEnvVars)
 
 	// 知识库分类管理接口
-	api.GET("/robot/knowledge/category/list", knowledgeCategoryCtl.List)
+	api.GET("/robot/knowledge/categories", knowledgeCategoryCtl.List)
 	api.POST("/robot/knowledge/category", knowledgeCategoryCtl.Create)
 	api.PUT("/robot/knowledge/category", knowledgeCategoryCtl.Update)
 	api.DELETE("/robot/knowledge/category", knowledgeCategoryCtl.Delete)
@@ -173,7 +173,6 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/knowledge/document", knowledgeCtl.AddDocument)
 	api.DELETE("/robot/knowledge/document", knowledgeCtl.DeleteDocument)
 	api.GET("/robot/knowledge/documents", knowledgeCtl.ListDocuments)
-	api.GET("/robot/knowledge/categories", knowledgeCtl.GetCategories)
 	api.POST("/robot/knowledge/search", knowledgeCtl.SearchKnowledge)
 	api.POST("/robot/knowledge/reindex", knowledgeCtl.ReindexAll)
 	api.POST("/robot/memory", knowledgeCtl.SaveMemory)
@@ -184,7 +183,6 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/image-knowledge/document", knowledgeCtl.AddImageDocument)
 	api.DELETE("/robot/image-knowledge/document", knowledgeCtl.DeleteImageDocument)
 	api.GET("/robot/image-knowledge/documents", knowledgeCtl.ListImageDocuments)
-	api.GET("/robot/image-knowledge/categories", knowledgeCtl.GetImageCategories)
 	api.POST("/robot/image-knowledge/search/text", knowledgeCtl.SearchImageByText)
 	api.POST("/robot/image-knowledge/search/image", knowledgeCtl.SearchImageByImage)
 	api.POST("/robot/image-knowledge/reindex", knowledgeCtl.ReindexAllImages)

@@ -77,17 +77,6 @@ func (r *KnowledgeDocument) List(category string, page, pageSize int) ([]*model.
 	return docs, total, err
 }
 
-// GetCategories 获取所有知识分类
-func (r *KnowledgeDocument) GetCategories() ([]string, error) {
-	var categories []string
-	err := r.DB.WithContext(r.Ctx).
-		Model(&model.KnowledgeDocument{}).
-		Distinct("category").
-		Where("category != ''").
-		Pluck("category", &categories).Error
-	return categories, err
-}
-
 // GetAllVectorIDs 获取某个 title 下所有的向量 ID
 func (r *KnowledgeDocument) GetAllVectorIDs(title string) ([]string, error) {
 	var ids []string
