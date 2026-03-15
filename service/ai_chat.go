@@ -166,7 +166,7 @@ func (s *AIChatService) buildGroupChatContext(chatRoomID, senderWxID, robotWxID 
 	}
 
 	msgRepo := repository.NewMessageRepo(s.ctx, vars.DB)
-	recentMsgs, err := msgRepo.GetRecentChatRoomMessages(chatRoomID, []string{senderWxID, robotWxID}, 10)
+	recentMsgs, err := msgRepo.GetRecentChatRoomMessages(chatRoomID, nil, 10)
 	if err != nil {
 		log.Printf("[GroupContext] 获取最近群消息失败: %v", err)
 	}
