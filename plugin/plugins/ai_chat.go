@@ -50,6 +50,7 @@ type CallToolResult struct {
 type structuredReplyType string
 
 const (
+	structuredReplyTypeText   structuredReplyType = "text"
 	structuredReplyTypeImage  structuredReplyType = "image"
 	structuredReplyTypeVideo  structuredReplyType = "video"
 	structuredReplyTypeVoice  structuredReplyType = "voice"
@@ -71,6 +72,10 @@ type structuredReplyPattern struct {
 }
 
 var structuredReplyPatterns = []structuredReplyPattern{
+	{
+		Type:    structuredReplyTypeText,
+		Pattern: regexp.MustCompile(`(?s)<wechat-robot-text>(.*?)</wechat-robot-text>`),
+	},
 	{
 		Type:    structuredReplyTypeImage,
 		Pattern: regexp.MustCompile(`(?s)<wechat-robot-image-url>(.*?)</wechat-robot-image-url>`),
@@ -214,6 +219,11 @@ func (p *AIChatPlugin) handleStructuredReplyBlocks(ctx *plugin.MessageContext, a
 
 	for _, block := range blocks {
 		switch block.Type {
+		case structuredReplyTypeText:
+			multiContentText := strings.TrimSpace(block.Content)
+			if multiContentText != "" {
+				p.SendMessage(ctx, multiContentText)
+			}
 		case structuredReplyTypeImage:
 			if isRemoteStructuredReplyContent(block.Content) {
 				if err := ctx.MessageService.SendImageMessageByRemoteURL(ctx.Message.FromWxID, block.Content); err != nil {
