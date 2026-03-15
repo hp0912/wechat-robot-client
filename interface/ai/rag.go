@@ -45,6 +45,7 @@ type RAGService interface {
 // KnowledgeService 知识库管理服务接口
 type KnowledgeService interface {
 	AddDocument(ctx context.Context, title, content, source, category string) error
+	UpdateDocument(ctx context.Context, id int64, title, content, source string) error
 	DeleteDocument(ctx context.Context, title string) error
 	DeleteDocumentByID(ctx context.Context, id int64) error
 	ListDocuments(ctx context.Context, category string, page, pageSize int) ([]*model.KnowledgeDocument, int64, error)

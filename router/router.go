@@ -171,6 +171,7 @@ func RegisterRouter(r *gin.Engine) error {
 
 	// 知识库 & 记忆管理接口
 	api.POST("/robot/knowledge/document", knowledgeCtl.AddDocument)
+	api.PUT("/robot/knowledge/document", knowledgeCtl.UpdateDocument)
 	api.DELETE("/robot/knowledge/document", knowledgeCtl.DeleteDocument)
 	api.GET("/robot/knowledge/documents", knowledgeCtl.ListDocuments)
 	api.POST("/robot/knowledge/search", knowledgeCtl.SearchKnowledge)

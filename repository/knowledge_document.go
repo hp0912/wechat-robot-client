@@ -77,6 +77,16 @@ func (r *KnowledgeDocument) List(category string, page, pageSize int) ([]*model.
 	return docs, total, err
 }
 
+// ExistsByTitle 检查指定标题的文档是否已存在
+func (r *KnowledgeDocument) ExistsByTitle(title string) (bool, error) {
+	var count int64
+	err := r.DB.WithContext(r.Ctx).
+		Model(&model.KnowledgeDocument{}).
+		Where("title = ? AND chunk_index = 0", title).
+		Count(&count).Error
+	return count > 0, err
+}
+
 // GetAllVectorIDs 获取某个 title 下所有的向量 ID
 func (r *KnowledgeDocument) GetAllVectorIDs(title string) ([]string, error) {
 	var ids []string

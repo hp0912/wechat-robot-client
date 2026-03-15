@@ -21,22 +21,52 @@ const (
 
 // KnowledgeService 知识库管理服务
 type KnowledgeService struct {
-	db          *gorm.DB
-	docRepo     *repository.KnowledgeDocument
-	vectorStore *VectorStoreService
+	db           *gorm.DB
+	docRepo      *repository.KnowledgeDocument
+	categoryRepo *repository.KnowledgeCategory
+	vectorStore  *VectorStoreService
 }
 
 // NewKnowledgeService 创建知识库服务
 func NewKnowledgeService(db *gorm.DB, vectorStore *VectorStoreService) *KnowledgeService {
+	ctx := context.Background()
 	return &KnowledgeService{
-		db:          db,
-		docRepo:     repository.NewKnowledgeDocumentRepo(context.Background(), db),
-		vectorStore: vectorStore,
+		db:           db,
+		docRepo:      repository.NewKnowledgeDocumentRepo(ctx, db),
+		categoryRepo: repository.NewKnowledgeCategoryRepo(ctx, db),
+		vectorStore:  vectorStore,
 	}
+}
+
+// validateCategory 校验分类是否存在
+func (s *KnowledgeService) validateCategory(category string) error {
+	if category == "" {
+		return fmt.Errorf("分类不能为空")
+	}
+	cat, err := s.categoryRepo.GetByCode(category)
+	if err != nil {
+		return fmt.Errorf("查询分类失败: %w", err)
+	}
+	if cat == nil {
+		return fmt.Errorf("分类 %q 不存在，请先创建分类", category)
+	}
+	return nil
 }
 
 // AddDocument 添加知识库文档（自动分块并向量化）
 func (s *KnowledgeService) AddDocument(ctx context.Context, title, content, source, category string) error {
+	if err := s.validateCategory(category); err != nil {
+		return err
+	}
+
+	exists, err := s.docRepo.ExistsByTitle(title)
+	if err != nil {
+		return fmt.Errorf("检查标题重复失败: %w", err)
+	}
+	if exists {
+		return fmt.Errorf("标题 %q 已存在，请使用其他标题或更新已有文档", title)
+	}
+
 	// 对长文本进行分块
 	chunks := splitTextIntoChunks(content, chunkSize, chunkOverlap)
 	if len(chunks) == 0 {
@@ -71,6 +101,81 @@ func (s *KnowledgeService) AddDocument(ctx context.Context, title, content, sour
 			}
 			doc.VectorID = vectorID
 			s.docRepo.Update(doc)
+		}
+	}()
+
+	return nil
+}
+
+// UpdateDocument 更新知识库文档（删除旧分块/向量，重新分块并向量化）
+func (s *KnowledgeService) UpdateDocument(ctx context.Context, id int64, title, content, source string) error {
+	doc, err := s.docRepo.GetByID(id)
+	if err != nil || doc == nil {
+		return fmt.Errorf("文档不存在")
+	}
+
+	oldTitle := doc.Title
+
+	if title != oldTitle {
+		exists, err := s.docRepo.ExistsByTitle(title)
+		if err != nil {
+			return fmt.Errorf("检查标题重复失败: %w", err)
+		}
+		if exists {
+			return fmt.Errorf("标题 %q 已存在，请使用其他标题", title)
+		}
+	}
+
+	// 删除旧向量
+	vectorIDs, err := s.docRepo.GetAllVectorIDs(oldTitle)
+	if err != nil {
+		return fmt.Errorf("get old vector ids: %w", err)
+	}
+	if len(vectorIDs) > 0 && s.vectorStore != nil {
+		if err := s.vectorStore.DeleteVectors(ctx, "knowledge", vectorIDs); err != nil {
+			log.Printf("[Knowledge] 删除旧向量失败: %v", err)
+		}
+	}
+
+	// 删除旧文档记录
+	if err := s.docRepo.DeleteByTitle(oldTitle); err != nil {
+		return fmt.Errorf("delete old documents: %w", err)
+	}
+
+	// 重新分块
+	chunks := splitTextIntoChunks(content, chunkSize, chunkOverlap)
+	if len(chunks) == 0 {
+		return fmt.Errorf("content is empty")
+	}
+
+	docs := make([]*model.KnowledgeDocument, 0, len(chunks))
+	for i, chunk := range chunks {
+		docs = append(docs, &model.KnowledgeDocument{
+			Title:      title,
+			Content:    chunk,
+			Source:     source,
+			Category:   doc.Category,
+			ChunkIndex: i,
+			ChunkTotal: len(chunks),
+			Enabled:    true,
+		})
+	}
+
+	if err := s.docRepo.BatchCreate(docs); err != nil {
+		return fmt.Errorf("save documents: %w", err)
+	}
+
+	// 异步向量化
+	go func() {
+		bgCtx := context.Background()
+		for _, d := range docs {
+			vectorID, err := s.vectorStore.IndexKnowledge(bgCtx, vars.RobotRuntime.RobotCode, d.ID, d.Content, d.Title, d.Category)
+			if err != nil {
+				log.Printf("[Knowledge] 向量化文档失败 %d: %v", d.ID, err)
+				continue
+			}
+			d.VectorID = vectorID
+			s.docRepo.Update(d)
 		}
 	}()
 

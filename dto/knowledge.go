@@ -8,6 +8,14 @@ type AddKnowledgeDocumentRequest struct {
 	Category string `json:"category"`
 }
 
+// UpdateKnowledgeDocumentRequest 更新知识库文档请求
+type UpdateKnowledgeDocumentRequest struct {
+	ID      int64  `json:"id" binding:"required"`
+	Title   string `json:"title" binding:"required"`
+	Content string `json:"content" binding:"required"`
+	Source  string `json:"source"`
+}
+
 // SearchKnowledgeRequest 搜索知识库请求
 type SearchKnowledgeRequest struct {
 	Query    string `json:"query" binding:"required"`

@@ -35,6 +35,25 @@ func (k *Knowledge) AddDocument(c *gin.Context) {
 	resp.ToResponse(nil)
 }
 
+// UpdateDocument 更新知识库文档
+func (k *Knowledge) UpdateDocument(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	var req dto.UpdateKnowledgeDocumentRequest
+	if ok, _ := appx.BindAndValid(c, &req); !ok {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	if req.Source == "" {
+		req.Source = "manual"
+	}
+	err := vars.KnowledgeService.UpdateDocument(c.Request.Context(), req.ID, req.Title, req.Content, req.Source)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
+
 // DeleteDocument 删除知识库文档
 func (k *Knowledge) DeleteDocument(c *gin.Context) {
 	resp := appx.NewResponse(c)
