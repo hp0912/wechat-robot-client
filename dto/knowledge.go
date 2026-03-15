@@ -84,3 +84,22 @@ type SearchImageKnowledgeByImageRequest struct {
 	Category string `json:"category"`
 	Limit    int    `json:"limit"`
 }
+
+// CreateKnowledgeCategoryRequest 创建知识库分类请求
+type CreateKnowledgeCategoryRequest struct {
+	Code        string `json:"code" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+}
+
+// UpdateKnowledgeCategoryRequest 更新知识库分类请求
+type UpdateKnowledgeCategoryRequest struct {
+	ID          int64  `json:"id" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+}
+
+// DeleteKnowledgeCategoryRequest 删除知识库分类请求
+type DeleteKnowledgeCategoryRequest struct {
+	ID int64 `json:"id" binding:"required"`
+}
