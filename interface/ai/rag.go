@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/appx"
 
 	"github.com/sashabaranov/go-openai"
 )
@@ -48,7 +49,7 @@ type KnowledgeService interface {
 	UpdateDocument(ctx context.Context, id int64, title, content, source string) error
 	DeleteDocument(ctx context.Context, title string) error
 	DeleteDocumentByID(ctx context.Context, id int64) error
-	ListDocuments(ctx context.Context, category string, page, pageSize int) ([]*model.KnowledgeDocument, int64, error)
+	ListDocuments(ctx context.Context, category string, pager appx.Pager) ([]*model.KnowledgeDocument, int64, error)
 	SearchKnowledge(ctx context.Context, query, category string, limit int) ([]VectorSearchResult, error)
 	ReindexAll(ctx context.Context) error
 }
@@ -58,7 +59,7 @@ type ImageKnowledgeService interface {
 	AddImageDocument(ctx context.Context, title, description, imageURL, category string) error
 	DeleteImageDocument(ctx context.Context, title string) error
 	DeleteImageDocumentByID(ctx context.Context, id int64) error
-	ListImageDocuments(ctx context.Context, category string, page, pageSize int) ([]*model.ImageKnowledgeDocument, int64, error)
+	ListImageDocuments(ctx context.Context, category string, pager appx.Pager) ([]*model.ImageKnowledgeDocument, int64, error)
 	SearchByText(ctx context.Context, query, category string, limit int) ([]VectorSearchResult, error)
 	SearchByImage(ctx context.Context, imageURL, category string, limit int) ([]VectorSearchResult, error)
 	ReindexAll(ctx context.Context) error

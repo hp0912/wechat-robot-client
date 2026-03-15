@@ -6,6 +6,7 @@ import (
 	"log"
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/pkg/qdrantx"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
@@ -91,8 +92,8 @@ func (s *ImageKnowledgeService) DeleteImageDocumentByID(ctx context.Context, id 
 }
 
 // ListImageDocuments 分页获取图片知识库文档
-func (s *ImageKnowledgeService) ListImageDocuments(ctx context.Context, category string, page, pageSize int) ([]*model.ImageKnowledgeDocument, int64, error) {
-	return s.docRepo.List(category, page, pageSize)
+func (s *ImageKnowledgeService) ListImageDocuments(ctx context.Context, category string, pager appx.Pager) ([]*model.ImageKnowledgeDocument, int64, error) {
+	return s.docRepo.List(category, pager)
 }
 
 // SearchByText 以文搜图
@@ -116,7 +117,11 @@ func (s *ImageKnowledgeService) ReindexAll(ctx context.Context) error {
 	page := 1
 	pageSize := 100
 	for {
-		docs, total, err := s.docRepo.List("", page, pageSize)
+		docs, total, err := s.docRepo.List("", appx.Pager{
+			PageIndex: page,
+			PageSize:  pageSize,
+			OffSet:    (page - 1) * pageSize,
+		})
 		if err != nil {
 			return err
 		}

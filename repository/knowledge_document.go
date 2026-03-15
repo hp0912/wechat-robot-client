@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/appx"
 
 	"gorm.io/gorm"
 )
@@ -62,7 +63,7 @@ func (r *KnowledgeDocument) GetByTitle(title string) ([]*model.KnowledgeDocument
 }
 
 // List 分页获取知识库文档（按 title 分组只取第一个 chunk）
-func (r *KnowledgeDocument) List(category string, page, pageSize int) ([]*model.KnowledgeDocument, int64, error) {
+func (r *KnowledgeDocument) List(category string, pager appx.Pager) ([]*model.KnowledgeDocument, int64, error) {
 	var docs []*model.KnowledgeDocument
 	var total int64
 
@@ -73,7 +74,7 @@ func (r *KnowledgeDocument) List(category string, page, pageSize int) ([]*model.
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	err := query.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&docs).Error
+	err := query.Order("id DESC").Offset(pager.OffSet).Limit(pager.PageSize).Find(&docs).Error
 	return docs, total, err
 }
 

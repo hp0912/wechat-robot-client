@@ -7,6 +7,7 @@ import (
 	"strings"
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
 
@@ -214,8 +215,8 @@ func (s *KnowledgeService) DeleteDocumentByID(ctx context.Context, id int64) err
 }
 
 // ListDocuments 分页获取知识库文档
-func (s *KnowledgeService) ListDocuments(ctx context.Context, category string, page, pageSize int) ([]*model.KnowledgeDocument, int64, error) {
-	return s.docRepo.List(category, page, pageSize)
+func (s *KnowledgeService) ListDocuments(ctx context.Context, category string, pager appx.Pager) ([]*model.KnowledgeDocument, int64, error) {
+	return s.docRepo.List(category, pager)
 }
 
 // SearchKnowledge 搜索知识库（混合检索：向量 + 关键词）
@@ -231,7 +232,11 @@ func (s *KnowledgeService) ReindexAll(ctx context.Context) error {
 	page := 1
 	pageSize := 100
 	for {
-		docs, total, err := s.docRepo.List("", page, pageSize)
+		docs, total, err := s.docRepo.List("", appx.Pager{
+			PageIndex: page,
+			PageSize:  pageSize,
+			OffSet:    (page - 1) * pageSize,
+		})
 		if err != nil {
 			return err
 		}

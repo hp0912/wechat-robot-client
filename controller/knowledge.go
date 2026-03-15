@@ -87,13 +87,8 @@ func (k *Knowledge) ListDocuments(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	if req.Page <= 0 {
-		req.Page = 1
-	}
-	if req.PageSize <= 0 {
-		req.PageSize = 20
-	}
-	docs, total, err := vars.KnowledgeService.ListDocuments(c.Request.Context(), req.Category, req.Page, req.PageSize)
+	pager := appx.InitPager(c)
+	docs, total, err := vars.KnowledgeService.ListDocuments(c.Request.Context(), req.Category, pager)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
@@ -258,13 +253,8 @@ func (k *Knowledge) ListImageDocuments(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("图片知识库服务未初始化"))
 		return
 	}
-	if req.Page <= 0 {
-		req.Page = 1
-	}
-	if req.PageSize <= 0 {
-		req.PageSize = 20
-	}
-	docs, total, err := vars.ImageKnowledgeService.ListImageDocuments(c.Request.Context(), req.Category, req.Page, req.PageSize)
+	pager := appx.InitPager(c)
+	docs, total, err := vars.ImageKnowledgeService.ListImageDocuments(c.Request.Context(), req.Category, pager)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
