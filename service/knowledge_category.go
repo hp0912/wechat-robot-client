@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var codeRegexp = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+var codeRegexp = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*$`)
 
 type KnowledgeCategoryService struct {
 	DB *gorm.DB
@@ -25,7 +25,7 @@ func (s *KnowledgeCategoryService) Create(ctx context.Context, code, name, descr
 		return nil, errors.New("code 和 name 不能为空")
 	}
 	if !codeRegexp.MatchString(code) {
-		return nil, errors.New("code 只能包含字母、数字和下划线")
+		return nil, errors.New("code 必须以字母开头，并且只能包含字母、数字和下划线")
 	}
 
 	repo := repository.NewKnowledgeCategoryRepo(ctx, s.DB)
