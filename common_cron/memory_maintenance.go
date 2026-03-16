@@ -20,10 +20,14 @@ func (cron *MemoryMaintenanceCron) IsActive() bool {
 }
 
 func (cron *MemoryMaintenanceCron) Cron() error {
+	memoryService := vars.MemoryService
+	if memoryService == nil {
+		return nil
+	}
 	// 衰减长期未访问记忆
-	vars.MemoryService.DecayOldMemories()
+	memoryService.DecayOldMemories()
 	// 总结过期会话（10 分钟未活跃）
-	vars.MemoryService.SummarizeExpiredSessions(10)
+	memoryService.SummarizeExpiredSessions(10)
 	return nil
 }
 
