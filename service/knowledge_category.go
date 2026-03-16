@@ -3,9 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
 	"regexp"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/qdrantx"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/vars"
 
 	"gorm.io/gorm"
 )
@@ -81,7 +85,50 @@ func (s *KnowledgeCategoryService) Delete(ctx context.Context, id int64) error {
 		return errors.New("系统内置分类不允许删除")
 	}
 
-	return repo.Delete(id)
+	return s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		categoryRepo := repository.NewKnowledgeCategoryRepo(ctx, tx)
+		knowledgeRepo := repository.NewKnowledgeDocumentRepo(ctx, tx)
+		imageKnowledgeRepo := repository.NewImageKnowledgeDocumentRepo(ctx, tx)
+
+		knowledgeVectorIDs, err := knowledgeRepo.GetAllVectorIDsByCategory(existing.Code)
+		if err != nil {
+			return fmt.Errorf("查询文本知识库向量失败: %w", err)
+		}
+		if err := s.deleteVectors(ctx, qdrantx.CollectionKnowledge, knowledgeVectorIDs); err != nil {
+			return err
+		}
+
+		imageVectorIDs, err := imageKnowledgeRepo.GetAllVectorIDsByCategory(existing.Code)
+		if err != nil {
+			return fmt.Errorf("查询图片知识库向量失败: %w", err)
+		}
+		if err := s.deleteVectors(ctx, qdrantx.CollectionImageKnowledge, imageVectorIDs); err != nil {
+			return err
+		}
+
+		if err := knowledgeRepo.DeleteByCategory(existing.Code); err != nil {
+			return fmt.Errorf("删除文本知识库失败: %w", err)
+		}
+		if err := imageKnowledgeRepo.DeleteByCategory(existing.Code); err != nil {
+			return fmt.Errorf("删除图片知识库失败: %w", err)
+		}
+
+		return categoryRepo.Delete(id)
+	})
+}
+
+func (s *KnowledgeCategoryService) deleteVectors(ctx context.Context, collection string, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	if vars.QdrantClient == nil {
+		log.Printf("[KnowledgeCategory] Qdrant 未初始化，跳过删除集合 %s 的 %d 条向量", collection, len(ids))
+		return nil
+	}
+	if err := vars.QdrantClient.DeleteByIDs(ctx, collection, ids); err != nil {
+		return fmt.Errorf("删除向量集合 %s 失败: %w", collection, err)
+	}
+	return nil
 }
 
 func (s *KnowledgeCategoryService) GetByID(ctx context.Context, id int64) (*model.KnowledgeCategory, error) {
