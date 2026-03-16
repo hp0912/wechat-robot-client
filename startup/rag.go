@@ -143,7 +143,11 @@ func reloadRAGServices(globalSettings *model.GlobalSettings) error {
 	} else {
 		log.Println("长期记忆服务已禁用")
 	}
-	vars.MemoryService = memorySvc
+	if memorySvc != nil {
+		vars.MemoryService = memorySvc
+	} else {
+		vars.MemoryService = nil
+	}
 
 	// 初始化 RAG 服务
 	vars.RAGService = service.NewRAGService(vars.DB, memorySvc, vectorStoreSvc)
