@@ -122,7 +122,7 @@ func (s *GroupChatKnowledgeService) callLLMExtractKnowledge(globalSettings *mode
 	systemPrompt := `你是一个群聊内容分析助手。请分析以下微信群「` + chatRoomName + `」的聊天记录，提取其中有价值的信息。
 
 提取规则：
-1. 用户分享的资源（文章、工具、网站、开源项目等）
+1. 用户分享的资源（文章、工具、网站、开源项目等），请提取资源名称、链接和简要描述
 2. 用户提到的外部链接或推荐
 3. 有用的知识点或技术分享
 4. 有趣的新闻或行业动态

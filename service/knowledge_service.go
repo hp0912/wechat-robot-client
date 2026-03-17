@@ -44,12 +44,12 @@ func (s *KnowledgeService) validateCategory(category string) error {
 	if category == "" {
 		return fmt.Errorf("分类不能为空")
 	}
-	cat, err := s.categoryRepo.GetByCode(category)
+	cat, err := s.categoryRepo.GetByCodeAndType(category, model.KnowledgeCategoryTypeText)
 	if err != nil {
 		return fmt.Errorf("查询分类失败: %w", err)
 	}
 	if cat == nil {
-		return fmt.Errorf("分类 %q 不存在，请先创建分类", category)
+		return fmt.Errorf("文本分类 %q 不存在，请先创建 type=text 的分类", category)
 	}
 	return nil
 }

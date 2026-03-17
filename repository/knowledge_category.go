@@ -57,9 +57,24 @@ func (r *KnowledgeCategory) GetByCode(code string) (*model.KnowledgeCategory, er
 	return &category, err
 }
 
-func (r *KnowledgeCategory) List() ([]*model.KnowledgeCategory, error) {
+func (r *KnowledgeCategory) GetByCodeAndType(code string, categoryType model.KnowledgeCategoryType) (*model.KnowledgeCategory, error) {
+	var category model.KnowledgeCategory
+	err := r.DB.WithContext(r.Ctx).
+		Where("code = ? AND type = ?", code, categoryType).
+		First(&category).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &category, err
+}
+
+func (r *KnowledgeCategory) List(categoryType model.KnowledgeCategoryType) ([]*model.KnowledgeCategory, error) {
 	var categories []*model.KnowledgeCategory
-	err := r.DB.WithContext(r.Ctx).Order("id ASC").Find(&categories).Error
+	query := r.DB.WithContext(r.Ctx).Order("id ASC")
+	if categoryType != "" {
+		query = query.Where("type = ?", categoryType)
+	}
+	err := query.Find(&categories).Error
 	return categories, err
 }
 
@@ -73,8 +88,9 @@ func (r *KnowledgeCategory) Count() (int64, error) {
 func (r *KnowledgeCategory) FirstOrCreate(category *model.KnowledgeCategory) error {
 	now := time.Now().Unix()
 	return r.DB.WithContext(r.Ctx).
-		Where("code = ?", category.Code).
+		Where("code = ? AND type = ?", category.Code, category.Type).
 		Attrs(model.KnowledgeCategory{
+			Type:        category.Type,
 			Name:        category.Name,
 			Description: category.Description,
 			IsBuiltin:   category.IsBuiltin,
