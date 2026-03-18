@@ -2007,7 +2007,7 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					{
 						Type: openai.ChatMessagePartTypeImageURL,
 						ImageURL: &openai.ChatMessageImageURL{
-							URL: msg.AttachmentUrl,
+							URL: refreMsg.AttachmentUrl,
 						},
 					},
 					{
