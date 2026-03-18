@@ -28,7 +28,7 @@ func (k *KnowledgeCategory) Create(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	category, err := k.svc().Create(c.Request.Context(), req.Code, req.Name, req.Description)
+	category, err := k.svc().Create(c.Request.Context(), req.Code, req.Type, req.Name, req.Description)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
@@ -71,7 +71,12 @@ func (k *KnowledgeCategory) Delete(c *gin.Context) {
 // List 获取知识库分类列表
 func (k *KnowledgeCategory) List(c *gin.Context) {
 	resp := appx.NewResponse(c)
-	categories, err := k.svc().List(c.Request.Context())
+	var req dto.ListKnowledgeCategoryRequest
+	if ok, _ := appx.BindAndValid(c, &req); !ok {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	categories, err := k.svc().List(c.Request.Context(), req.Type)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

@@ -16,7 +16,7 @@ import (
 
 const (
 	// 知识库文档分块大小（字符数）
-	chunkSize    = 500
+	chunkSize    = 1000
 	chunkOverlap = 50
 )
 
@@ -44,12 +44,12 @@ func (s *KnowledgeService) validateCategory(category string) error {
 	if category == "" {
 		return fmt.Errorf("分类不能为空")
 	}
-	cat, err := s.categoryRepo.GetByCode(category)
+	cat, err := s.categoryRepo.GetByCodeAndType(category, model.KnowledgeCategoryTypeText)
 	if err != nil {
 		return fmt.Errorf("查询分类失败: %w", err)
 	}
 	if cat == nil {
-		return fmt.Errorf("分类 %q 不存在，请先创建分类", category)
+		return fmt.Errorf("文本分类 %q 不存在，请先创建 type=text 的分类", category)
 	}
 	return nil
 }
@@ -279,10 +279,7 @@ func splitTextIntoChunks(text string, size, overlap int) []string {
 	var chunks []string
 	start := 0
 	for start < len(runes) {
-		end := start + size
-		if end > len(runes) {
-			end = len(runes)
-		}
+		end := min(start+size, len(runes))
 		chunks = append(chunks, string(runes[start:end]))
 		start += size - overlap
 	}

@@ -16,17 +16,19 @@ import (
 
 // ImageKnowledgeService 图片知识库管理服务
 type ImageKnowledgeService struct {
-	db          *gorm.DB
-	docRepo     *repository.ImageKnowledgeDocument
-	vectorStore *VectorStoreService
+	db           *gorm.DB
+	docRepo      *repository.ImageKnowledgeDocument
+	categoryRepo *repository.KnowledgeCategory
+	vectorStore  *VectorStoreService
 }
 
 // NewImageKnowledgeService 创建图片知识库服务
 func NewImageKnowledgeService(db *gorm.DB, vectorStore *VectorStoreService) *ImageKnowledgeService {
 	return &ImageKnowledgeService{
-		db:          db,
-		docRepo:     repository.NewImageKnowledgeDocumentRepo(context.Background(), db),
-		vectorStore: vectorStore,
+		db:           db,
+		docRepo:      repository.NewImageKnowledgeDocumentRepo(context.Background(), db),
+		categoryRepo: repository.NewKnowledgeCategoryRepo(context.Background(), db),
+		vectorStore:  vectorStore,
 	}
 }
 
@@ -34,6 +36,16 @@ func NewImageKnowledgeService(db *gorm.DB, vectorStore *VectorStoreService) *Ima
 func (s *ImageKnowledgeService) AddImageDocument(ctx context.Context, title, description, imageURL, category string) error {
 	if imageURL == "" {
 		return fmt.Errorf("image_url is required")
+	}
+	if category == "" {
+		return fmt.Errorf("category is required")
+	}
+	cat, err := s.categoryRepo.GetByCodeAndType(category, model.KnowledgeCategoryTypeImage)
+	if err != nil {
+		return fmt.Errorf("查询分类失败: %w", err)
+	}
+	if cat == nil {
+		return fmt.Errorf("图片分类 %q 不存在，请先创建 type=image 的分类", category)
 	}
 
 	doc := &model.ImageKnowledgeDocument{

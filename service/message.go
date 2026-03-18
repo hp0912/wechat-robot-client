@@ -1111,7 +1111,7 @@ func (s *MessageService) SendImageMessageStream(ctx context.Context, req dto.Sen
 }
 
 func (s *MessageService) SendImageMessageByLocalPath(toWxID string, imagePath string) error {
-	_, _, err := validateLocalFileForSend(imagePath, map[string]bool{
+	_, _, err := s.ValidateLocalFileForSend(imagePath, map[string]bool{
 		".jpg":  true,
 		".jpeg": true,
 		".png":  true,
@@ -1123,7 +1123,7 @@ func (s *MessageService) SendImageMessageByLocalPath(toWxID string, imagePath st
 	}
 
 	clientImgId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().UnixNano())
-	return streamLocalFileChunks(imagePath, vars.UploadImageChunkSize, func(chunkIndex, totalChunks, totalSize int64, chunkReader io.Reader, fileHeader *multipart.FileHeader) error {
+	return s.StreamLocalFileChunks(imagePath, vars.UploadImageChunkSize, func(chunkIndex, totalChunks, totalSize int64, chunkReader io.Reader, fileHeader *multipart.FileHeader) error {
 		_, err := s.SendImageMessageStream(s.ctx, dto.SendImageMessageRequest{
 			ToWxid:      toWxID,
 			ClientImgId: clientImgId,
@@ -1174,7 +1174,7 @@ func (s *MessageService) MsgSendVideo(toWxID string, video io.Reader, videoExt s
 }
 
 func (s *MessageService) SendVideoMessageByLocalPath(toWxID string, videoPath string) error {
-	_, _, err := validateLocalFileForSend(videoPath, map[string]bool{
+	_, _, err := s.ValidateLocalFileForSend(videoPath, map[string]bool{
 		".mp4":  true,
 		".avi":  true,
 		".mov":  true,
@@ -1378,7 +1378,7 @@ func (s *MessageService) MsgSendVoice(toWxID string, voice io.Reader, voiceExt s
 }
 
 func (s *MessageService) SendVoiceMessageByLocalPath(toWxID string, voicePath string) error {
-	_, voiceExt, err := validateLocalFileForSend(voicePath, map[string]bool{
+	_, voiceExt, err := s.ValidateLocalFileForSend(voicePath, map[string]bool{
 		".amr": true,
 		".mp3": true,
 		".wav": true,
@@ -1589,12 +1589,12 @@ func (s *MessageService) SendFileMessage(ctx context.Context, req dto.SendFileMe
 }
 
 func (s *MessageService) SendFileMessageByLocalPath(toWxID string, localFilePath string) error {
-	_, _, err := validateLocalFileForSend(localFilePath, nil, 0, "文件")
+	_, _, err := s.ValidateLocalFileForSend(localFilePath, nil, 0, "文件")
 	if err != nil {
 		return err
 	}
 
-	fileHash, err := calculateFileMD5(localFilePath)
+	fileHash, err := s.CalculateFileMD5(localFilePath)
 	if err != nil {
 		return fmt.Errorf("计算文件哈希失败: %w", err)
 	}
@@ -1602,7 +1602,7 @@ func (s *MessageService) SendFileMessageByLocalPath(toWxID string, localFilePath
 	clientAppDataId := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().UnixNano())
 	filename := filepath.Base(localFilePath)
 
-	return streamLocalFileChunks(localFilePath, vars.UploadFileChunkSize, func(chunkIndex, totalChunks, totalSize int64, chunkReader io.Reader, fileHeader *multipart.FileHeader) error {
+	return s.StreamLocalFileChunks(localFilePath, vars.UploadFileChunkSize, func(chunkIndex, totalChunks, totalSize int64, chunkReader io.Reader, fileHeader *multipart.FileHeader) error {
 		err := s.SendFileMessage(s.ctx, dto.SendFileMessageRequest{
 			ToWxid:          toWxID,
 			ClientAppDataId: clientAppDataId,
@@ -1619,7 +1619,7 @@ func (s *MessageService) SendFileMessageByLocalPath(toWxID string, localFilePath
 	})
 }
 
-func validateLocalFileForSend(filePath string, allowedExts map[string]bool, maxSize int64, fileType string) (os.FileInfo, string, error) {
+func (s *MessageService) ValidateLocalFileForSend(filePath string, allowedExts map[string]bool, maxSize int64, fileType string) (os.FileInfo, string, error) {
 	trimmedPath := strings.TrimSpace(filePath)
 	if trimmedPath == "" {
 		return nil, "", errors.New("本地文件路径不能为空")
@@ -1650,7 +1650,7 @@ func validateLocalFileForSend(filePath string, allowedExts map[string]bool, maxS
 		return fileInfo, fileExt, nil
 	}
 
-	detectedExt, err := detectFileExtByMagic(trimmedPath)
+	detectedExt, err := s.DetectFileExtByMagic(trimmedPath)
 	if err != nil {
 		return nil, "", fmt.Errorf("检测本地%s类型失败: %w", fileType, err)
 	}
@@ -1661,7 +1661,7 @@ func validateLocalFileForSend(filePath string, allowedExts map[string]bool, maxS
 	return nil, "", fmt.Errorf("不支持的%s格式", fileType)
 }
 
-func detectFileExtByMagic(filePath string) (string, error) {
+func (s *MessageService) DetectFileExtByMagic(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", fmt.Errorf("打开本地文件失败: %w", err)
@@ -1709,7 +1709,7 @@ func detectFileExtByMagic(filePath string) (string, error) {
 	}
 }
 
-func calculateFileMD5(filePath string) (string, error) {
+func (s *MessageService) CalculateFileMD5(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", fmt.Errorf("打开本地文件失败: %w", err)
@@ -1724,7 +1724,7 @@ func calculateFileMD5(filePath string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func streamLocalFileChunks(filePath string, chunkSize int64, handler func(chunkIndex, totalChunks, totalSize int64, chunkReader io.Reader, fileHeader *multipart.FileHeader) error) error {
+func (s *MessageService) StreamLocalFileChunks(filePath string, chunkSize int64, handler func(chunkIndex, totalChunks, totalSize int64, chunkReader io.Reader, fileHeader *multipart.FileHeader) error) error {
 	if chunkSize <= 0 {
 		return errors.New("分片大小必须大于0")
 	}
@@ -1959,6 +1959,12 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 		if msg.Type == model.MsgTypeImage && msg.AttachmentUrl != "" {
 			aiMessage.MultiContent = []openai.ChatMessagePart{
 				{
+					Type: openai.ChatMessagePartTypeImageURL,
+					ImageURL: &openai.ChatMessageImageURL{
+						URL: msg.AttachmentUrl,
+					},
+				},
+				{
 					Type: openai.ChatMessagePartTypeText,
 					Text: "图片地址: " + msg.AttachmentUrl,
 				},
@@ -1998,6 +2004,12 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					continue
 				}
 				aiMessage.MultiContent = []openai.ChatMessagePart{
+					{
+						Type: openai.ChatMessagePartTypeImageURL,
+						ImageURL: &openai.ChatMessageImageURL{
+							URL: refreMsg.AttachmentUrl,
+						},
+					},
 					{
 						Type: openai.ChatMessagePartTypeText,
 						Text: xmlMessage.AppMsg.Title + "\n\n 图片地址: " + refreMsg.AttachmentUrl,

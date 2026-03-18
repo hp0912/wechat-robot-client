@@ -47,6 +47,10 @@ func (r *ImageKnowledgeDocument) DeleteByTitle(title string) error {
 	return r.DB.WithContext(r.Ctx).Where("title = ?", title).Delete(&model.ImageKnowledgeDocument{}).Error
 }
 
+func (r *ImageKnowledgeDocument) DeleteByCategory(category string) error {
+	return r.DB.WithContext(r.Ctx).Where("category = ?", category).Delete(&model.ImageKnowledgeDocument{}).Error
+}
+
 func (r *ImageKnowledgeDocument) GetByID(id int64) (*model.ImageKnowledgeDocument, error) {
 	var doc model.ImageKnowledgeDocument
 	err := r.DB.WithContext(r.Ctx).Where("id = ?", id).First(&doc).Error
@@ -84,6 +88,16 @@ func (r *ImageKnowledgeDocument) GetAllVectorIDs(title string) ([]string, error)
 	err := r.DB.WithContext(r.Ctx).
 		Model(&model.ImageKnowledgeDocument{}).
 		Where("title = ? AND vector_id != ''", title).
+		Pluck("vector_id", &ids).Error
+	return ids, err
+}
+
+// GetAllVectorIDsByCategory 获取某个 category 下所有的向量 ID
+func (r *ImageKnowledgeDocument) GetAllVectorIDsByCategory(category string) ([]string, error) {
+	var ids []string
+	err := r.DB.WithContext(r.Ctx).
+		Model(&model.ImageKnowledgeDocument{}).
+		Where("category = ? AND vector_id != ''", category).
 		Pluck("vector_id", &ids).Error
 	return ids, err
 }

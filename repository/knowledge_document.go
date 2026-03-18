@@ -47,6 +47,10 @@ func (r *KnowledgeDocument) DeleteByTitle(title string) error {
 	return r.DB.WithContext(r.Ctx).Where("title = ?", title).Delete(&model.KnowledgeDocument{}).Error
 }
 
+func (r *KnowledgeDocument) DeleteByCategory(category string) error {
+	return r.DB.WithContext(r.Ctx).Where("category = ?", category).Delete(&model.KnowledgeDocument{}).Error
+}
+
 func (r *KnowledgeDocument) GetByID(id int64) (*model.KnowledgeDocument, error) {
 	var doc model.KnowledgeDocument
 	err := r.DB.WithContext(r.Ctx).Where("id = ?", id).First(&doc).Error
@@ -94,6 +98,16 @@ func (r *KnowledgeDocument) GetAllVectorIDs(title string) ([]string, error) {
 	err := r.DB.WithContext(r.Ctx).
 		Model(&model.KnowledgeDocument{}).
 		Where("title = ? AND vector_id != ''", title).
+		Pluck("vector_id", &ids).Error
+	return ids, err
+}
+
+// GetAllVectorIDsByCategory 获取某个 category 下所有的向量 ID
+func (r *KnowledgeDocument) GetAllVectorIDsByCategory(category string) ([]string, error) {
+	var ids []string
+	err := r.DB.WithContext(r.Ctx).
+		Model(&model.KnowledgeDocument{}).
+		Where("category = ? AND vector_id != ''", category).
 		Pluck("vector_id", &ids).Error
 	return ids, err
 }

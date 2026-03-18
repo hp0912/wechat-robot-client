@@ -11,6 +11,7 @@ import (
 // seedItem 描述一条种子数据
 type seedItem struct {
 	Code        string
+	Type        model.KnowledgeCategoryType
 	Name        string
 	Description string
 }
@@ -19,6 +20,7 @@ type seedItem struct {
 var builtinKnowledgeCategories = []seedItem{
 	{
 		Code:        "group_chat",
+		Type:        model.KnowledgeCategoryTypeText,
 		Name:        "聊天记录知识库",
 		Description: "自动提取群聊的聊天记录归纳产生的知识库",
 	},
@@ -33,6 +35,7 @@ func SeedData() error {
 	for _, item := range builtinKnowledgeCategories {
 		category := &model.KnowledgeCategory{
 			Code:        item.Code,
+			Type:        item.Type,
 			Name:        item.Name,
 			Description: item.Description,
 			IsBuiltin:   true,

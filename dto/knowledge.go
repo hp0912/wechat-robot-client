@@ -96,6 +96,7 @@ type SearchImageKnowledgeByImageRequest struct {
 // CreateKnowledgeCategoryRequest 创建知识库分类请求
 type CreateKnowledgeCategoryRequest struct {
 	Code        string `json:"code" binding:"required"`
+	Type        string `json:"type" binding:"required,oneof=text image"`
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
 }
@@ -110,4 +111,9 @@ type UpdateKnowledgeCategoryRequest struct {
 // DeleteKnowledgeCategoryRequest 删除知识库分类请求
 type DeleteKnowledgeCategoryRequest struct {
 	ID int64 `json:"id" binding:"required"`
+}
+
+// ListKnowledgeCategoryRequest 获取知识库分类列表请求
+type ListKnowledgeCategoryRequest struct {
+	Type string `form:"type" binding:"omitempty,oneof=text image"`
 }

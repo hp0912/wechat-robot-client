@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/pkg/mcp"
 	"wechat-robot-client/repository"
@@ -62,8 +63,10 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 
 	enhancedPrompt := basePrompt
 	if vars.RAGService != nil && lastUserQuery != "" {
+		start := time.Now()
 		retrieved := vars.RAGService.RetrieveContext(s.ctx, contactWxID, chatRoomID, lastUserQuery)
 		enhancedPrompt = vars.RAGService.BuildEnhancedPrompt(basePrompt, retrieved)
+		log.Printf("[RAG] 耗时: %v", time.Since(start))
 	}
 
 	// 组装系统消息
@@ -81,12 +84,14 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 	var prefixMessages []openai.ChatCompletionMessage
 	prefixMessages = append(prefixMessages, systemMessage)
 	if chatRoomID != "" {
-		if groupCtx := s.buildGroupChatContext(chatRoomID, contactWxID, robotCtx.RobotWxID); groupCtx != "" {
+		start := time.Now()
+		if groupCtx := s.buildGroupChatContext(chatRoomID, contactWxID); groupCtx != "" {
 			prefixMessages = append(prefixMessages, openai.ChatCompletionMessage{
 				Role:    openai.ChatMessageRoleSystem,
 				Content: groupCtx,
 			})
 		}
+		log.Printf("[GroupContext] 构建群聊上下文耗时: %v", time.Since(start))
 	}
 	aiMessages = append(prefixMessages, aiMessages...)
 
@@ -102,7 +107,11 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 		// req.MaxCompletionTokens = aiConfig.MaxCompletionTokens
 	}
 
+	aiStart := time.Now()
+
 	reply, err := vars.MCPService.ChatWithMCPTools(robotCtx, client, req, 0)
+
+	log.Printf("[AI] 接口调用耗时: %v", time.Since(aiStart))
 
 	// 异步：记忆提取 + 会话追踪 + 消息向量化
 	if err == nil {
@@ -144,7 +153,7 @@ func (s *AIChatService) postChatHook(contactWxID, chatRoomID string, msgID int64
 }
 
 // buildGroupChatContext 构建群聊上下文：当前用户元信息 + 最近其他群友消息
-func (s *AIChatService) buildGroupChatContext(chatRoomID, senderWxID, robotWxID string) string {
+func (s *AIChatService) buildGroupChatContext(chatRoomID, senderWxID string) string {
 	var sb strings.Builder
 
 	crmRepo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
