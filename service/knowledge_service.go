@@ -16,7 +16,7 @@ import (
 
 const (
 	// 知识库文档分块大小（字符数）
-	chunkSize    = 500
+	chunkSize    = 1000
 	chunkOverlap = 50
 )
 
@@ -279,10 +279,7 @@ func splitTextIntoChunks(text string, size, overlap int) []string {
 	var chunks []string
 	start := 0
 	for start < len(runes) {
-		end := start + size
-		if end > len(runes) {
-			end = len(runes)
-		}
+		end := min(start+size, len(runes))
 		chunks = append(chunks, string(runes[start:end]))
 		start += size - overlap
 	}
