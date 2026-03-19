@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
@@ -271,17 +272,38 @@ func splitTextIntoChunks(text string, size, overlap int) []string {
 		return nil
 	}
 
-	runes := []rune(text)
-	if len(runes) <= size {
-		return []string{text}
-	}
+	// First, try to split by two or more consecutive newlines (paragraphs)
+	re := regexp.MustCompile(`(?m:(\r?\n\s*\r?\n)+)`)
+	parts := re.Split(text, -1)
 
 	var chunks []string
-	start := 0
-	for start < len(runes) {
-		end := min(start+size, len(runes))
-		chunks = append(chunks, string(runes[start:end]))
-		start += size - overlap
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+
+		runes := []rune(p)
+		if len(runes) <= size {
+			chunks = append(chunks, p)
+			continue
+		}
+
+		// If a paragraph is still too long, split it into fixed-size overlapping chunks
+		start := 0
+		for start < len(runes) {
+			end := start + size
+			end = min(end, len(runes))
+			chunks = append(chunks, string(runes[start:end]))
+			if end == len(runes) {
+				break
+			}
+			start += size - overlap
+			if start < 0 {
+				start = 0
+			}
+		}
 	}
+
 	return chunks
 }
