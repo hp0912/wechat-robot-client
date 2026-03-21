@@ -82,6 +82,14 @@ func (r *KnowledgeDocument) List(category string, pager appx.Pager) ([]*model.Kn
 	return docs, total, err
 }
 
+func (r *KnowledgeDocument) Enabled(id int64) error {
+	return r.DB.WithContext(r.Ctx).Model(&model.KnowledgeDocument{}).Where("id = ?", id).Update("enabled", true).Error
+}
+
+func (r *KnowledgeDocument) Disabled(id int64) error {
+	return r.DB.WithContext(r.Ctx).Model(&model.KnowledgeDocument{}).Where("id = ?", id).Update("enabled", false).Error
+}
+
 // ExistsByTitle 检查指定标题的文档是否已存在
 func (r *KnowledgeDocument) ExistsByTitle(title string) (bool, error) {
 	var count int64

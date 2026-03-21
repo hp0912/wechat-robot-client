@@ -29,7 +29,7 @@ func (cron *GroupChatKnowledgeCron) Register() {
 	if !cron.IsActive() {
 		return
 	}
-	err := cron.CronManager.AddJob(vars.GroupChatKnowledgeCron, "0 * * * *", func() {
+	err := cron.CronManager.AddJob(vars.GroupChatKnowledgeCron, "0 */6 * * *", func() {
 		if err := cron.Cron(); err != nil {
 			log.Printf("[GroupChatKnowledgeCron] 执行失败: %v", err)
 		}

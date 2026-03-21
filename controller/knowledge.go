@@ -96,6 +96,40 @@ func (k *Knowledge) ListDocuments(c *gin.Context) {
 	resp.ToResponseList(docs, total)
 }
 
+func (k *Knowledge) EnableDocument(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	var req struct {
+		ID int64 `json:"id" binding:"required"`
+	}
+	if ok, _ := appx.BindAndValid(c, &req); !ok {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	err := vars.KnowledgeService.EnableDocument(c.Request.Context(), req.ID)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
+
+func (k *Knowledge) DisableDocument(c *gin.Context) {
+	resp := appx.NewResponse(c)
+	var req struct {
+		ID int64 `json:"id" binding:"required"`
+	}
+	if ok, _ := appx.BindAndValid(c, &req); !ok {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	err := vars.KnowledgeService.DisableDocument(c.Request.Context(), req.ID)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
+
 // SearchKnowledge 搜索知识库
 func (k *Knowledge) SearchKnowledge(c *gin.Context) {
 	resp := appx.NewResponse(c)

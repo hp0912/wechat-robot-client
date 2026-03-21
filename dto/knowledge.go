@@ -19,21 +19,21 @@ type UpdateKnowledgeDocumentRequest struct {
 // SearchKnowledgeRequest 搜索知识库请求
 type SearchKnowledgeRequest struct {
 	Query    string `json:"query" binding:"required"`
-	Category string `json:"category"`
+	Category string `json:"category" binding:"required"`
 	Limit    int    `json:"limit"`
 }
 
 // ListKnowledgeRequest 列表请求
 type ListKnowledgeRequest struct {
-	Category string `form:"category"`
+	Category string `form:"category" binding:"required"`
 	Page     int    `form:"page"`
 	PageSize int    `form:"page_size"`
 }
 
 // DeleteKnowledgeRequest 删除知识库文档请求
 type DeleteKnowledgeRequest struct {
-	ID    int64  `json:"id"`
-	Title string `json:"title"`
+	ID    int64  `json:"id" binding:"required"`
+	Title string `json:"title" binding:"required"`
 }
 
 // SaveMemoryRequest 手动保存记忆请求

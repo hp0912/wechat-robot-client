@@ -173,6 +173,8 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/knowledge/document", knowledgeCtl.AddDocument)
 	api.PUT("/robot/knowledge/document", knowledgeCtl.UpdateDocument)
 	api.DELETE("/robot/knowledge/document", knowledgeCtl.DeleteDocument)
+	api.POST("/robot/knowledge/document/enable", knowledgeCtl.EnableDocument)
+	api.POST("/robot/knowledge/document/disable", knowledgeCtl.DisableDocument)
 	api.GET("/robot/knowledge/documents", knowledgeCtl.ListDocuments)
 	api.POST("/robot/knowledge/search", knowledgeCtl.SearchKnowledge)
 	api.POST("/robot/knowledge/reindex", knowledgeCtl.ReindexAll)
