@@ -272,9 +272,13 @@ func (p *AIChatPlugin) handleStructuredReplyBlocks(ctx *plugin.MessageContext, a
 	}
 
 	if trimmedText := strings.TrimSpace(remainingText); trimmedText != "" {
+		// 如果 trimmedText 文本中间有三行或者以上连续的空行，则替换成一行
+		trimmedText = regexp.MustCompile(`(?:\r?\n){4,}`).ReplaceAllString(trimmedText, "\n\n")
 		p.SendMessage(ctx, trimmedText)
+	} else {
+		_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 	}
-	_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
+
 	return true
 }
 
