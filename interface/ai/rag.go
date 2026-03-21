@@ -50,6 +50,8 @@ type KnowledgeService interface {
 	DeleteDocument(ctx context.Context, title string) error
 	DeleteDocumentByID(ctx context.Context, id int64) error
 	ListDocuments(ctx context.Context, category string, pager appx.Pager) ([]*model.KnowledgeDocument, int64, error)
+	EnableDocument(ctx context.Context, id int64) error
+	DisableDocument(ctx context.Context, id int64) error
 	SearchKnowledge(ctx context.Context, query, category string, limit int) ([]VectorSearchResult, error)
 	ReindexAll(ctx context.Context) error
 }

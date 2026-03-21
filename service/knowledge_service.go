@@ -220,6 +220,14 @@ func (s *KnowledgeService) ListDocuments(ctx context.Context, category string, p
 	return s.docRepo.List(category, pager)
 }
 
+func (s *KnowledgeService) EnableDocument(ctx context.Context, id int64) error {
+	return s.docRepo.Enabled(id)
+}
+
+func (s *KnowledgeService) DisableDocument(ctx context.Context, id int64) error {
+	return s.docRepo.Disabled(id)
+}
+
 // SearchKnowledge 搜索知识库（混合检索：向量 + 关键词）
 func (s *KnowledgeService) SearchKnowledge(ctx context.Context, query, category string, limit int) ([]ai.VectorSearchResult, error) {
 	if s.vectorStore == nil {
