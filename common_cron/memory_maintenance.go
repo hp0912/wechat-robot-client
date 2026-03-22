@@ -35,8 +35,8 @@ func (cron *MemoryMaintenanceCron) Register() {
 	if !cron.IsActive() {
 		return
 	}
-	// 每 30 分钟执行一次会话总结 + 记忆衰减
-	err := cron.CronManager.AddJob(vars.MemoryDecayCron, "*/30 * * * *", func() {
+	// 每 6 小时执行一次会话总结 + 记忆衰减
+	err := cron.CronManager.AddJob(vars.MemoryDecayCron, "0 */6 * * *", func() {
 		if err := cron.Cron(); err != nil {
 			log.Printf("[MemoryCron] 执行失败: %v", err)
 		}
