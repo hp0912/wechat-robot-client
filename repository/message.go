@@ -55,6 +55,15 @@ func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) (
 	if req.Keyword != "" {
 		baseCountQuery = baseCountQuery.Where("content LIKE ?", "%"+req.Keyword+"%")
 	}
+	if req.ChatRoomMember != "" {
+		baseCountQuery = baseCountQuery.Where("sender_wxid = ?", req.ChatRoomMember)
+	}
+	if req.TimeStart > 0 {
+		baseCountQuery = baseCountQuery.Where("created_at >= ?", req.TimeStart)
+	}
+	if req.TimeEnd > 0 {
+		baseCountQuery = baseCountQuery.Where("created_at <= ?", req.TimeEnd)
+	}
 	if err := baseCountQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -72,6 +81,15 @@ func (m *Message) GetByContactID(req dto.ChatHistoryRequest, pager appx.Pager) (
 	fetchQuery = fetchQuery.Where("from_wxid = ?", req.ContactID)
 	if req.Keyword != "" {
 		fetchQuery = fetchQuery.Where("content LIKE ?", "%"+req.Keyword+"%")
+	}
+	if req.ChatRoomMember != "" {
+		fetchQuery = fetchQuery.Where("sender_wxid = ?", req.ChatRoomMember)
+	}
+	if req.TimeStart > 0 {
+		fetchQuery = fetchQuery.Where("created_at >= ?", req.TimeStart)
+	}
+	if req.TimeEnd > 0 {
+		fetchQuery = fetchQuery.Where("created_at <= ?", req.TimeEnd)
 	}
 
 	if err := fetchQuery.Order("id DESC").Offset(pager.OffSet).Limit(pager.PageSize).Find(&messages).Error; err != nil {
