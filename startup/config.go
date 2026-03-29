@@ -103,6 +103,9 @@ func loadEnvConfig() {
 	}
 
 	vars.ThirdPartyApiKey = os.Getenv("THIRD_PARTY_API_KEY")
+
+	vars.SliderAccessKey = os.Getenv("SLIDER_ACCESS_KEY")
+
 	// 词云
 	vars.WordCloudUrl = os.Getenv("WORD_CLOUD_URL")
 	// pprof 代理地址

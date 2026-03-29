@@ -60,6 +60,8 @@ var CronManager CronManagerInterface
 // 歌曲搜索Api
 var MusicSearchApi = "https://api.cenguigui.cn/api/music/netease/WyY_Dg.php"
 
+var SliderAccessKey string
+
 var ThirdPartyApiKey string
 
 var WordCloudUrl string
