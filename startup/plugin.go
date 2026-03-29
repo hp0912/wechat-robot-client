@@ -12,6 +12,7 @@ func RegisterMessagePlugin() {
 	vars.MessagePlugin.Register(plugins.NewChatRoomAIChatPlugin())
 	vars.MessagePlugin.Register(plugins.NewChatRoomMemberBlacklistPlugin())
 	vars.MessagePlugin.Register(plugins.NewSwitchChatModelPlugin())
+	vars.MessagePlugin.Register(plugins.NewSliderAccessSecretPlugin())
 	vars.MessagePlugin.Register(plugins.NewChatRoomWxhbNotifyPlugin())
 	vars.MessagePlugin.Register(plugins.NewPodcastPlugin())
 	// 朋友聊天插件
