@@ -163,6 +163,7 @@ services:
       - ENABLE_FLAC=true
       - SELECT_MAX_BR=true
       - FOLLOW_SOURCE_ORDER=true
+      - MUSIC_U=xxxxxxxx # 自行修改，网易云账号的 MUSIC_U cookie 值，部署完成后，访问 http://localhost:3000/qrlogin.html 登录后，从浏览器控制台获取
     ports:
       - "3000:3000"
     networks:
