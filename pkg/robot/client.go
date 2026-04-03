@@ -112,7 +112,12 @@ func (c *Client) BaseResponseErrCheck(baseResponse *BaseResponse) (err error) {
 			err = errors.New(*baseResponse.ErrMsg.String)
 			return
 		} else {
-			err = fmt.Errorf("未知的错误代码: %d", baseResponse.Ret)
+			switch baseResponse.Ret {
+			case -104:
+				err = errors.New("发送内容过大")
+			default:
+				err = fmt.Errorf("未知的错误代码: %d", baseResponse.Ret)
+			}
 		}
 	}
 	return
@@ -721,14 +726,14 @@ func (c *Client) MsgSendVideoStream(req MsgSendVideoStreamRequest, file io.Reade
 		return
 	}
 	if err = result.CheckError(err); err != nil {
-		err2 := c.BaseResponseErrCheck(&result.Data.BaseResponse)
+		err2 := c.BaseResponseErrCheck(result.Data.BaseResponse)
 		if err2 != nil {
 			err = fmt.Errorf("%s\n%s", err.Error(), err2.Error())
 			return
 		}
 		return
 	}
-	err = c.BaseResponseErrCheck(&result.Data.BaseResponse)
+	err = c.BaseResponseErrCheck(result.Data.BaseResponse)
 	if err != nil {
 		return
 	}

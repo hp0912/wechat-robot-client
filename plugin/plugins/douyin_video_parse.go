@@ -132,7 +132,10 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 		}
 
 		_ = ctx.MessageService.ShareLink(ctx.Message.FromWxID, shareLink)
-		_ = ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, respData.Data.URL)
+		err = ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, respData.Data.URL)
+		if err != nil {
+			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送抖音视频失败: %v", err.Error()))
+		}
 
 		return
 	}
@@ -230,7 +233,10 @@ func mergeImagesVertical(ctx *plugin.MessageContext, imageURLs []string) ([]byte
 		if utils.IsVideo(bodyData.Bytes()) {
 			log.Printf("%s 解析到视频，跳过合并，直接发送视频消息\n", imageURL)
 			go func(toWxID, _imageURL string) {
-				_ = ctx.MessageService.SendVideoMessageByRemoteURL(toWxID, _imageURL)
+				err2 := ctx.MessageService.SendVideoMessageByRemoteURL(toWxID, _imageURL)
+				if err2 != nil {
+					ctx.MessageService.SendTextMessage(toWxID, fmt.Sprintf("发送抖音视频失败: %v", err2.Error()))
+				}
 			}(ctx.Message.FromWxID, imageURL)
 			continue
 		}
