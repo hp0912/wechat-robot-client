@@ -132,7 +132,7 @@ func (m *Message) SendImageMessageStream(c *gin.Context) {
 	defer file.Close()
 
 	if fileHeader.Size > vars.UploadImageChunkSize {
-		resp.ToErrorResponse(errors.New("单个分片大小不能超过64KB"))
+		resp.ToErrorResponse(errors.New("单个分片大小不能超过200KB"))
 		return
 	}
 
@@ -365,7 +365,7 @@ func (m *Message) SendFileMessage(c *gin.Context) {
 	defer file.Close()
 
 	if fileHeader.Size > vars.UploadFileChunkSize {
-		resp.ToErrorResponse(errors.New("单个分片大小不能超过50KB"))
+		resp.ToErrorResponse(errors.New("单个分片大小不能超过200KB"))
 		return
 	}
 
