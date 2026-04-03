@@ -733,7 +733,7 @@ func (r *Robot) MsgSendVideoFromLocal(toWxID, tempFilePath string) (videoMessage
 	videoTotalLen := videoInfo.Size()
 
 	// 分片上传视频缩略图
-	const chunkSize = int64(50000)
+	const chunkSize = int64(200 * 1000) // 200 KB
 	thumbFile, err = os.Open(thumbFile.Name())
 	if err != nil {
 		return nil, fmt.Errorf("打开缩略图文件失败: %w", err)

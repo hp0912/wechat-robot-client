@@ -375,7 +375,7 @@ func sendFileByRemoteURL(ctx *plugin.MessageContext, fileURL string) error {
 	fileSize := int64(len(fileData))
 	chunkSize := vars.UploadFileChunkSize
 	if chunkSize <= 0 {
-		chunkSize = 50000
+		chunkSize = 200 * 1000
 	}
 	totalChunks := (fileSize + chunkSize - 1) / chunkSize
 	clientAppDataID := fmt.Sprintf("%v_%v", vars.RobotRuntime.WxID, time.Now().UnixNano())
