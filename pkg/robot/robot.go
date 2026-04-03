@@ -508,10 +508,17 @@ func (r *Robot) MsgUploadImg(toWxID string, image []byte) (MsgUploadImgResponse,
 // 分片发送图片信息
 func (r *Robot) SendImageMessageStream(req SendImageMessageStreamRequest, file io.Reader, fileHeader *multipart.FileHeader) (*MsgUploadImgResponse, error) {
 	req.Wxid = r.WxID
-	imageMessage, err := r.Client.SendImageMessageStream(req, file, fileHeader)
+
+	// 读取数据到内存，确保重试时可以重新读取
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	imageMessage, err := r.Client.SendImageMessageStream(req, bytes.NewReader(data), fileHeader)
 	if err != nil {
 		for range 3 {
-			imageMessage, err = r.Client.SendImageMessageStream(req, file, fileHeader)
+			imageMessage, err = r.Client.SendImageMessageStream(req, bytes.NewReader(data), fileHeader)
 			if err == nil {
 				break
 			}
@@ -726,7 +733,7 @@ func (r *Robot) MsgSendVideoFromLocal(toWxID, tempFilePath string) (videoMessage
 	videoTotalLen := videoInfo.Size()
 
 	// 分片上传视频缩略图
-	const chunkSize = int64(50000)
+	const chunkSize = int64(200 * 1000) // 200 KB
 	thumbFile, err = os.Open(thumbFile.Name())
 	if err != nil {
 		return nil, fmt.Errorf("打开缩略图文件失败: %w", err)
@@ -808,6 +815,8 @@ func (r *Robot) MsgSendVideoFromLocal(toWxID, tempFilePath string) (videoMessage
 			retryErr := err
 			for range 3 {
 				time.Sleep(200 * time.Millisecond)
+				// chunkReader 已被上次请求读完，必须 reset 后才能重试
+				chunkReader.Seek(0, io.SeekStart)
 				videoMessage, retryErr = r.Client.MsgSendVideoStream(MsgSendVideoStreamRequest{
 					Wxid:          r.WxID,
 					ToWxid:        toWxID,
@@ -823,7 +832,7 @@ func (r *Robot) MsgSendVideoFromLocal(toWxID, tempFilePath string) (videoMessage
 				}
 			}
 			if retryErr != nil {
-				return nil, fmt.Errorf("上传视频分片失败(重试3次后仍失败): %w", retryErr)
+				return nil, retryErr
 			}
 		}
 		videoStartPos += currentChunkSize

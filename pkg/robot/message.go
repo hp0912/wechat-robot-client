@@ -369,13 +369,14 @@ type MsgSendVideoStreamRequest struct {
 }
 
 type MsgSendVideoResponse struct {
-	BaseResponse
-	Msgid         int64  `json:"msgId"`
-	ClientMsgId   string `json:"clientMsgId"`
-	ThumbStartPos int64  `json:"thumbStartPos"`
-	VideoStartPos int64  `json:"videoStartPos"`
-	NewMsgId      int64  `json:"newMsgId"`
-	ActionFlag    int    `json:"actionFlag"`
+	BaseResponse  *BaseResponse `json:"BaseResponse"`
+	Msgid         int64         `json:"msgId"`
+	ClientMsgId   string        `json:"clientMsgId"`
+	ThumbStartPos int64         `json:"thumbStartPos"`
+	VideoStartPos int64         `json:"videoStartPos"`
+	NewMsgId      int64         `json:"newMsgId"`
+	ActionFlag    int           `json:"actionFlag"`
+	Aeskey        string        `json:"aeskey"`
 }
 
 type MsgSendVoiceRequest struct {
