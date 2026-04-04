@@ -178,27 +178,22 @@ func copyFile(src, dst string) error {
 	return os.WriteFile(dst, data, srcInfo.Mode())
 }
 
-// ExtractRepoAndSubPath 从 GitHub URL 中提取仓库地址和子路径
+// ExtractRepoAndSubPath 从 Git 托管平台 URL 中提取仓库地址和子路径
 // 支持格式：
-//   - https://github.com/anthropics/skills/tree/main/skills/pptx
+//   - https://github.com/anthropics/skills/tree/main/skills/pptx  (GitHub)
+//   - https://git.houhoukang.com/owner/repo/src/branch/main/skills/kfc  (Gitea)
 //   - https://github.com/anthropics/skills  + subPath: skills/pptx
 func ExtractRepoAndSubPath(url string) (repoURL, subPath, ref string) {
-	// 尝试解析 GitHub tree URL
-	if strings.Contains(url, "/tree/") {
-		parts := strings.SplitN(url, "/tree/", 2)
-		repoURL = parts[0]
+	// 尝试解析 Gitea src/branch URL（如 git.houhoukang.com）
+	if repoURL, remaining, ok := strings.Cut(url, "/src/branch/"); ok {
+		ref, subPath, _ = strings.Cut(remaining, "/")
+		return repoURL, subPath, ref
+	}
 
-		if len(parts) > 1 {
-			remaining := parts[1]
-			slashIdx := strings.Index(remaining, "/")
-			if slashIdx >= 0 {
-				ref = remaining[:slashIdx]
-				subPath = remaining[slashIdx+1:]
-			} else {
-				ref = remaining
-			}
-		}
-		return
+	// 尝试解析 GitHub tree URL
+	if repoURL, remaining, ok := strings.Cut(url, "/tree/"); ok {
+		ref, subPath, _ = strings.Cut(remaining, "/")
+		return repoURL, subPath, ref
 	}
 
 	// 普通仓库 URL

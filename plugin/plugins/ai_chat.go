@@ -71,6 +71,9 @@ type structuredReplyPattern struct {
 	Pattern *regexp.Regexp
 }
 
+var thinkTagRegexp = regexp.MustCompile(`(?s)<think>.*?</think>`)
+var unclosedThinkTagRegexp = regexp.MustCompile(`(?s)<think>.*$`)
+
 var structuredReplyPatterns = []structuredReplyPattern{
 	{
 		Type:    structuredReplyTypeText,
@@ -340,6 +343,10 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 	} else if len(aiReply.MultiContent) > 0 {
 		aiReplyText = aiReply.MultiContent[0].Text
 	}
+	// aiReplyText 可能包含思维链，<think></think> 标签内的内容是 AI 的思考过程，不应该发送给用户
+	aiReplyText = thinkTagRegexp.ReplaceAllString(aiReplyText, "")
+	aiReplyText = strings.TrimSpace(aiReplyText)
+
 	if aiReplyText == "" {
 		aiReplyText = "AI返回了空内容。"
 		if len(aiMessages) > 0 {
