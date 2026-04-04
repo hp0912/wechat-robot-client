@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/tencentyun/cos-go-sdk-v5"
+	tos "github.com/volcengine/ve-tos-golang-sdk/v2/tos"
 
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
@@ -95,6 +96,14 @@ func (s *OSSSettingService) UploadImageToOSSFromEncryptUrl(settings *model.OSSSe
 		if err != nil {
 			return err
 		}
+	case model.OSSProviderVolcengine:
+		if settings.VolcengineTOSSettings == nil {
+			return errors.New("火山引擎TOS配置项未配置")
+		}
+		err := s.UploadImageToVolcengineTOS(settings, message, &encryptUrl)
+		if err != nil {
+			return err
+		}
 	default:
 		log.Printf("不支持的OSS服务商: %s", settings.OSSProvider)
 	}
@@ -127,6 +136,14 @@ func (s *OSSSettingService) UploadImageToOSS(settings *model.OSSSettings, messag
 			return errors.New("cloudflare r2配置项未配置")
 		}
 		err := s.UploadImageToCloudflareR2(settings, message, nil)
+		if err != nil {
+			return err
+		}
+	case model.OSSProviderVolcengine:
+		if settings.VolcengineTOSSettings == nil {
+			return errors.New("火山引擎TOS配置项未配置")
+		}
+		err := s.UploadImageToVolcengineTOS(settings, message, nil)
 		if err != nil {
 			return err
 		}
@@ -374,6 +391,76 @@ func (s *OSSSettingService) UploadImageToCloudflareR2(settings *model.OSSSetting
 		fileURL = fmt.Sprintf("%s/%s", strings.TrimRight(config.CustomDomain, "/"), objectKey)
 	} else {
 		fileURL = fmt.Sprintf("https://pub-%s.r2.dev/%s", config.BucketName, objectKey)
+	}
+
+	message.AttachmentUrl = fileURL
+	err = s.messageRepo.Update(&model.Message{
+		ID:            message.ID,
+		AttachmentUrl: fileURL,
+	})
+	if err != nil {
+		return fmt.Errorf("更新消息附件URL失败: %w", err)
+	}
+
+	log.Printf("图片上传成功: %s", fileURL)
+
+	return nil
+}
+
+func (s *OSSSettingService) UploadImageToVolcengineTOS(settings *model.OSSSettings, message *model.Message, imageUrl *string) error {
+	attachDownloadService := NewAttachDownloadService(s.ctx)
+	var imageBytes []byte
+	var contentType, extension string
+	var err error
+	if imageUrl == nil {
+		imageBytes, contentType, extension, err = attachDownloadService.DownloadImage(message.ID)
+	} else {
+		imageBytes, contentType, extension, err = s.DownloadImageFromEncryptUrl(*imageUrl)
+	}
+	if err != nil {
+		return fmt.Errorf("下载图片失败: %w", err)
+	}
+
+	var config model.VolcengineTOSConfig
+	if err := json.Unmarshal(settings.VolcengineTOSSettings, &config); err != nil {
+		return fmt.Errorf("解析火山引擎TOS配置失败: %w", err)
+	}
+
+	if config.Endpoint == "" || config.Region == "" || config.AccessKey == "" || config.SecretKey == "" || config.BucketName == "" {
+		return errors.New("火山引擎TOS配置不完整")
+	}
+
+	client, err := tos.NewClientV2(config.Endpoint,
+		tos.WithRegion(config.Region),
+		tos.WithCredentials(tos.NewStaticCredentials(config.AccessKey, config.SecretKey)),
+	)
+	if err != nil {
+		return fmt.Errorf("创建火山引擎TOS客户端失败: %w", err)
+	}
+
+	fileName := s.generateFileName(extension)
+	objectKey := s.buildObjectKey(config.BasePath, fileName)
+	reader := bytes.NewReader(imageBytes)
+
+	_, err = client.PutObjectV2(s.ctx, &tos.PutObjectV2Input{
+		PutObjectBasicInput: tos.PutObjectBasicInput{
+			Bucket:      config.BucketName,
+			Key:         objectKey,
+			ContentType: contentType,
+		},
+		Content: reader,
+	})
+	if err != nil {
+		return fmt.Errorf("上传到火山引擎TOS失败: %w", err)
+	}
+
+	var fileURL string
+	if config.CustomDomain != "" {
+		fileURL = fmt.Sprintf("%s/%s", strings.TrimRight(config.CustomDomain, "/"), objectKey)
+	} else {
+		endpoint := strings.TrimPrefix(config.Endpoint, "https://")
+		endpoint = strings.TrimPrefix(endpoint, "http://")
+		fileURL = fmt.Sprintf("https://%s.%s/%s", config.BucketName, endpoint, objectKey)
 	}
 
 	message.AttachmentUrl = fileURL
