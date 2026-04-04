@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/shlex"
+
 	"wechat-robot-client/pkg/robotctx"
 
 	"github.com/sashabaranov/go-openai"
@@ -238,7 +240,11 @@ func (e *SkillToolExecutor) executeScript(robotCtx robotctx.RobotContext, argsJS
 
 	// 追加用户参数
 	if args.Args != "" {
-		cmdArgs = append(cmdArgs, strings.Fields(args.Args)...)
+		parsedArgs, err := shlex.Split(args.Args)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse script args: %w", err)
+		}
+		cmdArgs = append(cmdArgs, parsedArgs...)
 	}
 
 	log.Printf("[Skills] Executing script: %s (args: %s)", absScript, args.Args)

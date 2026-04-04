@@ -106,7 +106,7 @@ func (s *MCPService) ChatWithMCPTools(
 	maxIterations int,
 ) (openai.ChatCompletionMessage, error) {
 	if maxIterations <= 0 {
-		maxIterations = 5 // 默认最多5轮工具调用
+		maxIterations = 25 // 默认最多25轮工具调用
 	}
 
 	// 获取所有可用 MCP 工具
