@@ -144,12 +144,17 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("抖音图片解析成功\n作者: %s\n标题: %s\n\n%d张图片正在发送中...", respData.Data.Author, respData.Data.Title, len(respData.Data.Images)))
 
 		if respData.Data.MusicURL != "" {
-			go func(musicurl string) {
-				err := sendFileByRemoteURL(ctx, musicurl)
+			go func(musicURL, title, author string) {
+				var err error
+				if isAudioURL(musicURL) {
+					err = sendMusicMessageByURL(ctx, musicURL, title, author)
+				} else {
+					err = sendFileByRemoteURL(ctx, musicURL)
+				}
 				if err != nil {
 					ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送抖音音频失败: %v", err))
 				}
-			}(respData.Data.MusicURL)
+			}(respData.Data.MusicURL, respData.Data.Title, respData.Data.Author)
 		}
 
 		imageURLs := respData.Data.Images
@@ -295,6 +300,43 @@ func mergeImagesVertical(ctx *plugin.MessageContext, imageURLs []string) ([]byte
 }
 
 const jpegMaxDimension = 65535
+
+var audioExtensions = map[string]bool{
+	".mp3":  true,
+	".m4a":  true,
+	".aac":  true,
+	".ogg":  true,
+	".flac": true,
+	".wav":  true,
+	".wma":  true,
+	".amr":  true,
+}
+
+func isAudioURL(rawURL string) bool {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	ext := strings.ToLower(path.Ext(parsed.Path))
+	return audioExtensions[ext]
+}
+
+func sendMusicMessageByURL(ctx *plugin.MessageContext, musicURL, title, author string) error {
+	const (
+		appID    = "wx8dd6ecd81906fd84"
+		coverURL = "https://uranus-houhou.oss-cn-beijing.aliyuncs.com/douyin.png"
+	)
+	songInfo := robot.SongInfo{}
+	songInfo.FromUsername = vars.RobotRuntime.WxID
+	songInfo.AppID = appID
+	songInfo.Title = "抖音解析背景音乐"
+	songInfo.Singer = author
+	songInfo.Url = musicURL
+	songInfo.MusicUrl = musicURL
+	songInfo.CoverUrl = coverURL
+	_, err := vars.RobotRuntime.SendMusicMessage(ctx.Message.FromWxID, songInfo)
+	return err
+}
 
 func isImageTooLargeError(err error) bool {
 	if err == nil {
