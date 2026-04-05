@@ -17,6 +17,7 @@ type VectorSearchResult struct {
 
 // RetrievedContext RAG 检索出的上下文
 type RetrievedContext struct {
+	UserProfile      string // 用户画像摘要（始终注入）
 	UserMemories     []*model.Memory
 	SessionSummary   string
 	RelevantMessages []VectorSearchResult
@@ -25,11 +26,14 @@ type RetrievedContext struct {
 
 // MemoryService 记忆管理服务接口
 type MemoryService interface {
-	ExtractMemoriesFromConversation(contactWxID, chatRoomID string, messages []openai.ChatCompletionMessage)
-	GetRelevantMemories(ctx context.Context, contactWxID, query string, limit int) ([]*model.Memory, error)
-	GetUserProfile(ctx context.Context, contactWxID string) ([]*model.Memory, error)
+	ExtractMemoriesFromConversation(senderWxID, chatRoomID, senderNickname string, messages []openai.ChatCompletionMessage)
+	GetRelevantMemories(ctx context.Context, wxID, chatRoomID, query string, limit int) ([]*model.Memory, error)
+	GetUserProfile(ctx context.Context, wxID, chatRoomID string) string
+	RefreshUserProfile(ctx context.Context, wxID, chatRoomID string) error
+	RefreshAllProfiles()
 	SaveManualMemory(ctx context.Context, memory *model.Memory) error
 	DeleteMemory(ctx context.Context, id int64) error
+	SearchMemoriesByKeyword(ctx context.Context, wxID, chatRoomID, keyword string, limit int) ([]*model.Memory, error)
 	GetLastSessionSummary(ctx context.Context, contactWxID, chatRoomID string) string
 	TouchSession(ctx context.Context, contactWxID, chatRoomID string, msgID int64)
 	DecayOldMemories()

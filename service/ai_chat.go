@@ -116,14 +116,22 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 
 	// 异步：记忆提取 + 会话追踪 + 消息向量化
 	if err == nil {
-		go s.postChatHook(contactWxID, chatRoomID, robotCtx.MessageID, aiMessages, reply)
+		// 获取发送者昵称用于群聊记忆提取
+		senderNickname := ""
+		if chatRoomID != "" {
+			crmRepo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
+			if member, err := crmRepo.GetChatRoomMember(chatRoomID, contactWxID); err == nil && member != nil {
+				senderNickname = member.Nickname
+			}
+		}
+		go s.postChatHook(contactWxID, chatRoomID, senderNickname, robotCtx.MessageID, aiMessages, reply)
 	}
 
 	return reply, err
 }
 
 // postChatHook 在 AI 回复后异步执行记忆提取、会话追踪
-func (s *AIChatService) postChatHook(contactWxID, chatRoomID string, msgID int64, aiMessages []openai.ChatCompletionMessage, reply openai.ChatCompletionMessage) {
+func (s *AIChatService) postChatHook(contactWxID, chatRoomID, senderNickname string, msgID int64, aiMessages []openai.ChatCompletionMessage, reply openai.ChatCompletionMessage) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[RAG] postChatHook panic: %v", r)
@@ -149,7 +157,7 @@ func (s *AIChatService) postChatHook(contactWxID, chatRoomID string, msgID int64
 		if reply.Content != "" {
 			allMessages = append(allMessages, reply)
 		}
-		vars.MemoryService.ExtractMemoriesFromConversation(contactWxID, chatRoomID, allMessages)
+		vars.MemoryService.ExtractMemoriesFromConversation(contactWxID, chatRoomID, senderNickname, allMessages)
 	}
 }
 

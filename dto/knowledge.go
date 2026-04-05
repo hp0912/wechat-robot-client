@@ -38,19 +38,19 @@ type DeleteKnowledgeRequest struct {
 
 // SaveMemoryRequest 手动保存记忆请求
 type SaveMemoryRequest struct {
-	ContactWxID string `json:"contact_wxid" binding:"required"`
-	ChatRoomID  string `json:"chat_room_id"`
-	Type        string `json:"type" binding:"required"`
-	Key         string `json:"key" binding:"required"`
-	Content     string `json:"content" binding:"required"`
-	Importance  int    `json:"importance"`
+	WxID       string `json:"wx_id" binding:"required"`
+	ChatRoomID string `json:"chat_room_id"`
+	Category   string `json:"category" binding:"required"`
+	Content    string `json:"content" binding:"required"`
+	Importance int    `json:"importance"`
 }
 
 // SearchMemoryRequest 搜索记忆请求
 type SearchMemoryRequest struct {
-	ContactWxID string `form:"contact_wxid"`
-	Query       string `form:"query"`
-	Limit       int    `form:"limit"`
+	WxID       string `form:"wx_id"`
+	ChatRoomID string `form:"chat_room_id"`
+	Query      string `form:"query"`
+	Limit      int    `form:"limit"`
 }
 
 // DeleteMemoryRequest 删除记忆请求

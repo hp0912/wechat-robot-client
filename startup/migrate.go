@@ -25,6 +25,7 @@ func autoMigrateTasks() []migrateTask {
 			models: []any{
 				&model.GlobalSettings{},
 				&model.Memory{},
+				&model.UserProfile{},
 				&model.ConversationSession{},
 				&model.KnowledgeDocument{},
 				&model.ImageKnowledgeDocument{},

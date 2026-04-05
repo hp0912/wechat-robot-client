@@ -32,19 +32,22 @@ func NewRAGService(db *gorm.DB, memorySvc *MemoryService, vectorStore *VectorSto
 func (s *RAGService) RetrieveContext(ctx context.Context, contactWxID, chatRoomID, query string) *ai.RetrievedContext {
 	result := &ai.RetrievedContext{}
 
-	// 1. 获取用户相关记忆
 	if s.memorySvc != nil {
-		if memories, err := s.memorySvc.GetRelevantMemories(ctx, contactWxID, query, 10); err == nil {
+		// 1. 获取用户画像（始终注入）
+		result.UserProfile = s.memorySvc.GetUserProfile(ctx, contactWxID, chatRoomID)
+
+		// 2. 获取与查询相关的记忆
+		if memories, err := s.memorySvc.GetRelevantMemories(ctx, contactWxID, chatRoomID, query, 10); err == nil {
 			result.UserMemories = memories
 		} else {
 			log.Printf("[RAG] 获取记忆失败: %v", err)
 		}
 
-		// 2. 获取上轮对话摘要
+		// 3. 获取上轮对话摘要
 		result.SessionSummary = s.memorySvc.GetLastSessionSummary(ctx, contactWxID, chatRoomID)
 	}
 
-	// 3. 语义搜索历史消息
+	// 4. 语义搜索历史消息
 	if s.vectorStore != nil {
 		robot_code := vars.RobotRuntime.RobotCode
 		if messages, err := s.vectorStore.SearchMessages(ctx, robot_code, query, contactWxID, chatRoomID, 5); err == nil {
@@ -53,7 +56,7 @@ func (s *RAGService) RetrieveContext(ctx context.Context, contactWxID, chatRoomI
 			log.Printf("[RAG] 搜索历史消息失败: %v", err)
 		}
 
-		// 4. 搜索知识库
+		// 5. 搜索知识库
 		if knowledge, err := s.vectorStore.SearchKnowledge(ctx, robot_code, query, "", 3); err == nil {
 			result.KnowledgeDocs = knowledge
 		} else {
@@ -73,11 +76,18 @@ func (s *RAGService) BuildEnhancedPrompt(basePrompt string, retrieved *ai.Retrie
 	var sb strings.Builder
 	sb.WriteString(basePrompt)
 
-	// 注入用户记忆
+	// 注入用户画像（最重要，始终在最前面）
+	if retrieved.UserProfile != "" {
+		sb.WriteString("\n\n## 关于当前用户的画像:\n")
+		sb.WriteString(retrieved.UserProfile)
+		sb.WriteString("\n")
+	}
+
+	// 注入与当前话题相关的记忆
 	if len(retrieved.UserMemories) > 0 {
-		sb.WriteString("\n\n## 关于这个用户你记住的信息:\n")
+		sb.WriteString("\n\n## 你记住的相关信息:\n")
 		for _, m := range retrieved.UserMemories {
-			fmt.Fprintf(&sb, "- [%s] %s: %s\n", m.Type, m.Key, m.Content)
+			fmt.Fprintf(&sb, "- [%s] %s\n", m.Category, m.Content)
 		}
 	}
 
