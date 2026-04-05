@@ -147,24 +147,19 @@ func (s *AIChatService) postChatHook(contactWxID, chatRoomID, senderNickname str
 
 	// 2. 从对话中提取记忆（包含本次回复）
 	if vars.MemoryService != nil && len(aiMessages) > 0 {
-		// 提取群聊上下文（来自 system 消息中的最近群聊消息）
-		var groupContextMsg string
+		groupObservation := ""
 		if chatRoomID != "" {
-			for _, m := range aiMessages {
-				if m.Role == openai.ChatMessageRoleSystem && strings.Contains(m.Content, "[最近群聊消息]") {
-					groupContextMsg = m.Content
-					break
-				}
-			}
+			groupObservation = s.buildGroupMemoryObservation(ctx, chatRoomID, contactWxID)
 		}
 
 		// 将非 system 消息 + 回复加入用于记忆提取
 		allMessages := make([]openai.ChatCompletionMessage, 0, len(aiMessages)+2)
-		// 如果有群聊上下文，作为 user 消息注入让 LLM 也能从中提取记忆
-		if groupContextMsg != "" {
+		// 如果有群聊观察记录，作为 user 消息注入让 LLM 也能从中提取记忆。
+		// 记录中显式带上 sender wx_id，避免把他人的发言误归属给当前触发者。
+		if groupObservation != "" {
 			allMessages = append(allMessages, openai.ChatCompletionMessage{
 				Role:    openai.ChatMessageRoleUser,
-				Content: "[群聊观察记录]\n" + groupContextMsg,
+				Content: "[群聊观察记录]\n" + groupObservation,
 			})
 		}
 		for _, m := range aiMessages {
@@ -202,7 +197,14 @@ func (s *AIChatService) buildGroupChatContext(chatRoomID, senderWxID string) str
 	}
 
 	msgRepo := repository.NewMessageRepo(s.ctx, vars.DB)
-	recentMsgs, err := msgRepo.GetRecentChatRoomMessages(chatRoomID, nil, 10)
+	excludeWxIDs := make([]string, 0, 2)
+	if senderWxID != "" {
+		excludeWxIDs = append(excludeWxIDs, senderWxID)
+	}
+	if robotWxID := vars.RobotRuntime.WxID; robotWxID != "" && robotWxID != senderWxID {
+		excludeWxIDs = append(excludeWxIDs, robotWxID)
+	}
+	recentMsgs, err := msgRepo.GetRecentChatRoomMessages(chatRoomID, excludeWxIDs, 10)
 	if err != nil {
 		log.Printf("[GroupContext] 获取最近群消息失败: %v", err)
 	}
@@ -220,5 +222,33 @@ func (s *AIChatService) buildGroupChatContext(chatRoomID, senderWxID string) str
 		}
 	}
 
+	return sb.String()
+}
+
+// buildGroupMemoryObservation 构建群聊记忆观察记录。
+// 使用 昵称(wx_id): 内容 的格式显式保留发言者身份，供记忆提取使用。
+func (s *AIChatService) buildGroupMemoryObservation(ctx context.Context, chatRoomID, senderWxID string) string {
+	msgRepo := repository.NewMessageRepo(ctx, vars.DB)
+	excludeWxIDs := make([]string, 0, 2)
+	if senderWxID != "" {
+		excludeWxIDs = append(excludeWxIDs, senderWxID)
+	}
+	if robotWxID := vars.RobotRuntime.WxID; robotWxID != "" && robotWxID != senderWxID {
+		excludeWxIDs = append(excludeWxIDs, robotWxID)
+	}
+	recentMsgs, err := msgRepo.GetRecentChatRoomMessages(chatRoomID, excludeWxIDs, 10)
+	if err != nil {
+		log.Printf("[Memory] 获取群聊观察记录失败: %v", err)
+		return ""
+	}
+
+	var sb strings.Builder
+	for _, msg := range recentMsgs {
+		nickname := msg.SenderNickname
+		if nickname == "" {
+			nickname = msg.SenderWxID
+		}
+		fmt.Fprintf(&sb, "%s(%s): %s\n", nickname, msg.SenderWxID, msg.Content)
+	}
 	return sb.String()
 }

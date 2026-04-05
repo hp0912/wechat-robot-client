@@ -3,12 +3,14 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/qdrantx"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
@@ -56,6 +58,8 @@ type extractedMemory struct {
 	ExpireAt   string `json:"expire_at,omitempty"`
 }
 
+const groupObservationPrefix = "[群聊观察记录]\n"
+
 // ExtractMemoriesFromConversation 从对话中提取记忆（异步调用）
 // senderWxID: 当前对话发送者（私聊或群聊中的某人）
 // chatRoomID: 群ID（私聊时为空）
@@ -75,6 +79,14 @@ func (s *MemoryService) ExtractMemoriesFromConversation(senderWxID, chatRoomID, 
 			role = "助手"
 		}
 		if msg.Content != "" {
+			if chatRoomID != "" && msg.Role == openai.ChatMessageRoleUser && strings.HasPrefix(msg.Content, groupObservationPrefix) {
+				observation := strings.TrimSpace(strings.TrimPrefix(msg.Content, groupObservationPrefix))
+				if observation != "" {
+					conversationText.WriteString(observation)
+					conversationText.WriteString("\n")
+				}
+				continue
+			}
 			if chatRoomID != "" && msg.Role == openai.ChatMessageRoleUser && senderNickname != "" {
 				// 群聊中标注发言者身份
 				fmt.Fprintf(&conversationText, "%s(%s): %s\n", senderNickname, senderWxID, msg.Content)
@@ -104,7 +116,7 @@ func (s *MemoryService) callLLMExtract(ctx context.Context, senderWxID, chatRoom
 
 	contextHint := "这是一段私聊对话"
 	if chatRoomID != "" {
-		contextHint = fmt.Sprintf("这是微信群(%s)中的对话，当前发言者是 %s (wx_id: %s)", chatRoomID, senderNickname, senderWxID)
+		contextHint = fmt.Sprintf("这是微信群(%s)中的对话，当前发言者是 %s (wx_id: %s)。对话中如果出现“昵称(wx_id): 内容”的行，表示这条信息属于括号中的 wx_id，对应记忆必须归属给该成员，而不是统一归属给当前发言者", chatRoomID, senderNickname, senderWxID)
 	}
 
 	systemPrompt := fmt.Sprintf(`你是一个记忆提取助手。%s。
@@ -122,7 +134,7 @@ func (s *MemoryService) callLLMExtract(ctx context.Context, senderWxID, chatRoom
 关键要求：
 - 每条记忆的 content 必须是**完整的自然语言陈述句**，如"张三在北京字节跳动做后端工程师"
 - 如果涉及时间，设置 happened_at（事件发生时间）和 expire_at（过期时间），格式为 "2006-01-02"
-- wx_id: 记忆所属者的 wx_id，默认填 "%s"，如果是群级别记忆则留空
+- wx_id: 记忆所属者的 wx_id。默认填 "%s"，但如果对话中某一行已经显式写成“昵称(wx_id): 内容”，则必须使用该行中的 wx_id；如果是群级别记忆则留空
 - importance: 1-10，个人身份信息>=7，兴趣偏好5-6，临时计划3-4
 - 不要提取模糊或无实际信息量的内容（如"用户在聊天"、"用户发了消息"）
 - 不要提取助手自己的信息
@@ -159,6 +171,20 @@ func (s *MemoryService) callLLMExtract(ctx context.Context, senderWxID, chatRoom
 	return memories, nil
 }
 
+func isValidMemoryCategory(category model.MemoryCategory) bool {
+	switch category {
+	case model.MemoryCategoryProfile,
+		model.MemoryCategoryPreference,
+		model.MemoryCategoryEvent,
+		model.MemoryCategoryRelation,
+		model.MemoryCategoryBehavior,
+		model.MemoryCategoryOpinion,
+		model.MemoryCategoryGroup:
+		return true
+	}
+	return false
+}
+
 // isGlobalCategory 判断该类别的记忆是否应该存为全局记忆（不绑定群）
 // profile/preference/relation 这类稳定的用户事实应该跨场景复用
 func isGlobalCategory(category string) bool {
@@ -170,8 +196,26 @@ func isGlobalCategory(category string) bool {
 }
 
 func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, chatRoomID string, mem extractedMemory) {
-	wxID := mem.WxID
-	if wxID == "" && mem.Category != "group" {
+	category := model.MemoryCategory(strings.ToLower(strings.TrimSpace(mem.Category)))
+	if !isValidMemoryCategory(category) {
+		log.Printf("[Memory] 跳过无效分类记忆: %s", mem.Category)
+		return
+	}
+	content := strings.TrimSpace(mem.Content)
+	if content == "" {
+		return
+	}
+	importance := mem.Importance
+	if importance < 1 {
+		importance = 1
+	}
+	if importance > 10 {
+		importance = 10
+	}
+	happenedAt := s.parseDateUnix(mem.HappenedAt)
+	expireAt := s.parseDateUnix(mem.ExpireAt)
+	wxID := strings.TrimSpace(mem.WxID)
+	if wxID == "" && category != model.MemoryCategoryGroup {
 		wxID = defaultWxID
 	}
 
@@ -180,25 +224,29 @@ func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, ch
 	// - 全局个人事实(profile/preference/relation): wxID=用户, chatRoomID=""
 	// - 群内局部记忆(event/behavior/opinion): wxID=用户, chatRoomID=群ID
 	memoryChatRoomID := chatRoomID
-	if mem.Category == "group" {
+	if category == model.MemoryCategoryGroup {
 		wxID = ""
-	} else if isGlobalCategory(mem.Category) {
+	} else if isGlobalCategory(string(category)) {
 		// 稳定的用户事实提升为全局记忆，不绑定群
 		memoryChatRoomID = ""
 	}
 
 	// 去重检查：在目标作用域内语义搜索
 	if s.vectorStore != nil {
-		duplicateID := s.findDuplicateMemory(ctx, wxID, memoryChatRoomID, mem.Content)
+		duplicateID := s.findDuplicateMemory(ctx, wxID, memoryChatRoomID, content)
 		if duplicateID > 0 {
 			existing, err := s.memoryRepo.GetByID(duplicateID)
 			if err == nil && existing != nil {
-				existing.Content = mem.Content
-				if mem.Importance > existing.Importance {
-					existing.Importance = mem.Importance
+				existing.Content = content
+				if importance > existing.Importance {
+					existing.Importance = importance
 				}
-				existing.HappenedAt = s.parseDateUnix(mem.HappenedAt)
-				existing.ExpireAt = s.parseDateUnix(mem.ExpireAt)
+				if happenedAt > 0 {
+					existing.HappenedAt = happenedAt
+				}
+				if expireAt > 0 {
+					existing.ExpireAt = expireAt
+				}
 				if err := s.memoryRepo.Update(existing); err != nil {
 					log.Printf("[Memory] 更新记忆失败: %v", err)
 				}
@@ -212,18 +260,50 @@ func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, ch
 	memory := &model.Memory{
 		WxID:       wxID,
 		ChatRoomID: memoryChatRoomID,
-		Category:   model.MemoryCategory(mem.Category),
-		Content:    mem.Content,
+		Category:   category,
+		Content:    content,
 		Source:     "auto",
-		Importance: mem.Importance,
-		HappenedAt: s.parseDateUnix(mem.HappenedAt),
-		ExpireAt:   s.parseDateUnix(mem.ExpireAt),
+		Importance: importance,
+		HappenedAt: happenedAt,
+		ExpireAt:   expireAt,
 	}
 	if err := s.memoryRepo.Create(memory); err != nil {
 		log.Printf("[Memory] 创建记忆失败: %v", err)
 		return
 	}
 	s.indexMemoryVector(ctx, memory)
+}
+
+func (s *MemoryService) validateManualMemory(memory *model.Memory) error {
+	memory.WxID = strings.TrimSpace(memory.WxID)
+	memory.ChatRoomID = strings.TrimSpace(memory.ChatRoomID)
+	memory.Content = strings.TrimSpace(memory.Content)
+	memory.Category = model.MemoryCategory(strings.ToLower(strings.TrimSpace(string(memory.Category))))
+	if memory.Content == "" {
+		return errors.New("记忆内容不能为空")
+	}
+	if !isValidMemoryCategory(memory.Category) {
+		return fmt.Errorf("无效的记忆分类: %s", memory.Category)
+	}
+	if memory.Importance <= 0 {
+		memory.Importance = 5
+	}
+	if memory.Importance > 10 {
+		memory.Importance = 10
+	}
+	if memory.Category == model.MemoryCategoryGroup {
+		if memory.ChatRoomID == "" {
+			return errors.New("群级别记忆必须指定 chat_room_id")
+		}
+		if memory.WxID != "" {
+			return errors.New("群级别记忆不能指定 wx_id")
+		}
+		return nil
+	}
+	if memory.WxID == "" {
+		return errors.New("个人记忆必须指定 wx_id")
+	}
+	return nil
 }
 
 // findDuplicateMemory 在精确作用域内通过语义搜索判断是否存在相似记忆（阈值 0.85）
@@ -490,6 +570,9 @@ func (s *MemoryService) RefreshAllProfiles() {
 
 // SaveManualMemory 手动保存记忆
 func (s *MemoryService) SaveManualMemory(ctx context.Context, memory *model.Memory) error {
+	if err := s.validateManualMemory(memory); err != nil {
+		return err
+	}
 	memory.Source = "manual"
 	if err := s.memoryRepo.Create(memory); err != nil {
 		return err
@@ -505,7 +588,9 @@ func (s *MemoryService) DeleteMemory(ctx context.Context, id int64) error {
 		return err
 	}
 	if memory != nil && memory.VectorID != "" && s.vectorStore != nil {
-		s.vectorStore.DeleteVectors(ctx, "memories_v2", []string{memory.VectorID})
+		if err := s.vectorStore.DeleteVectors(ctx, qdrantx.CollectionMemories, []string{memory.VectorID}); err != nil {
+			return err
+		}
 	}
 	return s.memoryRepo.Delete(id)
 }

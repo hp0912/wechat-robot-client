@@ -38,7 +38,7 @@ type DeleteKnowledgeRequest struct {
 
 // SaveMemoryRequest 手动保存记忆请求
 type SaveMemoryRequest struct {
-	WxID       string `json:"wx_id" binding:"required"`
+	WxID       string `json:"wx_id"`
 	ChatRoomID string `json:"chat_room_id"`
 	Category   string `json:"category" binding:"required"`
 	Content    string `json:"content" binding:"required"`
