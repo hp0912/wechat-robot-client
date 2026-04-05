@@ -103,9 +103,6 @@ func (m *CronManager) Start() {
 			// 记忆维护
 			memoryMaintenanceCron := NewMemoryMaintenanceCron(m)
 			memoryMaintenanceCron.Register()
-			// 群聊知识提取
-			groupChatKnowledgeCron := NewGroupChatKnowledgeCron(m)
-			groupChatKnowledgeCron.Register()
 		}
 	}
 }

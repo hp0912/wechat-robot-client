@@ -3,12 +3,14 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
-	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/qdrantx"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
@@ -19,48 +21,57 @@ import (
 
 // MemoryService 记忆管理服务
 type MemoryService struct {
-	db           *gorm.DB
-	memoryRepo   *repository.Memory
-	sessionRepo  *repository.ConversationSession
-	vectorStore  *VectorStoreService
-	embeddingSvc *EmbeddingService
-	aiBaseURL    string
-	aiAPIKey     string
-	aiModel      string
+	db          *gorm.DB
+	memoryRepo  *repository.Memory
+	profileRepo *repository.UserProfile
+	sessionRepo *repository.ConversationSession
+	vectorStore *VectorStoreService
+	aiBaseURL   string
+	aiAPIKey    string
+	aiModel     string
 }
 
 // NewMemoryService 创建记忆服务
-func NewMemoryService(db *gorm.DB, vectorStore *VectorStoreService, embeddingSvc *EmbeddingService, aiBaseURL, aiAPIKey, aiModel string) *MemoryService {
+func NewMemoryService(db *gorm.DB, vectorStore *VectorStoreService, aiBaseURL, aiAPIKey, aiModel string) *MemoryService {
 	ctx := context.Background()
 	return &MemoryService{
-		db:           db,
-		memoryRepo:   repository.NewMemoryRepo(ctx, db),
-		sessionRepo:  repository.NewConversationSessionRepo(ctx, db),
-		vectorStore:  vectorStore,
-		embeddingSvc: embeddingSvc,
-		aiBaseURL:    aiBaseURL,
-		aiAPIKey:     aiAPIKey,
-		aiModel:      aiModel,
+		db:          db,
+		memoryRepo:  repository.NewMemoryRepo(ctx, db),
+		profileRepo: repository.NewUserProfileRepo(ctx, db),
+		sessionRepo: repository.NewConversationSessionRepo(ctx, db),
+		vectorStore: vectorStore,
+		aiBaseURL:   aiBaseURL,
+		aiAPIKey:    aiAPIKey,
+		aiModel:     aiModel,
 	}
 }
 
+// ── 记忆提取 (Extraction) ─────────────────────────────────────────────
+
 // extractedMemory LLM 提取出的记忆结构
 type extractedMemory struct {
-	Type       string `json:"type"`
-	Key        string `json:"key"`
+	WxID       string `json:"wx_id"`
+	Category   string `json:"category"`
 	Content    string `json:"content"`
 	Importance int    `json:"importance"`
+	HappenedAt string `json:"happened_at,omitempty"`
+	ExpireAt   string `json:"expire_at,omitempty"`
 }
 
+const groupObservationPrefix = "[群聊观察记录]\n"
+
 // ExtractMemoriesFromConversation 从对话中提取记忆（异步调用）
-func (s *MemoryService) ExtractMemoriesFromConversation(contactWxID, chatRoomID string, messages []openai.ChatCompletionMessage) {
+// senderWxID: 当前对话发送者（私聊或群聊中的某人）
+// chatRoomID: 群ID（私聊时为空）
+// senderNickname: 发送者昵称（用于提取提示词）
+func (s *MemoryService) ExtractMemoriesFromConversation(senderWxID, chatRoomID, senderNickname string, messages []openai.ChatCompletionMessage) {
 	if len(messages) == 0 {
 		return
 	}
 
 	ctx := context.Background()
 
-	// 构建对话文本
+	// 构建对话文本：群聊需要携带身份信息
 	var conversationText strings.Builder
 	for _, msg := range messages {
 		role := "用户"
@@ -68,40 +79,70 @@ func (s *MemoryService) ExtractMemoriesFromConversation(contactWxID, chatRoomID 
 			role = "助手"
 		}
 		if msg.Content != "" {
-			fmt.Fprintf(&conversationText, "%s: %s\n", role, msg.Content)
+			if chatRoomID != "" && msg.Role == openai.ChatMessageRoleUser && strings.HasPrefix(msg.Content, groupObservationPrefix) {
+				observation := strings.TrimSpace(strings.TrimPrefix(msg.Content, groupObservationPrefix))
+				if observation != "" {
+					conversationText.WriteString(observation)
+					conversationText.WriteString("\n")
+				}
+				continue
+			}
+			if chatRoomID != "" && msg.Role == openai.ChatMessageRoleUser && senderNickname != "" {
+				// 群聊中标注发言者身份
+				fmt.Fprintf(&conversationText, "%s(%s): %s\n", senderNickname, senderWxID, msg.Content)
+			} else {
+				fmt.Fprintf(&conversationText, "%s: %s\n", role, msg.Content)
+			}
 		}
 	}
 
 	// 调用 LLM 提取记忆
-	extracted, err := s.callLLMExtract(ctx, conversationText.String())
+	extracted, err := s.callLLMExtract(ctx, senderWxID, chatRoomID, senderNickname, conversationText.String())
 	if err != nil {
 		log.Printf("[Memory] 提取记忆失败: %v", err)
 		return
 	}
 
-	// 保存提取出的记忆
+	// 去重 & 存储
 	for _, mem := range extracted {
-		s.saveOrUpdateMemory(ctx, contactWxID, chatRoomID, mem)
+		s.saveExtractedMemory(ctx, senderWxID, chatRoomID, mem)
 	}
 }
 
-func (s *MemoryService) callLLMExtract(ctx context.Context, conversation string) ([]extractedMemory, error) {
+func (s *MemoryService) callLLMExtract(ctx context.Context, senderWxID, chatRoomID, senderNickname, conversation string) ([]extractedMemory, error) {
 	config := openai.DefaultConfig(s.aiAPIKey)
 	config.BaseURL = utils.NormalizeAIBaseURL(s.aiBaseURL)
 	client := openai.NewClientWithConfig(config)
 
-	systemPrompt := `你是一个记忆提取助手。分析以下对话内容，提取值得长期记住的信息。
+	contextHint := "这是一段私聊对话"
+	if chatRoomID != "" {
+		contextHint = fmt.Sprintf("这是微信群(%s)中的对话，当前发言者是 %s (wx_id: %s)。对话中如果出现“昵称(wx_id): 内容”的行，表示这条信息属于括号中的 wx_id，对应记忆必须归属给该成员，而不是统一归属给当前发言者", chatRoomID, senderNickname, senderWxID)
+	}
+
+	systemPrompt := fmt.Sprintf(`你是一个记忆提取助手。%s。
+分析对话内容，提取值得长期记住的**具体**信息。
 
 提取规则：
-1. 用户的个人事实（名字、年龄、职业、所在城市等）
-2. 用户的偏好和习惯（喜欢的食物、风格、时间安排等）
-3. 重要事件和日期（生日、纪念日、计划等）
-4. 人际关系信息（家人、朋友、同事等）
+1. profile: 个人基本信息（姓名、年龄、职业、所在城市、公司等）
+2. preference: 偏好习惯（喜欢/不喜欢的事物、饮食口味、风格偏好等）
+3. event: 重要事件或计划（生日、旅行计划、会议、截止日期等）
+4. relation: 人际关系（家人、朋友、同事、上下级等）
+5. behavior: 行为模式（沟通风格、活跃时间段、说话习惯等）
+6. opinion: 明确的观点态度（对某话题的看法）
+7. group: 仅当信息关于整个群本身（群主题、群规则、群共识），此时 wx_id 留空
 
-输出 JSON 数组格式，每条记忆：
-[{"type": "fact|preference|event|relation", "key": "简短唯一标识", "content": "详细内容", "importance": 1到10的重要性}]
+关键要求：
+- 每条记忆的 content 必须是**完整的自然语言陈述句**，如"张三在北京字节跳动做后端工程师"
+- 如果涉及时间，设置 happened_at（事件发生时间）和 expire_at（过期时间），格式为 "2006-01-02"
+- wx_id: 记忆所属者的 wx_id。默认填 "%s"，但如果对话中某一行已经显式写成“昵称(wx_id): 内容”，则必须使用该行中的 wx_id；如果是群级别记忆则留空
+- importance: 1-10，个人身份信息>=7，兴趣偏好5-6，临时计划3-4
+- 不要提取模糊或无实际信息量的内容（如"用户在聊天"、"用户发了消息"）
+- 不要提取助手自己的信息
 
-如果没有值得记住的信息，返回空数组 []。只返回 JSON，不要其他内容。`
+输出 JSON 数组：
+[{"wx_id":"xxx","category":"profile|preference|event|relation|behavior|opinion|group","content":"自然语言陈述句","importance":1-10,"happened_at":"","expire_at":""}]
+
+没有值得记住的信息则返回 []。只返回 JSON。`, contextHint, senderWxID)
 
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model: s.aiModel,
@@ -118,7 +159,6 @@ func (s *MemoryService) callLLMExtract(ctx context.Context, conversation string)
 	}
 
 	content := strings.TrimSpace(resp.Choices[0].Message.Content)
-	// 处理可能被 markdown 包裹的 JSON
 	content = strings.TrimPrefix(content, "```json")
 	content = strings.TrimPrefix(content, "```")
 	content = strings.TrimSuffix(content, "```")
@@ -131,98 +171,268 @@ func (s *MemoryService) callLLMExtract(ctx context.Context, conversation string)
 	return memories, nil
 }
 
-func (s *MemoryService) saveOrUpdateMemory(ctx context.Context, contactWxID, chatRoomID string, mem extractedMemory) {
-	// 检查是否已存在相同 key 的记忆
-	existing, err := s.memoryRepo.GetByContactAndKey(contactWxID, mem.Key)
-	if err != nil {
-		log.Printf("[Memory] 查询记忆失败: %v", err)
+func isValidMemoryCategory(category model.MemoryCategory) bool {
+	switch category {
+	case model.MemoryCategoryProfile,
+		model.MemoryCategoryPreference,
+		model.MemoryCategoryEvent,
+		model.MemoryCategoryRelation,
+		model.MemoryCategoryBehavior,
+		model.MemoryCategoryOpinion,
+		model.MemoryCategoryGroup:
+		return true
+	}
+	return false
+}
+
+// isGlobalCategory 判断该类别的记忆是否应该存为全局记忆（不绑定群）
+// profile/preference/relation 这类稳定的用户事实应该跨场景复用
+func isGlobalCategory(category string) bool {
+	switch category {
+	case "profile", "preference", "relation":
+		return true
+	}
+	return false
+}
+
+func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, chatRoomID string, mem extractedMemory) {
+	category := model.MemoryCategory(strings.ToLower(strings.TrimSpace(mem.Category)))
+	if !isValidMemoryCategory(category) {
+		log.Printf("[Memory] 跳过无效分类记忆: %s", mem.Category)
 		return
 	}
-
-	if existing != nil {
-		// 更新已有记忆
-		existing.Content = mem.Content
-		if mem.Importance > existing.Importance {
-			existing.Importance = mem.Importance
-		}
-		if err := s.memoryRepo.Update(existing); err != nil {
-			log.Printf("[Memory] 更新记忆失败: %v", err)
-		}
-		// 更新向量
-		if s.vectorStore != nil {
-			s.vectorStore.IndexMemory(ctx, vars.RobotRuntime.RobotCode, existing.ID, mem.Content, contactWxID, string(existing.Type), mem.Key)
-		}
+	content := strings.TrimSpace(mem.Content)
+	if content == "" {
 		return
+	}
+	importance := mem.Importance
+	if importance < 1 {
+		importance = 1
+	}
+	if importance > 10 {
+		importance = 10
+	}
+	happenedAt := s.parseDateUnix(mem.HappenedAt)
+	expireAt := s.parseDateUnix(mem.ExpireAt)
+	wxID := strings.TrimSpace(mem.WxID)
+	if wxID == "" && category != model.MemoryCategoryGroup {
+		wxID = defaultWxID
+	}
+
+	// 决定记忆的实际作用域：
+	// - 群级别记忆(group): wxID="", chatRoomID=群ID
+	// - 全局个人事实(profile/preference/relation): wxID=用户, chatRoomID=""
+	// - 群内局部记忆(event/behavior/opinion): wxID=用户, chatRoomID=群ID
+	memoryChatRoomID := chatRoomID
+	if category == model.MemoryCategoryGroup {
+		wxID = ""
+	} else if isGlobalCategory(string(category)) {
+		// 稳定的用户事实提升为全局记忆，不绑定群
+		memoryChatRoomID = ""
+	}
+
+	// 去重检查：在目标作用域内语义搜索
+	if s.vectorStore != nil {
+		duplicateID := s.findDuplicateMemory(ctx, wxID, memoryChatRoomID, content)
+		if duplicateID > 0 {
+			existing, err := s.memoryRepo.GetByID(duplicateID)
+			if err == nil && existing != nil {
+				existing.Content = content
+				if importance > existing.Importance {
+					existing.Importance = importance
+				}
+				if happenedAt > 0 {
+					existing.HappenedAt = happenedAt
+				}
+				if expireAt > 0 {
+					existing.ExpireAt = expireAt
+				}
+				if err := s.memoryRepo.Update(existing); err != nil {
+					log.Printf("[Memory] 更新记忆失败: %v", err)
+				}
+				s.indexMemoryVector(ctx, existing)
+				return
+			}
+		}
 	}
 
 	// 创建新记忆
 	memory := &model.Memory{
-		ContactWxID: contactWxID,
-		ChatRoomID:  chatRoomID,
-		Type:        model.MemoryType(mem.Type),
-		Key:         mem.Key,
-		Content:     mem.Content,
-		Source:      "auto",
-		Importance:  mem.Importance,
+		WxID:       wxID,
+		ChatRoomID: memoryChatRoomID,
+		Category:   category,
+		Content:    content,
+		Source:     "auto",
+		Importance: importance,
+		HappenedAt: happenedAt,
+		ExpireAt:   expireAt,
 	}
 	if err := s.memoryRepo.Create(memory); err != nil {
 		log.Printf("[Memory] 创建记忆失败: %v", err)
 		return
 	}
+	s.indexMemoryVector(ctx, memory)
+}
 
-	// 向量化
-	if s.vectorStore != nil {
-		if _, err := s.vectorStore.IndexMemory(ctx, vars.RobotRuntime.RobotCode, memory.ID, mem.Content, contactWxID, string(memory.Type), mem.Key); err != nil {
-			log.Printf("[Memory] 向量化记忆失败: %v", err)
+func (s *MemoryService) validateManualMemory(memory *model.Memory) error {
+	memory.WxID = strings.TrimSpace(memory.WxID)
+	memory.ChatRoomID = strings.TrimSpace(memory.ChatRoomID)
+	memory.Content = strings.TrimSpace(memory.Content)
+	memory.Category = model.MemoryCategory(strings.ToLower(strings.TrimSpace(string(memory.Category))))
+	if memory.Content == "" {
+		return errors.New("记忆内容不能为空")
+	}
+	if !isValidMemoryCategory(memory.Category) {
+		return fmt.Errorf("无效的记忆分类: %s", memory.Category)
+	}
+	if memory.Importance <= 0 {
+		memory.Importance = 5
+	}
+	if memory.Importance > 10 {
+		memory.Importance = 10
+	}
+	if memory.Category == model.MemoryCategoryGroup {
+		if memory.ChatRoomID == "" {
+			return errors.New("群级别记忆必须指定 chat_room_id")
 		}
+		if memory.WxID != "" {
+			return errors.New("群级别记忆不能指定 wx_id")
+		}
+		return nil
+	}
+	if memory.WxID == "" {
+		return errors.New("个人记忆必须指定 wx_id")
+	}
+	return nil
+}
+
+// findDuplicateMemory 在精确作用域内通过语义搜索判断是否存在相似记忆（阈值 0.85）
+func (s *MemoryService) findDuplicateMemory(ctx context.Context, wxID, chatRoomID, content string) int64 {
+	results, err := s.vectorStore.SearchMemories(ctx, vars.RobotRuntime.RobotCode, content, wxID, chatRoomID, 3)
+	if err != nil {
+		return 0
+	}
+	for _, r := range results {
+		if r.Score >= 0.85 {
+			if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
+				return id
+			}
+		}
+	}
+	return 0
+}
+
+func (s *MemoryService) indexMemoryVector(ctx context.Context, memory *model.Memory) {
+	if s.vectorStore == nil {
+		return
+	}
+	vectorID, err := s.vectorStore.IndexMemory(ctx, vars.RobotRuntime.RobotCode, memory.ID, memory.Content, memory.WxID, string(memory.Category), memory.ChatRoomID)
+	if err != nil {
+		log.Printf("[Memory] 向量化记忆失败: %v", err)
+		return
+	}
+	if vectorID != "" && memory.VectorID != vectorID {
+		memory.VectorID = vectorID
+		s.memoryRepo.Update(memory)
 	}
 }
 
-// GetRelevantMemories 获取与查询相关的记忆
-func (s *MemoryService) GetRelevantMemories(ctx context.Context, contactWxID, query string, limit int) ([]*model.Memory, error) {
-	// 先从向量库语义搜索
-	var vectorResults []ai.VectorSearchResult
-	if s.vectorStore != nil {
-		var err error
-		vectorResults, err = s.vectorStore.SearchMemories(ctx, vars.RobotRuntime.RobotCode, query, contactWxID, limit)
-		if err != nil {
-			log.Printf("[Memory] 向量搜索记忆失败: %v", err)
-		}
+func (s *MemoryService) parseDateUnix(dateStr string) int64 {
+	if dateStr == "" {
+		return 0
 	}
-
-	// 从 MySQL 基于重要性获取
-	dbMemories, err := s.memoryRepo.GetByContact(contactWxID, limit)
+	t, err := time.ParseInLocation("2006-01-02", dateStr, time.Local)
 	if err != nil {
-		return nil, err
+		return 0
 	}
+	return t.Unix()
+}
 
-	// 合并去重：向量搜索结果优先
-	seen := make(map[string]bool)
-	var result []*model.Memory
+// ── 记忆检索 (Retrieval) ──────────────────────────────────────────────
 
-	// 向量搜索命中的，直接从 payload 构造（或从 DB 获取完整数据）
-	for _, vr := range vectorResults {
-		if vr.Score < 0.5 { // 相似度阈值
-			continue
-		}
-		for _, m := range dbMemories {
-			if fmt.Sprintf("%d", m.ID) == vr.Payload["memory_id"] {
-				if !seen[m.Key] {
-					seen[m.Key] = true
-					result = append(result, m)
+// GetRelevantMemories 获取与当前查询相关的记忆
+// 检索范围：用户全局记忆 + 群内个人记忆 + 群级别记忆
+// 每个作用域独立搜索，不会跨群混入
+func (s *MemoryService) GetRelevantMemories(ctx context.Context, wxID, chatRoomID, query string, limit int) ([]*model.Memory, error) {
+	// 按作用域分别语义搜索
+	var vectorHitIDs []int64
+	if s.vectorStore != nil && query != "" {
+		rc := vars.RobotRuntime.RobotCode
+		// 1. 搜索全局个人记忆 (wxID有值, chatRoomID="")
+		if results, err := s.vectorStore.SearchMemories(ctx, rc, query, wxID, "", limit); err == nil {
+			for _, r := range results {
+				if r.Score >= 0.4 {
+					if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
+						vectorHitIDs = append(vectorHitIDs, id)
+					}
 				}
-				break
+			}
+		}
+		// 2. 群聊时额外搜索群内个人记忆 + 群级别记忆
+		if chatRoomID != "" {
+			if results, err := s.vectorStore.SearchMemories(ctx, rc, query, wxID, chatRoomID, limit); err == nil {
+				for _, r := range results {
+					if r.Score >= 0.4 {
+						if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
+							vectorHitIDs = append(vectorHitIDs, id)
+						}
+					}
+				}
+			}
+			if results, err := s.vectorStore.SearchMemories(ctx, rc, query, "", chatRoomID, limit/2); err == nil {
+				for _, r := range results {
+					if r.Score >= 0.4 {
+						if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
+							vectorHitIDs = append(vectorHitIDs, id)
+						}
+					}
+				}
 			}
 		}
 	}
 
-	// 补充高重要性的 DB 记忆
+	// 从 DB 获取高重要性记忆
+	var dbMemories []*model.Memory
+	var err error
+	if chatRoomID != "" {
+		// 群聊：全局个人 + 群内个人 + 群级别
+		globalMemories, _ := s.memoryRepo.GetByWxID(wxID, limit)
+		chatRoomMemories, _ := s.memoryRepo.GetByWxIDAndChatRoom(wxID, chatRoomID, limit)
+		groupMemories, _ := s.memoryRepo.GetByChatRoom(chatRoomID, limit/2)
+		dbMemories = append(dbMemories, globalMemories...)
+		dbMemories = append(dbMemories, chatRoomMemories...)
+		dbMemories = append(dbMemories, groupMemories...)
+	} else {
+		dbMemories, err = s.memoryRepo.GetByWxID(wxID, limit)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// 合并去重：语义命中优先
+	seen := make(map[int64]bool)
+	var result []*model.Memory
+
+	// 先加入语义搜索命中
+	if len(vectorHitIDs) > 0 {
+		hitMemories, err := s.memoryRepo.GetByIDs(vectorHitIDs)
+		if err == nil {
+			for _, m := range hitMemories {
+				if !seen[m.ID] {
+					seen[m.ID] = true
+					result = append(result, m)
+				}
+			}
+		}
+	}
+
+	// 再补充 DB 高重要性记忆
 	for _, m := range dbMemories {
 		if len(result) >= limit {
 			break
 		}
-		if !seen[m.Key] {
-			seen[m.Key] = true
+		if !seen[m.ID] {
+			seen[m.ID] = true
 			result = append(result, m)
 		}
 	}
@@ -239,29 +449,153 @@ func (s *MemoryService) GetRelevantMemories(ctx context.Context, contactWxID, qu
 	return result, nil
 }
 
-// GetUserProfile 获取用户画像（所有 fact 类型记忆）
-func (s *MemoryService) GetUserProfile(ctx context.Context, contactWxID string) ([]*model.Memory, error) {
-	return s.memoryRepo.GetByContactAndType(contactWxID, model.MemoryTypeFact, 20)
+// ── 用户画像 (Profile) ────────────────────────────────────────────────
+
+// GetUserProfile 获取用户画像摘要
+func (s *MemoryService) GetUserProfile(ctx context.Context, wxID, chatRoomID string) string {
+	// 先查全局画像
+	globalProfile, _ := s.profileRepo.GetByScope(wxID, "")
+	if chatRoomID == "" {
+		if globalProfile != nil {
+			return globalProfile.Summary
+		}
+		return ""
+	}
+
+	// 群聊：组合全局画像 + 群内画像
+	var sb strings.Builder
+	if globalProfile != nil && globalProfile.Summary != "" {
+		sb.WriteString(globalProfile.Summary)
+	}
+	chatRoomProfile, _ := s.profileRepo.GetByScope(wxID, chatRoomID)
+	if chatRoomProfile != nil && chatRoomProfile.Summary != "" {
+		if sb.Len() > 0 {
+			sb.WriteString("\n")
+		}
+		sb.WriteString(chatRoomProfile.Summary)
+	}
+	return sb.String()
 }
+
+// RefreshUserProfile 刷新用户画像（从零散记忆整合为简洁摘要）
+func (s *MemoryService) RefreshUserProfile(ctx context.Context, wxID, chatRoomID string) error {
+	memories, err := s.memoryRepo.GetAllByWxIDForProfile(wxID, chatRoomID)
+	if err != nil || len(memories) == 0 {
+		return err
+	}
+
+	// 构建记忆清单给 LLM 整合
+	var memoryList strings.Builder
+	for _, m := range memories {
+		scope := "全局"
+		if m.ChatRoomID != "" {
+			scope = fmt.Sprintf("群(%s)", m.ChatRoomID)
+		}
+		fmt.Fprintf(&memoryList, "- [%s][%s] %s\n", scope, m.Category, m.Content)
+	}
+
+	nickname := s.resolveContactNickname(ctx, wxID, chatRoomID)
+	if nickname == "" {
+		nickname = wxID
+	}
+
+	config := openai.DefaultConfig(s.aiAPIKey)
+	config.BaseURL = utils.NormalizeAIBaseURL(s.aiBaseURL)
+	client := openai.NewClientWithConfig(config)
+
+	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: s.aiModel,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role: openai.ChatMessageRoleSystem,
+				Content: `你是一个用户画像整合助手。根据以下零散记忆信息，生成一段简洁的用户画像描述。
+
+要求：
+- 用自然语言写成，像一张人物资料卡
+- 包含关键事实：身份、职业、偏好、重要关系、近期计划
+- 不要分类列举，要写成连贯的描述段落
+- 总长度控制在200字以内
+- 如果信息太少，就写少一点，不要编造`,
+			},
+			{
+				Role:    openai.ChatMessageRoleUser,
+				Content: fmt.Sprintf("用户昵称：%s\n\n记忆信息：\n%s", nickname, memoryList.String()),
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("generate profile: %w", err)
+	}
+	if len(resp.Choices) == 0 {
+		return fmt.Errorf("empty response")
+	}
+
+	summary := strings.TrimSpace(resp.Choices[0].Message.Content)
+	profile := &model.UserProfile{
+		WxID:       wxID,
+		ChatRoomID: chatRoomID,
+		Summary:    summary,
+	}
+	return s.profileRepo.Upsert(profile)
+}
+
+// RefreshAllProfiles 批量刷新所有有记忆用户的画像（全局 + 各群）
+func (s *MemoryService) RefreshAllProfiles() {
+	ctx := context.Background()
+	wxIDs, err := s.memoryRepo.GetDistinctWxIDs()
+	if err != nil {
+		log.Printf("[Memory] 获取用户列表失败: %v", err)
+		return
+	}
+	for _, wxID := range wxIDs {
+		// 刷新全局画像
+		if err := s.RefreshUserProfile(ctx, wxID, ""); err != nil {
+			log.Printf("[Memory] 刷新全局画像失败 (%s): %v", wxID, err)
+		}
+		// 刷新该用户有群内记忆的每个群画像
+		chatRoomIDs, err := s.memoryRepo.GetDistinctChatRoomsByWxID(wxID)
+		if err != nil {
+			log.Printf("[Memory] 获取用户群列表失败 (%s): %v", wxID, err)
+			continue
+		}
+		for _, chatRoomID := range chatRoomIDs {
+			if err := s.RefreshUserProfile(ctx, wxID, chatRoomID); err != nil {
+				log.Printf("[Memory] 刷新群画像失败 (%s in %s): %v", wxID, chatRoomID, err)
+			}
+		}
+	}
+}
+
+// ── 手动记忆管理 ──────────────────────────────────────────────────────
 
 // SaveManualMemory 手动保存记忆
 func (s *MemoryService) SaveManualMemory(ctx context.Context, memory *model.Memory) error {
+	if err := s.validateManualMemory(memory); err != nil {
+		return err
+	}
 	memory.Source = "manual"
 	if err := s.memoryRepo.Create(memory); err != nil {
 		return err
 	}
-	if s.vectorStore != nil {
-		if _, err := s.vectorStore.IndexMemory(ctx, vars.RobotRuntime.RobotCode, memory.ID, memory.Content, memory.ContactWxID, string(memory.Type), memory.Key); err != nil {
-			log.Printf("[Memory] 向量化手动记忆失败: %v", err)
-		}
-	}
+	s.indexMemoryVector(ctx, memory)
 	return nil
 }
 
 // DeleteMemory 删除记忆
 func (s *MemoryService) DeleteMemory(ctx context.Context, id int64) error {
+	memory, err := s.memoryRepo.GetByID(id)
+	if err != nil {
+		return err
+	}
+	if memory != nil && memory.VectorID != "" && s.vectorStore != nil {
+		if err := s.vectorStore.DeleteVectors(ctx, qdrantx.CollectionMemories, []string{memory.VectorID}); err != nil {
+			return err
+		}
+	}
 	return s.memoryRepo.Delete(id)
 }
+
+// ── 记忆衰减 & 过期清理 ───────────────────────────────────────────────
 
 // DecayOldMemories 衰减长期未访问记忆
 func (s *MemoryService) DecayOldMemories() {
@@ -275,7 +609,7 @@ func (s *MemoryService) DecayOldMemories() {
 	}
 }
 
-// --- 会话管理 ---
+// ── 会话管理 ──────────────────────────────────────────────────────────
 
 // TouchSession 更新或创建活跃会话
 func (s *MemoryService) TouchSession(ctx context.Context, contactWxID, chatRoomID string, msgID int64) {
@@ -294,7 +628,6 @@ func (s *MemoryService) TouchSession(ctx context.Context, contactWxID, chatRoomI
 		return
 	}
 
-	// 创建新会话
 	newSession := &model.ConversationSession{
 		ContactWxID:  contactWxID,
 		ChatRoomID:   chatRoomID,
@@ -307,7 +640,7 @@ func (s *MemoryService) TouchSession(ctx context.Context, contactWxID, chatRoomI
 	s.sessionRepo.Create(newSession)
 }
 
-// GetLastSessionSummary 获取上一轮对话摘要，动态将其中的 wxid 替换为当前昵称
+// GetLastSessionSummary 获取上一轮对话摘要
 func (s *MemoryService) GetLastSessionSummary(ctx context.Context, contactWxID, chatRoomID string) string {
 	summary, err := s.sessionRepo.GetLatestSummary(contactWxID, chatRoomID)
 	if err != nil {
@@ -349,12 +682,12 @@ func (s *MemoryService) generateSessionSummary(ctx context.Context, session *mod
 	config.BaseURL = utils.NormalizeAIBaseURL(s.aiBaseURL)
 	client := openai.NewClientWithConfig(config)
 
-	// 获取会话内的消息；群聊时只取该成员与机器人之间的对话
 	msgRepo := repository.NewMessageRepo(ctx, s.db)
 	var messages []*model.Message
 	var err error
 	if session.ChatRoomID != "" {
-		messages, err = msgRepo.GetMessagesByRange(session.FirstMsgID, session.LastMsgID, 1000, session.ContactWxID, vars.RobotRuntime.WxID)
+		// 群聊摘要：按 chat_room_id + sender_wxid 精确过滤，避免混入其他群或私聊的消息
+		messages, err = msgRepo.GetMessagesByRangeInChatRoom(session.ChatRoomID, session.FirstMsgID, session.LastMsgID, 1000, session.ContactWxID, vars.RobotRuntime.WxID)
 	} else {
 		messages, err = msgRepo.GetMessagesByRange(session.FirstMsgID, session.LastMsgID, 1000)
 	}
@@ -364,7 +697,11 @@ func (s *MemoryService) generateSessionSummary(ctx context.Context, session *mod
 
 	var conversationText strings.Builder
 	for _, msg := range messages {
-		fmt.Fprintf(&conversationText, "%s: %s\n", msg.SenderWxID, msg.Content)
+		nickname := msg.SenderNickname
+		if nickname == "" {
+			nickname = msg.SenderWxID
+		}
+		fmt.Fprintf(&conversationText, "%s: %s\n", nickname, msg.Content)
 	}
 
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
@@ -389,24 +726,20 @@ func (s *MemoryService) generateSessionSummary(ctx context.Context, session *mod
 	return strings.TrimSpace(resp.Choices[0].Message.Content), nil
 }
 
-// replaceWxIDsInText 将文本中出现的 wxid 动态替换为当前昵称
+// ── 辅助方法 ──────────────────────────────────────────────────────────
+
 func (s *MemoryService) replaceWxIDsInText(ctx context.Context, contactWxID, chatRoomID, text string) string {
-	// 替换机器人 wxid
 	if robotWxID := vars.RobotRuntime.WxID; robotWxID != "" && strings.Contains(text, robotWxID) {
 		text = strings.ReplaceAll(text, robotWxID, "助手")
 	}
-
-	// 替换用户 wxid
 	if contactWxID != "" && strings.Contains(text, contactWxID) {
 		if nickname := s.resolveContactNickname(ctx, contactWxID, chatRoomID); nickname != "" {
 			text = strings.ReplaceAll(text, contactWxID, nickname)
 		}
 	}
-
 	return text
 }
 
-// resolveContactNickname 查询联系人当前昵称（优先备注，其次昵称）
 func (s *MemoryService) resolveContactNickname(ctx context.Context, contactWxID, chatRoomID string) string {
 	if chatRoomID != "" {
 		memberRepo := repository.NewChatRoomMemberRepo(ctx, s.db)
@@ -430,4 +763,9 @@ func (s *MemoryService) resolveContactNickname(ctx context.Context, contactWxID,
 		}
 	}
 	return ""
+}
+
+// SearchMemoriesByKeyword 关键词搜索（用于管理后台）
+func (s *MemoryService) SearchMemoriesByKeyword(ctx context.Context, wxID, chatRoomID, keyword string, limit int) ([]*model.Memory, error) {
+	return s.memoryRepo.SearchByKeyword(wxID, chatRoomID, keyword, limit)
 }

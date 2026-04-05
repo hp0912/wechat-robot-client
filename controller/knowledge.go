@@ -174,12 +174,11 @@ func (k *Knowledge) SaveMemory(c *gin.Context) {
 		req.Importance = 5
 	}
 	memory := &model.Memory{
-		ContactWxID: req.ContactWxID,
-		ChatRoomID:  req.ChatRoomID,
-		Type:        model.MemoryType(req.Type),
-		Key:         req.Key,
-		Content:     req.Content,
-		Importance:  req.Importance,
+		WxID:       req.WxID,
+		ChatRoomID: req.ChatRoomID,
+		Category:   model.MemoryCategory(req.Category),
+		Content:    req.Content,
+		Importance: req.Importance,
 	}
 	err := vars.MemoryService.SaveManualMemory(c.Request.Context(), memory)
 	if err != nil {
@@ -200,7 +199,7 @@ func (k *Knowledge) SearchMemory(c *gin.Context) {
 	if req.Limit <= 0 {
 		req.Limit = 10
 	}
-	memories, err := vars.MemoryService.GetRelevantMemories(c.Request.Context(), req.ContactWxID, req.Query, req.Limit)
+	memories, err := vars.MemoryService.GetRelevantMemories(c.Request.Context(), req.WxID, req.ChatRoomID, req.Query, req.Limit)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

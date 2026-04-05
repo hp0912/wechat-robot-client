@@ -18,7 +18,6 @@ const (
 	FriendSyncCron            CommonCron = "friend_sync_cron"
 	MemoryDecayCron           CommonCron = "memory_decay_cron"
 	SessionSummarizeCron      CommonCron = "session_summarize_cron"
-	GroupChatKnowledgeCron    CommonCron = "group_chat_knowledge_cron"
 )
 
 type TaskHandler func()

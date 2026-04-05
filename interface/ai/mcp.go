@@ -23,6 +23,7 @@ type MCPService interface {
 		client *openai.Client,
 		req openai.ChatCompletionRequest,
 		maxIterations int,
+		extraTools ...ExtraTool,
 	) (openai.ChatCompletionMessage, error)
 	AddServer(server *model.MCPServer) error
 	RemoveServer(serverID uint64) error
@@ -36,4 +37,10 @@ type MCPService interface {
 	GetActiveServerCount() int
 	ReloadServer(serverID uint64) error
 	TestServerConnection(server *model.MCPServer) error
+}
+
+// ExtraTool 额外的内置工具（由调用方注入到 ChatWithMCPTools 中）
+type ExtraTool struct {
+	Tool    openai.Tool
+	Handler func(toolCall openai.ToolCall) (result string, immediately bool, err error)
 }

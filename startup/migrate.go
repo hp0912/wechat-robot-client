@@ -24,7 +24,9 @@ func autoMigrateTasks() []migrateTask {
 			},
 			models: []any{
 				&model.GlobalSettings{},
+				&model.ChatRoomSettings{},
 				&model.Memory{},
+				&model.UserProfile{},
 				&model.ConversationSession{},
 				&model.KnowledgeDocument{},
 				&model.ImageKnowledgeDocument{},
@@ -63,6 +65,11 @@ func enumMigrations() []enumMigration {
 			table:  "oss_settings",
 			column: "auto_upload_file_mode",
 			sql:    "ALTER TABLE oss_settings MODIFY COLUMN auto_upload_file_mode ENUM('all','ai_only') NOT NULL DEFAULT 'ai_only' COMMENT '自动上传文件模式'",
+		},
+		{
+			table:  "chat_room_settings",
+			column: "news_type",
+			sql:    "ALTER TABLE chat_room_settings MODIFY COLUMN news_type ENUM('','text','image') NULL COMMENT '每日早报类型：text-文本，image-图片'",
 		},
 	}
 }

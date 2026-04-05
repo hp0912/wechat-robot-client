@@ -3,8 +3,8 @@ package model
 // ConversationSession 会话管理，用于跟踪对话轮次和生成摘要
 type ConversationSession struct {
 	ID           int64  `gorm:"primarykey" json:"id"`
-	ContactWxID  string `gorm:"column:contact_wxid;index:idx_active_contact,priority:2" json:"contact_wxid"`
-	ChatRoomID   string `gorm:"column:chat_room_id;index:idx_active_chatroom,priority:2" json:"chat_room_id"`
+	ContactWxID  string `gorm:"column:contact_wxid;type:varchar(64);default:'';index:idx_active_contact,priority:2" json:"contact_wxid"`
+	ChatRoomID   string `gorm:"column:chat_room_id;type:varchar(64);default:'';index:idx_active_chatroom,priority:2" json:"chat_room_id"`
 	Summary      string `gorm:"column:summary;type:text" json:"summary"`
 	MessageCount int    `gorm:"column:message_count" json:"message_count"`
 	FirstMsgID   int64  `gorm:"column:first_msg_id" json:"first_msg_id"`

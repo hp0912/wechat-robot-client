@@ -28,6 +28,8 @@ func (cron *MemoryMaintenanceCron) Cron() error {
 	memoryService.DecayOldMemories()
 	// 总结过期会话（10 分钟未活跃）
 	memoryService.SummarizeExpiredSessions(10)
+	// 批量刷新用户画像
+	memoryService.RefreshAllProfiles()
 	return nil
 }
 

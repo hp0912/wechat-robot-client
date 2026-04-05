@@ -6,7 +6,9 @@ import (
 	"log"
 	"strings"
 	"time"
+	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/interface/settings"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/mcp"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
@@ -15,14 +17,16 @@ import (
 )
 
 type AIChatService struct {
-	ctx    context.Context
-	config settings.Settings
+	ctx                 context.Context
+	config              settings.Settings
+	toolBindingRegistry ai.ToolBindingRegistry
 }
 
 func NewAIChatService(ctx context.Context, config settings.Settings) *AIChatService {
 	return &AIChatService{
-		ctx:    ctx,
-		config: config,
+		ctx:                 ctx,
+		config:              config,
+		toolBindingRegistry: NewToolBindingRegistry(NewKnowledgeToolBindingProvider()),
 	}
 }
 
@@ -54,7 +58,7 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 
 	basePrompt += "\n\n**【特别重要】**如果外部工具返回以下结构化标签，你必须原样逐字返回，不能总结、解释、改写、翻译、补充代码块，也不能省略、合并或调整顺序：\n<wechat-robot-text>...</wechat-robot-text>\n<wechat-robot-image-url>...</wechat-robot-image-url>\n<wechat-robot-video-url>...</wechat-robot-video-url>\n<wechat-robot-voice-url>...</wechat-robot-voice-url>\n<wechat-robot-file-url>...</wechat-robot-file-url>\n<wechat-robot-appmsg type=\"数字\">...</wechat-robot-appmsg>\n如果一次返回多个这类标签，必须完整保留每一个标签及其内部内容；如果还有普通文本，可以与这些标签一起返回，但标签本身必须保持完全不变。"
 
-	// RAG 增强：检索相关记忆、知识库、历史消息
+	// RAG 增强：检索相关记忆和历史消息
 	contactWxID := robotCtx.SenderWxID
 	chatRoomID := ""
 	if strings.Contains(robotCtx.FromWxID, "@chatroom") {
@@ -78,6 +82,30 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 	}
 	if aiConfig.MaxCompletionTokens > 0 {
 		systemMessage.Content += fmt.Sprintf("\n\n请注意，每次回答不能超过%d个汉字。", aiConfig.MaxCompletionTokens)
+	}
+
+	// 预先查询群聊设置，供后续 ToolBindingProvider 复用，避免重复查库
+	var chatRoomSettings *model.ChatRoomSettings
+	if chatRoomID != "" {
+		crsRepo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
+		if settings, err := crsRepo.GetChatRoomSettings(chatRoomID); err == nil {
+			chatRoomSettings = settings
+		}
+	}
+
+	// 群聊知识库：按群聊绑定关系统一构建提示词和本地工具
+	toolBinding := ai.ToolBinding{}
+	if s.toolBindingRegistry != nil {
+		toolBinding = s.toolBindingRegistry.BuildToolBinding(s.ctx, ai.ToolBindingContext{
+			RobotContext:     robotCtx,
+			ChatRoomID:       chatRoomID,
+			ContactWxID:      contactWxID,
+			LastUserQuery:    lastUserQuery,
+			ChatRoomSettings: chatRoomSettings,
+		})
+		if toolBinding.Prompt != "" {
+			systemMessage.Content += toolBinding.Prompt
+		}
 	}
 
 	// 群聊上下文注入：独立 system 消息置于主 system prompt 之后、对话历史之前
@@ -110,20 +138,28 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 
 	aiStart := time.Now()
 
-	reply, err := vars.MCPService.ChatWithMCPTools(robotCtx, client, req, 0)
+	reply, err := vars.MCPService.ChatWithMCPTools(robotCtx, client, req, 0, toolBinding.Tools...)
 
 	log.Printf("[AI] 接口调用耗时: %v", time.Since(aiStart))
 
 	// 异步：记忆提取 + 会话追踪 + 消息向量化
 	if err == nil {
-		go s.postChatHook(contactWxID, chatRoomID, robotCtx.MessageID, aiMessages, reply)
+		// 获取发送者昵称用于群聊记忆提取
+		senderNickname := ""
+		if chatRoomID != "" {
+			crmRepo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
+			if member, err := crmRepo.GetChatRoomMember(chatRoomID, contactWxID); err == nil && member != nil {
+				senderNickname = member.Nickname
+			}
+		}
+		go s.postChatHook(contactWxID, chatRoomID, senderNickname, robotCtx.MessageID, aiMessages, reply)
 	}
 
 	return reply, err
 }
 
 // postChatHook 在 AI 回复后异步执行记忆提取、会话追踪
-func (s *AIChatService) postChatHook(contactWxID, chatRoomID string, msgID int64, aiMessages []openai.ChatCompletionMessage, reply openai.ChatCompletionMessage) {
+func (s *AIChatService) postChatHook(contactWxID, chatRoomID, senderNickname string, msgID int64, aiMessages []openai.ChatCompletionMessage, reply openai.ChatCompletionMessage) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[RAG] postChatHook panic: %v", r)
@@ -139,8 +175,21 @@ func (s *AIChatService) postChatHook(contactWxID, chatRoomID string, msgID int64
 
 	// 2. 从对话中提取记忆（包含本次回复）
 	if vars.MemoryService != nil && len(aiMessages) > 0 {
-		// 将回复也加入消息列表用于记忆提取
-		allMessages := make([]openai.ChatCompletionMessage, 0, len(aiMessages)+1)
+		groupObservation := ""
+		if chatRoomID != "" {
+			groupObservation = s.buildGroupMemoryObservation(ctx, chatRoomID, contactWxID)
+		}
+
+		// 将非 system 消息 + 回复加入用于记忆提取
+		allMessages := make([]openai.ChatCompletionMessage, 0, len(aiMessages)+2)
+		// 如果有群聊观察记录，作为 user 消息注入让 LLM 也能从中提取记忆。
+		// 记录中显式带上 sender wx_id，避免把他人的发言误归属给当前触发者。
+		if groupObservation != "" {
+			allMessages = append(allMessages, openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleUser,
+				Content: "[群聊观察记录]\n" + groupObservation,
+			})
+		}
 		for _, m := range aiMessages {
 			if m.Role != openai.ChatMessageRoleSystem {
 				allMessages = append(allMessages, m)
@@ -149,7 +198,7 @@ func (s *AIChatService) postChatHook(contactWxID, chatRoomID string, msgID int64
 		if reply.Content != "" {
 			allMessages = append(allMessages, reply)
 		}
-		vars.MemoryService.ExtractMemoriesFromConversation(contactWxID, chatRoomID, allMessages)
+		vars.MemoryService.ExtractMemoriesFromConversation(contactWxID, chatRoomID, senderNickname, allMessages)
 	}
 }
 
@@ -176,7 +225,14 @@ func (s *AIChatService) buildGroupChatContext(chatRoomID, senderWxID string) str
 	}
 
 	msgRepo := repository.NewMessageRepo(s.ctx, vars.DB)
-	recentMsgs, err := msgRepo.GetRecentChatRoomMessages(chatRoomID, nil, 10)
+	excludeWxIDs := make([]string, 0, 2)
+	if senderWxID != "" {
+		excludeWxIDs = append(excludeWxIDs, senderWxID)
+	}
+	if robotWxID := vars.RobotRuntime.WxID; robotWxID != "" && robotWxID != senderWxID {
+		excludeWxIDs = append(excludeWxIDs, robotWxID)
+	}
+	recentMsgs, err := msgRepo.GetRecentChatRoomMessages(chatRoomID, excludeWxIDs, 10)
 	if err != nil {
 		log.Printf("[GroupContext] 获取最近群消息失败: %v", err)
 	}
@@ -194,5 +250,33 @@ func (s *AIChatService) buildGroupChatContext(chatRoomID, senderWxID string) str
 		}
 	}
 
+	return sb.String()
+}
+
+// buildGroupMemoryObservation 构建群聊记忆观察记录。
+// 使用 昵称(wx_id): 内容 的格式显式保留发言者身份，供记忆提取使用。
+func (s *AIChatService) buildGroupMemoryObservation(ctx context.Context, chatRoomID, senderWxID string) string {
+	msgRepo := repository.NewMessageRepo(ctx, vars.DB)
+	excludeWxIDs := make([]string, 0, 2)
+	if senderWxID != "" {
+		excludeWxIDs = append(excludeWxIDs, senderWxID)
+	}
+	if robotWxID := vars.RobotRuntime.WxID; robotWxID != "" && robotWxID != senderWxID {
+		excludeWxIDs = append(excludeWxIDs, robotWxID)
+	}
+	recentMsgs, err := msgRepo.GetRecentChatRoomMessages(chatRoomID, excludeWxIDs, 10)
+	if err != nil {
+		log.Printf("[Memory] 获取群聊观察记录失败: %v", err)
+		return ""
+	}
+
+	var sb strings.Builder
+	for _, msg := range recentMsgs {
+		nickname := msg.SenderNickname
+		if nickname == "" {
+			nickname = msg.SenderWxID
+		}
+		fmt.Fprintf(&sb, "%s(%s): %s\n", nickname, msg.SenderWxID, msg.Content)
+	}
 	return sb.String()
 }

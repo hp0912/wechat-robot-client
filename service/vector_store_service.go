@@ -56,7 +56,7 @@ func (s *VectorStoreService) IndexMessage(ctx context.Context, robotCode string,
 }
 
 // IndexMemory 将记忆内容向量化并存入 Qdrant
-func (s *VectorStoreService) IndexMemory(ctx context.Context, robotCode string, memoryID int64, content, contactWxID, memoryType, key string) (string, error) {
+func (s *VectorStoreService) IndexMemory(ctx context.Context, robotCode string, memoryID int64, content, wxID, category, chatRoomID string) (string, error) {
 	vector, err := s.embedding.Embed(ctx, content)
 	if err != nil {
 		return "", fmt.Errorf("embed memory: %w", err)
@@ -67,9 +67,9 @@ func (s *VectorStoreService) IndexMemory(ctx context.Context, robotCode string, 
 		"robot_code":   qdrantx.NewPayloadValue(robotCode),
 		"memory_id":    qdrantx.NewPayloadIntValue(memoryID),
 		"content":      qdrantx.NewPayloadValue(content),
-		"contact_wxid": qdrantx.NewPayloadValue(contactWxID),
-		"type":         qdrantx.NewPayloadValue(memoryType),
-		"key":          qdrantx.NewPayloadValue(key),
+		"contact_wxid": qdrantx.NewPayloadValue(wxID),
+		"category":     qdrantx.NewPayloadValue(category),
+		"chat_room_id": qdrantx.NewPayloadValue(chatRoomID),
 	}
 
 	if err := s.qdrant.Upsert(ctx, qdrantx.CollectionMemories, id, vector, payload); err != nil {
@@ -130,8 +130,12 @@ func (s *VectorStoreService) SearchMessages(ctx context.Context, robotCode strin
 	return s.convertResults(results), nil
 }
 
-// SearchMemories 语义搜索记忆
-func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode string, query, contactWxID string, topK int) ([]ai.VectorSearchResult, error) {
+// SearchMemories 语义搜索记忆（作用域感知）
+// wxID 和 chatRoomID 共同决定搜索范围：
+//   - wxID 有值, chatRoomID 为空 → 只搜索该用户的全局个人记忆
+//   - wxID 有值, chatRoomID 有值 → 只搜索该用户在该群的群内个人记忆
+//   - wxID 为空, chatRoomID 有值 → 只搜索该群的群级别记忆
+func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode string, query, wxID, chatRoomID string, topK int) ([]ai.VectorSearchResult, error) {
 	vector, err := s.embedding.Embed(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("embed query: %w", err)
@@ -141,14 +145,13 @@ func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode strin
 	if robotCode != "" {
 		conditions = append(conditions, qdrantx.BuildMatchFilter("robot_code", robotCode))
 	}
-	if contactWxID != "" {
-		conditions = append(conditions, qdrantx.BuildMatchFilter("contact_wxid", contactWxID))
+	if wxID != "" {
+		conditions = append(conditions, qdrantx.BuildMatchFilter("contact_wxid", wxID))
 	}
+	// 始终过滤 chat_room_id：空字符串精确匹配全局记忆，非空匹配特定群
+	conditions = append(conditions, qdrantx.BuildMatchFilter("chat_room_id", chatRoomID))
 
-	var filter *pb.Filter
-	if len(conditions) > 0 {
-		filter = &pb.Filter{Must: conditions}
-	}
+	filter := &pb.Filter{Must: conditions}
 
 	results, err := s.qdrant.Search(ctx, qdrantx.CollectionMemories, vector, uint64(topK), filter)
 	if err != nil {
@@ -177,6 +180,38 @@ func (s *VectorStoreService) SearchKnowledge(ctx context.Context, robotCode stri
 		filter = &pb.Filter{Must: conditions}
 	}
 
+	results, err := s.qdrant.Search(ctx, qdrantx.CollectionKnowledge, vector, uint64(topK), filter)
+	if err != nil {
+		return nil, err
+	}
+	return s.convertResults(results), nil
+}
+
+// SearchKnowledgeByCategories 按多个分类语义搜索知识库
+func (s *VectorStoreService) SearchKnowledgeByCategories(ctx context.Context, robotCode string, query string, categories []string, topK int) ([]ai.VectorSearchResult, error) {
+	vector, err := s.embedding.Embed(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("embed query: %w", err)
+	}
+	var conditions []*pb.Condition
+	if robotCode != "" {
+		conditions = append(conditions, qdrantx.BuildMatchFilter("robot_code", robotCode))
+	}
+	if len(categories) > 0 {
+		categoryConditions := make([]*pb.Condition, 0, len(categories))
+		for _, cat := range categories {
+			categoryConditions = append(categoryConditions, qdrantx.BuildMatchFilter("category", cat))
+		}
+		conditions = append(conditions, &pb.Condition{
+			ConditionOneOf: &pb.Condition_Filter{
+				Filter: &pb.Filter{Should: categoryConditions},
+			},
+		})
+	}
+	var filter *pb.Filter
+	if len(conditions) > 0 {
+		filter = &pb.Filter{Must: conditions}
+	}
 	results, err := s.qdrant.Search(ctx, qdrantx.CollectionKnowledge, vector, uint64(topK), filter)
 	if err != nil {
 		return nil, err

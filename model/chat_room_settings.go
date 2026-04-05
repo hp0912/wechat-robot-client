@@ -1,12 +1,14 @@
 package model
 
 import (
+	"encoding/json"
+
 	"gorm.io/datatypes"
 )
 
 type ChatRoomSettings struct {
-	ID                        uint64         `gorm:"column:id;primaryKey;autoIncrement;comment:公共配置表主键ID" json:"id"`
-	ChatRoomID                string         `gorm:"column:chat_room_id;type:varchar(64);default:'';comment:群聊ID" json:"chat_room_id"`
+	ID                        int64          `gorm:"column:id;primaryKey;autoIncrement;comment:群聊配置表主键ID" json:"id"`
+	ChatRoomID                string         `gorm:"column:chat_room_id;type:varchar(64);default:'';index:idx_chat_room_id;comment:群聊微信ID" json:"chat_room_id"`
 	ChatAIEnabled             *bool          `gorm:"column:chat_ai_enabled;default:false;comment:是否启用AI聊天功能" json:"chat_ai_enabled"`
 	ChatAITrigger             *string        `gorm:"column:chat_ai_trigger;type:varchar(20);default:'';comment:触发聊天AI的关键词" json:"chat_ai_trigger"`
 	ChatBaseURL               *string        `gorm:"column:chat_base_url;type:varchar(255);default:'';comment:聊天AI的基础URL地址" json:"chat_base_url"`
@@ -20,17 +22,17 @@ type ChatRoomSettings struct {
 	TTSEnabled                *bool          `gorm:"column:tts_enabled;default:false;comment:是否启用AI文本转语音功能" json:"tts_enabled"`
 	TTSSettings               datatypes.JSON `gorm:"column:tts_settings;type:json;comment:文本转语音配置项" json:"tts_settings"`
 	LTTSSettings              datatypes.JSON `gorm:"column:ltts_settings;type:json;comment:长文本转语音配置项" json:"ltts_settings"`
-	ShortVideoParsingEnabled  *bool          `gorm:"column:short_video_parsing_enabled;default:true;comment:是否启用短视频解析功能" json:"short_video_parsing_enabled"`
-	WxhbNotifyEnabled         *bool          `gorm:"column:wxhb_notify_enabled;default:true;comment:是否启用微信红包通知功能" json:"wxhb_notify_enabled"`
-	WxhbNotifyMemberList      *string        `gorm:"column:wxhb_notify_member_list;comment:微信红包通知的成员列表，逗号分隔的微信ID" json:"wxhb_notify_member_list"`
-	PodcastEnabled            *bool          `gorm:"column:podcast_enabled;default:true;comment:是否启用播客功能" json:"podcast_enabled"`
+	ShortVideoParsingEnabled  *bool          `gorm:"column:short_video_parsing_enabled;not null;default:true;comment:是否启用短视频解析功能" json:"short_video_parsing_enabled"`
+	WxhbNotifyEnabled         *bool          `gorm:"column:wxhb_notify_enabled;default:false;comment:是否启用微信红包通知功能" json:"wxhb_notify_enabled"`
+	WxhbNotifyMemberList      *string        `gorm:"column:wxhb_notify_member_list;type:text;not null;comment:微信红包通知的成员列表，逗号分隔的微信ID" json:"wxhb_notify_member_list"`
+	PodcastEnabled            *bool          `gorm:"column:podcast_enabled;default:false;comment:是否启用播客功能" json:"podcast_enabled"`
 	PodcastConfig             datatypes.JSON `gorm:"column:podcast_config;type:json;comment:播客配置项" json:"podcast_config"`
 	PatEnabled                *bool          `gorm:"column:pat_enabled;default:false;comment:是否启用拍一拍功能" json:"pat_enabled"`
-	PatType                   PatType        `gorm:"column:pat_type;type:enum('text','voice');default:'text';comment:拍一拍方式：text-文本，voice-语音" json:"pat_type"`
+	PatType                   PatType        `gorm:"column:pat_type;type:enum('text','voice');not null;default:'text';comment:拍一拍方式：text-文本，voice-语音" json:"pat_type"`
 	PatText                   string         `gorm:"column:pat_text;type:varchar(255);default:'';comment:拍一拍的文本" json:"pat_text"`
-	PatVoiceTimbre            string         `gorm:"column:pat_voice_timbre;type:varchar(255);default:'';comment:拍一拍的音色" json:"pat_voice_timbre"`
+	PatVoiceTimbre            string         `gorm:"column:pat_voice_timbre;type:varchar(100);default:'';comment:拍一拍的音色" json:"pat_voice_timbre"`
 	WelcomeEnabled            *bool          `gorm:"column:welcome_enabled;default:false;comment:是否启用新成员加群欢迎功能" json:"welcome_enabled"`
-	WelcomeType               WelcomeType    `gorm:"column:welcome_type;type:enum('text','emoji','image','url');default:'text';comment:欢迎方式：text-文本，emoji-表情，image-图片，url-链接" json:"welcome_type"`
+	WelcomeType               WelcomeType    `gorm:"column:welcome_type;type:enum('text','emoji','image','url');not null;default:'text';comment:欢迎方式：text-文本，emoji-表情，image-图片，url-链接" json:"welcome_type"`
 	WelcomeText               string         `gorm:"column:welcome_text;type:varchar(255);default:'';comment:欢迎新成员的文本" json:"welcome_text"`
 	WelcomeEmojiMD5           string         `gorm:"column:welcome_emoji_md5;type:varchar(64);default:'';comment:欢迎新成员的表情MD5" json:"welcome_emoji_md5"`
 	WelcomeEmojiLen           int64          `gorm:"column:welcome_emoji_len;default:0;comment:欢迎新成员的表情MD5长度" json:"welcome_emoji_len"`
@@ -42,11 +44,24 @@ type ChatRoomSettings struct {
 	ChatRoomSummaryEnabled    *bool          `gorm:"column:chat_room_summary_enabled;default:false;comment:是否启用聊天记录总结功能" json:"chat_room_summary_enabled"`
 	ChatRoomSummaryModel      *string        `gorm:"column:chat_room_summary_model;type:varchar(100);default:'';comment:聊天总结使用的AI模型名称" json:"chat_room_summary_model"`
 	NewsEnabled               *bool          `gorm:"column:news_enabled;default:false;comment:是否启用每日早报功能" json:"news_enabled"`
-	NewsType                  *NewsType      `gorm:"column:news_type;type:enum('text','image');default:'text';comment:是否启用每日早报功能" json:"news_type"`
+	NewsType                  *NewsType      `gorm:"column:news_type;type:enum('','text','image');comment:每日早报类型：text-文本，image-图片" json:"news_type"`
 	MorningEnabled            *bool          `gorm:"column:morning_enabled;default:false;comment:是否启用早安问候功能" json:"morning_enabled"`
+	KnowledgeCategories       datatypes.JSON `gorm:"column:knowledge_categories;type:json;comment:绑定的知识库分类编码列表" json:"knowledge_categories"`
 }
 
 // TableName 设置表名
 func (ChatRoomSettings) TableName() string {
 	return "chat_room_settings"
+}
+
+// GetKnowledgeCategoryCodes 解析绑定的知识库分类编码列表
+func (s *ChatRoomSettings) GetKnowledgeCategoryCodes() ([]string, error) {
+	if s.KnowledgeCategories == nil {
+		return nil, nil
+	}
+	var codes []string
+	if err := json.Unmarshal(s.KnowledgeCategories, &codes); err != nil {
+		return nil, err
+	}
+	return codes, nil
 }

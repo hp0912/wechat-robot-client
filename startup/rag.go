@@ -136,7 +136,7 @@ func reloadRAGServices(globalSettings *model.GlobalSettings) error {
 			aiModel = "gpt-4o-mini"
 		}
 		memorySvc = service.NewMemoryService(
-			vars.DB, vectorStoreSvc, embeddingSvc,
+			vars.DB, vectorStoreSvc,
 			globalSettings.ChatBaseURL, globalSettings.ChatAPIKey, aiModel,
 		)
 		log.Println("长期记忆服务已启用")

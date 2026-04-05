@@ -17,14 +17,7 @@ type seedItem struct {
 }
 
 // builtinKnowledgeCategories 声明式定义所有系统内置的知识库分类
-var builtinKnowledgeCategories = []seedItem{
-	{
-		Code:        "group_chat",
-		Type:        model.KnowledgeCategoryTypeText,
-		Name:        "聊天记录知识库",
-		Description: "自动提取群聊的聊天记录归纳产生的知识库",
-	},
-}
+var builtinKnowledgeCategories = []seedItem{}
 
 // SeedData 在迁移之后执行，幂等地插入系统内置种子数据。
 // 使用 FirstOrCreate 按 code 去重，已存在的记录不会被覆盖，保证可重复调用。
