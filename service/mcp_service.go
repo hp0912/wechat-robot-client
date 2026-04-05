@@ -173,8 +173,10 @@ func (s *MCPService) ChatWithMCPTools(
 			// 判断是否为 Skills 工具调用
 			if skillExecutor != nil && skillExecutor.IsSkillTool(toolCall.Function.Name) {
 				result, err = skillExecutor.ExecuteToolCall(robotCtx, toolCall)
-				log.Printf("工具[%s]执行结果:\n%s\n", toolCall.Function.Name, result)
 				immediately = false
+				if toolCall.Function.Name == "execute_skill_script" {
+					log.Printf("工具[%s]执行结果:\n%s\n", toolCall.Function.Name, result)
+				}
 			} else {
 				// MCP 工具调用
 				result, immediately, err = s.ExecuteToolCall(robotCtx, toolCall)
