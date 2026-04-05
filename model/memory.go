@@ -22,8 +22,8 @@ const (
 //   - WxID 为空, ChatRoomID 有值 → 群级别记忆（关于群本身的信息）
 type Memory struct {
 	ID           int64          `gorm:"primarykey" json:"id"`
-	WxID         string         `gorm:"column:wx_id;index:idx_memory_wx;index:idx_memory_scope" json:"wx_id"`
-	ChatRoomID   string         `gorm:"column:chat_room_id;index:idx_memory_chatroom;index:idx_memory_scope" json:"chat_room_id"`
+	WxID         string         `gorm:"column:wx_id;type:varchar(64);default:'';index:idx_memory_wx;index:idx_memory_scope" json:"wx_id"`
+	ChatRoomID   string         `gorm:"column:chat_room_id;type:varchar(64);default:'';index:idx_memory_chatroom;index:idx_memory_scope" json:"chat_room_id"`
 	Category     MemoryCategory `gorm:"column:category;size:32;index" json:"category"`
 	Content      string         `gorm:"column:content;type:text" json:"content"`
 	Source       string         `gorm:"column:source;size:16;default:auto" json:"source"` // auto / manual
@@ -50,8 +50,8 @@ func (Memory) TableName() string {
 //   - ChatRoomID 有值 → 该群内的特定画像
 type UserProfile struct {
 	ID         int64  `gorm:"primarykey" json:"id"`
-	WxID       string `gorm:"column:wx_id;uniqueIndex:uk_profile_scope" json:"wx_id"`
-	ChatRoomID string `gorm:"column:chat_room_id;uniqueIndex:uk_profile_scope;default:''" json:"chat_room_id"`
+	WxID       string `gorm:"column:wx_id;type:varchar(64);default:'';uniqueIndex:uk_profile_scope" json:"wx_id"`
+	ChatRoomID string `gorm:"column:chat_room_id;type:varchar(64);uniqueIndex:uk_profile_scope;default:''" json:"chat_room_id"`
 	Summary    string `gorm:"column:summary;type:text" json:"summary"`
 	CreatedAt  int64  `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt  int64  `gorm:"column:updated_at" json:"updated_at"`
