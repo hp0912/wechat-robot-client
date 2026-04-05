@@ -318,6 +318,23 @@ func (m *Message) GetMessagesByRange(firstMsgID, lastMsgID int64, limit int, sen
 	return messages, err
 }
 
+// GetMessagesByRangeInChatRoom 获取指定群聊中指定 ID 范围内的文本消息
+// 精确按 from_wxid (群ID) 过滤，避免跨群/跨私聊混入
+func (m *Message) GetMessagesByRangeInChatRoom(chatRoomID string, firstMsgID, lastMsgID int64, limit int, senderWxIDs ...string) ([]*model.Message, error) {
+	var messages []*model.Message
+	query := m.DB.WithContext(m.Ctx).
+		Where("id >= ? AND id <= ?", firstMsgID, lastMsgID).
+		Where("`type` = 1").
+		Where("from_wxid = ?", chatRoomID)
+	if len(senderWxIDs) > 0 {
+		query = query.Where("sender_wxid IN ?", senderWxIDs)
+	}
+	err := query.Order("id ASC").
+		Limit(limit).
+		Find(&messages).Error
+	return messages, err
+}
+
 // GetChatRoomTextMessagesByTimeRange 获取群聊指定时间范围内的纯文本消息（type=1），排除机器人自身的消息
 func (m *Message) GetChatRoomTextMessagesByTimeRange(chatRoomID, selfWxID string, startTime, endTime int64, limit int) ([]*dto.TextMessageItem, error) {
 	var messages []*dto.TextMessageItem

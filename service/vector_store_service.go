@@ -130,8 +130,12 @@ func (s *VectorStoreService) SearchMessages(ctx context.Context, robotCode strin
 	return s.convertResults(results), nil
 }
 
-// SearchMemories 语义搜索记忆
-func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode string, query, contactWxID string, topK int) ([]ai.VectorSearchResult, error) {
+// SearchMemories 语义搜索记忆（作用域感知）
+// wxID 和 chatRoomID 共同决定搜索范围：
+//   - wxID 有值, chatRoomID 为空 → 只搜索该用户的全局个人记忆
+//   - wxID 有值, chatRoomID 有值 → 只搜索该用户在该群的群内个人记忆
+//   - wxID 为空, chatRoomID 有值 → 只搜索该群的群级别记忆
+func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode string, query, wxID, chatRoomID string, topK int) ([]ai.VectorSearchResult, error) {
 	vector, err := s.embedding.Embed(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("embed query: %w", err)
@@ -141,14 +145,13 @@ func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode strin
 	if robotCode != "" {
 		conditions = append(conditions, qdrantx.BuildMatchFilter("robot_code", robotCode))
 	}
-	if contactWxID != "" {
-		conditions = append(conditions, qdrantx.BuildMatchFilter("contact_wxid", contactWxID))
+	if wxID != "" {
+		conditions = append(conditions, qdrantx.BuildMatchFilter("contact_wxid", wxID))
 	}
+	// 始终过滤 chat_room_id：空字符串精确匹配全局记忆，非空匹配特定群
+	conditions = append(conditions, qdrantx.BuildMatchFilter("chat_room_id", chatRoomID))
 
-	var filter *pb.Filter
-	if len(conditions) > 0 {
-		filter = &pb.Filter{Must: conditions}
-	}
+	filter := &pb.Filter{Must: conditions}
 
 	results, err := s.qdrant.Search(ctx, qdrantx.CollectionMemories, vector, uint64(topK), filter)
 	if err != nil {

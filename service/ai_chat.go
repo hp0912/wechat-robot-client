@@ -147,8 +147,26 @@ func (s *AIChatService) postChatHook(contactWxID, chatRoomID, senderNickname str
 
 	// 2. 从对话中提取记忆（包含本次回复）
 	if vars.MemoryService != nil && len(aiMessages) > 0 {
-		// 将回复也加入消息列表用于记忆提取
-		allMessages := make([]openai.ChatCompletionMessage, 0, len(aiMessages)+1)
+		// 提取群聊上下文（来自 system 消息中的最近群聊消息）
+		var groupContextMsg string
+		if chatRoomID != "" {
+			for _, m := range aiMessages {
+				if m.Role == openai.ChatMessageRoleSystem && strings.Contains(m.Content, "[最近群聊消息]") {
+					groupContextMsg = m.Content
+					break
+				}
+			}
+		}
+
+		// 将非 system 消息 + 回复加入用于记忆提取
+		allMessages := make([]openai.ChatCompletionMessage, 0, len(aiMessages)+2)
+		// 如果有群聊上下文，作为 user 消息注入让 LLM 也能从中提取记忆
+		if groupContextMsg != "" {
+			allMessages = append(allMessages, openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleUser,
+				Content: "[群聊观察记录]\n" + groupContextMsg,
+			})
+		}
 		for _, m := range aiMessages {
 			if m.Role != openai.ChatMessageRoleSystem {
 				allMessages = append(allMessages, m)

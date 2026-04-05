@@ -159,17 +159,38 @@ func (s *MemoryService) callLLMExtract(ctx context.Context, senderWxID, chatRoom
 	return memories, nil
 }
 
+// isGlobalCategory 判断该类别的记忆是否应该存为全局记忆（不绑定群）
+// profile/preference/relation 这类稳定的用户事实应该跨场景复用
+func isGlobalCategory(category string) bool {
+	switch category {
+	case "profile", "preference", "relation":
+		return true
+	}
+	return false
+}
+
 func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, chatRoomID string, mem extractedMemory) {
 	wxID := mem.WxID
 	if wxID == "" && mem.Category != "group" {
 		wxID = defaultWxID
 	}
 
-	// 去重检查：用语义搜索查找是否已有相似记忆
+	// 决定记忆的实际作用域：
+	// - 群级别记忆(group): wxID="", chatRoomID=群ID
+	// - 全局个人事实(profile/preference/relation): wxID=用户, chatRoomID=""
+	// - 群内局部记忆(event/behavior/opinion): wxID=用户, chatRoomID=群ID
+	memoryChatRoomID := chatRoomID
+	if mem.Category == "group" {
+		wxID = ""
+	} else if isGlobalCategory(mem.Category) {
+		// 稳定的用户事实提升为全局记忆，不绑定群
+		memoryChatRoomID = ""
+	}
+
+	// 去重检查：在目标作用域内语义搜索
 	if s.vectorStore != nil {
-		duplicateID := s.findDuplicateMemory(ctx, wxID, chatRoomID, mem.Content)
+		duplicateID := s.findDuplicateMemory(ctx, wxID, memoryChatRoomID, mem.Content)
 		if duplicateID > 0 {
-			// 更新已有记忆而非创建新的
 			existing, err := s.memoryRepo.GetByID(duplicateID)
 			if err == nil && existing != nil {
 				existing.Content = mem.Content
@@ -190,7 +211,7 @@ func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, ch
 	// 创建新记忆
 	memory := &model.Memory{
 		WxID:       wxID,
-		ChatRoomID: chatRoomID,
+		ChatRoomID: memoryChatRoomID,
 		Category:   model.MemoryCategory(mem.Category),
 		Content:    mem.Content,
 		Source:     "auto",
@@ -205,9 +226,9 @@ func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, ch
 	s.indexMemoryVector(ctx, memory)
 }
 
-// findDuplicateMemory 通过语义搜索判断是否存在相似记忆（阈值 0.85）
+// findDuplicateMemory 在精确作用域内通过语义搜索判断是否存在相似记忆（阈值 0.85）
 func (s *MemoryService) findDuplicateMemory(ctx context.Context, wxID, chatRoomID, content string) int64 {
-	results, err := s.vectorStore.SearchMemories(ctx, vars.RobotRuntime.RobotCode, content, wxID, 3)
+	results, err := s.vectorStore.SearchMemories(ctx, vars.RobotRuntime.RobotCode, content, wxID, chatRoomID, 3)
 	if err != nil {
 		return 0
 	}
@@ -251,20 +272,40 @@ func (s *MemoryService) parseDateUnix(dateStr string) int64 {
 
 // GetRelevantMemories 获取与当前查询相关的记忆
 // 检索范围：用户全局记忆 + 群内个人记忆 + 群级别记忆
+// 每个作用域独立搜索，不会跨群混入
 func (s *MemoryService) GetRelevantMemories(ctx context.Context, wxID, chatRoomID, query string, limit int) ([]*model.Memory, error) {
-	// 语义搜索
+	// 按作用域分别语义搜索
 	var vectorHitIDs []int64
 	if s.vectorStore != nil && query != "" {
-		results, err := s.vectorStore.SearchMemories(ctx, vars.RobotRuntime.RobotCode, query, wxID, limit*2)
-		if err != nil {
-			log.Printf("[Memory] 向量搜索记忆失败: %v", err)
-		} else {
+		rc := vars.RobotRuntime.RobotCode
+		// 1. 搜索全局个人记忆 (wxID有值, chatRoomID="")
+		if results, err := s.vectorStore.SearchMemories(ctx, rc, query, wxID, "", limit); err == nil {
 			for _, r := range results {
-				if r.Score < 0.4 {
-					continue
+				if r.Score >= 0.4 {
+					if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
+						vectorHitIDs = append(vectorHitIDs, id)
+					}
 				}
-				if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
-					vectorHitIDs = append(vectorHitIDs, id)
+			}
+		}
+		// 2. 群聊时额外搜索群内个人记忆 + 群级别记忆
+		if chatRoomID != "" {
+			if results, err := s.vectorStore.SearchMemories(ctx, rc, query, wxID, chatRoomID, limit); err == nil {
+				for _, r := range results {
+					if r.Score >= 0.4 {
+						if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
+							vectorHitIDs = append(vectorHitIDs, id)
+						}
+					}
+				}
+			}
+			if results, err := s.vectorStore.SearchMemories(ctx, rc, query, "", chatRoomID, limit/2); err == nil {
+				for _, r := range results {
+					if r.Score >= 0.4 {
+						if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
+							vectorHitIDs = append(vectorHitIDs, id)
+						}
+					}
 				}
 			}
 		}
@@ -418,7 +459,7 @@ func (s *MemoryService) RefreshUserProfile(ctx context.Context, wxID, chatRoomID
 	return s.profileRepo.Upsert(profile)
 }
 
-// RefreshAllProfiles 批量刷新所有有记忆用户的画像
+// RefreshAllProfiles 批量刷新所有有记忆用户的画像（全局 + 各群）
 func (s *MemoryService) RefreshAllProfiles() {
 	ctx := context.Background()
 	wxIDs, err := s.memoryRepo.GetDistinctWxIDs()
@@ -427,8 +468,20 @@ func (s *MemoryService) RefreshAllProfiles() {
 		return
 	}
 	for _, wxID := range wxIDs {
+		// 刷新全局画像
 		if err := s.RefreshUserProfile(ctx, wxID, ""); err != nil {
-			log.Printf("[Memory] 刷新画像失败 (%s): %v", wxID, err)
+			log.Printf("[Memory] 刷新全局画像失败 (%s): %v", wxID, err)
+		}
+		// 刷新该用户有群内记忆的每个群画像
+		chatRoomIDs, err := s.memoryRepo.GetDistinctChatRoomsByWxID(wxID)
+		if err != nil {
+			log.Printf("[Memory] 获取用户群列表失败 (%s): %v", wxID, err)
+			continue
+		}
+		for _, chatRoomID := range chatRoomIDs {
+			if err := s.RefreshUserProfile(ctx, wxID, chatRoomID); err != nil {
+				log.Printf("[Memory] 刷新群画像失败 (%s in %s): %v", wxID, chatRoomID, err)
+			}
 		}
 	}
 }
@@ -548,7 +601,8 @@ func (s *MemoryService) generateSessionSummary(ctx context.Context, session *mod
 	var messages []*model.Message
 	var err error
 	if session.ChatRoomID != "" {
-		messages, err = msgRepo.GetMessagesByRange(session.FirstMsgID, session.LastMsgID, 1000, session.ContactWxID, vars.RobotRuntime.WxID)
+		// 群聊摘要：按 chat_room_id + sender_wxid 精确过滤，避免混入其他群或私聊的消息
+		messages, err = msgRepo.GetMessagesByRangeInChatRoom(session.ChatRoomID, session.FirstMsgID, session.LastMsgID, 1000, session.ContactWxID, vars.RobotRuntime.WxID)
 	} else {
 		messages, err = msgRepo.GetMessagesByRange(session.FirstMsgID, session.LastMsgID, 1000)
 	}

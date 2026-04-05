@@ -125,6 +125,17 @@ func (r *Memory) GetDistinctWxIDs() ([]string, error) {
 	return wxIDs, err
 }
 
+// GetDistinctChatRoomsByWxID 获取某用户有群内记忆的所有群 ID
+func (r *Memory) GetDistinctChatRoomsByWxID(wxID string) ([]string, error) {
+	var chatRoomIDs []string
+	err := r.DB.WithContext(r.Ctx).
+		Model(&model.Memory{}).
+		Where("wx_id = ? AND chat_room_id != ''", wxID).
+		Distinct("chat_room_id").
+		Pluck("chat_room_id", &chatRoomIDs).Error
+	return chatRoomIDs, err
+}
+
 // IncrementAccessCount 增加访问计数
 func (r *Memory) IncrementAccessCount(ids []int64) error {
 	return r.DB.WithContext(r.Ctx).
