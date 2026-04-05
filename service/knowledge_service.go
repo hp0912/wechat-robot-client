@@ -236,6 +236,13 @@ func (s *KnowledgeService) SearchKnowledge(ctx context.Context, query, category 
 	return s.vectorStore.SearchKnowledge(ctx, vars.RobotRuntime.RobotCode, query, category, limit)
 }
 
+func (s *KnowledgeService) SearchKnowledgeByCategories(ctx context.Context, query string, categories []string, limit int) ([]ai.VectorSearchResult, error) {
+	if s.vectorStore == nil {
+		return nil, fmt.Errorf("vector store not available")
+	}
+	return s.vectorStore.SearchKnowledgeByCategories(ctx, vars.RobotRuntime.RobotCode, query, categories, limit)
+}
+
 // ReindexAll 重建所有知识库向量索引
 func (s *KnowledgeService) ReindexAll(ctx context.Context) error {
 	page := 1

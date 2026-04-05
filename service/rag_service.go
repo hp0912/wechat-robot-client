@@ -55,13 +55,6 @@ func (s *RAGService) RetrieveContext(ctx context.Context, contactWxID, chatRoomI
 		} else {
 			log.Printf("[RAG] 搜索历史消息失败: %v", err)
 		}
-
-		// 5. 搜索知识库
-		if knowledge, err := s.vectorStore.SearchKnowledge(ctx, robot_code, query, "", 3); err == nil {
-			result.KnowledgeDocs = knowledge
-		} else {
-			log.Printf("[RAG] 搜索知识库失败: %v", err)
-		}
 	}
 
 	return result
@@ -105,22 +98,6 @@ func (s *RAGService) BuildEnhancedPrompt(basePrompt string, retrieved *ai.Retrie
 			content := msg.Payload["content"]
 			if content != "" {
 				fmt.Fprintf(&sb, "- %s\n", content)
-			}
-		}
-	}
-
-	// 注入知识库内容
-	if len(retrieved.KnowledgeDocs) > 0 {
-		sb.WriteString("\n\n## 参考知识:\n")
-		for _, doc := range retrieved.KnowledgeDocs {
-			title := doc.Payload["title"]
-			content := doc.Payload["content"]
-			if content != "" {
-				if title != "" {
-					fmt.Fprintf(&sb, "### %s\n", title)
-				}
-				sb.WriteString(content)
-				sb.WriteString("\n\n")
 			}
 		}
 	}

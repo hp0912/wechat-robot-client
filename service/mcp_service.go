@@ -104,6 +104,7 @@ func (s *MCPService) ChatWithMCPTools(
 	client *openai.Client,
 	req openai.ChatCompletionRequest,
 	maxIterations int,
+	extraTools ...ai.ExtraTool,
 ) (openai.ChatCompletionMessage, error) {
 	if maxIterations <= 0 {
 		maxIterations = 25 // 默认最多25轮工具调用
@@ -121,6 +122,13 @@ func (s *MCPService) ChatWithMCPTools(
 		skillExecutor = vars.SkillService.GetExecutor()
 		skillTools := skillExecutor.GetOpenAITools()
 		tools = append(tools, skillTools...)
+	}
+
+	// 注册额外的内置工具
+	extraToolMap := make(map[string]func(openai.ToolCall) (string, bool, error))
+	for _, et := range extraTools {
+		tools = append(tools, et.Tool)
+		extraToolMap[et.Tool.Function.Name] = et.Handler
 	}
 
 	// 如果没有可用工具，直接调用AI
@@ -170,8 +178,10 @@ func (s *MCPService) ChatWithMCPTools(
 			var immediately bool
 			var err error
 
-			// 判断是否为 Skills 工具调用
-			if skillExecutor != nil && skillExecutor.IsSkillTool(toolCall.Function.Name) {
+			// 判断是否为额外内置工具调用
+			if handler, ok := extraToolMap[toolCall.Function.Name]; ok {
+				result, immediately, err = handler(toolCall)
+			} else if skillExecutor != nil && skillExecutor.IsSkillTool(toolCall.Function.Name) {
 				result, err = skillExecutor.ExecuteToolCall(robotCtx, toolCall)
 				immediately = false
 				if toolCall.Function.Name == "execute_skill_script" {

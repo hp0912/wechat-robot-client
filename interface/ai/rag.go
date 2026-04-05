@@ -21,7 +21,6 @@ type RetrievedContext struct {
 	UserMemories     []*model.Memory
 	SessionSummary   string
 	RelevantMessages []VectorSearchResult
-	KnowledgeDocs    []VectorSearchResult
 }
 
 // MemoryService 记忆管理服务接口
@@ -57,6 +56,7 @@ type KnowledgeService interface {
 	EnableDocument(ctx context.Context, id int64) error
 	DisableDocument(ctx context.Context, id int64) error
 	SearchKnowledge(ctx context.Context, query, category string, limit int) ([]VectorSearchResult, error)
+	SearchKnowledgeByCategories(ctx context.Context, query string, categories []string, limit int) ([]VectorSearchResult, error)
 	ReindexAll(ctx context.Context) error
 }
 

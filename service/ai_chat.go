@@ -6,7 +6,9 @@ import (
 	"log"
 	"strings"
 	"time"
+	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/interface/settings"
+	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/mcp"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
@@ -15,14 +17,16 @@ import (
 )
 
 type AIChatService struct {
-	ctx    context.Context
-	config settings.Settings
+	ctx                 context.Context
+	config              settings.Settings
+	toolBindingRegistry ai.ToolBindingRegistry
 }
 
 func NewAIChatService(ctx context.Context, config settings.Settings) *AIChatService {
 	return &AIChatService{
-		ctx:    ctx,
-		config: config,
+		ctx:                 ctx,
+		config:              config,
+		toolBindingRegistry: NewToolBindingRegistry(NewKnowledgeToolBindingProvider()),
 	}
 }
 
@@ -54,7 +58,7 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 
 	basePrompt += "\n\n**【特别重要】**如果外部工具返回以下结构化标签，你必须原样逐字返回，不能总结、解释、改写、翻译、补充代码块，也不能省略、合并或调整顺序：\n<wechat-robot-text>...</wechat-robot-text>\n<wechat-robot-image-url>...</wechat-robot-image-url>\n<wechat-robot-video-url>...</wechat-robot-video-url>\n<wechat-robot-voice-url>...</wechat-robot-voice-url>\n<wechat-robot-file-url>...</wechat-robot-file-url>\n<wechat-robot-appmsg type=\"数字\">...</wechat-robot-appmsg>\n如果一次返回多个这类标签，必须完整保留每一个标签及其内部内容；如果还有普通文本，可以与这些标签一起返回，但标签本身必须保持完全不变。"
 
-	// RAG 增强：检索相关记忆、知识库、历史消息
+	// RAG 增强：检索相关记忆和历史消息
 	contactWxID := robotCtx.SenderWxID
 	chatRoomID := ""
 	if strings.Contains(robotCtx.FromWxID, "@chatroom") {
@@ -78,6 +82,30 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 	}
 	if aiConfig.MaxCompletionTokens > 0 {
 		systemMessage.Content += fmt.Sprintf("\n\n请注意，每次回答不能超过%d个汉字。", aiConfig.MaxCompletionTokens)
+	}
+
+	// 预先查询群聊设置，供后续 ToolBindingProvider 复用，避免重复查库
+	var chatRoomSettings *model.ChatRoomSettings
+	if chatRoomID != "" {
+		crsRepo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
+		if settings, err := crsRepo.GetChatRoomSettings(chatRoomID); err == nil {
+			chatRoomSettings = settings
+		}
+	}
+
+	// 群聊知识库：按群聊绑定关系统一构建提示词和本地工具
+	toolBinding := ai.ToolBinding{}
+	if s.toolBindingRegistry != nil {
+		toolBinding = s.toolBindingRegistry.BuildToolBinding(s.ctx, ai.ToolBindingContext{
+			RobotContext:     robotCtx,
+			ChatRoomID:       chatRoomID,
+			ContactWxID:      contactWxID,
+			LastUserQuery:    lastUserQuery,
+			ChatRoomSettings: chatRoomSettings,
+		})
+		if toolBinding.Prompt != "" {
+			systemMessage.Content += toolBinding.Prompt
+		}
 	}
 
 	// 群聊上下文注入：独立 system 消息置于主 system prompt 之后、对话历史之前
@@ -110,7 +138,7 @@ func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.Chat
 
 	aiStart := time.Now()
 
-	reply, err := vars.MCPService.ChatWithMCPTools(robotCtx, client, req, 0)
+	reply, err := vars.MCPService.ChatWithMCPTools(robotCtx, client, req, 0, toolBinding.Tools...)
 
 	log.Printf("[AI] 接口调用耗时: %v", time.Since(aiStart))
 

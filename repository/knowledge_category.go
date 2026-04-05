@@ -78,6 +78,31 @@ func (r *KnowledgeCategory) List(categoryType model.KnowledgeCategoryType) ([]*m
 	return categories, err
 }
 
+func (r *KnowledgeCategory) GetByCodes(codes []string) ([]*model.KnowledgeCategory, error) {
+	if len(codes) == 0 {
+		return nil, nil
+	}
+	var categories []*model.KnowledgeCategory
+	err := r.DB.WithContext(r.Ctx).Where("code IN ?", codes).Find(&categories).Error
+	if err != nil || len(categories) <= 1 {
+		return categories, err
+	}
+
+	categoryByCode := make(map[string]*model.KnowledgeCategory, len(categories))
+	for _, category := range categories {
+		categoryByCode[category.Code] = category
+	}
+
+	ordered := make([]*model.KnowledgeCategory, 0, len(categories))
+	for _, code := range codes {
+		if category, ok := categoryByCode[code]; ok {
+			ordered = append(ordered, category)
+		}
+	}
+
+	return ordered, nil
+}
+
 func (r *KnowledgeCategory) Count() (int64, error) {
 	var count int64
 	err := r.DB.WithContext(r.Ctx).Model(&model.KnowledgeCategory{}).Count(&count).Error

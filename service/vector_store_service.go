@@ -187,6 +187,38 @@ func (s *VectorStoreService) SearchKnowledge(ctx context.Context, robotCode stri
 	return s.convertResults(results), nil
 }
 
+// SearchKnowledgeByCategories 按多个分类语义搜索知识库
+func (s *VectorStoreService) SearchKnowledgeByCategories(ctx context.Context, robotCode string, query string, categories []string, topK int) ([]ai.VectorSearchResult, error) {
+	vector, err := s.embedding.Embed(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("embed query: %w", err)
+	}
+	var conditions []*pb.Condition
+	if robotCode != "" {
+		conditions = append(conditions, qdrantx.BuildMatchFilter("robot_code", robotCode))
+	}
+	if len(categories) > 0 {
+		categoryConditions := make([]*pb.Condition, 0, len(categories))
+		for _, cat := range categories {
+			categoryConditions = append(categoryConditions, qdrantx.BuildMatchFilter("category", cat))
+		}
+		conditions = append(conditions, &pb.Condition{
+			ConditionOneOf: &pb.Condition_Filter{
+				Filter: &pb.Filter{Should: categoryConditions},
+			},
+		})
+	}
+	var filter *pb.Filter
+	if len(conditions) > 0 {
+		filter = &pb.Filter{Must: conditions}
+	}
+	results, err := s.qdrant.Search(ctx, qdrantx.CollectionKnowledge, vector, uint64(topK), filter)
+	if err != nil {
+		return nil, err
+	}
+	return s.convertResults(results), nil
+}
+
 // DeleteVectors 删除向量
 func (s *VectorStoreService) DeleteVectors(ctx context.Context, collection string, ids []string) error {
 	return s.qdrant.DeleteByIDs(ctx, collection, ids)

@@ -1,6 +1,8 @@
 package model
 
 import (
+	"encoding/json"
+
 	"gorm.io/datatypes"
 )
 
@@ -44,9 +46,22 @@ type ChatRoomSettings struct {
 	NewsEnabled               *bool          `gorm:"column:news_enabled;default:false;comment:是否启用每日早报功能" json:"news_enabled"`
 	NewsType                  *NewsType      `gorm:"column:news_type;type:enum('','text','image');comment:每日早报类型：text-文本，image-图片" json:"news_type"`
 	MorningEnabled            *bool          `gorm:"column:morning_enabled;default:false;comment:是否启用早安问候功能" json:"morning_enabled"`
+	KnowledgeCategories       datatypes.JSON `gorm:"column:knowledge_categories;type:json;comment:绑定的知识库分类编码列表" json:"knowledge_categories"`
 }
 
 // TableName 设置表名
 func (ChatRoomSettings) TableName() string {
 	return "chat_room_settings"
+}
+
+// GetKnowledgeCategoryCodes 解析绑定的知识库分类编码列表
+func (s *ChatRoomSettings) GetKnowledgeCategoryCodes() ([]string, error) {
+	if s.KnowledgeCategories == nil {
+		return nil, nil
+	}
+	var codes []string
+	if err := json.Unmarshal(s.KnowledgeCategories, &codes); err != nil {
+		return nil, err
+	}
+	return codes, nil
 }

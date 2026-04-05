@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -298,8 +299,88 @@ func (s *ChatRoomSettingsService) GetAllEnableNews() ([]*model.ChatRoomSettings,
 }
 
 func (s *ChatRoomSettingsService) SaveChatRoomSettings(data *model.ChatRoomSettings) error {
+	if err := s.normalizeKnowledgeCategories(data); err != nil {
+		return err
+	}
 	if data.ID == 0 {
 		return s.crsRepo.Create(data)
 	}
 	return s.crsRepo.Update(data)
+}
+
+func normalizeKnowledgeCategoryCodes(codes []string) []string {
+	if len(codes) == 0 {
+		return nil
+	}
+
+	normalized := make([]string, 0, len(codes))
+	seen := make(map[string]struct{}, len(codes))
+	for _, code := range codes {
+		code = strings.TrimSpace(code)
+		if code == "" {
+			continue
+		}
+		if _, ok := seen[code]; ok {
+			continue
+		}
+		seen[code] = struct{}{}
+		normalized = append(normalized, code)
+	}
+
+	return normalized
+}
+
+func (s *ChatRoomSettingsService) normalizeKnowledgeCategories(data *model.ChatRoomSettings) error {
+	if data == nil || data.KnowledgeCategories == nil {
+		return nil
+	}
+
+	codes, err := data.GetKnowledgeCategoryCodes()
+	if err != nil {
+		return fmt.Errorf("knowledge_categories 格式错误: %w", err)
+	}
+
+	normalized := normalizeKnowledgeCategoryCodes(codes)
+	payload, err := json.Marshal(normalized)
+	if err != nil {
+		return fmt.Errorf("序列化 knowledge_categories 失败: %w", err)
+	}
+	data.KnowledgeCategories = payload
+
+	if len(normalized) == 0 {
+		return nil
+	}
+
+	categoryRepo := repository.NewKnowledgeCategoryRepo(s.ctx, vars.DB)
+	categories, err := categoryRepo.GetByCodes(normalized)
+	if err != nil {
+		return fmt.Errorf("查询知识库分类失败: %w", err)
+	}
+
+	categoryByCode := make(map[string]*model.KnowledgeCategory, len(categories))
+	for _, category := range categories {
+		categoryByCode[category.Code] = category
+	}
+
+	missingCodes := make([]string, 0)
+	unsupportedCodes := make([]string, 0)
+	for _, code := range normalized {
+		category, ok := categoryByCode[code]
+		if !ok {
+			missingCodes = append(missingCodes, code)
+			continue
+		}
+		if category.Type != model.KnowledgeCategoryTypeText {
+			unsupportedCodes = append(unsupportedCodes, code)
+		}
+	}
+
+	if len(missingCodes) > 0 {
+		return fmt.Errorf("以下知识库不存在: %s", strings.Join(missingCodes, ", "))
+	}
+	if len(unsupportedCodes) > 0 {
+		return fmt.Errorf("以下知识库不是文本知识库，暂不支持绑定到群聊: %s", strings.Join(unsupportedCodes, ", "))
+	}
+
+	return nil
 }
