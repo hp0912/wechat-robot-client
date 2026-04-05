@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"sync"
 	"time"
 )
@@ -278,6 +279,9 @@ func (m *Manager) GetAllSkills() []*Skill {
 	for _, skill := range m.skills {
 		result = append(result, skill)
 	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
 	return result
 }
 
@@ -449,6 +453,7 @@ func (m *Manager) UpdateSkill(name string) (*Skill, error) {
 	skill.Enabled = existing.Enabled
 	skill.InstalledAt = existing.InstalledAt
 	skill.Source = existing.Source
+	skill.EnvVars = existing.EnvVars
 
 	m.mu.Lock()
 	m.skills[skill.Name] = skill
