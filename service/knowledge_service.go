@@ -288,7 +288,7 @@ func splitTextIntoChunks(text string, size, overlap int) []string {
 	}
 
 	// First, try to split by two or more consecutive newlines (paragraphs)
-	re := regexp.MustCompile(`(?m:(\r?\n\s*\r?\n)+)`)
+	re := regexp.MustCompile(`(?:\r?\n[ \t]*){2,}\r?\n`)
 	parts := re.Split(text, -1)
 
 	var chunks []string
