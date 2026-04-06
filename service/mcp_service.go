@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
@@ -183,7 +184,10 @@ func (s *MCPService) ChatWithMCPTools(
 				result, immediately, err = handler(toolCall)
 			} else if skillExecutor != nil && skillExecutor.IsSkillTool(toolCall.Function.Name) {
 				result, err = skillExecutor.ExecuteToolCall(robotCtx, toolCall)
-				immediately = result == vars.AIEnded
+				immediately = result == vars.AIEnded || strings.HasSuffix(result, "\n"+vars.AIEnded)
+				if immediately {
+					result = vars.AIEnded
+				}
 				if toolCall.Function.Name == "execute_skill_script" {
 					log.Printf("工具[%s]执行结果:\n%s\n", toolCall.Function.Name, result)
 				}
