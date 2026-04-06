@@ -69,6 +69,8 @@ var WordCloudUrl string
 // Pprof 代理目标地址
 var PprofProxyURL string
 
+var AIEnded = "ended"
+
 var UploadImageChunkSize int64 = 200 * 1000 // 200KB
 var UploadFileChunkSize int64 = 200 * 1000  // 200KB
 

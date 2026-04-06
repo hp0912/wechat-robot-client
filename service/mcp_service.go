@@ -183,7 +183,7 @@ func (s *MCPService) ChatWithMCPTools(
 				result, immediately, err = handler(toolCall)
 			} else if skillExecutor != nil && skillExecutor.IsSkillTool(toolCall.Function.Name) {
 				result, err = skillExecutor.ExecuteToolCall(robotCtx, toolCall)
-				immediately = false
+				immediately = result == vars.AIEnded
 				if toolCall.Function.Name == "execute_skill_script" {
 					log.Printf("工具[%s]执行结果:\n%s\n", toolCall.Function.Name, result)
 				}
