@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"time"
 	"wechat-robot-client/model"
 
@@ -45,7 +46,10 @@ func (r *Memory) GetByID(id int64) (*model.Memory, error) {
 // GetByIDs 批量获取记忆
 func (r *Memory) GetByIDs(ids []int64) ([]*model.Memory, error) {
 	var memories []*model.Memory
-	err := r.DB.WithContext(r.Ctx).Where("id IN ?", ids).Find(&memories).Error
+	err := r.DB.WithContext(r.Ctx).
+		Where("id IN ?", ids).
+		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix()).
+		Find(&memories).Error
 	return memories, err
 }
 
@@ -92,6 +96,38 @@ func (r *Memory) GetByChatRoom(chatRoomID string, limit int) ([]*model.Memory, e
 		Where("wx_id = '' AND chat_room_id = ?", chatRoomID).
 		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix()).
 		Order("importance DESC, updated_at DESC").
+		Limit(limit).
+		Find(&memories).Error
+	return memories, err
+}
+
+// ListByScope 获取某个会话视角下的候选记忆（全局个人 + 群内个人 + 群级别）。
+func (r *Memory) ListByScope(wxID, chatRoomID string, limit int) ([]*model.Memory, error) {
+	var memories []*model.Memory
+	query := r.scopeQuery(wxID, chatRoomID).
+		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix())
+	err := query.
+		Order("importance DESC, updated_at DESC").
+		Limit(limit).
+		Find(&memories).Error
+	return memories, err
+}
+
+// ListDueMemories 获取适合主动跟进的提醒类记忆。
+func (r *Memory) ListDueMemories(wxID, chatRoomID string, until, cooldownBefore int64, limit int) ([]*model.Memory, error) {
+	now := time.Now().Unix()
+	var memories []*model.Memory
+	query := r.scopeQuery(wxID, chatRoomID).
+		Where("expire_at = 0 OR expire_at > ?", now).
+		Where("last_access_at = 0 OR last_access_at < ?", cooldownBefore).
+		Where("((reminder_at > 0 AND reminder_at <= ?) OR (category = ? AND happened_at > 0 AND happened_at >= ? AND happened_at <= ?))",
+			until,
+			model.MemoryCategoryEvent,
+			now-12*60*60,
+			until,
+		)
+	err := query.
+		Order("importance DESC, reminder_at ASC, happened_at ASC, updated_at DESC").
 		Limit(limit).
 		Find(&memories).Error
 	return memories, err
@@ -148,11 +184,16 @@ func (r *Memory) IncrementAccessCount(ids []int64) error {
 }
 
 // DecayMemories 衰减长期未访问的记忆重要性
+// 跳过带有重要关系标签或高权重关系类型的核心记忆，避免恋人/家人等信息被误衰减
 func (r *Memory) DecayMemories(inactiveDays int) error {
 	threshold := time.Now().AddDate(0, 0, -inactiveDays).Unix()
+	protectedRelations := []string{"romantic_partner", "spouse", "family", "close_friend", "best_friend"}
 	return r.DB.WithContext(r.Ctx).
 		Model(&model.Memory{}).
 		Where("last_access_at > 0 AND last_access_at < ? AND importance > 1", threshold).
+		Where("relation_type NOT IN ?", protectedRelations).
+		Where("tags NOT LIKE ? AND tags NOT LIKE ? AND tags NOT LIKE ?",
+			"%important_person%", "%romantic%", "%family%").
 		Update("importance", gorm.Expr("importance - 1")).Error
 }
 
@@ -174,10 +215,36 @@ func (r *Memory) SearchByKeyword(wxID, chatRoomID, keyword string, limit int) ([
 	if chatRoomID != "" {
 		query = query.Where("(chat_room_id = '' OR chat_room_id = ?)", chatRoomID)
 	}
+	escaped := escapeLikeKeyword(keyword)
 	err := query.
-		Where("content LIKE ?", "%"+keyword+"%").
+		Where("content LIKE ?", "%"+escaped+"%").
 		Order("importance DESC").
 		Limit(limit).
 		Find(&memories).Error
 	return memories, err
+}
+
+// escapeLikeKeyword 转义 LIKE 通配符，防止用户输入中的 % 和 _ 改变查询语义
+func escapeLikeKeyword(keyword string) string {
+	keyword = strings.ReplaceAll(keyword, "\\", "\\\\")
+	keyword = strings.ReplaceAll(keyword, "%", "\\%")
+	keyword = strings.ReplaceAll(keyword, "_", "\\_")
+	return keyword
+}
+
+func (r *Memory) scopeQuery(wxID, chatRoomID string) *gorm.DB {
+	query := r.DB.WithContext(r.Ctx).Model(&model.Memory{})
+	if chatRoomID == "" {
+		return query.Where("wx_id = ? AND chat_room_id = ''", wxID)
+	}
+	if wxID == "" {
+		return query.Where("wx_id = '' AND chat_room_id = ?", chatRoomID)
+	}
+	return query.Where(
+		"((wx_id = ? AND chat_room_id = '') OR (wx_id = ? AND chat_room_id = ?) OR (wx_id = '' AND chat_room_id = ?))",
+		wxID,
+		wxID,
+		chatRoomID,
+		chatRoomID,
+	)
 }

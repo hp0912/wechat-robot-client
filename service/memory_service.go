@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
+	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/qdrantx"
 	"wechat-robot-client/repository"
@@ -50,15 +52,55 @@ func NewMemoryService(db *gorm.DB, vectorStore *VectorStoreService, aiBaseURL, a
 
 // extractedMemory LLM 提取出的记忆结构
 type extractedMemory struct {
-	WxID       string `json:"wx_id"`
-	Category   string `json:"category"`
-	Content    string `json:"content"`
-	Importance int    `json:"importance"`
-	HappenedAt string `json:"happened_at,omitempty"`
-	ExpireAt   string `json:"expire_at,omitempty"`
+	WxID             string   `json:"wx_id"`
+	Category         string   `json:"category"`
+	Content          string   `json:"content"`
+	Importance       int      `json:"importance"`
+	HappenedAt       string   `json:"happened_at,omitempty"`
+	ExpireAt         string   `json:"expire_at,omitempty"`
+	ReminderAt       string   `json:"reminder_at,omitempty"`
+	RelationType     string   `json:"relation_type,omitempty"`
+	EmotionDirection string   `json:"emotion_direction,omitempty"`
+	EmotionIntensity int      `json:"emotion_intensity,omitempty"`
+	Tags             []string `json:"tags,omitempty"`
+	Participants     []string `json:"participants,omitempty"`
 }
 
 const groupObservationPrefix = "[群聊观察记录]\n"
+
+const (
+	defaultMemoryCandidateLimit  = 24
+	proactiveReminderWindow      = 72 * time.Hour
+	proactiveReminderCooldown    = 12 * time.Hour
+	recentEmotionWindow          = 30 * 24 * time.Hour
+	recentRelationshipWindow     = 180 * 24 * time.Hour
+	upcomingEventWindow          = 14 * 24 * time.Hour
+	memorySemanticScoreThreshold = 0.4
+)
+
+var relationWeightMap = map[string]float64{
+	"romantic_partner": 22,
+	"spouse":           22,
+	"family":           18,
+	"close_friend":     16,
+	"best_friend":      16,
+	"mentor":           12,
+	"boss":             12,
+	"colleague":        8,
+	"classmate":        8,
+	"rival":            14,
+	"conflict":         16,
+}
+
+var tagWeightMap = map[string]float64{
+	model.MemoryTagImportantPerson: 14,
+	model.MemoryTagRomantic:        10,
+	model.MemoryTagFamily:          8,
+	model.MemoryTagCloseFriend:     7,
+	model.MemoryTagConflict:        10,
+	model.MemoryTagFollowUp:        12,
+	model.MemoryTagSocialGraph:     8,
+}
 
 // ExtractMemoriesFromConversation 从对话中提取记忆（异步调用）
 // senderWxID: 当前对话发送者（私聊或群聊中的某人）
@@ -129,18 +171,27 @@ func (s *MemoryService) callLLMExtract(ctx context.Context, senderWxID, chatRoom
 4. relation: 人际关系（家人、朋友、同事、上下级等）
 5. behavior: 行为模式（沟通风格、活跃时间段、说话习惯等）
 6. opinion: 明确的观点态度（对某话题的看法）
-7. group: 仅当信息关于整个群本身（群主题、群规则、群共识），此时 wx_id 留空
+7. emotion: 明显的情绪记忆（生气、委屈、焦虑、开心、感动等），以及引发情绪的人或事
+8. group: 仅当信息关于整个群本身（群主题、群规则、群共识），此时 wx_id 留空
 
 关键要求：
 - 每条记忆的 content 必须是**完整的自然语言陈述句**，如"张三在北京字节跳动做后端工程师"
 - 如果涉及时间，设置 happened_at（事件发生时间）和 expire_at（过期时间），格式为 "2006-01-02"
-- wx_id: 记忆所属者的 wx_id。默认填 "%s"，但如果对话中某一行已经显式写成“昵称(wx_id): 内容”，则必须使用该行中的 wx_id；如果是群级别记忆则留空
-- importance: 1-10，个人身份信息>=7，兴趣偏好5-6，临时计划3-4
+- reminder_at: 如果这条记忆未来值得助手主动跟进、主动提旧事或提醒，填一个建议提醒日期，格式同样为 "2006-01-02"；否则留空
+- wx_id: 记忆所属者的 wx_id。默认填 "%s"，但如果对话中某一行已经显式写成“昵称(wx_id): 内容”，则必须使用该行中的 wx_id
+- 如果是群里多人之间的关系八卦、谁和谁关系好/闹矛盾，且没有单一归属者，使用 category=relation、wx_id 留空，并在 participants 中列出相关 wx_id 或昵称
+- relation_type 仅在 relation 类记忆里使用，可选值：romantic_partner, spouse, family, close_friend, best_friend, colleague, classmate, boss, mentor, rival, conflict, other
+- emotion_direction 仅在 emotion 类记忆里使用，可选值：positive, negative, mixed, neutral
+- emotion_intensity 取 0-10，情绪越强越高
+- participants 用于列出这条记忆里涉及的重要人物（优先填 wx_id，其次昵称）
+- tags 只在确实明显时填写，可选值：important_person, romantic, family, close_friend, conflict, follow_up, social_graph
+- importance: 1-10。恋人/配偶/直系家人/强冲突 >= 8，重要事件和明显情绪 6-9，一般偏好 5-6，临时计划 3-4
 - 不要提取模糊或无实际信息量的内容（如"用户在聊天"、"用户发了消息"）
 - 不要提取助手自己的信息
+- 如果同一段里既有事实又有情绪，可以拆成两条记忆
 
 输出 JSON 数组：
-[{"wx_id":"xxx","category":"profile|preference|event|relation|behavior|opinion|group","content":"自然语言陈述句","importance":1-10,"happened_at":"","expire_at":""}]
+[{"wx_id":"xxx","category":"profile|preference|event|relation|behavior|opinion|emotion|group","content":"自然语言陈述句","importance":1-10,"happened_at":"","expire_at":"","reminder_at":"","relation_type":"","emotion_direction":"","emotion_intensity":0,"tags":[],"participants":[]}]
 
 没有值得记住的信息则返回 []。只返回 JSON。`, contextHint, senderWxID)
 
@@ -179,6 +230,7 @@ func isValidMemoryCategory(category model.MemoryCategory) bool {
 		model.MemoryCategoryRelation,
 		model.MemoryCategoryBehavior,
 		model.MemoryCategoryOpinion,
+		model.MemoryCategoryEmotion,
 		model.MemoryCategoryGroup:
 		return true
 	}
@@ -193,6 +245,132 @@ func isGlobalCategory(category string) bool {
 		return true
 	}
 	return false
+}
+
+func normalizeStringList(items []string, lower bool) []string {
+	if len(items) == 0 {
+		return nil
+	}
+	result := make([]string, 0, len(items))
+	seen := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		key := strings.ToLower(item)
+		if lower {
+			item = key
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, item)
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func normalizeRelationType(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "lover", "boyfriend", "girlfriend", "romantic":
+		return "romantic_partner"
+	case "wife", "husband":
+		return "spouse"
+	case "friend":
+		return "close_friend"
+	case "enemy", "grudge":
+		return "conflict"
+	}
+	return value
+}
+
+func normalizeEmotionDirection(value string) model.MemoryEmotionDirection {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case string(model.MemoryEmotionPositive):
+		return model.MemoryEmotionPositive
+	case string(model.MemoryEmotionNegative):
+		return model.MemoryEmotionNegative
+	case string(model.MemoryEmotionMixed):
+		return model.MemoryEmotionMixed
+	case string(model.MemoryEmotionNeutral):
+		return model.MemoryEmotionNeutral
+	default:
+		return ""
+	}
+}
+
+func clampInt(value, minValue, maxValue int) int {
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
+	}
+	return value
+}
+
+func isGroupScopedRelation(category model.MemoryCategory, wxID, chatRoomID string) bool {
+	return category == model.MemoryCategoryRelation && strings.TrimSpace(wxID) == "" && chatRoomID != ""
+}
+
+func mergeStringLists(left, right []string) []string {
+	combined := make([]string, 0, len(left)+len(right))
+	combined = append(combined, left...)
+	combined = append(combined, right...)
+	return normalizeStringList(combined, false)
+}
+
+func enrichMemoryTags(tags []string, category model.MemoryCategory, relationType string, reminderAt int64, wxID, chatRoomID string) []string {
+	result := normalizeStringList(tags, true)
+	switch relationType {
+	case "romantic_partner", "spouse":
+		result = append(result, model.MemoryTagImportantPerson, model.MemoryTagRomantic)
+	case "family":
+		result = append(result, model.MemoryTagImportantPerson, model.MemoryTagFamily)
+	case "close_friend", "best_friend":
+		result = append(result, model.MemoryTagImportantPerson, model.MemoryTagCloseFriend)
+	case "conflict", "rival":
+		result = append(result, model.MemoryTagConflict)
+	}
+	if reminderAt > 0 {
+		result = append(result, model.MemoryTagFollowUp)
+	}
+	if category == model.MemoryCategoryRelation && wxID == "" && chatRoomID != "" {
+		result = append(result, model.MemoryTagSocialGraph)
+	}
+	return normalizeStringList(result, true)
+}
+
+func normalizeMemorySignalFields(memory *model.Memory) {
+	memory.RelationType = normalizeRelationType(memory.RelationType)
+	memory.Emotion = normalizeEmotionDirection(string(memory.Emotion))
+	memory.EmotionIntensity = clampInt(memory.EmotionIntensity, 0, 10)
+	memory.SetTagList(enrichMemoryTags(memory.TagList(), memory.Category, memory.RelationType, memory.ReminderAt, memory.WxID, memory.ChatRoomID))
+	memory.SetParticipantList(normalizeStringList(memory.ParticipantList(), false))
+}
+
+func mergeMemorySignals(existing, incoming *model.Memory) {
+	if incoming.RelationType != "" && (existing.RelationType == "" || existing.RelationType == "other") {
+		existing.RelationType = incoming.RelationType
+	}
+	if incoming.EmotionIntensity > existing.EmotionIntensity {
+		existing.EmotionIntensity = incoming.EmotionIntensity
+		existing.Emotion = incoming.Emotion
+	} else if existing.Emotion == "" && incoming.Emotion != "" {
+		existing.Emotion = incoming.Emotion
+	}
+	if incoming.ReminderAt > 0 && (existing.ReminderAt == 0 || incoming.ReminderAt < existing.ReminderAt) {
+		existing.ReminderAt = incoming.ReminderAt
+	}
+	existing.SetTagList(mergeStringLists(existing.TagList(), incoming.TagList()))
+	existing.SetParticipantList(mergeStringLists(existing.ParticipantList(), incoming.ParticipantList()))
+	normalizeMemorySignalFields(existing)
 }
 
 func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, chatRoomID string, mem extractedMemory) {
@@ -214,22 +392,50 @@ func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, ch
 	}
 	happenedAt := s.parseDateUnix(mem.HappenedAt)
 	expireAt := s.parseDateUnix(mem.ExpireAt)
-	wxID := strings.TrimSpace(mem.WxID)
-	if wxID == "" && category != model.MemoryCategoryGroup {
+	reminderAt := s.parseDateUnix(mem.ReminderAt)
+	relationType := normalizeRelationType(mem.RelationType)
+	emotionDirection := normalizeEmotionDirection(mem.EmotionDirection)
+	emotionIntensity := clampInt(mem.EmotionIntensity, 0, 10)
+	rawWxID := strings.TrimSpace(mem.WxID)
+	groupScopedRelation := isGroupScopedRelation(category, rawWxID, chatRoomID)
+	wxID := rawWxID
+	if wxID == "" && category != model.MemoryCategoryGroup && !groupScopedRelation {
 		wxID = defaultWxID
 	}
 
 	// 决定记忆的实际作用域：
 	// - 群级别记忆(group): wxID="", chatRoomID=群ID
+	// - 群内多人关系(relation 且 wx_id 为空): wxID="", chatRoomID=群ID
 	// - 全局个人事实(profile/preference/relation): wxID=用户, chatRoomID=""
-	// - 群内局部记忆(event/behavior/opinion): wxID=用户, chatRoomID=群ID
+	// - 群内局部记忆(event/behavior/opinion/emotion): wxID=用户, chatRoomID=群ID
 	memoryChatRoomID := chatRoomID
 	if category == model.MemoryCategoryGroup {
+		wxID = ""
+	} else if groupScopedRelation {
 		wxID = ""
 	} else if isGlobalCategory(string(category)) {
 		// 稳定的用户事实提升为全局记忆，不绑定群
 		memoryChatRoomID = ""
 	}
+	tags := enrichMemoryTags(mem.Tags, category, relationType, reminderAt, wxID, memoryChatRoomID)
+	participants := normalizeStringList(mem.Participants, false)
+	incomingMemory := &model.Memory{
+		WxID:             wxID,
+		ChatRoomID:       memoryChatRoomID,
+		Category:         category,
+		Content:          content,
+		Source:           "auto",
+		Importance:       importance,
+		HappenedAt:       happenedAt,
+		ExpireAt:         expireAt,
+		ReminderAt:       reminderAt,
+		RelationType:     relationType,
+		Emotion:          emotionDirection,
+		EmotionIntensity: emotionIntensity,
+	}
+	incomingMemory.SetTagList(tags)
+	incomingMemory.SetParticipantList(participants)
+	normalizeMemorySignalFields(incomingMemory)
 
 	// 去重检查：在目标作用域内语义搜索
 	if s.vectorStore != nil {
@@ -247,6 +453,7 @@ func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, ch
 				if expireAt > 0 {
 					existing.ExpireAt = expireAt
 				}
+				mergeMemorySignals(existing, incomingMemory)
 				if err := s.memoryRepo.Update(existing); err != nil {
 					log.Printf("[Memory] 更新记忆失败: %v", err)
 				}
@@ -257,21 +464,11 @@ func (s *MemoryService) saveExtractedMemory(ctx context.Context, defaultWxID, ch
 	}
 
 	// 创建新记忆
-	memory := &model.Memory{
-		WxID:       wxID,
-		ChatRoomID: memoryChatRoomID,
-		Category:   category,
-		Content:    content,
-		Source:     "auto",
-		Importance: importance,
-		HappenedAt: happenedAt,
-		ExpireAt:   expireAt,
-	}
-	if err := s.memoryRepo.Create(memory); err != nil {
+	if err := s.memoryRepo.Create(incomingMemory); err != nil {
 		log.Printf("[Memory] 创建记忆失败: %v", err)
 		return
 	}
-	s.indexMemoryVector(ctx, memory)
+	s.indexMemoryVector(ctx, incomingMemory)
 }
 
 func (s *MemoryService) validateManualMemory(memory *model.Memory) error {
@@ -279,6 +476,7 @@ func (s *MemoryService) validateManualMemory(memory *model.Memory) error {
 	memory.ChatRoomID = strings.TrimSpace(memory.ChatRoomID)
 	memory.Content = strings.TrimSpace(memory.Content)
 	memory.Category = model.MemoryCategory(strings.ToLower(strings.TrimSpace(string(memory.Category))))
+	normalizeMemorySignalFields(memory)
 	if memory.Content == "" {
 		return errors.New("记忆内容不能为空")
 	}
@@ -298,6 +496,9 @@ func (s *MemoryService) validateManualMemory(memory *model.Memory) error {
 		if memory.WxID != "" {
 			return errors.New("群级别记忆不能指定 wx_id")
 		}
+		return nil
+	}
+	if isGroupScopedRelation(memory.Category, memory.WxID, memory.ChatRoomID) {
 		return nil
 	}
 	if memory.WxID == "" {
@@ -351,102 +552,278 @@ func (s *MemoryService) parseDateUnix(dateStr string) int64 {
 // ── 记忆检索 (Retrieval) ──────────────────────────────────────────────
 
 // GetRelevantMemories 获取与当前查询相关的记忆
-// 检索范围：用户全局记忆 + 群内个人记忆 + 群级别记忆
-// 每个作用域独立搜索，不会跨群混入
 func (s *MemoryService) GetRelevantMemories(ctx context.Context, wxID, chatRoomID, query string, limit int) ([]*model.Memory, error) {
-	// 按作用域分别语义搜索
-	var vectorHitIDs []int64
-	if s.vectorStore != nil && query != "" {
-		rc := vars.RobotRuntime.RobotCode
-		// 1. 搜索全局个人记忆 (wxID有值, chatRoomID="")
-		if results, err := s.vectorStore.SearchMemories(ctx, rc, query, wxID, "", limit); err == nil {
-			for _, r := range results {
-				if r.Score >= 0.4 {
-					if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
-						vectorHitIDs = append(vectorHitIDs, id)
-					}
-				}
-			}
-		}
-		// 2. 群聊时额外搜索群内个人记忆 + 群级别记忆
-		if chatRoomID != "" {
-			if results, err := s.vectorStore.SearchMemories(ctx, rc, query, wxID, chatRoomID, limit); err == nil {
-				for _, r := range results {
-					if r.Score >= 0.4 {
-						if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
-							vectorHitIDs = append(vectorHitIDs, id)
-						}
-					}
-				}
-			}
-			if results, err := s.vectorStore.SearchMemories(ctx, rc, query, "", chatRoomID, limit/2); err == nil {
-				for _, r := range results {
-					if r.Score >= 0.4 {
-						if id, err := strconv.ParseInt(r.Payload["memory_id"], 10, 64); err == nil {
-							vectorHitIDs = append(vectorHitIDs, id)
-						}
-					}
-				}
-			}
-		}
+	if limit <= 0 {
+		return nil, nil
 	}
-
-	// 从 DB 获取高重要性记忆
-	var dbMemories []*model.Memory
-	var err error
-	if chatRoomID != "" {
-		// 群聊：全局个人 + 群内个人 + 群级别
-		globalMemories, _ := s.memoryRepo.GetByWxID(wxID, limit)
-		chatRoomMemories, _ := s.memoryRepo.GetByWxIDAndChatRoom(wxID, chatRoomID, limit)
-		groupMemories, _ := s.memoryRepo.GetByChatRoom(chatRoomID, limit/2)
-		dbMemories = append(dbMemories, globalMemories...)
-		dbMemories = append(dbMemories, chatRoomMemories...)
-		dbMemories = append(dbMemories, groupMemories...)
-	} else {
-		dbMemories, err = s.memoryRepo.GetByWxID(wxID, limit)
-		if err != nil {
-			return nil, err
-		}
+	candidateLimit := limit * 4
+	if candidateLimit < defaultMemoryCandidateLimit {
+		candidateLimit = defaultMemoryCandidateLimit
 	}
-
-	// 合并去重：语义命中优先
-	seen := make(map[int64]bool)
-	var result []*model.Memory
-
-	// 先加入语义搜索命中
-	if len(vectorHitIDs) > 0 {
-		hitMemories, err := s.memoryRepo.GetByIDs(vectorHitIDs)
-		if err == nil {
+	vectorScores := s.collectMemoryVectorScores(ctx, wxID, chatRoomID, query, candidateLimit)
+	candidateMap := make(map[int64]*model.Memory, len(vectorScores)+candidateLimit)
+	if len(vectorScores) > 0 {
+		vectorIDs := make([]int64, 0, len(vectorScores))
+		for id := range vectorScores {
+			vectorIDs = append(vectorIDs, id)
+		}
+		if hitMemories, err := s.memoryRepo.GetByIDs(vectorIDs); err == nil {
 			for _, m := range hitMemories {
-				if !seen[m.ID] {
-					seen[m.ID] = true
-					result = append(result, m)
-				}
+				candidateMap[m.ID] = m
 			}
 		}
 	}
-
-	// 再补充 DB 高重要性记忆
+	dbMemories, err := s.memoryRepo.ListByScope(wxID, chatRoomID, candidateLimit)
+	if err != nil {
+		return nil, err
+	}
 	for _, m := range dbMemories {
-		if len(result) >= limit {
-			break
-		}
-		if !seen[m.ID] {
-			seen[m.ID] = true
-			result = append(result, m)
-		}
+		candidateMap[m.ID] = m
 	}
-
-	// 更新访问计数
-	if len(result) > 0 {
-		ids := make([]int64, len(result))
-		for i, m := range result {
-			ids[i] = m.ID
-		}
-		s.memoryRepo.IncrementAccessCount(ids)
+	if len(candidateMap) == 0 {
+		return nil, nil
 	}
-
+	now := time.Now().Unix()
+	result := make([]*model.Memory, 0, len(candidateMap))
+	for _, m := range candidateMap {
+		result = append(result, m)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		left := memoryRankingScore(result[i], vectorScores[result[i].ID], now)
+		right := memoryRankingScore(result[j], vectorScores[result[j].ID], now)
+		if left == right {
+			return compareMemoryTieBreak(result[i], result[j])
+		}
+		return left > right
+	})
+	if len(result) > limit {
+		result = result[:limit]
+	}
+	s.touchMemories(result)
 	return result, nil
+}
+
+// GetProactiveMemories 获取适合在当前对话中自然提起的旧事。
+func (s *MemoryService) GetProactiveMemories(ctx context.Context, wxID, chatRoomID string, limit int) ([]*model.Memory, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+	now := time.Now().Unix()
+	until := now + int64(proactiveReminderWindow.Seconds())
+	cooldownBefore := now - int64(proactiveReminderCooldown.Seconds())
+	dueMemories, err := s.memoryRepo.ListDueMemories(wxID, chatRoomID, until, cooldownBefore, limit*3)
+	if err != nil {
+		return nil, err
+	}
+	candidateLimit := limit * 5
+	if candidateLimit < defaultMemoryCandidateLimit {
+		candidateLimit = defaultMemoryCandidateLimit
+	}
+	scopeMemories, err := s.memoryRepo.ListByScope(wxID, chatRoomID, candidateLimit)
+	if err != nil {
+		return nil, err
+	}
+	candidateMap := make(map[int64]*model.Memory, len(dueMemories)+len(scopeMemories))
+	dueSet := make(map[int64]bool, len(dueMemories))
+	for _, m := range dueMemories {
+		candidateMap[m.ID] = m
+		dueSet[m.ID] = true
+	}
+	for _, m := range scopeMemories {
+		if shouldProactivelyMentionMemory(m, now) {
+			candidateMap[m.ID] = m
+		}
+	}
+	if len(candidateMap) == 0 {
+		return nil, nil
+	}
+	result := make([]*model.Memory, 0, len(candidateMap))
+	for _, m := range candidateMap {
+		result = append(result, m)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		left := proactiveMemoryScore(result[i], dueSet[result[i].ID], now)
+		right := proactiveMemoryScore(result[j], dueSet[result[j].ID], now)
+		if left == right {
+			return compareMemoryTieBreak(result[i], result[j])
+		}
+		return left > right
+	})
+	if len(result) > limit {
+		result = result[:limit]
+	}
+	s.touchMemories(result)
+	return result, nil
+}
+
+func (s *MemoryService) collectMemoryVectorScores(ctx context.Context, wxID, chatRoomID, query string, limit int) map[int64]float64 {
+	scores := make(map[int64]float64)
+	query = strings.TrimSpace(query)
+	if s.vectorStore == nil || query == "" {
+		return scores
+	}
+	rc := vars.RobotRuntime.RobotCode
+	if results, err := s.vectorStore.SearchMemories(ctx, rc, query, wxID, "", limit); err == nil {
+		appendMemoryVectorScores(scores, results)
+	}
+	if chatRoomID != "" {
+		if results, err := s.vectorStore.SearchMemories(ctx, rc, query, wxID, chatRoomID, limit); err == nil {
+			appendMemoryVectorScores(scores, results)
+		}
+		if results, err := s.vectorStore.SearchMemories(ctx, rc, query, "", chatRoomID, limit/2); err == nil {
+			appendMemoryVectorScores(scores, results)
+		}
+	}
+	return scores
+}
+
+func appendMemoryVectorScores(scoreMap map[int64]float64, results []ai.VectorSearchResult) {
+	for _, result := range results {
+		if float64(result.Score) < memorySemanticScoreThreshold {
+			continue
+		}
+		id, err := strconv.ParseInt(result.Payload["memory_id"], 10, 64)
+		if err != nil {
+			continue
+		}
+		score := float64(result.Score)
+		if score > scoreMap[id] {
+			scoreMap[id] = score
+		}
+	}
+}
+
+func memoryRankingScore(memory *model.Memory, semanticScore float64, now int64) float64 {
+	score := float64(memory.Importance) * 10
+	score += semanticScore * 30
+	score += relationWeightMap[memory.RelationType]
+	for _, tag := range memory.TagList() {
+		score += tagWeightMap[tag]
+	}
+	if memory.Category == model.MemoryCategoryEmotion {
+		score += 12
+	}
+	if memory.EmotionIntensity > 0 {
+		score += float64(memory.EmotionIntensity) * 1.8
+		if memory.Emotion == model.MemoryEmotionNegative {
+			score += 4
+		}
+	}
+	score += reminderUrgencyBoost(memory, now)
+	score += recencyBoost(memory, now)
+	return score
+}
+
+func proactiveMemoryScore(memory *model.Memory, isDue bool, now int64) float64 {
+	score := memoryRankingScore(memory, 0, now)
+	if isDue {
+		score += 24
+	}
+	if isImportantPersonMemory(memory) {
+		score += 6
+	}
+	if isEmotionSalientMemory(memory) {
+		score += 8
+	}
+	return score
+}
+
+func shouldProactivelyMentionMemory(memory *model.Memory, now int64) bool {
+	if reminderUrgencyBoost(memory, now) >= 16 {
+		return true
+	}
+	if memory.HasTag(model.MemoryTagFollowUp) && memory.Importance >= 6 {
+		return true
+	}
+	if isEmotionSalientMemory(memory) {
+		return true
+	}
+	if isImportantPersonMemory(memory) && now-memory.UpdatedAt <= int64(recentRelationshipWindow.Seconds()) {
+		return true
+	}
+	return false
+}
+
+func isImportantPersonMemory(memory *model.Memory) bool {
+	if memory.HasTag(model.MemoryTagImportantPerson) || memory.HasTag(model.MemoryTagRomantic) || memory.HasTag(model.MemoryTagFamily) {
+		return true
+	}
+	return relationWeightMap[memory.RelationType] >= 16 && memory.Importance >= 7
+}
+
+func isEmotionSalientMemory(memory *model.Memory) bool {
+	if memory.Category != model.MemoryCategoryEmotion && memory.EmotionIntensity < 7 {
+		return false
+	}
+	if memory.UpdatedAt == 0 {
+		return memory.EmotionIntensity >= 7
+	}
+	return time.Now().Unix()-memory.UpdatedAt <= int64(recentEmotionWindow.Seconds())
+}
+
+func reminderUrgencyBoost(memory *model.Memory, now int64) float64 {
+	soon := now + int64(proactiveReminderWindow.Seconds())
+	if memory.ReminderAt > 0 {
+		if memory.ReminderAt <= now {
+			return 28
+		}
+		if memory.ReminderAt <= soon {
+			return 24
+		}
+	}
+	if memory.Category == model.MemoryCategoryEvent && memory.HappenedAt > 0 {
+		if memory.HappenedAt >= now-12*60*60 && memory.HappenedAt <= soon {
+			return 16
+		}
+		if memory.HappenedAt > soon && memory.HappenedAt <= now+int64(upcomingEventWindow.Seconds()) {
+			return 8
+		}
+	}
+	return 0
+}
+
+func recencyBoost(memory *model.Memory, now int64) float64 {
+	anchor := memory.UpdatedAt
+	if anchor == 0 {
+		anchor = memory.CreatedAt
+	}
+	if anchor == 0 || anchor > now {
+		return 0
+	}
+	age := now - anchor
+	switch {
+	case age <= int64(7*24*time.Hour/time.Second):
+		return 6
+	case age <= int64(30*24*time.Hour/time.Second):
+		return 4
+	case age <= int64(90*24*time.Hour/time.Second):
+		return 2
+	default:
+		return 0
+	}
+}
+
+func compareMemoryTieBreak(left, right *model.Memory) bool {
+	if left.Importance != right.Importance {
+		return left.Importance > right.Importance
+	}
+	if left.UpdatedAt != right.UpdatedAt {
+		return left.UpdatedAt > right.UpdatedAt
+	}
+	return left.ID > right.ID
+}
+
+func (s *MemoryService) touchMemories(memories []*model.Memory) {
+	if len(memories) == 0 {
+		return
+	}
+	ids := make([]int64, 0, len(memories))
+	for _, m := range memories {
+		ids = append(ids, m.ID)
+	}
+	if err := s.memoryRepo.IncrementAccessCount(ids); err != nil {
+		log.Printf("[Memory] 更新记忆访问计数失败: %v", err)
+	}
 }
 
 // ── 用户画像 (Profile) ────────────────────────────────────────────────
@@ -512,9 +889,10 @@ func (s *MemoryService) RefreshUserProfile(ctx context.Context, wxID, chatRoomID
 
 要求：
 - 用自然语言写成，像一张人物资料卡
-- 包含关键事实：身份、职业、偏好、重要关系、近期计划
+- 包含关键事实：身份、职业、偏好、重要关系、近期计划、明显情绪触发点
 - 不要分类列举，要写成连贯的描述段落
 - 总长度控制在200字以内
+- 如果有恋人、家人、密友、冲突对象或需要后续跟进的事，要优先体现
 - 如果信息太少，就写少一点，不要编造`,
 			},
 			{
@@ -552,6 +930,8 @@ func (s *MemoryService) RefreshAllProfiles() {
 		if err := s.RefreshUserProfile(ctx, wxID, ""); err != nil {
 			log.Printf("[Memory] 刷新全局画像失败 (%s): %v", wxID, err)
 		}
+		// 每次 LLM 调用间隔 1 秒，避免触发限流
+		time.Sleep(time.Second)
 		// 刷新该用户有群内记忆的每个群画像
 		chatRoomIDs, err := s.memoryRepo.GetDistinctChatRoomsByWxID(wxID)
 		if err != nil {
@@ -562,6 +942,7 @@ func (s *MemoryService) RefreshAllProfiles() {
 			if err := s.RefreshUserProfile(ctx, wxID, chatRoomID); err != nil {
 				log.Printf("[Memory] 刷新群画像失败 (%s in %s): %v", wxID, chatRoomID, err)
 			}
+			time.Sleep(time.Second)
 		}
 	}
 }
@@ -653,16 +1034,22 @@ func (s *MemoryService) GetLastSessionSummary(ctx context.Context, contactWxID, 
 	return s.replaceWxIDsInText(ctx, contactWxID, chatRoomID, summary)
 }
 
-// SummarizeExpiredSessions 总结过期会话
-func (s *MemoryService) SummarizeExpiredSessions(inactiveMinutes int) {
+// SummarizeExpiredSessions 总结过期会话（私聊和群聊使用不同的不活跃阈值）
+func (s *MemoryService) SummarizeExpiredSessions(privateInactiveMinutes, groupInactiveMinutes int) {
 	ctx := context.Background()
 	repo := repository.NewConversationSessionRepo(ctx, s.db)
-	sessions, err := repo.CloseExpiredSessions(inactiveMinutes)
+
+	// 分别关闭私聊和群聊的过期会话
+	privateSessions, err := repo.CloseExpiredPrivateSessions(privateInactiveMinutes)
 	if err != nil {
-		log.Printf("[Memory] 关闭过期会话失败: %v", err)
-		return
+		log.Printf("[Memory] 关闭私聊过期会话失败: %v", err)
+	}
+	groupSessions, err := repo.CloseExpiredGroupSessions(groupInactiveMinutes)
+	if err != nil {
+		log.Printf("[Memory] 关闭群聊过期会话失败: %v", err)
 	}
 
+	sessions := append(privateSessions, groupSessions...)
 	for _, session := range sessions {
 		if session.MessageCount < 3 {
 			continue
