@@ -368,6 +368,10 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 		}
 	}
 
+	if aiReplyText == vars.AIEnded {
+		return
+	}
+
 	// 检测是否是 MCP 工具调用结果
 	if strings.HasPrefix(strings.TrimSpace(aiReplyText), "{") {
 		var callToolResult CallToolResult
