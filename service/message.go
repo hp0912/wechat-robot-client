@@ -483,16 +483,14 @@ func (s *MessageService) ProcessMessageShouldInsertToDB(message *model.Message) 
 		return false
 	}
 	if message.Type == model.MsgTypeApp {
-		subTypeStr := vars.RobotRuntime.XmlFastDecoder(message.Content, "type")
-		if subTypeStr != "" {
-			subType, err := strconv.Atoi(subTypeStr)
-			if err == nil {
-				message.AppMsgType = model.AppMessageType(subType)
-				if message.AppMsgType == model.AppMsgTypeAttachUploading {
-					// 如果是上传中的应用消息，则不入库
-					return false
-				}
-			}
+		var xmlmsg robot.XmlMessage
+		if err := vars.RobotRuntime.XmlDecoder(message.Content, &xmlmsg); err != nil {
+			return true
+		}
+		message.AppMsgType = model.AppMessageType(xmlmsg.AppMsg.Type)
+		if message.AppMsgType == model.AppMsgTypeAttachUploading {
+			// 如果是上传中的应用消息，则不入库
+			return false
 		}
 	}
 	return true
