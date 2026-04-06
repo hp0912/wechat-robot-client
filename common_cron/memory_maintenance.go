@@ -26,8 +26,8 @@ func (cron *MemoryMaintenanceCron) Cron() error {
 	}
 	// 衰减长期未访问记忆
 	memoryService.DecayOldMemories()
-	// 总结过期会话（10 分钟未活跃）
-	memoryService.SummarizeExpiredSessions(10)
+	// 总结过期会话：私聊 10 分钟未活跃，群聊 30 分钟未活跃
+	memoryService.SummarizeExpiredSessions(10, 30)
 	// 批量刷新用户画像
 	memoryService.RefreshAllProfiles()
 	return nil
