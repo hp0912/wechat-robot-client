@@ -33,6 +33,7 @@ func autoMigrateTasks() []migrateTask {
 				&model.EmbeddingTask{},
 				&model.KnowledgeCategory{},
 				&model.OSSSettings{},
+				&model.MomentSettings{},
 			},
 		},
 	}

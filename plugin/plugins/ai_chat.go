@@ -369,6 +369,7 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 	}
 
 	if aiReplyText == vars.AIEnded {
+		_ = ctx.MessageService.ToolsCompleted(ctx.Message.FromWxID, ctx.Message.SenderWxID)
 		return
 	}
 
