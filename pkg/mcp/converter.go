@@ -112,8 +112,8 @@ func (c *MCPToolConverter) convertInputSchemaToParameters(inputSchema any) (json
 	return params, false, nil
 }
 
-// ExecuteOpenAIToolCall 执行OpenAI函数调用
-func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
+// ExecuteToolCall 执行OpenAI函数调用
+func (c *MCPToolConverter) ExecuteToolCall(ctx context.Context, robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
 	// 解析工具名称，提取服务器名称和原始工具名称
 	serverName, toolName, err := c.parseToolName(toolCall.Function.Name)
 	if err != nil {
@@ -204,8 +204,8 @@ func (c *MCPToolConverter) formatToolResult(result *sdkmcp.CallToolResult) (stri
 	return string(rb), false, nil
 }
 
-// BuildSystemPromptWithMCPTools 构建包含MCP工具描述的系统提示词
-func (c *MCPToolConverter) BuildSystemPromptWithMCPTools(ctx context.Context, basePrompt string) (string, error) {
+// BuildSystemPrompt 构建包含MCP工具描述的系统提示词
+func (c *MCPToolConverter) BuildSystemPrompt(ctx context.Context, basePrompt string) (string, error) {
 	allTools, err := c.manager.GetAllTools(ctx)
 	if err != nil {
 		return basePrompt, err
@@ -246,19 +246,20 @@ func (c *MCPToolConverter) BuildSystemPromptWithMCPTools(ctx context.Context, ba
 下面是你当前可以使用的 MCP 工具列表，请在需要时主动选择合适的工具进行调用：
 `
 
-	toolsDesc := "\n\n## 可用工具列表\n\n"
+	var toolsDescBuilder strings.Builder
+	toolsDescBuilder.WriteString("\n\n## 可用工具列表\n\n")
 
 	for serverName, tools := range allTools {
-		toolsDesc += fmt.Sprintf("### 来自 %s 的工具：\n\n", serverName)
+		toolsDescBuilder.WriteString(fmt.Sprintf("### 来自 %s 的工具：\n\n", serverName))
 		for _, tool := range tools {
-			toolsDesc += fmt.Sprintf("- **%s**: %s\n", tool.Name, tool.Description)
+			toolsDescBuilder.WriteString(fmt.Sprintf("- **%s**: %s\n", tool.Name, tool.Description))
 		}
-		toolsDesc += "\n"
+		toolsDescBuilder.WriteString("\n")
 	}
 
-	toolsDesc += "调用工具时，请根据上述规则谨慎选择工具并构造参数。\n"
+	toolsDescBuilder.WriteString("调用工具时，请根据上述规则谨慎选择工具并构造参数。\n")
 
-	return basePrompt + intro + toolsDesc, nil
+	return basePrompt + intro + toolsDescBuilder.String(), nil
 }
 
 // GetToolsByServer 获取指定服务器的所有工具（OpenAI格式）

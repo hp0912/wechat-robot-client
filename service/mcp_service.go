@@ -97,7 +97,7 @@ func (s *MCPService) GetToolsByServerID(serverID uint64) ([]*sdkmcp.Tool, error)
 
 // ExecuteToolCall 执行工具调用
 func (s *MCPService) ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
-	return s.converter.ExecuteOpenAIToolCall(s.ctx, robotCtx, toolCall)
+	return s.converter.ExecuteToolCall(s.ctx, robotCtx, toolCall)
 }
 
 // ChatWithMCPTools AI聊天（带MCP工具支持）
@@ -142,7 +142,7 @@ func (s *MCPService) ChatWithMCPTools(
 
 	// 构建包含工具描述的系统提示词
 	if len(req.Messages) > 0 && req.Messages[0].Role == openai.ChatMessageRoleSystem {
-		enhancedPrompt, err := s.converter.BuildSystemPromptWithMCPTools(s.ctx, req.Messages[0].Content)
+		enhancedPrompt, err := s.converter.BuildSystemPrompt(s.ctx, req.Messages[0].Content)
 		if err == nil {
 			req.Messages[0].Content = enhancedPrompt
 		}
