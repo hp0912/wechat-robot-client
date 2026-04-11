@@ -9,7 +9,7 @@ import (
 
 func InitAgent() error {
 	ctx := context.Background()
-	vars.Agent = service.NewMCPService(ctx, vars.DB)
+	vars.Agent = service.NewAgentService(ctx, vars.DB)
 	err := vars.Agent.Initialize()
 	if err != nil {
 		return err

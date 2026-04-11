@@ -69,14 +69,14 @@ func (m *MCPManager) Initialize() error {
 }
 
 // BuildSystemPrompt 构建包含MCP工具描述的系统提示词
-func (m *MCPManager) BuildSystemPrompt(ctx context.Context, basePrompt string) (string, error) {
+func (m *MCPManager) BuildSystemPrompt(ctx context.Context) (string, error) {
 	allTools, err := m.GetMCPTools(ctx)
 	if err != nil {
-		return basePrompt, err
+		return "", err
 	}
 
 	if len(allTools) == 0 {
-		return basePrompt, nil
+		return "", nil
 	}
 
 	intro := `你运行在一个支持 MCP（Model Context Protocol）工具的聊天应用环境中。
@@ -123,7 +123,7 @@ func (m *MCPManager) BuildSystemPrompt(ctx context.Context, basePrompt string) (
 
 	toolsDescBuilder.WriteString("调用工具时，请根据上述规则谨慎选择工具并构造参数。\n")
 
-	return basePrompt + intro + toolsDescBuilder.String(), nil
+	return intro + toolsDescBuilder.String(), nil
 }
 
 // ExecuteToolCall 执行OpenAI函数调用

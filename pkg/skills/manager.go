@@ -39,8 +39,8 @@ type SkillRecord struct {
 	InstalledAt time.Time   `json:"installed_at"`
 }
 
-// Manager Skills 管理器，负责发现、加载、激活、安装技能
-type Manager struct {
+// SkillsManager Skills 管理器，负责发现、加载、激活、安装技能
+type SkillsManager struct {
 	// 已加载的所有 Skill（name -> Skill）
 	skills map[string]*Skill
 	mu     sync.RWMutex
@@ -64,9 +64,9 @@ const ToolNameReadResource = "read_skill_resource"
 // ToolNameExecuteScript execute_skill_script 工具名称
 const ToolNameExecuteScript = "execute_skill_script"
 
-// NewManager 创建 Skills 管理器
-func NewManager(baseDir string, repo SkillRepository) *Manager {
-	return &Manager{
+// NewSkillsManager 创建 Skills 管理器
+func NewSkillsManager(baseDir string, repo SkillRepository) *SkillsManager {
+	return &SkillsManager{
 		skills:    make(map[string]*Skill),
 		baseDir:   baseDir,
 		repo:      repo,
@@ -75,7 +75,7 @@ func NewManager(baseDir string, repo SkillRepository) *Manager {
 }
 
 // Initialize 初始化管理器：扫描目录、加载所有 Skill 元数据
-func (m *Manager) Initialize() error {
+func (m *SkillsManager) Initialize() error {
 	// 确保目录存在
 	if err := os.MkdirAll(m.baseDir, 0755); err != nil {
 		return fmt.Errorf("failed to create skills directory: %w", err)
@@ -134,8 +134,12 @@ func (m *Manager) Initialize() error {
 	return nil
 }
 
+func (m *SkillsManager) Shutdown() error {
+	return nil
+}
+
 // GetAllSummaries 获取所有已启用 Skill 的摘要（用于注入 system prompt）
-func (m *Manager) GetAllSummaries() []SkillSummary {
+func (m *SkillsManager) GetAllSummaries() []SkillSummary {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -154,12 +158,12 @@ func (m *Manager) GetAllSummaries() []SkillSummary {
 
 // MatchSkills 根据用户消息匹配可能相关的 Skill 名称列表
 // 返回所有已启用 Skill 的名称，由 AI 大模型自行决定激活哪些
-func (m *Manager) MatchSkills() []SkillSummary {
+func (m *SkillsManager) MatchSkills() []SkillSummary {
 	return m.GetAllSummaries()
 }
 
 // ActivateSkill 激活 Skill：加载完整的 instructions 返回给调用方
-func (m *Manager) ActivateSkill(name string) (*Skill, error) {
+func (m *SkillsManager) ActivateSkill(name string) (*Skill, error) {
 	m.mu.RLock()
 	skill, ok := m.skills[name]
 	m.mu.RUnlock()
@@ -175,7 +179,7 @@ func (m *Manager) ActivateSkill(name string) (*Skill, error) {
 }
 
 // ReadResource 读取 Skill 中的附属资源文件
-func (m *Manager) ReadResource(skillName, relativePath string) (string, error) {
+func (m *SkillsManager) ReadResource(skillName, relativePath string) (string, error) {
 	m.mu.RLock()
 	skill, ok := m.skills[skillName]
 	m.mu.RUnlock()
@@ -188,7 +192,7 @@ func (m *Manager) ReadResource(skillName, relativePath string) (string, error) {
 }
 
 // InstallFromGit 从 Git 仓库安装 Skill
-func (m *Manager) InstallFromGit(req SkillInstallRequest) (*Skill, error) {
+func (m *SkillsManager) InstallFromGit(req SkillInstallRequest) (*Skill, error) {
 	if req.Ref == "" {
 		req.Ref = "main"
 	}
@@ -225,7 +229,7 @@ func (m *Manager) InstallFromGit(req SkillInstallRequest) (*Skill, error) {
 }
 
 // Uninstall 卸载 Skill
-func (m *Manager) Uninstall(name string) error {
+func (m *SkillsManager) Uninstall(name string) error {
 	m.mu.Lock()
 	skill, ok := m.skills[name]
 	if !ok {
@@ -250,7 +254,7 @@ func (m *Manager) Uninstall(name string) error {
 }
 
 // Enable 启用 Skill
-func (m *Manager) Enable(name string) error {
+func (m *SkillsManager) Enable(name string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -266,7 +270,7 @@ func (m *Manager) Enable(name string) error {
 }
 
 // Disable 禁用 Skill
-func (m *Manager) Disable(name string) error {
+func (m *SkillsManager) Disable(name string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -282,7 +286,7 @@ func (m *Manager) Disable(name string) error {
 }
 
 // GetSkill 获取单个 Skill 信息
-func (m *Manager) GetSkill(name string) (*Skill, bool) {
+func (m *SkillsManager) GetSkill(name string) (*Skill, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	skill, ok := m.skills[name]
@@ -290,7 +294,7 @@ func (m *Manager) GetSkill(name string) (*Skill, bool) {
 }
 
 // GetAllSkills 获取所有 Skill
-func (m *Manager) GetAllSkills() []*Skill {
+func (m *SkillsManager) GetAllSkills() []*Skill {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -305,14 +309,14 @@ func (m *Manager) GetAllSkills() []*Skill {
 }
 
 // GetSkillCount 获取已加载的 Skill 数量
-func (m *Manager) GetSkillCount() int {
+func (m *SkillsManager) GetSkillCount() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return len(m.skills)
 }
 
 // BuildSystemPrompt 构建注入到 system prompt 中的 Skills 部分
-func (m *Manager) BuildSystemPrompt() string {
+func (m *SkillsManager) BuildSystemPrompt() string {
 	summaries := m.GetAllSummaries()
 	if len(summaries) == 0 {
 		return ""
@@ -341,7 +345,7 @@ func (m *Manager) BuildSystemPrompt() string {
 }
 
 // GetOpenAITools 返回 Skills 相关的 OpenAI Tool 定义
-func (m *Manager) GetOpenAITools() []openai.Tool {
+func (m *SkillsManager) GetOpenAITools() []openai.Tool {
 	summaries := m.GetAllSummaries()
 	if len(summaries) == 0 {
 		return nil
@@ -424,12 +428,12 @@ func (m *Manager) GetOpenAITools() []openai.Tool {
 }
 
 // IsSkillTool 判断工具调用是否是 Skills 引擎的工具
-func (m *Manager) IsSkillTool(toolName string) bool {
+func (m *SkillsManager) IsSkillTool(toolName string) bool {
 	return toolName == ToolNameActivate || toolName == ToolNameReadResource || toolName == ToolNameExecuteScript
 }
 
 // ExecuteToolCall 执行 Skills 工具调用，返回结果字符串
-func (m *Manager) ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, error) {
+func (m *SkillsManager) ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, error) {
 	switch toolCall.Function.Name {
 	case ToolNameActivate:
 		return m.executeActivate(toolCall.Function.Arguments)
@@ -443,7 +447,7 @@ func (m *Manager) ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall opena
 }
 
 // executeActivate 执行 activate_skill
-func (m *Manager) executeActivate(argsJSON string) (string, error) {
+func (m *SkillsManager) executeActivate(argsJSON string) (string, error) {
 	var args struct {
 		SkillName string `json:"skill_name"`
 	}
@@ -476,7 +480,7 @@ func (m *Manager) executeActivate(argsJSON string) (string, error) {
 }
 
 // executeReadResource 执行 read_skill_resource
-func (m *Manager) executeReadResource(argsJSON string) (string, error) {
+func (m *SkillsManager) executeReadResource(argsJSON string) (string, error) {
 	var args struct {
 		SkillName string `json:"skill_name"`
 		FilePath  string `json:"file_path"`
@@ -495,7 +499,7 @@ func (m *Manager) executeReadResource(argsJSON string) (string, error) {
 }
 
 // executeScript 执行 execute_skill_script
-func (m *Manager) executeScript(robotCtx robotctx.RobotContext, argsJSON string) (string, error) {
+func (m *SkillsManager) executeScript(robotCtx robotctx.RobotContext, argsJSON string) (string, error) {
 	var args struct {
 		SkillName  string `json:"skill_name"`
 		ScriptPath string `json:"script_path"`
@@ -584,14 +588,14 @@ func (m *Manager) executeScript(robotCtx robotctx.RobotContext, argsJSON string)
 }
 
 // syncToDB 将所有内存中的 Skill 同步到数据库
-func (m *Manager) syncToDB() {
+func (m *SkillsManager) syncToDB() {
 	for _, skill := range m.skills {
 		m.saveSkillToDB(skill)
 	}
 }
 
 // saveSkillToDB 将单个 Skill 保存到数据库
-func (m *Manager) saveSkillToDB(skill *Skill) {
+func (m *SkillsManager) saveSkillToDB(skill *Skill) {
 	record := SkillRecord{
 		Name:        skill.Name,
 		Path:        skill.Path,
@@ -606,7 +610,7 @@ func (m *Manager) saveSkillToDB(skill *Skill) {
 }
 
 // SetEnvVars 设置 Skill 的环境变量
-func (m *Manager) SetEnvVars(name string, envVars []EnvVar) error {
+func (m *SkillsManager) SetEnvVars(name string, envVars []EnvVar) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -621,7 +625,7 @@ func (m *Manager) SetEnvVars(name string, envVars []EnvVar) error {
 }
 
 // UpdateSkill 热更新 Skill（从 Git 重新拉取最新版本）
-func (m *Manager) UpdateSkill(name string) (*Skill, error) {
+func (m *SkillsManager) UpdateSkill(name string) (*Skill, error) {
 	m.mu.RLock()
 	existing, ok := m.skills[name]
 	m.mu.RUnlock()

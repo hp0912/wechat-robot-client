@@ -139,7 +139,7 @@ func (s *AIChatService) Chat(robotCtx robotctx.RobotContext, aiMessages []openai
 
 	aiStart := time.Now()
 
-	reply, err := vars.Agent.ChatWithMCPTools(robotCtx, client, req, 0, toolBinding.Tools...)
+	reply, err := vars.Agent.ChatWithTools(robotCtx, client, req)
 
 	log.Printf("[AI] 接口调用耗时: %v", time.Since(aiStart))
 

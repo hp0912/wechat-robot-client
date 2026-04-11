@@ -17,7 +17,7 @@ import (
 
 // SkillService Skills 技能管理服务
 type SkillService struct {
-	manager *skills.Manager
+	manager *skills.SkillsManager
 }
 
 // 确保实现接口
@@ -25,8 +25,8 @@ var _ ai.SkillService = (*SkillService)(nil)
 
 // NewSkillService 创建 Skills 服务
 func NewSkillService(skillsDir string, db *gorm.DB) *SkillService {
-	repo := newSkillRepoAdapter(db)
-	manager := skills.NewManager(skillsDir, repo)
+	repo := NewSkillRepoAdapter(db)
+	manager := skills.NewSkillsManager(skillsDir, repo)
 	return &SkillService{
 		manager: manager,
 	}
@@ -39,7 +39,7 @@ func (s *SkillService) Initialize() error {
 }
 
 // GetManager 获取 Manager
-func (s *SkillService) GetManager() *skills.Manager {
+func (s *SkillService) GetManager() *skills.SkillsManager {
 	return s.manager
 }
 
@@ -96,16 +96,16 @@ func (s *SkillService) SetEnvVars(name string, envVars []skills.EnvVar) error {
 	return s.manager.SetEnvVars(name, envVars)
 }
 
-// skillRepoAdapter 将 repository.SkillRepo 适配为 skills.SkillRepository 接口
-type skillRepoAdapter struct {
+// SkillRepoAdapter 将 repository.SkillRepo 适配为 skills.SkillRepository 接口
+type SkillRepoAdapter struct {
 	db *gorm.DB
 }
 
-func newSkillRepoAdapter(db *gorm.DB) *skillRepoAdapter {
-	return &skillRepoAdapter{db: db}
+func NewSkillRepoAdapter(db *gorm.DB) *SkillRepoAdapter {
+	return &SkillRepoAdapter{db: db}
 }
 
-func (a *skillRepoAdapter) FindAll() ([]skills.SkillRecord, error) {
+func (a *SkillRepoAdapter) FindAll() ([]skills.SkillRecord, error) {
 	repo := repository.NewSkillRepo(context.Background(), a.db)
 	models, err := repo.FindAll()
 	if err != nil {
@@ -125,7 +125,7 @@ func (a *skillRepoAdapter) FindAll() ([]skills.SkillRecord, error) {
 	return records, nil
 }
 
-func (a *skillRepoAdapter) Upsert(record skills.SkillRecord) error {
+func (a *SkillRepoAdapter) Upsert(record skills.SkillRecord) error {
 	repo := repository.NewSkillRepo(context.Background(), a.db)
 	enabled := record.Enabled
 	installedAt := record.InstalledAt
@@ -154,7 +154,7 @@ func (a *skillRepoAdapter) Upsert(record skills.SkillRecord) error {
 	return repo.Create(m)
 }
 
-func (a *skillRepoAdapter) Delete(name string) error {
+func (a *SkillRepoAdapter) Delete(name string) error {
 	repo := repository.NewSkillRepo(context.Background(), a.db)
 	return repo.Delete(name)
 }

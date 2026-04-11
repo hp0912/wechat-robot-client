@@ -57,14 +57,10 @@ func main() {
 		}
 		return nil
 	})
-	// 初始化MCP服务
+	// 初始化 Agent
 	err := startup.InitAgent()
 	if err != nil {
-		log.Fatalf("初始化MCP服务失败: %v", err)
-	}
-	// 初始化Skills服务
-	if err := startup.InitSkillService(); err != nil {
-		log.Printf("[Skills] 初始化Skills服务失败（非致命）: %v", err)
+		log.Fatalf("初始化 Agent 失败: %v", err)
 	}
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))

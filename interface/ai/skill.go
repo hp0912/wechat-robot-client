@@ -9,7 +9,7 @@ type SkillService interface {
 	// Initialize 初始化 Skills 服务
 	Initialize() error
 	// GetManager 获取 Skills Manager
-	GetManager() *skills.Manager
+	GetManager() *skills.SkillsManager
 	// InstallSkill 从 Git 仓库安装 Skill
 	InstallSkill(req skills.SkillInstallRequest) (*skills.Skill, error)
 	// InstallSkillFromURL 从 GitHub URL 安装 Skill
