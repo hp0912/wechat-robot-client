@@ -4,15 +4,16 @@ import "fmt"
 
 // RobotContext 在工具调用入参中透传的机器人上下文
 type RobotContext struct {
-	WeChatClientPort string
-	RobotID          int64
-	RobotCode        string
-	RobotRedisDB     uint
-	RobotWxID        string
-	FromWxID         string
-	SenderWxID       string
-	MessageID        int64
-	RefMessageID     int64
+	WeChatClientPort   string
+	RobotID            int64
+	RobotCode          string
+	RobotRedisDB       uint
+	RobotWxID          string
+	FromWxID           string
+	SenderWxID         string
+	MessageID          int64
+	RefMessageID       int64
+	KnowledgeBaseCodes []string
 }
 
 // ToEnvVars 将 RobotContext 转换为环境变量键值对

@@ -9,25 +9,21 @@ import (
 
 	"github.com/sashabaranov/go-openai"
 
-	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/interface/settings"
-	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robotctx"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
 )
 
 type AIChatService struct {
-	ctx                 context.Context
-	config              settings.Settings
-	toolBindingRegistry ai.ToolBindingRegistry
+	ctx    context.Context
+	config settings.Settings
 }
 
 func NewAIChatService(ctx context.Context, config settings.Settings) *AIChatService {
 	return &AIChatService{
-		ctx:                 ctx,
-		config:              config,
-		toolBindingRegistry: NewToolBindingRegistry(NewKnowledgeToolBindingProvider()),
+		ctx:    ctx,
+		config: config,
 	}
 }
 
@@ -83,30 +79,6 @@ func (s *AIChatService) Chat(robotCtx robotctx.RobotContext, aiMessages []openai
 	}
 	if aiConfig.MaxCompletionTokens > 0 {
 		systemMessage.Content += fmt.Sprintf("\n\n请注意，每次回答不能超过%d个汉字。", aiConfig.MaxCompletionTokens)
-	}
-
-	// 预先查询群聊设置，供后续 ToolBindingProvider 复用，避免重复查库
-	var chatRoomSettings *model.ChatRoomSettings
-	if chatRoomID != "" {
-		crsRepo := repository.NewChatRoomSettingsRepo(s.ctx, vars.DB)
-		if settings, err := crsRepo.GetChatRoomSettings(chatRoomID); err == nil {
-			chatRoomSettings = settings
-		}
-	}
-
-	// 群聊知识库：按群聊绑定关系统一构建提示词和本地工具
-	toolBinding := ai.ToolBinding{}
-	if s.toolBindingRegistry != nil {
-		toolBinding = s.toolBindingRegistry.BuildToolBinding(s.ctx, ai.ToolBindingContext{
-			RobotContext:     robotCtx,
-			ChatRoomID:       chatRoomID,
-			ContactWxID:      contactWxID,
-			LastUserQuery:    lastUserQuery,
-			ChatRoomSettings: chatRoomSettings,
-		})
-		if toolBinding.Prompt != "" {
-			systemMessage.Content += toolBinding.Prompt
-		}
 	}
 
 	// 群聊上下文注入：独立 system 消息置于主 system prompt 之后、对话历史之前

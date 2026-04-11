@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"wechat-robot-client/pkg/robotctx"
-
-	"gorm.io/gorm"
 
 	"github.com/sashabaranov/go-openai"
+	"gorm.io/gorm"
+
+	"wechat-robot-client/interface/ai"
+	"wechat-robot-client/pkg/robotctx"
 )
 
 type OpenAITool interface {
@@ -18,20 +19,22 @@ type OpenAITool interface {
 }
 
 type OpenAIToolsManager struct {
-	db    *gorm.DB
-	tools map[string]OpenAITool
+	db               *gorm.DB
+	tools            map[string]OpenAITool
+	KnowledgeService ai.KnowledgeService
 }
 
 // NewOpenAIToolsManager 创建 OpenAITools 管理器
-func NewOpenAIToolsManager(db *gorm.DB) *OpenAIToolsManager {
+func NewOpenAIToolsManager(db *gorm.DB, knowledgeService ai.KnowledgeService) *OpenAIToolsManager {
 	return &OpenAIToolsManager{
-		db:    db,
-		tools: make(map[string]OpenAITool),
+		db:               db,
+		tools:            make(map[string]OpenAITool),
+		KnowledgeService: knowledgeService,
 	}
 }
 
 func (m *OpenAIToolsManager) Initialize() error {
-	m.tools["search_knowledge"] = NewSearchKnowledgeTool()
+	m.tools["search_knowledge"] = NewSearchKnowledgeTool(m.KnowledgeService)
 	return nil
 }
 

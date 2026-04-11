@@ -28,11 +28,11 @@ type AgentService struct {
 
 var _ ai.AgentService = (*AgentService)(nil)
 
-func NewAgentService(ctx context.Context, db *gorm.DB) *AgentService {
+func NewAgentService(ctx context.Context, db *gorm.DB, knowledgeService ai.KnowledgeService) *AgentService {
 	skillsRepo := NewSkillRepoAdapter(db)
 	mcpManager := mcp.NewMCPManager(db)
 	skillsManager := skills.NewSkillsManager(vars.SkillsDir, skillsRepo)
-	internalToolsManager := openaitools.NewOpenAIToolsManager(db)
+	internalToolsManager := openaitools.NewOpenAIToolsManager(db, knowledgeService)
 
 	return &AgentService{
 		ctx:                  ctx,
