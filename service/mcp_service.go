@@ -24,7 +24,6 @@ type MCPService struct {
 	ctx           context.Context
 	db            *gorm.DB
 	manager       *mcp.MCPManager
-	converter     *mcp.MCPToolConverter
 	mcpServerRepo *repository.MCPServer
 }
 
@@ -32,14 +31,12 @@ var _ ai.MCPService = (*MCPService)(nil)
 
 func NewMCPService(ctx context.Context, db *gorm.DB) *MCPService {
 	manager := mcp.NewMCPManager(db)
-	converter := mcp.NewMCPToolConverter(manager)
 	repo := repository.NewMCPServerRepo(ctx, db)
 
 	return &MCPService{
 		ctx:           ctx,
 		db:            db,
 		manager:       manager,
-		converter:     converter,
 		mcpServerRepo: repo,
 	}
 }
@@ -59,7 +56,7 @@ func (s *MCPService) Shutdown(ctx context.Context) error {
 
 // GetAllTools 获取所有可用工具（OpenAI格式）
 func (s *MCPService) GetAllTools() ([]openai.Tool, error) {
-	return s.converter.ConvertMCPToolsToOpenAI(s.ctx)
+	return s.manager.GetOpenAITools(s.ctx)
 }
 
 // GetToolsByServerID 获取指定MCP服务器提供的工具列表（MCP SDK原始格式）
