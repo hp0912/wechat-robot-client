@@ -10,8 +10,6 @@ type SkillService interface {
 	Initialize() error
 	// GetManager 获取 Skills Manager
 	GetManager() *skills.Manager
-	// GetExecutor 获取 Skills 工具执行器
-	GetExecutor() *skills.SkillToolExecutor
 	// InstallSkill 从 Git 仓库安装 Skill
 	InstallSkill(req skills.SkillInstallRequest) (*skills.Skill, error)
 	// InstallSkillFromURL 从 GitHub URL 安装 Skill

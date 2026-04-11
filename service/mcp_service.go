@@ -111,10 +111,10 @@ func (s *MCPService) ChatWithMCPTools(
 	}
 
 	// 获取 Skills 工具（如果 SkillService 已初始化）
-	var skillExecutor *skills.SkillToolExecutor
+	var skillManager *skills.Manager
 	if vars.SkillService != nil {
-		skillExecutor = vars.SkillService.GetExecutor()
-		skillTools := skillExecutor.GetOpenAITools()
+		skillManager = vars.SkillService.GetManager()
+		skillTools := skillManager.GetOpenAITools()
 		tools = append(tools, skillTools...)
 	}
 
@@ -140,7 +140,7 @@ func (s *MCPService) ChatWithMCPTools(
 		}
 		// 追加 Skills 部分到系统提示词
 		if vars.SkillService != nil {
-			skillsSection := vars.SkillService.GetManager().BuildSystemPromptSkillsSection()
+			skillsSection := vars.SkillService.GetManager().BuildSystemPrompt()
 			if skillsSection != "" {
 				req.Messages[0].Content += skillsSection
 			}
@@ -175,8 +175,8 @@ func (s *MCPService) ChatWithMCPTools(
 			// 判断是否为额外内置工具调用
 			if handler, ok := extraToolMap[toolCall.Function.Name]; ok {
 				result, immediately, err = handler(toolCall)
-			} else if skillExecutor != nil && skillExecutor.IsSkillTool(toolCall.Function.Name) {
-				result, err = skillExecutor.ExecuteToolCall(robotCtx, toolCall)
+			} else if skillManager != nil && skillManager.IsSkillTool(toolCall.Function.Name) {
+				result, err = skillManager.ExecuteToolCall(robotCtx, toolCall)
 				immediately = result == vars.AIEnded || strings.HasSuffix(result, "\n"+vars.AIEnded)
 				if immediately {
 					result = vars.AIEnded

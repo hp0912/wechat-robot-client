@@ -1,5 +1,7 @@
 package utils
 
+import "time"
+
 // 常用的基本类型转指针，指针转基本类型工具函数
 
 // StringPtr returns a pointer to the given string.
@@ -247,4 +249,12 @@ func PtrBoolValue(b *bool) bool {
 		return false
 	}
 	return *b
+}
+
+// PtrTimeValue safely dereferences a *time.Time pointer
+func PtrTimeValue(t *time.Time) time.Time {
+	if t != nil {
+		return *t
+	}
+	return time.Time{}
 }

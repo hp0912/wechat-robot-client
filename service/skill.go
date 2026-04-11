@@ -12,12 +12,12 @@ import (
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/skills"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 )
 
 // SkillService Skills 技能管理服务
 type SkillService struct {
-	manager  *skills.Manager
-	executor *skills.SkillToolExecutor
+	manager *skills.Manager
 }
 
 // 确保实现接口
@@ -27,10 +27,8 @@ var _ ai.SkillService = (*SkillService)(nil)
 func NewSkillService(skillsDir string, db *gorm.DB) *SkillService {
 	repo := newSkillRepoAdapter(db)
 	manager := skills.NewManager(skillsDir, repo)
-	executor := skills.NewSkillToolExecutor(manager)
 	return &SkillService{
-		manager:  manager,
-		executor: executor,
+		manager: manager,
 	}
 }
 
@@ -43,11 +41,6 @@ func (s *SkillService) Initialize() error {
 // GetManager 获取 Manager
 func (s *SkillService) GetManager() *skills.Manager {
 	return s.manager
-}
-
-// GetExecutor 获取 SkillToolExecutor
-func (s *SkillService) GetExecutor() *skills.SkillToolExecutor {
-	return s.executor
 }
 
 // InstallSkill 从 Git 仓库安装 Skill
@@ -126,7 +119,7 @@ func (a *skillRepoAdapter) FindAll() ([]skills.SkillRecord, error) {
 			Enabled:     m.IsEnabled(),
 			Source:      repository.ToSkillSource(m),
 			EnvVars:     repository.ToSkillEnvVars(m),
-			InstalledAt: ptrTimeVal(m.InstalledAt),
+			InstalledAt: utils.PtrTimeValue(m.InstalledAt),
 		})
 	}
 	return records, nil
@@ -164,12 +157,4 @@ func (a *skillRepoAdapter) Upsert(record skills.SkillRecord) error {
 func (a *skillRepoAdapter) Delete(name string) error {
 	repo := repository.NewSkillRepo(context.Background(), a.db)
 	return repo.Delete(name)
-}
-
-// ptrTimeVal safely dereferences a *time.Time pointer
-func ptrTimeVal(t *time.Time) time.Time {
-	if t != nil {
-		return *t
-	}
-	return time.Time{}
 }
