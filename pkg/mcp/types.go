@@ -32,9 +32,3 @@ type MCPConnectionStats struct {
 	AverageLatency time.Duration `json:"averageLatency"`
 	IsConnected    bool          `json:"isConnected"`
 }
-
-// MessageSender 发送微信消息的适配器
-type MessageSender interface {
-	SendTextMessage(toWxID, content string, at ...string) error
-	SendAppMessage(toWxID string, appMsgType int, appMsgXml string) error
-}

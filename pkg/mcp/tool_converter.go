@@ -15,15 +15,13 @@ import (
 
 // MCPToolConverter MCP工具到OpenAI工具格式的转换器
 type MCPToolConverter struct {
-	manager       *MCPManager
-	messageSender MessageSender
+	manager *MCPManager
 }
 
 // NewMCPToolConverter 创建转换器
-func NewMCPToolConverter(manager *MCPManager, messageSender MessageSender) *MCPToolConverter {
+func NewMCPToolConverter(manager *MCPManager) *MCPToolConverter {
 	return &MCPToolConverter{
-		manager:       manager,
-		messageSender: messageSender,
+		manager: manager,
 	}
 }
 
