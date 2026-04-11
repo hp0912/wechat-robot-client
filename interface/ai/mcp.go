@@ -16,7 +16,6 @@ type MCPService interface {
 	Initialize() error
 	Shutdown(ctx context.Context) error
 	GetAllTools() ([]openai.Tool, error)
-	GetToolsByServerName(serverName string) ([]openai.Tool, error)
 	GetToolsByServerID(serverID uint64) ([]*sdkmcp.Tool, error)
 	ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error)
 	ChatWithMCPTools(

@@ -62,11 +62,6 @@ func (s *MCPService) GetAllTools() ([]openai.Tool, error) {
 	return s.converter.ConvertMCPToolsToOpenAI(s.ctx)
 }
 
-// GetToolsByServerName 获取指定服务器的工具
-func (s *MCPService) GetToolsByServerName(serverName string) ([]openai.Tool, error) {
-	return s.converter.GetToolsByServer(s.ctx, serverName)
-}
-
 // GetToolsByServerID 获取指定MCP服务器提供的工具列表（MCP SDK原始格式）
 func (s *MCPService) GetToolsByServerID(serverID uint64) ([]*sdkmcp.Tool, error) {
 	// 检查服务器是否存在且已启用
@@ -97,7 +92,7 @@ func (s *MCPService) GetToolsByServerID(serverID uint64) ([]*sdkmcp.Tool, error)
 
 // ExecuteToolCall 执行工具调用
 func (s *MCPService) ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
-	return s.converter.ExecuteToolCall(s.ctx, robotCtx, toolCall)
+	return s.manager.ExecuteToolCall(s.ctx, robotCtx, toolCall)
 }
 
 // ChatWithMCPTools AI聊天（带MCP工具支持）
@@ -142,7 +137,7 @@ func (s *MCPService) ChatWithMCPTools(
 
 	// 构建包含工具描述的系统提示词
 	if len(req.Messages) > 0 && req.Messages[0].Role == openai.ChatMessageRoleSystem {
-		enhancedPrompt, err := s.converter.BuildSystemPrompt(s.ctx, req.Messages[0].Content)
+		enhancedPrompt, err := s.manager.BuildSystemPrompt(s.ctx, req.Messages[0].Content)
 		if err == nil {
 			req.Messages[0].Content = enhancedPrompt
 		}

@@ -58,7 +58,7 @@ func main() {
 		return nil
 	})
 	// 初始化MCP服务
-	err := startup.InitMCPService()
+	err := startup.InitAgent()
 	if err != nil {
 		log.Fatalf("初始化MCP服务失败: %v", err)
 	}
@@ -85,7 +85,7 @@ func main() {
 	shutdownManager.Register(redisConn)
 	shutdownManager.Register(vars.RobotRuntime)
 	shutdownManager.Register(vars.CronManager)
-	shutdownManager.Register(vars.MCPService)
+	shutdownManager.Register(vars.Agent)
 	// 开始监听停止信号
 	shutdownManager.Start()
 	// 启动服务

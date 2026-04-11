@@ -97,23 +97,23 @@ func (s *MCPServerService) UpdateMCPServer(mcpServer *model.MCPServer) error {
 		return err
 	}
 	if server.Enabled != nil && *server.Enabled {
-		return vars.MCPService.ReloadServer(mcpServer.ID)
+		return vars.Agent.ReloadServer(mcpServer.ID)
 	}
 	return nil
 }
 
 func (s *MCPServerService) EnableMCPServer(id uint64) error {
-	if vars.MCPService == nil {
+	if vars.Agent == nil {
 		return fmt.Errorf("MCP服务未初始化")
 	}
-	return vars.MCPService.EnableServer(id)
+	return vars.Agent.EnableServer(id)
 }
 
 func (s *MCPServerService) DisableMCPServer(id uint64) error {
-	if vars.MCPService == nil {
+	if vars.Agent == nil {
 		return fmt.Errorf("MCP服务未初始化")
 	}
-	return vars.MCPService.DisableServer(id)
+	return vars.Agent.DisableServer(id)
 }
 
 func (s *MCPServerService) DeleteMCPServer(mcpServer *model.MCPServer) error {
@@ -130,8 +130,8 @@ func (s *MCPServerService) DeleteMCPServer(mcpServer *model.MCPServer) error {
 	if currentMCPServer.IsBuiltIn != nil && *currentMCPServer.IsBuiltIn {
 		return fmt.Errorf("内置MCP服务器不允许删除")
 	}
-	if vars.MCPService != nil {
-		if err := vars.MCPService.RemoveServer(mcpServer.ID); err != nil {
+	if vars.Agent != nil {
+		if err := vars.Agent.RemoveServer(mcpServer.ID); err != nil {
 			fmt.Printf("停止MCP服务器时出错（将继续删除）: %v\n", err)
 		}
 	}
@@ -140,8 +140,8 @@ func (s *MCPServerService) DeleteMCPServer(mcpServer *model.MCPServer) error {
 }
 
 func (s *MCPServerService) GetMCPServerTools(id uint64) ([]*sdkmcp.Tool, error) {
-	if vars.MCPService == nil {
+	if vars.Agent == nil {
 		return nil, fmt.Errorf("MCP服务未初始化")
 	}
-	return vars.MCPService.GetToolsByServerID(id)
+	return vars.Agent.GetToolsByServerID(id)
 }

@@ -35,7 +35,7 @@ var RobotStartTimeout time.Duration
 // 机器人运行时实例
 var RobotRuntime = &robot.Robot{}
 
-var MCPService ai.MCPService
+var Agent ai.MCPService
 
 var SkillsDir string
 var SkillService ai.SkillService

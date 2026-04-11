@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -299,26 +300,26 @@ func (m *Manager) BuildSystemPromptSkillsSection() string {
 		return ""
 	}
 
-	var sb []byte
-	sb = append(sb, "\n\n<available_skills>\n"...)
+	var sb strings.Builder
+	sb.WriteString("\n\n<available_skills>\n")
 
 	for _, s := range summaries {
-		sb = append(sb, fmt.Sprintf(`  <skill>
-    <name>%s</name>
-    <description>%s</description>
-  </skill>
-`, s.Name, s.Description)...)
+		sb.WriteString("  <skill>\n    <name>")
+		sb.WriteString(s.Name)
+		sb.WriteString("</name>\n    <description>")
+		sb.WriteString(s.Description)
+		sb.WriteString("</description>\n  </skill>\n")
 	}
 
-	sb = append(sb, `</available_skills>
+	sb.WriteString(`</available_skills>
 
 当你判断用户的任务与某个 Skill 相关时，请调用 activate_skill 工具来加载该 Skill 的完整指令。
 加载后请严格按照 Skill 指令执行任务。
 如果需要读取 Skill 附带的资源文件（如 scripts/、references/ 等），请调用 read_skill_resource 工具。
 如果 Skill 指令要求运行脚本（如 Python/Shell 脚本），请调用 execute_skill_script 工具执行。
-`...)
+`)
 
-	return string(sb)
+	return sb.String()
 }
 
 // BuildSkillTools 构建 Skills 相关的 OpenAI Function Tools 定义
