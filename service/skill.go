@@ -3,12 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"gorm.io/gorm"
 
-	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/skills"
 	"wechat-robot-client/repository"
@@ -20,9 +18,6 @@ type SkillService struct {
 	manager *skills.SkillsManager
 }
 
-// 确保实现接口
-var _ ai.SkillService = (*SkillService)(nil)
-
 // NewSkillService 创建 Skills 服务
 func NewSkillService(skillsDir string, db *gorm.DB) *SkillService {
 	repo := NewSkillRepoAdapter(db)
@@ -30,17 +25,6 @@ func NewSkillService(skillsDir string, db *gorm.DB) *SkillService {
 	return &SkillService{
 		manager: manager,
 	}
-}
-
-// Initialize 初始化 Skills 服务
-func (s *SkillService) Initialize() error {
-	log.Println("Initializing Skills Service...")
-	return s.manager.Initialize()
-}
-
-// GetManager 获取 Manager
-func (s *SkillService) GetManager() *skills.SkillsManager {
-	return s.manager
 }
 
 // InstallSkill 从 Git 仓库安装 Skill

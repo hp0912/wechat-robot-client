@@ -39,7 +39,6 @@ var MaxToolsIterations = 25
 var Agent ai.AgentService
 
 var SkillsDir string
-var SkillService ai.SkillService
 
 // Qdrant 客户端
 var QdrantClient *qdrantx.QdrantClient

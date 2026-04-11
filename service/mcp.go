@@ -23,7 +23,7 @@ type MCPService struct {
 	mcpServerRepo *repository.MCPServer
 }
 
-func NewMCPServerService(ctx context.Context) *MCPService {
+func NewMCPService(ctx context.Context) *MCPService {
 	manager := mcp.NewMCPManager(vars.DB)
 	return &MCPService{
 		ctx:           ctx,
