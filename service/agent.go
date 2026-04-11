@@ -12,16 +12,18 @@ import (
 
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/pkg/mcp"
+	openaitools "wechat-robot-client/pkg/openai_tools"
 	"wechat-robot-client/pkg/robotctx"
 	"wechat-robot-client/pkg/skills"
 	"wechat-robot-client/vars"
 )
 
 type AgentService struct {
-	ctx           context.Context
-	db            *gorm.DB
-	mcpManager    *mcp.MCPManager
-	skillsManager *skills.SkillsManager
+	ctx                  context.Context
+	db                   *gorm.DB
+	mcpManager           *mcp.MCPManager
+	skillsManager        *skills.SkillsManager
+	internalToolsManager *openaitools.OpenAIToolsManager
 }
 
 var _ ai.AgentService = (*AgentService)(nil)
@@ -30,12 +32,14 @@ func NewAgentService(ctx context.Context, db *gorm.DB) *AgentService {
 	skillsRepo := NewSkillRepoAdapter(db)
 	mcpManager := mcp.NewMCPManager(db)
 	skillsManager := skills.NewSkillsManager(vars.SkillsDir, skillsRepo)
+	internalToolsManager := openaitools.NewOpenAIToolsManager(db)
 
 	return &AgentService{
-		ctx:           ctx,
-		db:            db,
-		mcpManager:    mcpManager,
-		skillsManager: skillsManager,
+		ctx:                  ctx,
+		db:                   db,
+		mcpManager:           mcpManager,
+		skillsManager:        skillsManager,
+		internalToolsManager: internalToolsManager,
 	}
 }
 
@@ -44,8 +48,13 @@ func (s *AgentService) Name() string {
 }
 
 func (s *AgentService) Initialize() error {
-	log.Println("Initializing MCP Service...")
-	err := s.mcpManager.Initialize()
+	log.Println("Initializing internal Tools Manager...")
+	err := s.internalToolsManager.Initialize()
+	if err != nil {
+		return err
+	}
+	log.Println("Initializing MCP Manager...")
+	err = s.mcpManager.Initialize()
 	if err != nil {
 		return err
 	}
@@ -54,8 +63,12 @@ func (s *AgentService) Initialize() error {
 }
 
 func (s *AgentService) Shutdown(ctx context.Context) error {
+	internalToolsErr := s.internalToolsManager.Shutdown()
 	mcpErr := s.mcpManager.Shutdown()
 	skillsErr := s.skillsManager.Shutdown()
+	if internalToolsErr != nil {
+		log.Printf("Error shutting down Internal Tools Manager: %v\n", internalToolsErr)
+	}
 	if mcpErr != nil {
 		log.Printf("Error shutting down MCP Manager: %v\n", mcpErr)
 	}
@@ -68,6 +81,9 @@ func (s *AgentService) Shutdown(ctx context.Context) error {
 // GetAllTools 获取所有可用工具（OpenAI格式）
 func (s *AgentService) GetAllTools() ([]openai.Tool, error) {
 	var tools []openai.Tool
+	// 从内部工具管理器获取工具
+	internalTools := s.internalToolsManager.GetOpenAITools()
+	tools = append(tools, internalTools...)
 	// 从MCP获取工具
 	mcpTools, err := s.mcpManager.GetOpenAITools(s.ctx)
 	if err != nil {
@@ -81,23 +97,26 @@ func (s *AgentService) GetAllTools() ([]openai.Tool, error) {
 }
 
 // BuildSystemPrompt 构建包含工具描述的系统提示词
-func (s *AgentService) BuildSystemPrompt(ctx context.Context) (string, error) {
+func (s *AgentService) BuildSystemPrompt(ctx context.Context, robotCtx robotctx.RobotContext) (string, error) {
 	var sb strings.Builder
+
+	internalToolsPrompt, err := s.internalToolsManager.BuildSystemPrompt(ctx, robotCtx)
+	if err != nil {
+		return "", fmt.Errorf("failed to build internal tools system prompt: %w", err)
+	}
+	sb.WriteString(internalToolsPrompt)
+	sb.WriteString("\n\n")
 
 	mcpPrompt, err := s.mcpManager.BuildSystemPrompt(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to build MCP system prompt: %w", err)
 	}
 	sb.WriteString(mcpPrompt)
-	sb.WriteString("\n")
+	sb.WriteString("\n\n")
 	skillsPrompt := s.skillsManager.BuildSystemPrompt()
 	sb.WriteString(skillsPrompt)
 
 	return sb.String(), nil
-}
-
-func (s *AgentService) ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
-	return s.mcpManager.ExecuteToolCall(s.ctx, robotCtx, toolCall)
 }
 
 func (s *AgentService) ChatWithTools(
@@ -122,13 +141,13 @@ func (s *AgentService) ChatWithTools(
 
 	// 构建包含工具描述的系统提示词
 	if req.Messages[0].Role == openai.ChatMessageRoleSystem {
-		toolsPrompt, err := s.BuildSystemPrompt(s.ctx)
+		toolsPrompt, err := s.BuildSystemPrompt(s.ctx, robotCtx)
 		if err != nil {
 			return openai.ChatCompletionMessage{}, fmt.Errorf("failed to build system prompt: %w", err)
 		}
 		req.Messages[0].Content += "\n" + toolsPrompt
 	} else {
-		toolsPrompt, err := s.BuildSystemPrompt(s.ctx)
+		toolsPrompt, err := s.BuildSystemPrompt(s.ctx, robotCtx)
 		if err != nil {
 			return openai.ChatCompletionMessage{}, fmt.Errorf("failed to build system prompt: %w", err)
 		}
@@ -173,9 +192,12 @@ func (s *AgentService) ChatWithTools(
 				if toolCall.Function.Name == "execute_skill_script" {
 					log.Printf("工具[%s]执行结果:\n%s\n", toolCall.Function.Name, result)
 				}
+			} else if s.internalToolsManager.IsOpenAITool(toolCall.Function.Name) {
+				// 内部工具调用
+				result, immediately, err = s.internalToolsManager.ExecuteToolCall(s.ctx, robotCtx, toolCall)
 			} else {
 				// MCP 工具调用
-				result, immediately, err = s.ExecuteToolCall(robotCtx, toolCall)
+				result, immediately, err = s.mcpManager.ExecuteToolCall(s.ctx, robotCtx, toolCall)
 			}
 
 			if err == nil {

@@ -13,7 +13,6 @@ type AgentService interface {
 	Initialize() error
 	Shutdown(ctx context.Context) error
 	GetAllTools() ([]openai.Tool, error)
-	ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error)
 	ChatWithTools(
 		robotCtx robotctx.RobotContext,
 		client *openai.Client,
