@@ -55,14 +55,16 @@ func (c *StdioClient) Connect(ctx context.Context) error {
 		}()
 	}
 
+	// 追加自定义环境变量
+	envList := os.Environ()
+
 	if env, err := c.config.GetEnv(); err == nil && len(env) > 0 {
-		// 追加自定义环境变量
-		envList := os.Environ()
 		for k, v := range env {
 			envList = append(envList, k+"="+v)
 		}
-		cmd.Env = envList
 	}
+
+	cmd.Env = envList
 
 	stdinPipe, err := cmd.StdinPipe()
 	if err != nil {
@@ -75,6 +77,7 @@ func (c *StdioClient) Connect(ctx context.Context) error {
 
 	go func() {
 		if err := cmd.Wait(); err != nil {
+			c.Disconnect()
 			log.Printf("[mcp-stdio][%s] process exited: %v", c.config.Name, err)
 		}
 	}()
@@ -87,8 +90,10 @@ func (c *StdioClient) Connect(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	c.session = sess
 	c.setConnected(true)
+
 	return nil
 }
 
@@ -108,6 +113,7 @@ func (c *StdioClient) Initialize(ctx context.Context) (*MCPServerInfo, error) {
 	if !c.IsConnected() {
 		return nil, ErrNotConnected
 	}
+
 	cap := MCPCapabilities{}
 	if _, err := c.session.ListTools(ctx, &sdkmcp.ListToolsParams{}); err == nil {
 		cap.Tools = true
@@ -125,6 +131,7 @@ func (c *StdioClient) Initialize(ctx context.Context) (*MCPServerInfo, error) {
 		Capabilities: cap,
 	}
 	c.setServerInfo(info)
+
 	return info, nil
 }
 

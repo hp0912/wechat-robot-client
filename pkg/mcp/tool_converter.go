@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
 
-	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+	"wechat-robot-client/pkg/robotctx"
 )
 
 // MCPToolConverter MCP工具到OpenAI工具格式的转换器
@@ -114,7 +115,7 @@ func (c *MCPToolConverter) convertInputSchemaToParameters(inputSchema any) (json
 }
 
 // ExecuteOpenAIToolCall 执行OpenAI函数调用
-func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx RobotContext, toolCall openai.ToolCall) (string, bool, error) {
+func (c *MCPToolConverter) ExecuteOpenAIToolCall(ctx context.Context, robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
 	// 解析工具名称，提取服务器名称和原始工具名称
 	serverName, toolName, err := c.parseToolName(toolCall.Function.Name)
 	if err != nil {

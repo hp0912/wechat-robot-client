@@ -7,16 +7,17 @@ import (
 	"log"
 	"strings"
 
-	"wechat-robot-client/interface/ai"
-	"wechat-robot-client/model"
-	"wechat-robot-client/pkg/mcp"
-	"wechat-robot-client/pkg/skills"
-	"wechat-robot-client/repository"
-	"wechat-robot-client/vars"
-
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/sashabaranov/go-openai"
 	"gorm.io/gorm"
+
+	"wechat-robot-client/interface/ai"
+	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/mcp"
+	"wechat-robot-client/pkg/robotctx"
+	"wechat-robot-client/pkg/skills"
+	"wechat-robot-client/repository"
+	"wechat-robot-client/vars"
 )
 
 type MCPService struct {
@@ -95,13 +96,13 @@ func (s *MCPService) GetToolsByServerID(serverID uint64) ([]*sdkmcp.Tool, error)
 }
 
 // ExecuteToolCall 执行工具调用
-func (s *MCPService) ExecuteToolCall(robotCtx mcp.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
+func (s *MCPService) ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
 	return s.converter.ExecuteOpenAIToolCall(s.ctx, robotCtx, toolCall)
 }
 
 // ChatWithMCPTools AI聊天（带MCP工具支持）
 func (s *MCPService) ChatWithMCPTools(
-	robotCtx mcp.RobotContext,
+	robotCtx robotctx.RobotContext,
 	client *openai.Client,
 	req openai.ChatCompletionRequest,
 	maxIterations int,

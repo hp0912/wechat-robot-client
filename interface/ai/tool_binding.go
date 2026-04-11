@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"wechat-robot-client/model"
-	"wechat-robot-client/pkg/mcp"
+	"wechat-robot-client/pkg/robotctx"
 )
 
 // ToolBinding 表示聊天场景下注入的一组提示词和本地工具。
@@ -16,7 +16,7 @@ type ToolBinding struct {
 
 // ToolBindingContext 描述当前对话场景，用于按场景构建提示词和工具。
 type ToolBindingContext struct {
-	RobotContext     mcp.RobotContext
+	RobotContext     robotctx.RobotContext
 	ChatRoomID       string
 	ContactWxID      string
 	LastUserQuery    string

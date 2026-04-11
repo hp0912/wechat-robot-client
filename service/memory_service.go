@@ -48,8 +48,6 @@ func NewMemoryService(db *gorm.DB, vectorStore *VectorStoreService, aiBaseURL, a
 	}
 }
 
-// ── 记忆提取 (Extraction) ─────────────────────────────────────────────
-
 // extractedMemory LLM 提取出的记忆结构
 type extractedMemory struct {
 	WxID             string   `json:"wx_id"`

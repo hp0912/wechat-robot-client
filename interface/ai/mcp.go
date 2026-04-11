@@ -8,6 +8,7 @@ import (
 
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/mcp"
+	"wechat-robot-client/pkg/robotctx"
 )
 
 type MCPService interface {
@@ -17,9 +18,9 @@ type MCPService interface {
 	GetAllTools() ([]openai.Tool, error)
 	GetToolsByServerName(serverName string) ([]openai.Tool, error)
 	GetToolsByServerID(serverID uint64) ([]*sdkmcp.Tool, error)
-	ExecuteToolCall(robotCtx mcp.RobotContext, toolCall openai.ToolCall) (string, bool, error)
+	ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error)
 	ChatWithMCPTools(
-		robotCtx mcp.RobotContext,
+		robotCtx robotctx.RobotContext,
 		client *openai.Client,
 		req openai.ChatCompletionRequest,
 		maxIterations int,

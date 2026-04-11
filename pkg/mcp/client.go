@@ -24,16 +24,16 @@ type MCPClient interface {
 	// Initialize 初始化MCP会话
 	Initialize(ctx context.Context) (*MCPServerInfo, error)
 
-	// ListTools 列出所有可用工具（使用官方SDK结构）
+	// ListTools 列出所有可用工具
 	ListTools(ctx context.Context) ([]*sdkmcp.Tool, error)
 
-	// CallTool 调用工具（使用官方SDK结构）
+	// CallTool 调用工具
 	CallTool(ctx context.Context, params *sdkmcp.CallToolParams) (*sdkmcp.CallToolResult, error)
 
-	// ListResources 列出所有可用资源（使用官方SDK结构）
+	// ListResources 列出所有可用资源
 	ListResources(ctx context.Context) ([]*sdkmcp.Resource, error)
 
-	// ReadResource 读取资源（使用官方SDK结构）
+	// ReadResource 读取资源
 	ReadResource(ctx context.Context, params *sdkmcp.ReadResourceParams) (*sdkmcp.ReadResourceResult, error)
 
 	// Ping 心跳检测

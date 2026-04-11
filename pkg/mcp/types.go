@@ -2,8 +2,6 @@ package mcp
 
 import (
 	"time"
-
-	"wechat-robot-client/pkg/robotctx"
 )
 
 // 仅保留客户端内部用的统计与上下文字段
@@ -34,9 +32,6 @@ type MCPConnectionStats struct {
 	AverageLatency time.Duration `json:"averageLatency"`
 	IsConnected    bool          `json:"isConnected"`
 }
-
-// RobotContext 在工具调用入参中透传的机器人上下文（类型别名，实际定义在 pkg/robotctx）
-type RobotContext = robotctx.RobotContext
 
 // MessageSender 发送微信消息的适配器
 type MessageSender interface {

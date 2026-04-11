@@ -6,14 +6,15 @@ import (
 	"log"
 	"strings"
 	"time"
+
+	"github.com/sashabaranov/go-openai"
+
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
-	"wechat-robot-client/pkg/mcp"
+	"wechat-robot-client/pkg/robotctx"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
-
-	"github.com/sashabaranov/go-openai"
 )
 
 type AIChatService struct {
@@ -30,7 +31,7 @@ func NewAIChatService(ctx context.Context, config settings.Settings) *AIChatServ
 	}
 }
 
-func (s *AIChatService) Chat(robotCtx mcp.RobotContext, aiMessages []openai.ChatCompletionMessage) (openai.ChatCompletionMessage, error) {
+func (s *AIChatService) Chat(robotCtx robotctx.RobotContext, aiMessages []openai.ChatCompletionMessage) (openai.ChatCompletionMessage, error) {
 	aiConfig := s.config.GetAIConfig()
 
 	// 提取最后一条用户消息用于 RAG 检索
