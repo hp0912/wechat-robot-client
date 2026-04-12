@@ -14,8 +14,8 @@ import (
 
 type OpenAITool interface {
 	GetOpenAITool() openai.Tool
-	BuildSystemPrompt(ctx context.Context, robotCtx robotctx.RobotContext) (string, error)
-	ExecuteToolCall(ctx context.Context, robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error)
+	BuildSystemPrompt(ctx context.Context, robotCtx *robotctx.RobotContext) (string, error)
+	ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error)
 }
 
 type OpenAIToolsManager struct {
@@ -56,7 +56,7 @@ func (m *OpenAIToolsManager) IsOpenAITool(fnName string) bool {
 	return exists
 }
 
-func (m *OpenAIToolsManager) BuildSystemPrompt(ctx context.Context, robotCtx robotctx.RobotContext) (string, error) {
+func (m *OpenAIToolsManager) BuildSystemPrompt(ctx context.Context, robotCtx *robotctx.RobotContext) (string, error) {
 	var sb strings.Builder
 	for _, tool := range m.tools {
 		prompt, err := tool.BuildSystemPrompt(ctx, robotCtx)
@@ -69,7 +69,7 @@ func (m *OpenAIToolsManager) BuildSystemPrompt(ctx context.Context, robotCtx rob
 	return sb.String(), nil
 }
 
-func (m *OpenAIToolsManager) ExecuteToolCall(ctx context.Context, robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
+func (m *OpenAIToolsManager) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
 	tool, ok := m.tools[toolCall.Function.Name]
 	if !ok {
 		return "", false, fmt.Errorf("未知的工具调用: %s", toolCall.Function.Name)

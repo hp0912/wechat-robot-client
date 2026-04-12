@@ -39,7 +39,7 @@ type MCPServer struct {
 	// Stdio模式配置（命令行模式）
 	Command    string         `gorm:"column:command;type:varchar(255);default:'';comment:命令行模式的可执行命令" json:"command"`
 	Args       datatypes.JSON `gorm:"column:args;type:json;comment:命令行参数数组" json:"args"` // []string
-	WorkingDir string         `gorm:"column:working_dir;type:varchar(500);default:'';comment:工作目录" json:"working_dir"`
+	WorkingDir *string        `gorm:"column:working_dir;type:varchar(500);default:'';comment:工作目录" json:"working_dir"`
 	Env        datatypes.JSON `gorm:"column:env;type:json;comment:环境变量键值对" json:"env"` // map[string]string
 
 	// 网络模式配置（流式传输）

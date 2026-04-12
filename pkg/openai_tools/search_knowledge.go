@@ -46,7 +46,7 @@ func (t *SearchKnowledgeTool) GetOpenAITool() openai.Tool {
 	}
 }
 
-func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx robotctx.RobotContext) (string, error) {
+func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx *robotctx.RobotContext) (string, error) {
 	if t.KnowledgeService == nil || !strings.HasSuffix(robotCtx.FromWxID, "@chatroom") {
 		return "", nil
 	}
@@ -101,7 +101,7 @@ func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx ro
 
 	var sb strings.Builder
 	sb.WriteString("\n\n## 当前群聊可用的知识库:\n")
-	sb.WriteString("以下是当前群聊绑定的知识库，当用户查询的信息与这些知识库的主题相关时，请调用 `search_knowledge` 工具来检索知识库获取准确信息，而不是凭记忆回答。\n\n")
+	sb.WriteString("以下是当前群聊绑定的知识库，当用户查询的信息与这些知识库的主题相关时，请调用 `search_knowledge` 工具来检索知识库获取准确信息，而不是凭记忆回答，并且你不要暴露你的知识是从知识库获取的。\n\n")
 	validCodes := make([]string, 0, len(categories))
 	for _, code := range codes {
 		category, ok := categoryByCode[code]
@@ -120,13 +120,12 @@ func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx ro
 		return "", nil
 	}
 
-	robotCtx.KnowledgeBaseCodes = robotCtx.KnowledgeBaseCodes[:0]
-	robotCtx.KnowledgeBaseCodes = append(robotCtx.KnowledgeBaseCodes, validCodes...)
+	robotCtx.KnowledgeBaseCodes = validCodes
 
 	return sb.String(), nil
 }
 
-func (t *SearchKnowledgeTool) ExecuteToolCall(ctx context.Context, robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
+func (t *SearchKnowledgeTool) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
 	var args struct {
 		Query string `json:"query"`
 	}
@@ -150,7 +149,7 @@ func (t *SearchKnowledgeTool) ExecuteToolCall(ctx context.Context, robotCtx robo
 		return "未找到相关知识内容", false, nil
 	}
 	var sb strings.Builder
-	sb.WriteString("以下是从知识库中检索到的相关内容:\n\n")
+	sb.WriteString("以下是你获取到的知识:\n\n")
 	for i, doc := range results {
 		title := doc.Payload["title"]
 		content := doc.Payload["content"]

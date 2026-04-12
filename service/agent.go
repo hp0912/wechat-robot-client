@@ -78,6 +78,14 @@ func (s *AgentService) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+func (s *AgentService) GetMCPManager() *mcp.MCPManager {
+	return s.mcpManager
+}
+
+func (s *AgentService) GetSkillsManager() *skills.SkillsManager {
+	return s.skillsManager
+}
+
 // GetAllTools 获取所有可用工具（OpenAI格式）
 func (s *AgentService) GetAllTools() ([]openai.Tool, error) {
 	var tools []openai.Tool
@@ -97,7 +105,7 @@ func (s *AgentService) GetAllTools() ([]openai.Tool, error) {
 }
 
 // BuildSystemPrompt 构建包含工具描述的系统提示词
-func (s *AgentService) BuildSystemPrompt(ctx context.Context, robotCtx robotctx.RobotContext) (string, error) {
+func (s *AgentService) BuildSystemPrompt(ctx context.Context, robotCtx *robotctx.RobotContext) (string, error) {
 	var sb strings.Builder
 
 	internalToolsPrompt, err := s.internalToolsManager.BuildSystemPrompt(ctx, robotCtx)
@@ -141,13 +149,13 @@ func (s *AgentService) ChatWithTools(
 
 	// 构建包含工具描述的系统提示词
 	if req.Messages[0].Role == openai.ChatMessageRoleSystem {
-		toolsPrompt, err := s.BuildSystemPrompt(s.ctx, robotCtx)
+		toolsPrompt, err := s.BuildSystemPrompt(s.ctx, &robotCtx)
 		if err != nil {
 			return openai.ChatCompletionMessage{}, fmt.Errorf("failed to build system prompt: %w", err)
 		}
 		req.Messages[0].Content += "\n" + toolsPrompt
 	} else {
-		toolsPrompt, err := s.BuildSystemPrompt(s.ctx, robotCtx)
+		toolsPrompt, err := s.BuildSystemPrompt(s.ctx, &robotCtx)
 		if err != nil {
 			return openai.ChatCompletionMessage{}, fmt.Errorf("failed to build system prompt: %w", err)
 		}
@@ -194,7 +202,7 @@ func (s *AgentService) ChatWithTools(
 				}
 			} else if s.internalToolsManager.IsOpenAITool(toolCall.Function.Name) {
 				// 内部工具调用
-				result, immediately, err = s.internalToolsManager.ExecuteToolCall(s.ctx, robotCtx, toolCall)
+				result, immediately, err = s.internalToolsManager.ExecuteToolCall(s.ctx, &robotCtx, toolCall)
 			} else {
 				// MCP 工具调用
 				result, immediately, err = s.mcpManager.ExecuteToolCall(s.ctx, robotCtx, toolCall)

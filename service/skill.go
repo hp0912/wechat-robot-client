@@ -11,6 +11,7 @@ import (
 	"wechat-robot-client/pkg/skills"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/utils"
+	"wechat-robot-client/vars"
 )
 
 // SkillService Skills 技能管理服务
@@ -20,10 +21,8 @@ type SkillService struct {
 
 // NewSkillService 创建 Skills 服务
 func NewSkillService(skillsDir string, db *gorm.DB) *SkillService {
-	repo := NewSkillRepoAdapter(db)
-	manager := skills.NewSkillsManager(skillsDir, repo)
 	return &SkillService{
-		manager: manager,
+		manager: vars.Agent.GetSkillsManager(),
 	}
 }
 

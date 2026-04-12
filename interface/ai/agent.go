@@ -5,13 +5,17 @@ import (
 
 	"github.com/sashabaranov/go-openai"
 
+	"wechat-robot-client/pkg/mcp"
 	"wechat-robot-client/pkg/robotctx"
+	"wechat-robot-client/pkg/skills"
 )
 
 type AgentService interface {
 	Name() string
 	Initialize() error
 	Shutdown(ctx context.Context) error
+	GetMCPManager() *mcp.MCPManager
+	GetSkillsManager() *skills.SkillsManager
 	GetAllTools() ([]openai.Tool, error)
 	ChatWithTools(
 		robotCtx robotctx.RobotContext,

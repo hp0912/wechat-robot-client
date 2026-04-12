@@ -34,8 +34,8 @@ func (c *StdioClient) Connect(ctx context.Context) error {
 
 	args, _ := c.config.GetArgs()
 	cmd := exec.CommandContext(ctx, c.config.Command, args...)
-	if c.config.WorkingDir != "" {
-		cmd.Dir = c.config.WorkingDir
+	if c.config.WorkingDir != nil && *c.config.WorkingDir != "" {
+		cmd.Dir = *c.config.WorkingDir
 	}
 
 	stdoutPipe, err := cmd.StdoutPipe()

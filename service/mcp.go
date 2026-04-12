@@ -24,10 +24,9 @@ type MCPService struct {
 }
 
 func NewMCPService(ctx context.Context) *MCPService {
-	manager := mcp.NewMCPManager(vars.DB)
 	return &MCPService{
 		ctx:           ctx,
-		manager:       manager,
+		manager:       vars.Agent.GetMCPManager(),
 		mcpServerRepo: repository.NewMCPServerRepo(ctx, vars.DB),
 	}
 }
