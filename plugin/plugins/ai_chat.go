@@ -12,14 +12,15 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/sashabaranov/go-openai"
+
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/model"
-	"wechat-robot-client/pkg/mcp"
+	"wechat-robot-client/pkg/robotctx"
 	"wechat-robot-client/service"
 	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
-
-	"github.com/sashabaranov/go-openai"
 )
 
 type ActionType int
@@ -322,7 +323,7 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 	if ctx.ReferMessage != nil {
 		refMessageID = ctx.ReferMessage.ID
 	}
-	aiReply, err := aiChatService.Chat(mcp.RobotContext{
+	aiReply, err := aiChatService.Chat(robotctx.RobotContext{
 		WeChatClientPort: vars.WechatClientPort,
 		RobotID:          vars.RobotRuntime.RobotID,
 		RobotCode:        vars.RobotRuntime.RobotCode,

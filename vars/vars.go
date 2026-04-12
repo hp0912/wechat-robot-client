@@ -35,10 +35,10 @@ var RobotStartTimeout time.Duration
 // 机器人运行时实例
 var RobotRuntime = &robot.Robot{}
 
-var MCPService ai.MCPService
+var MaxToolsIterations = 25
+var Agent ai.AgentService
 
 var SkillsDir string
-var SkillService ai.SkillService
 
 // Qdrant 客户端
 var QdrantClient *qdrantx.QdrantClient

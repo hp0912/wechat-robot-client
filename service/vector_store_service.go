@@ -40,13 +40,13 @@ func (s *VectorStoreService) IndexMessage(ctx context.Context, robotCode string,
 
 	id := s.qdrant.GenerateID()
 	payload := map[string]*pb.Value{
-		"robot_code":   qdrantx.NewPayloadValue(robotCode),
-		"msg_id":       qdrantx.NewPayloadIntValue(msgID),
-		"content":      qdrantx.NewPayloadValue(content),
-		"contact_wxid": qdrantx.NewPayloadValue(contactWxID),
-		"chat_room_id": qdrantx.NewPayloadValue(chatRoomID),
-		"sender_wxid":  qdrantx.NewPayloadValue(senderWxID),
-		"created_at":   qdrantx.NewPayloadIntValue(createdAt),
+		"robot_code":            qdrantx.NewPayloadValue(robotCode),
+		"msg_id":                qdrantx.NewPayloadIntValue(msgID),
+		"content":               qdrantx.NewPayloadValue(content),
+		"contact_wxid":          qdrantx.NewPayloadValue(contactWxID),
+		"chat_room_id":          qdrantx.NewPayloadValue(chatRoomID),
+		"chat_room_member_wxid": qdrantx.NewPayloadValue(senderWxID),
+		"created_at":            qdrantx.NewPayloadIntValue(createdAt),
 	}
 
 	if err := s.qdrant.Upsert(ctx, qdrantx.CollectionMessages, id, vector, payload); err != nil {
@@ -66,9 +66,9 @@ func (s *VectorStoreService) IndexMemory(ctx context.Context, robotCode string, 
 	payload := map[string]*pb.Value{
 		"robot_code":   qdrantx.NewPayloadValue(robotCode),
 		"memory_id":    qdrantx.NewPayloadIntValue(memoryID),
+		"category":     qdrantx.NewPayloadValue(category),
 		"content":      qdrantx.NewPayloadValue(content),
 		"contact_wxid": qdrantx.NewPayloadValue(wxID),
-		"category":     qdrantx.NewPayloadValue(category),
 		"chat_room_id": qdrantx.NewPayloadValue(chatRoomID),
 	}
 
@@ -79,7 +79,7 @@ func (s *VectorStoreService) IndexMemory(ctx context.Context, robotCode string, 
 }
 
 // IndexKnowledge 将知识库内容向量化并存入 Qdrant
-func (s *VectorStoreService) IndexKnowledge(ctx context.Context, robotCode string, docID int64, content, title, category string) (string, error) {
+func (s *VectorStoreService) IndexKnowledge(ctx context.Context, robotCode string, docID int64, category, title, content string) (string, error) {
 	vector, err := s.embedding.Embed(ctx, content)
 	if err != nil {
 		return "", fmt.Errorf("embed knowledge: %w", err)
@@ -89,9 +89,9 @@ func (s *VectorStoreService) IndexKnowledge(ctx context.Context, robotCode strin
 	payload := map[string]*pb.Value{
 		"robot_code": qdrantx.NewPayloadValue(robotCode),
 		"doc_id":     qdrantx.NewPayloadIntValue(docID),
-		"content":    qdrantx.NewPayloadValue(content),
-		"title":      qdrantx.NewPayloadValue(title),
 		"category":   qdrantx.NewPayloadValue(category),
+		"title":      qdrantx.NewPayloadValue(title),
+		"content":    qdrantx.NewPayloadValue(content),
 	}
 
 	if err := s.qdrant.Upsert(ctx, qdrantx.CollectionKnowledge, id, vector, payload); err != nil {

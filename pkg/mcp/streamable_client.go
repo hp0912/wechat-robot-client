@@ -96,6 +96,7 @@ func (c *StreamableClient) Connect(ctx context.Context) error {
 
 	c.session = sess
 	c.setConnected(true)
+
 	return nil
 }
 
@@ -111,6 +112,7 @@ func (c *StreamableClient) Disconnect() error {
 	}
 
 	c.setConnected(false)
+
 	return nil
 }
 
@@ -138,6 +140,7 @@ func (c *StreamableClient) Initialize(ctx context.Context) (*MCPServerInfo, erro
 		Capabilities: cap,
 	}
 	c.setServerInfo(info)
+
 	return info, nil
 }
 

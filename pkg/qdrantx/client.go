@@ -9,13 +9,12 @@ import (
 	pb "github.com/qdrant/go-client/qdrant"
 )
 
+const DefaultEmbeddingDimension uint64 = 1536
 const (
 	CollectionMessages       = "messages"
 	CollectionMemories       = "memories"
 	CollectionKnowledge      = "knowledge"
 	CollectionImageKnowledge = "image_knowledge"
-	// text-embedding-3-small 默认维度
-	DefaultEmbeddingDimension = 1536
 )
 
 // QdrantClient 封装 Qdrant 客户端
@@ -40,8 +39,8 @@ func NewQdrantClient(host string, port int, apiKey string) (*QdrantClient, error
 // InitCollections 初始化文本相关集合（messages, memories, knowledge）
 func (q *QdrantClient) InitCollections(ctx context.Context, dimension uint64) error {
 	collections := []string{CollectionMessages, CollectionMemories, CollectionKnowledge}
-	for _, name := range collections {
-		if err := q.InitCollection(ctx, name, dimension); err != nil {
+	for _, collectionName := range collections {
+		if err := q.InitCollection(ctx, collectionName, dimension); err != nil {
 			return err
 		}
 	}
@@ -76,8 +75,8 @@ func (q *QdrantClient) InitCollection(ctx context.Context, name string, dimensio
 
 func (q *QdrantClient) createPayloadIndexes(ctx context.Context, collection string) error {
 	indexes := map[string][]string{
-		CollectionMessages:       {"robot_code", "contact_wxid", "chat_room_id", "sender_wxid"},
-		CollectionMemories:       {"robot_code", "contact_wxid", "category", "chat_room_id"},
+		CollectionMessages:       {"robot_code", "contact_wxid", "chat_room_id", "chat_room_member_wxid"},
+		CollectionMemories:       {"robot_code", "contact_wxid", "chat_room_id", "category"},
 		CollectionKnowledge:      {"robot_code", "category", "title"},
 		CollectionImageKnowledge: {"robot_code", "category", "title"},
 	}

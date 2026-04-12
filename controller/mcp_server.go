@@ -18,7 +18,7 @@ func NewMCPController() *MCPServer {
 
 func (s *MCPServer) GetMCPServers(c *gin.Context) {
 	resp := appx.NewResponse(c)
-	data, err := service.NewMCPServerService(c).GetMCPServers()
+	data, err := service.NewMCPService(c).GetMCPServers()
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
@@ -35,7 +35,7 @@ func (s *MCPServer) GetMCPServer(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	data, err := service.NewMCPServerService(c).GetMCPServer(req.ID)
+	data, err := service.NewMCPService(c).GetMCPServer(req.ID)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
@@ -50,7 +50,7 @@ func (s *MCPServer) CreateMCPServer(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	err := service.NewMCPServerService(c).CreateMCPServer(&req)
+	err := service.NewMCPService(c).CreateMCPServer(&req)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
@@ -65,7 +65,7 @@ func (s *MCPServer) UpdateMCPServer(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	err := service.NewMCPServerService(c).UpdateMCPServer(&req)
+	err := service.NewMCPService(c).UpdateMCPServer(&req)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
@@ -82,7 +82,7 @@ func (s *MCPServer) EnableMCPServer(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	err := service.NewMCPServerService(c).EnableMCPServer(req.ID)
+	err := service.NewMCPService(c).EnableMCPServer(req.ID)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
@@ -99,7 +99,7 @@ func (s *MCPServer) DisableMCPServer(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	err := service.NewMCPServerService(c).DisableMCPServer(req.ID)
+	err := service.NewMCPService(c).DisableMCPServer(req.ID)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
@@ -114,7 +114,7 @@ func (s *MCPServer) DeleteMCPServer(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	err := service.NewMCPServerService(c).DeleteMCPServer(&req)
+	err := service.NewMCPService(c).DeleteMCPServer(&req)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
@@ -131,7 +131,7 @@ func (s *MCPServer) GetMCPServerTools(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("参数错误"))
 		return
 	}
-	data, err := service.NewMCPServerService(c).GetMCPServerTools(req.ID)
+	data, err := service.NewMCPService(c).GetMCPServerTools(req.ID)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return

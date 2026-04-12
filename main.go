@@ -57,14 +57,10 @@ func main() {
 		}
 		return nil
 	})
-	// 初始化MCP服务
-	err := startup.InitMCPService()
+	// 初始化 Agent
+	err := startup.InitAgent()
 	if err != nil {
-		log.Fatalf("初始化MCP服务失败: %v", err)
-	}
-	// 初始化Skills服务
-	if err := startup.InitSkillService(); err != nil {
-		log.Printf("[Skills] 初始化Skills服务失败（非致命）: %v", err)
+		log.Fatalf("初始化 Agent 失败: %v", err)
 	}
 	// 启动HTTP服务
 	gin.SetMode(os.Getenv("GIN_MODE"))
@@ -85,7 +81,7 @@ func main() {
 	shutdownManager.Register(redisConn)
 	shutdownManager.Register(vars.RobotRuntime)
 	shutdownManager.Register(vars.CronManager)
-	shutdownManager.Register(vars.MCPService)
+	shutdownManager.Register(vars.Agent)
 	// 开始监听停止信号
 	shutdownManager.Start()
 	// 启动服务

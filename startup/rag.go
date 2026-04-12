@@ -6,28 +6,15 @@ import (
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/qdrantx"
 	"wechat-robot-client/service"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 )
 
-func ptrStringValue(value *string) string {
-	if value == nil {
-		return ""
-	}
-	return *value
-}
-
-func ptrIntValue(value *int) int {
-	if value == nil {
-		return 0
-	}
-	return *value
-}
-
-// InitRAGService 初始化 RAG 相关服务（Qdrant、Embedding、VectorStore、Memory、RAG、Knowledge、ImageKnowledge）
+// InitRAGService 初始化 RAG 相关服务
 func InitRAGService() error {
 	ctx := context.Background()
 
-	// 1. 初始化 Qdrant 客户端（依赖环境变量，仅需初始化一次）
+	// 1. 初始化 Qdrant 客户端
 	qdrantClient, err := qdrantx.NewQdrantClient(
 		vars.QdrantSettings.Host,
 		vars.QdrantSettings.Port,
@@ -39,8 +26,7 @@ func InitRAGService() error {
 	vars.QdrantClient = qdrantClient
 
 	// 2. 初始化文本向量集合
-	textDimension := uint64(qdrantx.DefaultEmbeddingDimension)
-	if err := qdrantClient.InitCollections(ctx, textDimension); err != nil {
+	if err := qdrantClient.InitCollections(ctx, qdrantx.DefaultEmbeddingDimension); err != nil {
 		return err
 	}
 	log.Println("Qdrant 连接成功，文本向量集合已初始化")
@@ -66,8 +52,8 @@ func InitRAGService() error {
 // 在启动时和全局配置变更时均会调用
 func reloadRAGServices(globalSettings *model.GlobalSettings) error {
 	ctx := context.Background()
-	qdrantClient := vars.QdrantClient
-	if qdrantClient == nil {
+
+	if vars.QdrantClient == nil {
 		log.Println("[RAG] Qdrant 客户端未初始化，跳过 RAG 服务重载")
 		return nil
 	}
@@ -78,23 +64,23 @@ func reloadRAGServices(globalSettings *model.GlobalSettings) error {
 	imageEmbeddingAPIKey := ""
 	imageEmbeddingDimension := 0
 	if globalSettings != nil {
-		textEmbeddingModel = ptrStringValue(globalSettings.TextEmbeddingModel)
-		imageEmbeddingModel = ptrStringValue(globalSettings.ImageEmbeddingModel)
-		imageEmbeddingBaseURL = ptrStringValue(globalSettings.ImageEmbeddingBaseURL)
-		imageEmbeddingAPIKey = ptrStringValue(globalSettings.ImageEmbeddingAPIKey)
-		imageEmbeddingDimension = ptrIntValue(globalSettings.ImageEmbeddingDimension)
+		textEmbeddingModel = utils.PtrStringValue(globalSettings.TextEmbeddingModel)
+		imageEmbeddingModel = utils.PtrStringValue(globalSettings.ImageEmbeddingModel)
+		imageEmbeddingBaseURL = utils.PtrStringValue(globalSettings.ImageEmbeddingBaseURL)
+		imageEmbeddingAPIKey = utils.PtrStringValue(globalSettings.ImageEmbeddingAPIKey)
+		imageEmbeddingDimension = utils.PtrIntValue(globalSettings.ImageEmbeddingDimension)
 	}
 
 	// 初始化图片向量集合（如果配置了图片嵌入模型）
 	if globalSettings != nil && imageEmbeddingModel != "" && imageEmbeddingDimension > 0 {
-		if err := qdrantClient.InitCollection(ctx, qdrantx.CollectionImageKnowledge, uint64(imageEmbeddingDimension)); err != nil {
+		if err := vars.QdrantClient.InitCollection(ctx, qdrantx.CollectionImageKnowledge, uint64(imageEmbeddingDimension)); err != nil {
 			return err
 		}
 		log.Println("Qdrant 图片向量集合已初始化")
 	}
 
-	if globalSettings == nil || globalSettings.ChatBaseURL == "" || globalSettings.ChatAPIKey == "" {
-		log.Println("[RAG] AI 配置未设置（ChatBaseURL/ChatAPIKey），RAG 服务跳过初始化")
+	if globalSettings == nil || globalSettings.ChatBaseURL == "" || globalSettings.ChatAPIKey == "" || textEmbeddingModel == "" {
+		log.Println("[RAG] AI 配置未设置（ChatBaseURL/ChatAPIKey/TextEmbeddingModel），RAG 服务跳过初始化")
 		vars.MemoryService = nil
 		vars.RAGService = nil
 		vars.KnowledgeService = nil
@@ -106,7 +92,7 @@ func reloadRAGServices(globalSettings *model.GlobalSettings) error {
 	embeddingSvc := service.NewEmbeddingService(globalSettings.ChatBaseURL, globalSettings.ChatAPIKey, textEmbeddingModel)
 
 	// 初始化 VectorStore 服务
-	vectorStoreSvc := service.NewVectorStoreService(qdrantClient, embeddingSvc)
+	vectorStoreSvc := service.NewVectorStoreService(vars.QdrantClient, embeddingSvc)
 
 	// 初始化图片 Embedding 服务（如果配置了图片嵌入模型）
 	if imageEmbeddingModel != "" && imageEmbeddingDimension > 0 {

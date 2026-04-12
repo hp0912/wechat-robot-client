@@ -7,6 +7,7 @@ import (
 
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/pkg/skills"
+	"wechat-robot-client/service"
 	"wechat-robot-client/vars"
 )
 
@@ -19,13 +20,7 @@ func NewSkillController() *SkillController {
 // GetAllSkills 获取所有已安装的 Skills
 func (s *SkillController) GetAllSkills(c *gin.Context) {
 	resp := appx.NewResponse(c)
-
-	if vars.SkillService == nil {
-		resp.ToErrorResponse(errors.New("Skills 服务未初始化"))
-		return
-	}
-
-	allSkills := vars.SkillService.GetAllSkills()
+	allSkills := service.NewSkillService(vars.SkillsDir, vars.DB).GetAllSkills()
 	resp.ToResponse(allSkills)
 }
 
@@ -40,12 +35,7 @@ func (s *SkillController) GetSkill(c *gin.Context) {
 		return
 	}
 
-	if vars.SkillService == nil {
-		resp.ToErrorResponse(errors.New("Skills 服务未初始化"))
-		return
-	}
-
-	skill, ok := vars.SkillService.GetSkill(req.Name)
+	skill, ok := service.NewSkillService(vars.SkillsDir, vars.DB).GetSkill(req.Name)
 	if !ok {
 		resp.ToErrorResponse(errors.New("Skill 不存在"))
 		return
@@ -70,20 +60,15 @@ func (s *SkillController) InstallSkill(c *gin.Context) {
 		return
 	}
 
-	if vars.SkillService == nil {
-		resp.ToErrorResponse(errors.New("Skills 服务未初始化"))
-		return
-	}
-
 	var (
 		skill *skills.Skill
 		err   error
 	)
 
 	if req.URL != "" {
-		skill, err = vars.SkillService.InstallSkillFromURL(req.URL)
+		skill, err = service.NewSkillService(vars.SkillsDir, vars.DB).InstallSkillFromURL(req.URL)
 	} else if req.RepoURL != "" && req.SubPath != "" {
-		skill, err = vars.SkillService.InstallSkill(skills.SkillInstallRequest{
+		skill, err = service.NewSkillService(vars.SkillsDir, vars.DB).InstallSkill(skills.SkillInstallRequest{
 			RepoURL: req.RepoURL,
 			SubPath: req.SubPath,
 			Ref:     req.Ref,
@@ -112,12 +97,7 @@ func (s *SkillController) UninstallSkill(c *gin.Context) {
 		return
 	}
 
-	if vars.SkillService == nil {
-		resp.ToErrorResponse(errors.New("Skills 服务未初始化"))
-		return
-	}
-
-	if err := vars.SkillService.UninstallSkill(req.Name); err != nil {
+	if err := service.NewSkillService(vars.SkillsDir, vars.DB).UninstallSkill(req.Name); err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
@@ -136,12 +116,7 @@ func (s *SkillController) EnableSkill(c *gin.Context) {
 		return
 	}
 
-	if vars.SkillService == nil {
-		resp.ToErrorResponse(errors.New("Skills 服务未初始化"))
-		return
-	}
-
-	if err := vars.SkillService.EnableSkill(req.Name); err != nil {
+	if err := service.NewSkillService(vars.SkillsDir, vars.DB).EnableSkill(req.Name); err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
@@ -160,12 +135,7 @@ func (s *SkillController) DisableSkill(c *gin.Context) {
 		return
 	}
 
-	if vars.SkillService == nil {
-		resp.ToErrorResponse(errors.New("Skills 服务未初始化"))
-		return
-	}
-
-	if err := vars.SkillService.DisableSkill(req.Name); err != nil {
+	if err := service.NewSkillService(vars.SkillsDir, vars.DB).DisableSkill(req.Name); err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
@@ -184,12 +154,7 @@ func (s *SkillController) UpdateSkill(c *gin.Context) {
 		return
 	}
 
-	if vars.SkillService == nil {
-		resp.ToErrorResponse(errors.New("Skills 服务未初始化"))
-		return
-	}
-
-	skill, err := vars.SkillService.UpdateSkill(req.Name)
+	skill, err := service.NewSkillService(vars.SkillsDir, vars.DB).UpdateSkill(req.Name)
 	if err != nil {
 		resp.ToErrorResponse(err)
 		return
@@ -210,12 +175,7 @@ func (s *SkillController) SetSkillEnvVars(c *gin.Context) {
 		return
 	}
 
-	if vars.SkillService == nil {
-		resp.ToErrorResponse(errors.New("Skills 服务未初始化"))
-		return
-	}
-
-	if err := vars.SkillService.SetEnvVars(req.Name, req.EnvVars); err != nil {
+	if err := service.NewSkillService(vars.SkillsDir, vars.DB).SetEnvVars(req.Name, req.EnvVars); err != nil {
 		resp.ToErrorResponse(err)
 		return
 	}
