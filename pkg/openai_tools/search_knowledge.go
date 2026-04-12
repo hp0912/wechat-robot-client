@@ -120,6 +120,9 @@ func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx ro
 		return "", nil
 	}
 
+	robotCtx.KnowledgeBaseCodes = robotCtx.KnowledgeBaseCodes[:0]
+	robotCtx.KnowledgeBaseCodes = append(robotCtx.KnowledgeBaseCodes, validCodes...)
+
 	return sb.String(), nil
 }
 

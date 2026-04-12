@@ -158,7 +158,7 @@ func (s *AgentService) ChatWithTools(
 		req.Messages = append([]openai.ChatCompletionMessage{systemMsg}, req.Messages...)
 	}
 
-	for _ = range vars.MaxToolsIterations {
+	for range vars.MaxToolsIterations {
 		// 调用AI
 		assistantMsg, err := s.streamChatCompletion(client, req)
 		if err != nil {

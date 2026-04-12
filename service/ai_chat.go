@@ -28,48 +28,32 @@ func NewAIChatService(ctx context.Context, config settings.Settings) *AIChatServ
 }
 
 func (s *AIChatService) Chat(robotCtx robotctx.RobotContext, aiMessages []openai.ChatCompletionMessage) (openai.ChatCompletionMessage, error) {
+	// 获取 AI 配置
 	aiConfig := s.config.GetAIConfig()
-
 	// 提取最后一条用户消息用于 RAG 检索
-	var lastUserQuery string
-	for i := len(aiMessages) - 1; i >= 0; i-- {
-		if aiMessages[i].Role == openai.ChatMessageRoleUser {
-			lastUserQuery = aiMessages[i].Content
-			if lastUserQuery == "" && len(aiMessages[i].MultiContent) > 0 {
-				for _, mc := range aiMessages[i].MultiContent {
-					if mc.Type == openai.ChatMessagePartTypeText && mc.Text != "" {
-						lastUserQuery = mc.Text
-						break
-					}
-				}
-			}
-			break
-		}
-	}
-
+	lastUserQuery := s.getLastUserMessage(aiMessages)
 	// 构建系统提示词（含 RAG 增强）
 	basePrompt := aiConfig.Prompt
-	if basePrompt == "" {
-		basePrompt = "你是一个智能助手。"
-	}
-
 	basePrompt += "\n\n**【特别重要】**如果外部工具返回以下结构化标签，你必须原样逐字返回，不能总结、解释、改写、翻译、补充代码块，也不能省略、合并或调整顺序：\n<wechat-robot-text>...</wechat-robot-text>\n<wechat-robot-image-url>...</wechat-robot-image-url>\n<wechat-robot-video-url>...</wechat-robot-video-url>\n<wechat-robot-voice-url>...</wechat-robot-voice-url>\n<wechat-robot-file-url>...</wechat-robot-file-url>\n<wechat-robot-appmsg type=\"数字\">...</wechat-robot-appmsg>\n如果一次返回多个这类标签，必须完整保留每一个标签及其内部内容；如果还有普通文本，可以与这些标签一起返回，但标签本身必须保持完全不变。"
 
 	// RAG 增强：检索相关记忆和历史消息
-	contactWxID := robotCtx.SenderWxID
-	chatRoomID := ""
-	if strings.Contains(robotCtx.FromWxID, "@chatroom") {
-		chatRoomID = robotCtx.FromWxID
-	} else {
-		contactWxID = robotCtx.FromWxID
-	}
+	// var contactWxID string
+	// var chatRoomMemberWxID string
+	// var isChatRoom bool
+	// if strings.Contains(robotCtx.FromWxID, "@chatroom") {
+	// 	isChatRoom = true
+	// 	contactWxID = robotCtx.FromWxID
+	// 	chatRoomMemberWxID = robotCtx.SenderWxID
+	// } else {
+	// 	contactWxID = robotCtx.FromWxID
+	// }
 
 	enhancedPrompt := basePrompt
 	if vars.RAGService != nil && lastUserQuery != "" {
-		start := time.Now()
-		retrieved := vars.RAGService.RetrieveContext(s.ctx, contactWxID, chatRoomID, lastUserQuery)
-		enhancedPrompt = vars.RAGService.BuildEnhancedPrompt(basePrompt, retrieved)
-		log.Printf("[RAG] 耗时: %v", time.Since(start))
+		// start := time.Now()
+		// retrieved := vars.RAGService.RetrieveContext(s.ctx, contactWxID, chatRoomMemberWxID, lastUserQuery)
+		// enhancedPrompt = vars.RAGService.BuildEnhancedPrompt(basePrompt, retrieved)
+		// log.Printf("[RAG] 耗时: %v", time.Since(start))
 	}
 
 	// 组装系统消息
@@ -85,9 +69,9 @@ func (s *AIChatService) Chat(robotCtx robotctx.RobotContext, aiMessages []openai
 	// 这样主 system prompt 部分可最大程度命中前缀缓存
 	var prefixMessages []openai.ChatCompletionMessage
 	prefixMessages = append(prefixMessages, systemMessage)
-	if chatRoomID != "" {
+	if strings.Contains(robotCtx.FromWxID, "@chatroom") {
 		start := time.Now()
-		if groupCtx := s.buildGroupChatContext(chatRoomID, contactWxID); groupCtx != "" {
+		if groupCtx := s.buildGroupChatContext(robotCtx.FromWxID, robotCtx.SenderWxID); groupCtx != "" {
 			prefixMessages = append(prefixMessages, openai.ChatCompletionMessage{
 				Role:    openai.ChatMessageRoleSystem,
 				Content: groupCtx,
@@ -103,7 +87,7 @@ func (s *AIChatService) Chat(robotCtx robotctx.RobotContext, aiMessages []openai
 	req := openai.ChatCompletionRequest{
 		Model:    aiConfig.Model,
 		Messages: aiMessages,
-		Stream:   false,
+		Stream:   true,
 	}
 	if aiConfig.MaxCompletionTokens > 0 {
 		// req.MaxCompletionTokens = aiConfig.MaxCompletionTokens
@@ -118,17 +102,36 @@ func (s *AIChatService) Chat(robotCtx robotctx.RobotContext, aiMessages []openai
 	// 异步：记忆提取 + 会话追踪 + 消息向量化
 	if err == nil {
 		// 获取发送者昵称用于群聊记忆提取
-		senderNickname := ""
-		if chatRoomID != "" {
-			crmRepo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
-			if member, err := crmRepo.GetChatRoomMember(chatRoomID, contactWxID); err == nil && member != nil {
-				senderNickname = member.Nickname
-			}
-		}
-		go s.postChatHook(contactWxID, chatRoomID, senderNickname, robotCtx.MessageID, aiMessages, reply)
+		// senderNickname := ""
+		// if isChatRoom {
+		// 	crmRepo := repository.NewChatRoomMemberRepo(s.ctx, vars.DB)
+		// 	if member, err := crmRepo.GetChatRoomMember(contactWxID, chatRoomMemberWxID); err == nil && member != nil {
+		// 		senderNickname = member.Nickname
+		// 	}
+		// }
+		// go s.postChatHook(contactWxID, chatRoomMemberWxID, senderNickname, robotCtx.MessageID, aiMessages, reply)
 	}
 
 	return reply, err
+}
+
+func (s *AIChatService) getLastUserMessage(aiMessages []openai.ChatCompletionMessage) string {
+	var lastUserMessage string
+	for i := len(aiMessages) - 1; i >= 0; i-- {
+		if aiMessages[i].Role == openai.ChatMessageRoleUser {
+			lastUserMessage = aiMessages[i].Content
+			if lastUserMessage == "" && len(aiMessages[i].MultiContent) > 0 {
+				for _, mc := range aiMessages[i].MultiContent {
+					if mc.Type == openai.ChatMessagePartTypeText && mc.Text != "" {
+						lastUserMessage = mc.Text
+						break
+					}
+				}
+			}
+			break
+		}
+	}
+	return lastUserMessage
 }
 
 // postChatHook 在 AI 回复后异步执行记忆提取、会话追踪
@@ -219,7 +222,7 @@ func (s *AIChatService) buildGroupChatContext(chatRoomID, senderWxID string) str
 			if nickname == "" {
 				nickname = msg.SenderWxID
 			}
-			fmt.Fprintf(&sb, "[%s] %s\n", nickname, msg.Content)
+			fmt.Fprintf(&sb, "[%s]: %s\n", nickname, msg.Content)
 		}
 	}
 

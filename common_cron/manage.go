@@ -101,8 +101,8 @@ func (m *CronManager) Start() {
 			chatRoomRankingMonthCron := NewChatRoomRankingMonthCron(m)
 			chatRoomRankingMonthCron.Register()
 			// 记忆维护
-			memoryMaintenanceCron := NewMemoryMaintenanceCron(m)
-			memoryMaintenanceCron.Register()
+			// memoryMaintenanceCron := NewMemoryMaintenanceCron(m)
+			// memoryMaintenanceCron.Register()
 		}
 	}
 }
