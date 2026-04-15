@@ -72,8 +72,7 @@ type structuredReplyPattern struct {
 	Pattern *regexp.Regexp
 }
 
-var thinkTagRegexp = regexp.MustCompile(`(?s)<think>.*?</think>`)
-var unclosedThinkTagRegexp = regexp.MustCompile(`(?s)<think>.*$`)
+var thinkTagRegexp = regexp.MustCompile(`(?s)<think>.*?</think>|<thinking>.*?</thinking>`)
 
 var structuredReplyPatterns = []structuredReplyPattern{
 	{
