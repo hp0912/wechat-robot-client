@@ -25,17 +25,21 @@ func InitRAGService() error {
 	}
 	vars.QdrantClient = qdrantClient
 
-	// 2. 初始化文本向量集合
-	if err := qdrantClient.InitCollections(ctx, qdrantx.DefaultEmbeddingDimension); err != nil {
-		return err
-	}
-	log.Println("Qdrant 连接成功，文本向量集合已初始化")
-
-	// 3. 获取全局配置并初始化依赖配置的服务
+	// 2. 获取全局配置，用于确定向量维度并初始化依赖配置的服务
 	globalSettings, err := service.NewGlobalSettingsService(ctx).GetGlobalSettings()
 	if err != nil {
 		return err
 	}
+
+	// 3. 初始化文本向量集合
+	textEmbeddingDim := uint64(2048)
+	if globalSettings != nil && globalSettings.TextEmbeddingDimension != nil && *globalSettings.TextEmbeddingDimension > 0 {
+		textEmbeddingDim = uint64(*globalSettings.TextEmbeddingDimension)
+	}
+	if err := qdrantClient.InitCollections(ctx, textEmbeddingDim); err != nil {
+		return err
+	}
+	log.Println("Qdrant 连接成功，文本向量集合已初始化")
 	if err := reloadRAGServices(globalSettings); err != nil {
 		return err
 	}
@@ -63,15 +67,19 @@ func reloadRAGServices(globalSettings *model.GlobalSettings) error {
 	imageEmbeddingBaseURL := ""
 	imageEmbeddingAPIKey := ""
 	imageEmbeddingDimension := 0
+	textEmbeddingDimension := 2048
 	if globalSettings != nil {
 		textEmbeddingModel = utils.PtrStringValue(globalSettings.TextEmbeddingModel)
 		imageEmbeddingModel = utils.PtrStringValue(globalSettings.ImageEmbeddingModel)
 		imageEmbeddingBaseURL = utils.PtrStringValue(globalSettings.ImageEmbeddingBaseURL)
 		imageEmbeddingAPIKey = utils.PtrStringValue(globalSettings.ImageEmbeddingAPIKey)
 		imageEmbeddingDimension = utils.PtrIntValue(globalSettings.ImageEmbeddingDimension)
+		if v := utils.PtrIntValue(globalSettings.TextEmbeddingDimension); v > 0 {
+			textEmbeddingDimension = v
+		}
 	}
 
-	// 初始化图片向量集合（如果配置了图片嵌入模型）
+	// 初始化图片向量集合
 	if globalSettings != nil && imageEmbeddingModel != "" && imageEmbeddingDimension > 0 {
 		if err := vars.QdrantClient.InitCollection(ctx, qdrantx.CollectionImageKnowledge, uint64(imageEmbeddingDimension)); err != nil {
 			return err
@@ -89,7 +97,7 @@ func reloadRAGServices(globalSettings *model.GlobalSettings) error {
 	}
 
 	// 初始化文本 Embedding 服务（支持可配置模型）
-	embeddingSvc := service.NewEmbeddingService(globalSettings.ChatBaseURL, globalSettings.ChatAPIKey, textEmbeddingModel)
+	embeddingSvc := service.NewEmbeddingService(globalSettings.ChatBaseURL, globalSettings.ChatAPIKey, textEmbeddingModel, textEmbeddingDimension)
 
 	// 初始化 VectorStore 服务
 	vectorStoreSvc := service.NewVectorStoreService(vars.QdrantClient, embeddingSvc)

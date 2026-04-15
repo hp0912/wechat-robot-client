@@ -9,7 +9,6 @@ import (
 	pb "github.com/qdrant/go-client/qdrant"
 )
 
-const DefaultEmbeddingDimension uint64 = 1536
 const (
 	CollectionMessages       = "messages"
 	CollectionMemories       = "memories"
