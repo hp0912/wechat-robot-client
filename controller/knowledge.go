@@ -1,10 +1,15 @@
 package controller
 
 import (
+	"context"
 	"errors"
+	"log"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/appx"
+	"wechat-robot-client/pkg/qdrantx"
+	"wechat-robot-client/service"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 
 	"github.com/gin-gonic/gin"
@@ -354,4 +359,69 @@ func (k *Knowledge) ReindexAllImages(c *gin.Context) {
 		}
 	}()
 	resp.ToResponse("image reindex started")
+}
+
+// ReindexAllVectors 全量重建向量索引
+func (k *Knowledge) ReindexAllVectors(c *gin.Context) {
+	resp := appx.NewResponse(c)
+
+	if vars.QdrantClient == nil {
+		resp.ToErrorResponse(errors.New("Qdrant 未初始化"))
+		return
+	}
+	if vars.KnowledgeService == nil || vars.MemoryService == nil {
+		resp.ToErrorResponse(errors.New("RAG 服务未初始化，请先完成 AI 配置"))
+		return
+	}
+
+	ctx := context.Background()
+	globalSettings, err := service.NewGlobalSettingsService(ctx).GetGlobalSettings()
+	if err != nil || globalSettings == nil {
+		resp.ToErrorResponse(errors.New("无法读取全局配置"))
+		return
+	}
+
+	textDim := uint64(2048)
+	if v := utils.PtrIntValue(globalSettings.TextEmbeddingDimension); v > 0 {
+		textDim = uint64(v)
+	}
+
+	go func() {
+		bgCtx := context.Background()
+		log.Printf("[ReindexAll] 开始全量重建向量索引，文本维度 %d", textDim)
+
+		// 1. 删除并重建文本集合
+		textCollections := []string{
+			qdrantx.CollectionMessages,
+			qdrantx.CollectionMemories,
+			qdrantx.CollectionKnowledge,
+		}
+		for _, col := range textCollections {
+			if err := vars.QdrantClient.DeleteCollection(bgCtx, col); err != nil {
+				log.Printf("[ReindexAll] 删除集合 %s 失败: %v", col, err)
+				return
+			}
+			if err := vars.QdrantClient.InitCollection(bgCtx, col, textDim); err != nil {
+				log.Printf("[ReindexAll] 重建集合 %s 失败: %v", col, err)
+				return
+			}
+		}
+		log.Printf("[ReindexAll] 文本集合重建完成")
+
+		// 2. 重建知识库向量
+		if err := vars.KnowledgeService.ReindexAll(bgCtx); err != nil {
+			log.Printf("[ReindexAll] 知识库重建失败: %v", err)
+		}
+		log.Printf("[ReindexAll] 知识库向量重建完成")
+
+		// 3. 重建记忆向量
+		if err := vars.MemoryService.ReindexAll(bgCtx); err != nil {
+			log.Printf("[ReindexAll] 记忆重建失败: %v", err)
+		}
+		log.Printf("[ReindexAll] 记忆向量重建完成")
+
+		log.Printf("[ReindexAll] 全量重建完成")
+	}()
+
+	resp.ToResponse("reindex-all started")
 }

@@ -71,6 +71,7 @@ type GlobalSettings struct {
 	FriendSyncCron            string         `gorm:"column:friend_sync_cron;type:varchar(100);default:'';comment:好友同步的定时任务表达式" json:"friend_sync_cron"`
 	MemoryEnabled             *bool          `gorm:"column:memory_enabled;not null;default:true;comment:是否启用长期记忆功能" json:"memory_enabled"`
 	TextEmbeddingModel        *string        `gorm:"column:text_embedding_model;type:varchar(100);default:'';comment:文本嵌入模型名称" json:"text_embedding_model"`
+	TextEmbeddingDimension    *int           `gorm:"column:text_embedding_dimension;default:2048;comment:文本嵌入向量维度" json:"text_embedding_dimension"`
 	ImageEmbeddingModel       *string        `gorm:"column:image_embedding_model;type:varchar(100);default:'';comment:图片嵌入模型名称" json:"image_embedding_model"`
 	ImageEmbeddingBaseURL     *string        `gorm:"column:image_embedding_base_url;type:varchar(255);default:'';comment:图片嵌入API地址(为空时复用ChatBaseURL)" json:"image_embedding_base_url"`
 	ImageEmbeddingAPIKey      *string        `gorm:"column:image_embedding_api_key;type:varchar(255);default:'';comment:图片嵌入API密钥(为空时复用ChatAPIKey)" json:"image_embedding_api_key"`

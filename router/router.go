@@ -190,6 +190,9 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/image-knowledge/search/image", knowledgeCtl.SearchImageByImage)
 	api.POST("/robot/image-knowledge/reindex", knowledgeCtl.ReindexAllImages)
 
+	// 全量重建向量索引
+	api.POST("/robot/vector/reindex-all", knowledgeCtl.ReindexAllVectors)
+
 	api.GET("/robot/chat/image/download", attachDownloadCtl.DownloadImage)
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
 	api.GET("/robot/chat/file/download", attachDownloadCtl.DownloadFile)

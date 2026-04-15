@@ -224,6 +224,17 @@ func (r *Memory) SearchByKeyword(wxID, chatRoomID, keyword string, limit int) ([
 	return memories, err
 }
 
+// FindAllPaged 分页获取全部记忆（用于批量重建向量索引）
+func (r *Memory) FindAllPaged(page, pageSize int) ([]*model.Memory, error) {
+	var memories []*model.Memory
+	err := r.DB.WithContext(r.Ctx).
+		Order("id ASC").
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		Find(&memories).Error
+	return memories, err
+}
+
 // escapeLikeKeyword 转义 LIKE 通配符，防止用户输入中的 % 和 _ 改变查询语义
 func escapeLikeKeyword(keyword string) string {
 	keyword = strings.ReplaceAll(keyword, "\\", "\\\\")

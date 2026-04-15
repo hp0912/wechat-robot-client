@@ -17,28 +17,32 @@ import (
 )
 
 const (
-	embeddingDimensions    = 1536
 	embeddingCacheDuration = 24 * time.Hour
 	embeddingCachePrefix   = "emb:"
 )
 
 // EmbeddingService 向量化服务
 type EmbeddingService struct {
-	client *openai.Client
-	model  openai.EmbeddingModel
+	client    *openai.Client
+	model     openai.EmbeddingModel
+	dimension int
 }
 
 // NewEmbeddingService 创建向量化服务
-func NewEmbeddingService(baseURL, apiKey, model string) *EmbeddingService {
+func NewEmbeddingService(baseURL, apiKey, model string, dimension int) *EmbeddingService {
 	config := openai.DefaultConfig(apiKey)
 	config.BaseURL = utils.NormalizeAIBaseURL(baseURL)
 	embModel := openai.EmbeddingModel(model)
 	if model == "" {
 		embModel = openai.SmallEmbedding3
 	}
+	if dimension <= 0 {
+		dimension = 2048
+	}
 	return &EmbeddingService{
-		client: openai.NewClientWithConfig(config),
-		model:  embModel,
+		client:    openai.NewClientWithConfig(config),
+		model:     embModel,
+		dimension: dimension,
 	}
 }
 
@@ -51,7 +55,7 @@ func (s *EmbeddingService) Embed(ctx context.Context, text string) ([]float32, e
 	resp, err := s.client.CreateEmbeddings(ctx, openai.EmbeddingRequest{
 		Input:      []string{text},
 		Model:      s.model,
-		Dimensions: embeddingDimensions,
+		Dimensions: s.dimension,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("embedding failed: %w", err)
@@ -74,7 +78,7 @@ func (s *EmbeddingService) EmbedBatch(ctx context.Context, texts []string) ([][]
 	resp, err := s.client.CreateEmbeddings(ctx, openai.EmbeddingRequest{
 		Input:      texts,
 		Model:      s.model,
-		Dimensions: embeddingDimensions,
+		Dimensions: s.dimension,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("batch embedding failed: %w", err)
