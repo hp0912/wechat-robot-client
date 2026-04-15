@@ -34,6 +34,7 @@ type MemoryService interface {
 	RefreshAllProfiles()
 	SaveManualMemory(ctx context.Context, memory *model.Memory) error
 	DeleteMemory(ctx context.Context, id int64) error
+	ReindexAll(ctx context.Context) error
 	SearchMemoriesByKeyword(ctx context.Context, wxID, chatRoomID, keyword string, limit int) ([]*model.Memory, error)
 	GetLastSessionSummary(ctx context.Context, contactWxID, chatRoomID string) string
 	TouchSession(ctx context.Context, contactWxID, chatRoomID string, msgID int64)

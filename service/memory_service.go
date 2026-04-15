@@ -974,6 +974,41 @@ func (s *MemoryService) DeleteMemory(ctx context.Context, id int64) error {
 	return s.memoryRepo.Delete(id)
 }
 
+// ReindexAll 重建所有记忆的向量索引（维度变更后调用）
+func (s *MemoryService) ReindexAll(ctx context.Context) error {
+	if s.vectorStore == nil {
+		return nil
+	}
+	page := 1
+	const pageSize = 100
+	robotCode := vars.RobotRuntime.RobotCode
+	for {
+		memories, err := s.memoryRepo.FindAllPaged(page, pageSize)
+		if err != nil {
+			return fmt.Errorf("query memories page %d: %w", page, err)
+		}
+		for _, m := range memories {
+			if m.Content == "" {
+				continue
+			}
+			vectorID, err := s.vectorStore.IndexMemory(ctx, robotCode, m.ID, m.Content, m.WxID, string(m.Category), m.ChatRoomID)
+			if err != nil {
+				log.Printf("[Memory] 重建索引失败 id=%d: %v", m.ID, err)
+				continue
+			}
+			if vectorID != "" && m.VectorID != vectorID {
+				m.VectorID = vectorID
+				s.memoryRepo.Update(m)
+			}
+		}
+		if len(memories) < pageSize {
+			break
+		}
+		page++
+	}
+	return nil
+}
+
 // ── 记忆衰减 & 过期清理 ───────────────────────────────────────────────
 
 // DecayOldMemories 衰减长期未访问记忆

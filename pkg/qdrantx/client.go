@@ -139,6 +139,22 @@ func (q *QdrantClient) Search(ctx context.Context, collection string, vector []f
 	return results, nil
 }
 
+// DeleteCollection 删除集合（集合不存在时静默忽略）
+func (q *QdrantClient) DeleteCollection(ctx context.Context, name string) error {
+	exists, err := q.client.CollectionExists(ctx, name)
+	if err != nil {
+		return fmt.Errorf("check collection %s: %w", name, err)
+	}
+	if !exists {
+		return nil
+	}
+	if err := q.client.DeleteCollection(ctx, name); err != nil {
+		return fmt.Errorf("delete collection %s: %w", name, err)
+	}
+	log.Printf("[Qdrant] 删除集合 %s 成功", name)
+	return nil
+}
+
 // DeleteByIDs 根据 ID 列表删除向量点
 func (q *QdrantClient) DeleteByIDs(ctx context.Context, collection string, ids []string) error {
 	if len(ids) == 0 {
