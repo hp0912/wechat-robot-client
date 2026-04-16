@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -22,11 +24,14 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5"
 	tos "github.com/volcengine/ve-tos-golang-sdk/v2/tos"
 
+	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 )
+
+const maxVideoSize int64 = 25 * 1024 * 1024 // 25MB
 
 type OSSSettingService struct {
 	ctx             context.Context
@@ -68,143 +73,171 @@ func (s *OSSSettingService) SaveOSSSettingService(req *model.OSSSettings) error 
 }
 
 func (s *OSSSettingService) UploadImageToOSSFromEncryptUrl(settings *model.OSSSettings, message *model.Message, encryptUrl string) error {
-	if settings.OSSProvider == "" {
-		return errors.New("OSS服务商未配置")
+	data, contentType, extension, err := s.downloadFromUrl(encryptUrl, 0)
+	if err != nil {
+		return fmt.Errorf("下载图片失败: %w", err)
 	}
-	switch settings.OSSProvider {
-	case model.OSSProviderAliyun:
-		if settings.AliyunOSSSettings == nil {
-			return errors.New("阿里云OSS配置项未配置")
-		}
-		err := s.UploadImageToAliyun(settings, message, &encryptUrl)
-		if err != nil {
-			return err
-		}
-	case model.OSSProviderTencentCloud:
-		if settings.TencentCloudOSSSettings == nil {
-			return errors.New("腾讯云COS配置项未配置")
-		}
-		err := s.UploadImageToTencentCloud(settings, message, &encryptUrl)
-		if err != nil {
-			return err
-		}
-	case model.OSSProviderCloudflare:
-		if settings.CloudflareR2Settings == nil {
-			return errors.New("cloudflare r2配置项未配置")
-		}
-		err := s.UploadImageToCloudflareR2(settings, message, &encryptUrl)
-		if err != nil {
-			return err
-		}
-	case model.OSSProviderVolcengine:
-		if settings.VolcengineTOSSettings == nil {
-			return errors.New("火山引擎TOS配置项未配置")
-		}
-		err := s.UploadImageToVolcengineTOS(settings, message, &encryptUrl)
-		if err != nil {
-			return err
-		}
-	default:
-		log.Printf("不支持的OSS服务商: %s", settings.OSSProvider)
-	}
-	return nil
+	return s.uploadMediaToOSS(settings, message, data, contentType, extension, "images")
 }
 
 func (s *OSSSettingService) UploadImageToOSS(settings *model.OSSSettings, message *model.Message) error {
-	if settings.OSSProvider == "" {
-		return errors.New("OSS服务商未配置")
+	attachDownloadService := NewAttachDownloadService(s.ctx)
+	data, contentType, extension, err := attachDownloadService.DownloadImage(message.ID)
+	if err != nil {
+		return fmt.Errorf("下载图片失败: %w", err)
 	}
-	switch settings.OSSProvider {
-	case model.OSSProviderAliyun:
-		if settings.AliyunOSSSettings == nil {
-			return errors.New("阿里云OSS配置项未配置")
-		}
-		err := s.UploadImageToAliyun(settings, message, nil)
-		if err != nil {
-			return err
-		}
-	case model.OSSProviderTencentCloud:
-		if settings.TencentCloudOSSSettings == nil {
-			return errors.New("腾讯云COS配置项未配置")
-		}
-		err := s.UploadImageToTencentCloud(settings, message, nil)
-		if err != nil {
-			return err
-		}
-	case model.OSSProviderCloudflare:
-		if settings.CloudflareR2Settings == nil {
-			return errors.New("cloudflare r2配置项未配置")
-		}
-		err := s.UploadImageToCloudflareR2(settings, message, nil)
-		if err != nil {
-			return err
-		}
-	case model.OSSProviderVolcengine:
-		if settings.VolcengineTOSSettings == nil {
-			return errors.New("火山引擎TOS配置项未配置")
-		}
-		err := s.UploadImageToVolcengineTOS(settings, message, nil)
-		if err != nil {
-			return err
-		}
-	default:
-		log.Printf("不支持的OSS服务商: %s", settings.OSSProvider)
-	}
-	return nil
+	return s.uploadMediaToOSS(settings, message, data, contentType, extension, "images")
 }
 
-func (s *OSSSettingService) DownloadImageFromEncryptUrl(imageUrl string) ([]byte, string, string, error) {
-	// 创建HTTP客户端
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+func (s *OSSSettingService) UploadVideoToOSS(settings *model.OSSSettings, message *model.Message) error {
+	// 解析视频消息XML，检查视频大小
+	videoSize, err := s.getVideoSizeFromXml(message.Content)
+	if err != nil {
+		return fmt.Errorf("解析视频消息XML失败: %w", err)
+	}
+	if videoSize > maxVideoSize {
+		return fmt.Errorf("视频大小 %dMB 超过限制 25MB", videoSize/(1024*1024))
 	}
 
-	// 发起GET请求
-	resp, err := client.Get(imageUrl)
+	// 下载视频
+	attachDownloadService := NewAttachDownloadService(s.ctx)
+	reader, _, err := attachDownloadService.DownloadVideo(dto.AttachDownloadRequest{MessageID: message.ID})
 	if err != nil {
-		return nil, "", "", fmt.Errorf("下载图片失败: %w", err)
+		return fmt.Errorf("下载视频失败: %w", err)
+	}
+	defer reader.Close()
+
+	data, err := io.ReadAll(io.LimitReader(reader, maxVideoSize+1))
+	if err != nil {
+		return fmt.Errorf("读取视频数据失败: %w", err)
+	}
+	if int64(len(data)) > maxVideoSize {
+		return fmt.Errorf("视频大小超过限制 25MB")
+	}
+
+	contentType := "video/mp4"
+	extension := utils.DetectMediaFormat(data)
+
+	return s.uploadMediaToOSS(settings, message, data, contentType, extension, "videos")
+}
+
+func (s *OSSSettingService) UploadVideoToOSSFromUrl(settings *model.OSSSettings, message *model.Message, videoUrl string) error {
+	data, contentType, extension, err := s.downloadFromUrl(videoUrl, maxVideoSize)
+	if err != nil {
+		return fmt.Errorf("下载视频失败: %w", err)
+	}
+	return s.uploadMediaToOSS(settings, message, data, contentType, extension, "videos")
+}
+
+// getVideoSizeFromXml 从视频消息XML中解析视频大小
+func (s *OSSSettingService) getVideoSizeFromXml(xmlContent string) (int64, error) {
+	type videoMsg struct {
+		Length int64 `xml:"length,attr"`
+	}
+	type videoXml struct {
+		XMLName  xml.Name `xml:"msg"`
+		VideoMsg videoMsg `xml:"videomsg"`
+	}
+	var v videoXml
+	if err := xml.NewDecoder(strings.NewReader(xmlContent)).Decode(&v); err != nil {
+		return 0, err
+	}
+	return v.VideoMsg.Length, nil
+}
+
+// downloadFromUrl 从URL下载文件，maxSize为最大允许大小（0表示不限制）
+func (s *OSSSettingService) downloadFromUrl(mediaUrl string, maxSize int64) ([]byte, string, string, error) {
+	client := &http.Client{
+		Timeout: 60 * time.Second,
+	}
+
+	resp, err := client.Get(mediaUrl)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("下载失败: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// 检查HTTP状态码
 	if resp.StatusCode != http.StatusOK {
-		return nil, "", "", fmt.Errorf("下载图片失败，状态码: %d", resp.StatusCode)
+		return nil, "", "", fmt.Errorf("下载失败，状态码: %d", resp.StatusCode)
 	}
 
-	// 读取图片内容
+	// 如果设置了大小限制，先检查Content-Length
+	if maxSize > 0 && resp.ContentLength > maxSize {
+		return nil, "", "", fmt.Errorf("文件大小 %dMB 超过限制 %dMB", resp.ContentLength/(1024*1024), maxSize/(1024*1024))
+	}
+
+	var reader io.Reader = resp.Body
+	if maxSize > 0 {
+		reader = io.LimitReader(resp.Body, maxSize+1)
+	}
+
 	var buf bytes.Buffer
-	_, err = buf.ReadFrom(resp.Body)
+	_, err = buf.ReadFrom(reader)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("读取图片内容失败: %w", err)
+		return nil, "", "", fmt.Errorf("读取内容失败: %w", err)
 	}
 
-	// 获取Content-Type
+	if maxSize > 0 && int64(buf.Len()) > maxSize {
+		return nil, "", "", fmt.Errorf("文件大小超过限制 %dMB", maxSize/(1024*1024))
+	}
+
 	contentType := resp.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
 
-	// 通过魔数检测图片格式
-	imageData := buf.Bytes()
-	extension := utils.DetectMediaFormat(imageData)
+	data := buf.Bytes()
+	extension := utils.DetectMediaFormat(data)
 
-	return imageData, contentType, extension, nil
+	return data, contentType, extension, nil
 }
 
-func (s *OSSSettingService) UploadImageToAliyun(settings *model.OSSSettings, message *model.Message, imageUrl *string) error {
-	attachDownloadService := NewAttachDownloadService(s.ctx)
-	var imageBytes []byte
-	var contentType, extension string
-	var err error
-	if imageUrl == nil {
-		imageBytes, contentType, extension, err = attachDownloadService.DownloadImage(message.ID)
-	} else {
-		imageBytes, contentType, extension, err = s.DownloadImageFromEncryptUrl(*imageUrl)
+// uploadMediaToOSS 校验OSS配置并分发到对应的云厂商上传
+func (s *OSSSettingService) uploadMediaToOSS(settings *model.OSSSettings, message *model.Message, data []byte, contentType, extension, mediaType string) error {
+	if settings.OSSProvider == "" {
+		return errors.New("OSS服务商未配置")
 	}
-	if err != nil {
-		return fmt.Errorf("下载图片失败: %w", err)
+	switch settings.OSSProvider {
+	case model.OSSProviderAliyun:
+		if settings.AliyunOSSSettings == nil {
+			return errors.New("阿里云OSS配置项未配置")
+		}
+		return s.uploadToAliyun(settings, message, data, contentType, extension, mediaType)
+	case model.OSSProviderTencentCloud:
+		if settings.TencentCloudOSSSettings == nil {
+			return errors.New("腾讯云COS配置项未配置")
+		}
+		return s.uploadToTencentCloud(settings, message, data, contentType, extension, mediaType)
+	case model.OSSProviderCloudflare:
+		if settings.CloudflareR2Settings == nil {
+			return errors.New("cloudflare r2配置项未配置")
+		}
+		return s.uploadToCloudflareR2(settings, message, data, contentType, extension, mediaType)
+	case model.OSSProviderVolcengine:
+		if settings.VolcengineTOSSettings == nil {
+			return errors.New("火山引擎TOS配置项未配置")
+		}
+		return s.uploadToVolcengineTOS(settings, message, data, contentType, extension, mediaType)
+	default:
+		return fmt.Errorf("不支持的OSS服务商: %s", settings.OSSProvider)
 	}
+}
 
+// updateMessageAttachmentUrl 更新消息附件URL
+func (s *OSSSettingService) updateMessageAttachmentUrl(message *model.Message, fileURL, mediaType string) error {
+	message.AttachmentUrl = fileURL
+	err := s.messageRepo.Update(&model.Message{
+		ID:            message.ID,
+		AttachmentUrl: fileURL,
+	})
+	if err != nil {
+		return fmt.Errorf("更新消息附件URL失败: %w", err)
+	}
+	log.Printf("%s上传成功: %s", mediaType, fileURL)
+	return nil
+}
+
+func (s *OSSSettingService) uploadToAliyun(settings *model.OSSSettings, message *model.Message, data []byte, contentType, extension, mediaType string) error {
 	var config model.AliyunOSSConfig
 	if err := json.Unmarshal(settings.AliyunOSSSettings, &config); err != nil {
 		return fmt.Errorf("解析阿里云OSS配置失败: %w", err)
@@ -225,8 +258,8 @@ func (s *OSSSettingService) UploadImageToAliyun(settings *model.OSSSettings, mes
 	}
 
 	fileName := s.generateFileName(extension)
-	objectKey := s.buildObjectKey(config.BasePath, fileName)
-	reader := bytes.NewReader(imageBytes)
+	objectKey := s.buildObjectKey(config.BasePath, fileName, mediaType)
+	reader := bytes.NewReader(data)
 	options := []oss.Option{
 		oss.ContentType(contentType),
 	}
@@ -243,33 +276,10 @@ func (s *OSSSettingService) UploadImageToAliyun(settings *model.OSSSettings, mes
 		fileURL = fmt.Sprintf("https://%s.%s/%s", config.BucketName, endpoint, objectKey)
 	}
 
-	message.AttachmentUrl = fileURL
-	err = s.messageRepo.Update(&model.Message{
-		ID:            message.ID,
-		AttachmentUrl: fileURL,
-	})
-	if err != nil {
-		return fmt.Errorf("更新消息附件URL失败: %w", err)
-	}
-	log.Printf("图片上传成功: %s", fileURL)
-
-	return nil
+	return s.updateMessageAttachmentUrl(message, fileURL, mediaType)
 }
 
-func (s *OSSSettingService) UploadImageToTencentCloud(settings *model.OSSSettings, message *model.Message, imageUrl *string) error {
-	attachDownloadService := NewAttachDownloadService(s.ctx)
-	var imageBytes []byte
-	var contentType, extension string
-	var err error
-	if imageUrl == nil {
-		imageBytes, contentType, extension, err = attachDownloadService.DownloadImage(message.ID)
-	} else {
-		imageBytes, contentType, extension, err = s.DownloadImageFromEncryptUrl(*imageUrl)
-	}
-	if err != nil {
-		return fmt.Errorf("下载图片失败: %w", err)
-	}
-
+func (s *OSSSettingService) uploadToTencentCloud(settings *model.OSSSettings, message *model.Message, data []byte, contentType, extension, mediaType string) error {
 	var config model.TencentCloudCOSConfig
 	if err := json.Unmarshal(settings.TencentCloudOSSSettings, &config); err != nil {
 		return fmt.Errorf("解析腾讯云COS配置失败: %w", err)
@@ -284,7 +294,6 @@ func (s *OSSSettingService) UploadImageToTencentCloud(settings *model.OSSSetting
 		return fmt.Errorf("解析Bucket URL失败: %w", err)
 	}
 
-	// 创建COS客户端
 	client := cos.NewClient(
 		&cos.BaseURL{BucketURL: bucketURL},
 		&http.Client{
@@ -296,8 +305,8 @@ func (s *OSSSettingService) UploadImageToTencentCloud(settings *model.OSSSetting
 	)
 
 	fileName := s.generateFileName(extension)
-	objectKey := s.buildObjectKey(config.BasePath, fileName)
-	reader := bytes.NewReader(imageBytes)
+	objectKey := s.buildObjectKey(config.BasePath, fileName, mediaType)
+	reader := bytes.NewReader(data)
 	opt := &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
 			ContentType: contentType,
@@ -316,34 +325,10 @@ func (s *OSSSettingService) UploadImageToTencentCloud(settings *model.OSSSetting
 		fileURL = fmt.Sprintf("%s/%s", strings.TrimRight(config.BucketURL, "/"), objectKey)
 	}
 
-	message.AttachmentUrl = fileURL
-	err = s.messageRepo.Update(&model.Message{
-		ID:            message.ID,
-		AttachmentUrl: fileURL,
-	})
-	if err != nil {
-		return fmt.Errorf("更新消息附件URL失败: %w", err)
-	}
-
-	log.Printf("图片上传成功: %s", fileURL)
-
-	return nil
+	return s.updateMessageAttachmentUrl(message, fileURL, mediaType)
 }
 
-func (s *OSSSettingService) UploadImageToCloudflareR2(settings *model.OSSSettings, message *model.Message, imageUrl *string) error {
-	attachDownloadService := NewAttachDownloadService(s.ctx)
-	var imageBytes []byte
-	var contentType, extension string
-	var err error
-	if imageUrl == nil {
-		imageBytes, contentType, extension, err = attachDownloadService.DownloadImage(message.ID)
-	} else {
-		imageBytes, contentType, extension, err = s.DownloadImageFromEncryptUrl(*imageUrl)
-	}
-	if err != nil {
-		return fmt.Errorf("下载图片失败: %w", err)
-	}
-
+func (s *OSSSettingService) uploadToCloudflareR2(settings *model.OSSSettings, message *model.Message, data []byte, contentType, extension, mediaType string) error {
 	var config model.CloudflareR2Config
 	if err := json.Unmarshal(settings.CloudflareR2Settings, &config); err != nil {
 		return fmt.Errorf("解析Cloudflare R2配置失败: %w", err)
@@ -366,16 +351,15 @@ func (s *OSSSettingService) UploadImageToCloudflareR2(settings *model.OSSSetting
 		return fmt.Errorf("创建AWS配置失败: %w", err)
 	}
 
-	// 创建S3客户端，指定R2的endpoint
 	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(endpoint)
-		o.UsePathStyle = true // R2需要使用path-style访问
+		o.UsePathStyle = true
 	})
 
 	fileName := s.generateFileName(extension)
-	objectKey := s.buildObjectKey(config.BasePath, fileName)
+	objectKey := s.buildObjectKey(config.BasePath, fileName, mediaType)
 
-	reader := bytes.NewReader(imageBytes)
+	reader := bytes.NewReader(data)
 	_, err = s3Client.PutObject(s.ctx, &s3.PutObjectInput{
 		Bucket:      aws.String(config.BucketName),
 		Key:         aws.String(objectKey),
@@ -393,34 +377,10 @@ func (s *OSSSettingService) UploadImageToCloudflareR2(settings *model.OSSSetting
 		fileURL = fmt.Sprintf("https://pub-%s.r2.dev/%s", config.BucketName, objectKey)
 	}
 
-	message.AttachmentUrl = fileURL
-	err = s.messageRepo.Update(&model.Message{
-		ID:            message.ID,
-		AttachmentUrl: fileURL,
-	})
-	if err != nil {
-		return fmt.Errorf("更新消息附件URL失败: %w", err)
-	}
-
-	log.Printf("图片上传成功: %s", fileURL)
-
-	return nil
+	return s.updateMessageAttachmentUrl(message, fileURL, mediaType)
 }
 
-func (s *OSSSettingService) UploadImageToVolcengineTOS(settings *model.OSSSettings, message *model.Message, imageUrl *string) error {
-	attachDownloadService := NewAttachDownloadService(s.ctx)
-	var imageBytes []byte
-	var contentType, extension string
-	var err error
-	if imageUrl == nil {
-		imageBytes, contentType, extension, err = attachDownloadService.DownloadImage(message.ID)
-	} else {
-		imageBytes, contentType, extension, err = s.DownloadImageFromEncryptUrl(*imageUrl)
-	}
-	if err != nil {
-		return fmt.Errorf("下载图片失败: %w", err)
-	}
-
+func (s *OSSSettingService) uploadToVolcengineTOS(settings *model.OSSSettings, message *model.Message, data []byte, contentType, extension, mediaType string) error {
 	var config model.VolcengineTOSConfig
 	if err := json.Unmarshal(settings.VolcengineTOSSettings, &config); err != nil {
 		return fmt.Errorf("解析火山引擎TOS配置失败: %w", err)
@@ -439,8 +399,8 @@ func (s *OSSSettingService) UploadImageToVolcengineTOS(settings *model.OSSSettin
 	}
 
 	fileName := s.generateFileName(extension)
-	objectKey := s.buildObjectKey(config.BasePath, fileName)
-	reader := bytes.NewReader(imageBytes)
+	objectKey := s.buildObjectKey(config.BasePath, fileName, mediaType)
+	reader := bytes.NewReader(data)
 
 	_, err = client.PutObjectV2(s.ctx, &tos.PutObjectV2Input{
 		PutObjectBasicInput: tos.PutObjectBasicInput{
@@ -463,36 +423,21 @@ func (s *OSSSettingService) UploadImageToVolcengineTOS(settings *model.OSSSettin
 		fileURL = fmt.Sprintf("https://%s.%s/%s", config.BucketName, endpoint, objectKey)
 	}
 
-	message.AttachmentUrl = fileURL
-	err = s.messageRepo.Update(&model.Message{
-		ID:            message.ID,
-		AttachmentUrl: fileURL,
-	})
-	if err != nil {
-		return fmt.Errorf("更新消息附件URL失败: %w", err)
-	}
-
-	log.Printf("图片上传成功: %s", fileURL)
-
-	return nil
+	return s.updateMessageAttachmentUrl(message, fileURL, mediaType)
 }
 
 // generateFileName 生成唯一的文件名
 func (s *OSSSettingService) generateFileName(extension string) string {
-	// 使用UUID生成唯一标识
 	uniqueID := uuid.New().String()
 	timestamp := time.Now().Format("20060102150405")
-
-	// 构造文件名: 日期_时间戳_uuid.ext
 	fileName := fmt.Sprintf("%s_%s%s", timestamp, uniqueID, extension)
 	return fileName
 }
 
 // buildObjectKey 构建对象存储的完整路径
-func (s *OSSSettingService) buildObjectKey(basePath, fileName string) string {
-	// 按日期分组存储: images/2024/01/02/filename.jpg
+func (s *OSSSettingService) buildObjectKey(basePath, fileName, mediaType string) string {
 	now := time.Now()
-	datePath := fmt.Sprintf("images/%d/%02d/%02d", now.Year(), now.Month(), now.Day())
+	datePath := fmt.Sprintf("%s/%d/%02d/%02d", mediaType, now.Year(), now.Month(), now.Day())
 
 	if basePath != "" {
 		basePath = strings.Trim(basePath, "/")

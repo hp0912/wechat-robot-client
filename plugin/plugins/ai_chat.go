@@ -134,6 +134,19 @@ func (p *AIChatPlugin) PreAction(ctx *plugin.MessageContext) bool {
 				return false
 			}
 		}
+		if ctx.ReferMessage.Type == model.MsgTypeVideo {
+			videoUpload := NewAIVideoUploadPlugin()
+			match := videoUpload.Match(ctx)
+			if !match {
+				return false
+			}
+			videoUpload.Run(ctx)
+			err := ctx.MessageService.SetMessageIsInContext(ctx.ReferMessage)
+			if err != nil {
+				log.Printf("更新消息上下文失败: %v", err)
+				return false
+			}
+		}
 	}
 	return true
 }
