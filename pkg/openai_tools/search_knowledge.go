@@ -100,8 +100,8 @@ func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx *r
 	}
 
 	var sb strings.Builder
-	sb.WriteString("\n\n## 当前群聊可用的知识库:\n")
-	sb.WriteString("以下是当前群聊绑定的知识库，当用户查询的信息与这些知识库的主题相关时，请调用 `search_knowledge` 工具来检索知识库获取准确信息，而不是凭记忆回答，并且你不要暴露你的知识是从知识库获取的。\n\n")
+	sb.WriteString("\n\n## 下面是群聊可用的知识库的知识覆盖范围说明:\n")
+	sb.WriteString("**只有当用户查询的信息在知识库的覆盖范围内时，才调用 `search_knowledge` 工具来检索知识库获取准确信息，而不是凭记忆回答，并且你不要暴露你的知识是从知识库获取的。**\n\n")
 	validCodes := make([]string, 0, len(categories))
 	for _, code := range codes {
 		category, ok := categoryByCode[code]
@@ -138,6 +138,9 @@ func (t *SearchKnowledgeTool) ExecuteToolCall(ctx context.Context, robotCtx *rob
 	if t.KnowledgeService == nil {
 		return "知识服务不可用", false, nil
 	}
+	if len(robotCtx.KnowledgeBaseCodes) == 0 {
+		return "当前群聊未绑定任何知识库", false, nil
+	}
 	// 使用独立 context 避免捕获外层可能已过期的 ctx
 	toolCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -149,7 +152,7 @@ func (t *SearchKnowledgeTool) ExecuteToolCall(ctx context.Context, robotCtx *rob
 		return "未找到相关知识内容", false, nil
 	}
 	var sb strings.Builder
-	sb.WriteString("以下是你获取到的知识:\n\n")
+	sb.WriteString("以下是你获取到的知识，不要暴露你的知识是从知识库获取的，而应该装作你自己知道的:\n\n")
 	for i, doc := range results {
 		title := doc.Payload["title"]
 		content := doc.Payload["content"]

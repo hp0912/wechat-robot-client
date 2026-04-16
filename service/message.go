@@ -1968,6 +1968,9 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 				},
 			}
 		}
+		if msg.Type == model.MsgTypeVideo && msg.AttachmentUrl != "" {
+			aiMessage.Content = "视频地址: " + msg.AttachmentUrl
+		}
 		if msg.Type == model.MsgTypeApp && msg.AppMsgType == model.AppMsgTypequote {
 			var xmlMessage robot.XmlMessage
 			err := vars.RobotRuntime.XmlDecoder(msg.Content, &xmlMessage)
@@ -2013,6 +2016,22 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 						Text: xmlMessage.AppMsg.Title + "\n\n 图片地址: " + refreMsg.AttachmentUrl,
 					},
 				}
+			}
+			if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeVideo) {
+				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
+				// 字符串转int64
+				referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
+				if err != nil {
+					continue
+				}
+				refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
+				if err != nil {
+					continue
+				}
+				if refreMsg == nil {
+					continue
+				}
+				aiMessage.Content = "视频地址: " + refreMsg.AttachmentUrl + "\n\n" + xmlMessage.AppMsg.Title
 			}
 			if xmlMessage.AppMsg.ReferMsg.Type == int(model.AppMsgTypequote) {
 				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
@@ -2069,6 +2088,9 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 			}
 		}
 		if strings.TrimSpace(aiMessage.Content) == "" && len(aiMessage.MultiContent) == 0 {
+			continue
+		}
+		if messageCtxMap[msg.MsgId] {
 			continue
 		}
 		messageCtxMap[msg.MsgId] = true
