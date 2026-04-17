@@ -154,28 +154,6 @@ func (r *Robot) Login(loginType string, isPretender bool) (loginData LoginRespon
 	return
 }
 
-func (r *Robot) XmlFastDecoder(xmlStr, target string) string {
-	decoder := xml.NewDecoder(strings.NewReader(xmlStr))
-	for {
-		tok, err := decoder.Token()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return ""
-		}
-		switch el := tok.(type) {
-		case xml.StartElement:
-			if el.Name.Local == target {
-				var content string
-				decoder.DecodeElement(&content, &el)
-				return content
-			}
-		}
-	}
-	return ""
-}
-
 func (r *Robot) XmlDecoder(xmlStr string, result any) error {
 	decoder := xml.NewDecoder(strings.NewReader(xmlStr))
 	err := decoder.Decode(result)

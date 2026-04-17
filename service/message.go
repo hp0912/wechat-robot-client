@@ -500,9 +500,13 @@ func (s *MessageService) ProcessMessageShouldInsertToDB(message *model.Message) 
 func (s *MessageService) ProcessMentionedMeMessage(message *model.Message, msgSource string) {
 	self := vars.RobotRuntime.WxID
 	// 是否艾特我的消息
-	ats := vars.RobotRuntime.XmlFastDecoder(msgSource, "atuserlist")
-	if ats != "" {
-		atMembers := strings.Split(ats, ",")
+	var msgsource robot.MessageSource
+	err := vars.RobotRuntime.XmlDecoder(message.Content, &msgsource)
+	if err != nil {
+		return
+	}
+	if msgsource.AtUserList != "" {
+		atMembers := strings.Split(msgsource.AtUserList, ",")
 		for _, at := range atMembers {
 			if strings.Trim(at, " ") == self {
 				message.IsAtMe = true
