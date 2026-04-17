@@ -501,7 +501,7 @@ func (s *MessageService) ProcessMentionedMeMessage(message *model.Message, msgSo
 	self := vars.RobotRuntime.WxID
 	// 是否艾特我的消息
 	var msgsource robot.MessageSource
-	err := vars.RobotRuntime.XmlDecoder(message.Content, &msgsource)
+	err := vars.RobotRuntime.XmlDecoder(message.MessageSource, &msgsource)
 	if err != nil {
 		return
 	}
