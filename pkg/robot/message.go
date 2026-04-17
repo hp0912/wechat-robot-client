@@ -205,6 +205,24 @@ type ReferMessage struct {
 	CreateTime  int64  `xml:"createtime"`
 }
 
+type MessageSource struct {
+	XMLName     xml.Name             `xml:"msgsource"`
+	AtUserList  string               `xml:"atuserlist"`
+	ALNode      MessageSourceALNode  `xml:"alnode"`
+	Silence     int                  `xml:"silence"`
+	MemberCount int                  `xml:"membercount"`
+	Signature   string               `xml:"signature"`
+	TmpNode     MessageSourceTmpNode `xml:"tmp_node"`
+}
+
+type MessageSourceALNode struct {
+	FR int `xml:"fr"`
+}
+
+type MessageSourceTmpNode struct {
+	PublisherID string `xml:"publisher-id"`
+}
+
 type SystemMessage struct {
 	XMLName        xml.Name       `xml:"sysmsg"`
 	Type           string         `xml:"type,attr"`
