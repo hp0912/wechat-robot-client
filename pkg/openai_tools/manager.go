@@ -13,7 +13,7 @@ import (
 )
 
 type OpenAITool interface {
-	GetOpenAITool() openai.Tool
+	GetOpenAITool(robotCtx *robotctx.RobotContext) *openai.Tool
 	BuildSystemPrompt(ctx context.Context, robotCtx *robotctx.RobotContext) (string, error)
 	ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error)
 }
@@ -34,7 +34,7 @@ func NewOpenAIToolsManager(db *gorm.DB, knowledgeService ai.KnowledgeService) *O
 }
 
 func (m *OpenAIToolsManager) Initialize() error {
-	m.tools["search_knowledge"] = NewSearchKnowledgeTool(m.KnowledgeService)
+	m.tools["search_document"] = NewSearchKnowledgeTool(m.KnowledgeService)
 	return nil
 }
 
@@ -43,10 +43,13 @@ func (m *OpenAIToolsManager) Shutdown() error {
 	return nil
 }
 
-func (m *OpenAIToolsManager) GetOpenAITools() []openai.Tool {
+func (m *OpenAIToolsManager) GetOpenAITools(robotCtx *robotctx.RobotContext) []openai.Tool {
 	var openAITools []openai.Tool
 	for _, tool := range m.tools {
-		openAITools = append(openAITools, tool.GetOpenAITool())
+		openAITool := tool.GetOpenAITool(robotCtx)
+		if openAITool != nil {
+			openAITools = append(openAITools, *openAITool)
+		}
 	}
 	return openAITools
 }

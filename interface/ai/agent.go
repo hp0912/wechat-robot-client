@@ -16,7 +16,7 @@ type AgentService interface {
 	Shutdown(ctx context.Context) error
 	GetMCPManager() *mcp.MCPManager
 	GetSkillsManager() *skills.SkillsManager
-	GetAllTools() ([]openai.Tool, error)
+	GetAllTools(robotCtx *robotctx.RobotContext) ([]openai.Tool, error)
 	ChatWithTools(
 		robotCtx robotctx.RobotContext,
 		client *openai.Client,
