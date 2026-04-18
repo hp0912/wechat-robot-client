@@ -965,7 +965,11 @@ func (r *Robot) MsgSendVoice(toWxID string, voice []byte, voiceExt string) (voic
 		silkFilename := strings.Replace(pcmFile.Name(), ".pcm", ".silk", 1)
 		defer os.Remove(silkFilename)
 
-		cmd = exec.Command("/usr/local/bin/silk/encoder", pcmFile.Name(), silkFilename, "-tencent")
+		cmd = exec.Command("/usr/local/bin/silk/encoder", pcmFile.Name(), silkFilename,
+			"-tencent",
+			"-Fs_API", strconv.Itoa(targetRate),
+			"-rate", strconv.Itoa(targetRate*2),
+		)
 		if err = cmd.Run(); err != nil {
 			err = fmt.Errorf("decoder转换pcm文件到silk文件错误: %w", err)
 			return
