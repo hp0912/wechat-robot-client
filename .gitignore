@@ -10,3 +10,10 @@ __debug*
 .deploy/local/secrets/nginx/*.key
 .deploy/local/secrets/nginx/*.crt
 .deploy/local/secrets/nginx/*.pem
+
+.deploy/local/wechat_admin_redis_data
+.deploy/local/wechat_admin_mysql_data
+.deploy/local/qdrant_data
+.deploy/local/wechat-server
+.deploy/local/xiaohongshu-mcp
+.deploy/local/wechat-robot
