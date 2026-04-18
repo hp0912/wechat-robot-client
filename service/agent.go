@@ -87,10 +87,10 @@ func (s *AgentService) GetSkillsManager() *skills.SkillsManager {
 }
 
 // GetAllTools 获取所有可用工具（OpenAI格式）
-func (s *AgentService) GetAllTools() ([]openai.Tool, error) {
+func (s *AgentService) GetAllTools(robotCtx *robotctx.RobotContext) ([]openai.Tool, error) {
 	var tools []openai.Tool
 	// 从内部工具管理器获取工具
-	internalTools := s.internalToolsManager.GetOpenAITools()
+	internalTools := s.internalToolsManager.GetOpenAITools(robotCtx)
 	tools = append(tools, internalTools...)
 	// 从MCP获取工具
 	mcpTools, err := s.mcpManager.GetOpenAITools(s.ctx)
@@ -136,7 +136,7 @@ func (s *AgentService) ChatWithTools(
 		return openai.ChatCompletionMessage{}, fmt.Errorf("messages cannot be empty")
 	}
 	// 获取所有可用工具
-	tools, err := s.GetAllTools()
+	tools, err := s.GetAllTools(&robotCtx)
 	if err != nil {
 		return openai.ChatCompletionMessage{}, fmt.Errorf("failed to get tools: %w", err)
 	}

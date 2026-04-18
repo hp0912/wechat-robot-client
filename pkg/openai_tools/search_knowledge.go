@@ -17,7 +17,8 @@ import (
 )
 
 type SearchKnowledgeTool struct {
-	KnowledgeService ai.KnowledgeService
+	KnowledgeService   ai.KnowledgeService
+	cachedSystemPrompt string
 }
 
 func NewSearchKnowledgeTool(knowledgeService ai.KnowledgeService) OpenAITool {
@@ -26,18 +27,26 @@ func NewSearchKnowledgeTool(knowledgeService ai.KnowledgeService) OpenAITool {
 	}
 }
 
-func (t *SearchKnowledgeTool) GetOpenAITool() openai.Tool {
-	return openai.Tool{
+func (t *SearchKnowledgeTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *openai.Tool {
+	systemPrompt, err := t.BuildSystemPrompt(context.Background(), robotCtx)
+	if err != nil {
+		fmt.Printf("构建系统提示词失败: %v\n", err)
+		return nil
+	}
+	if systemPrompt == "" {
+		return nil
+	}
+	return &openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "search_knowledge",
-			Description: "检索当前群聊绑定的知识库，根据用户问题语义搜索最相关的知识内容。当用户的问题可能与群聊绑定的知识库主题相关时，请调用此工具获取准确信息。",
+			Name:        "search_document",
+			Description: "检索当前群聊绑定的文档，根据用户问题语义搜索最相关的知识内容。只有当用户的问题可能与群聊绑定的文档主题相关时，才调用此工具获取准确信息。",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"query": map[string]string{
 						"type":        "string",
-						"description": "用于检索知识库的查询语句，应当是用户问题的核心关键词或语义描述",
+						"description": "用于检索文档的查询语句，应当是用户问题的核心关键词或语义描述",
 					},
 				},
 				"required": []string{"query"},
@@ -47,6 +56,12 @@ func (t *SearchKnowledgeTool) GetOpenAITool() openai.Tool {
 }
 
 func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx *robotctx.RobotContext) (string, error) {
+	if t.cachedSystemPrompt != "" {
+		systemPrompt := t.cachedSystemPrompt
+		t.cachedSystemPrompt = "" // 使用一次后清空缓存，确保后续能获取到最新的群聊设置和知识库绑定信息
+		return systemPrompt, nil
+	}
+
 	if t.KnowledgeService == nil || !strings.HasSuffix(robotCtx.FromWxID, "@chatroom") {
 		return "", nil
 	}
@@ -100,8 +115,8 @@ func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx *r
 	}
 
 	var sb strings.Builder
-	sb.WriteString("\n\n## 下面是群聊可用的知识库的知识覆盖范围说明:\n")
-	sb.WriteString("**只有当用户查询的信息在知识库的覆盖范围内时，才调用 `search_knowledge` 工具来检索知识库获取准确信息，而不是凭记忆回答，并且你不要暴露你的知识是从知识库获取的。**\n\n")
+	sb.WriteString("\n\n## 下面是群聊可用的文档内容概览:\n")
+	sb.WriteString("**只有当用户查询的信息在文档的覆盖范围内时，才调用 `search_document` 工具来检索文档获取准确信息，而不是凭记忆回答，并且你不要暴露你的知识是从文档获取的。**\n\n")
 	validCodes := make([]string, 0, len(categories))
 	for _, code := range codes {
 		category, ok := categoryByCode[code]
@@ -121,8 +136,9 @@ func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx *r
 	}
 
 	robotCtx.KnowledgeBaseCodes = validCodes
+	t.cachedSystemPrompt = sb.String()
 
-	return sb.String(), nil
+	return t.cachedSystemPrompt, nil
 }
 
 func (t *SearchKnowledgeTool) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
@@ -152,7 +168,7 @@ func (t *SearchKnowledgeTool) ExecuteToolCall(ctx context.Context, robotCtx *rob
 		return "未找到相关知识内容", false, nil
 	}
 	var sb strings.Builder
-	sb.WriteString("以下是你获取到的知识，不要暴露你的知识是从知识库获取的，而应该装作你自己知道的:\n\n")
+	sb.WriteString("以下是你获取到的知识，不要暴露你的知识是从文档获取的，而应该装作你自己知道的:\n\n")
 	for i, doc := range results {
 		title := doc.Payload["title"]
 		content := doc.Payload["content"]
