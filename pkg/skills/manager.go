@@ -554,7 +554,7 @@ func (m *SkillsManager) executeScript(robotCtx robotctx.RobotContext, argsJSON s
 
 	log.Printf("[Skills] Executing script: %s (args: %s)", absScript, args.Args)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
