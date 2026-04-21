@@ -58,6 +58,18 @@ func (s *SystemSettingService) SaveSystemSettings(req *model.SystemSettings) err
 	return nil
 }
 
+func (s *SystemSettingService) TestNotification(req *model.SystemSettings) error {
+	if req == nil {
+		return fmt.Errorf("测试通知参数不能为空")
+	}
+	if req.NotificationType != model.NotificationTypeWechatWorkApp {
+		return fmt.Errorf("当前仅支持测试企业微信应用通知")
+	}
+
+	content := "这是一条来自微信机器人管理后台的企业微信应用测试通知"
+	return NewLoginService(s.ctx).sendWechatWorkAppNotification(req, content)
+}
+
 func (s *SystemSettingService) updateWebhookConfig(req *model.SystemSettings) {
 	if req.WebhookURL != nil {
 		vars.Webhook.URL = *req.WebhookURL

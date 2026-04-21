@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
@@ -305,46 +307,150 @@ func (r *LoginService) LogoutCallback(req dto.LogoutNotificationRequest) (err er
 		return
 	}
 	if systemSettings.OfflineNotificationEnabled != nil && *systemSettings.OfflineNotificationEnabled {
-		// 发送离线通知
-		if systemSettings.NotificationType == model.NotificationTypePushPlus {
-			var result dto.PushPlusNotificationResponse
-			var title string
-			var content string
-			if req.Type == "offline" {
-				title = "机器人掉线通知"
-				content = fmt.Sprintf("您的机器人（%s）掉线啦~~~", vars.RobotRuntime.WxID)
-			} else {
-				title = "机器人发送心跳失败"
-				content = fmt.Sprintf("您的机器人（%s）第%d次发送心跳失败了~~~", vars.RobotRuntime.WxID, req.RetryCount)
-			}
-			httpResp, err1 := resty.New().R().
-				SetHeader("Content-Type", "application/json;chartset=utf-8").
-				SetBody(dto.PushPlusNotificationRequest{
-					Token:   *systemSettings.PushPlusToken,
-					Title:   title,
-					Content: content,
-					Channel: "wechat",
-				}).
-				SetResult(&result).
-				Post(*systemSettings.PushPlusURL)
-			if err1 != nil {
-				log.Printf("接收到掉线通知，发送离线通知失败: %v", err1)
-				return
-			}
-			if httpResp.StatusCode() != 200 {
-				log.Printf("接收到掉线通知，发送离线通知失败，HTTP状态码: %d", httpResp.StatusCode())
-				return
-			}
-			if result.Code != 200 {
-				log.Printf("接收到掉线通知，发送离线通知失败，PushPlus返回错误: %s", result.Msg)
-				return
-			}
-			log.Printf("接收到掉线通知，发送离线通知成功")
+		if notifyErr := r.sendOfflineNotification(systemSettings, req); notifyErr != nil {
+			log.Printf("接收到掉线通知，发送离线通知失败: %v", notifyErr)
+			return
 		}
+		log.Printf("接收到掉线通知，发送离线通知成功")
 		return
 	}
 
-	log.Printf("接收到掉线通知，系统设置未开启掉线通知")
-
+	log.Printf("接收到掉线通知，系统设置未开启离线通知")
 	return
+}
+
+func (r *LoginService) sendOfflineNotification(systemSettings *model.SystemSettings, req dto.LogoutNotificationRequest) error {
+	title, content := buildOfflineNotificationMessage(req)
+
+	switch systemSettings.NotificationType {
+	case model.NotificationTypePushPlus:
+		return r.sendPushPlusNotification(systemSettings, title, content)
+	case model.NotificationTypeWechatWorkApp:
+		return r.sendWechatWorkAppNotification(systemSettings, content)
+	case model.NotificationTypeEmail:
+		return errors.New("暂不支持邮件通知")
+	default:
+		return fmt.Errorf("不支持的通知类型: %s", systemSettings.NotificationType)
+	}
+}
+
+func (r *LoginService) sendPushPlusNotification(systemSettings *model.SystemSettings, title, content string) error {
+	pushPlusURL := getTrimmedString(systemSettings.PushPlusURL)
+	pushPlusToken := getTrimmedString(systemSettings.PushPlusToken)
+	if pushPlusURL == "" {
+		return errors.New("PushPlus 地址不能为空")
+	}
+	if pushPlusToken == "" {
+		return errors.New("PushPlus Token 不能为空")
+	}
+
+	var result dto.PushPlusNotificationResponse
+	httpResp, err := resty.New().R().
+		SetHeader("Content-Type", "application/json;chartset=utf-8").
+		SetBody(dto.PushPlusNotificationRequest{
+			Token:   pushPlusToken,
+			Title:   title,
+			Content: content,
+			Channel: "wechat",
+		}).
+		SetResult(&result).
+		Post(pushPlusURL)
+	if err != nil {
+		return err
+	}
+	if httpResp.StatusCode() != 200 {
+		return fmt.Errorf("PushPlus HTTP 状态码异常: %d", httpResp.StatusCode())
+	}
+	if result.Code != 200 {
+		return fmt.Errorf("PushPlus 返回错误: %s", result.Msg)
+	}
+	return nil
+}
+
+func (r *LoginService) sendWechatWorkAppNotification(systemSettings *model.SystemSettings, content string) error {
+	corpID := getTrimmedString(systemSettings.WechatWorkCorpID)
+	agentIDText := getTrimmedString(systemSettings.WechatWorkAgentID)
+	secret := getTrimmedString(systemSettings.WechatWorkSecret)
+	proxyURL := getTrimmedString(systemSettings.WechatWorkProxyURL)
+	toUser := getTrimmedString(systemSettings.WechatWorkToUser)
+
+	if corpID == "" {
+		return errors.New("企业微信企业ID不能为空")
+	}
+	if agentIDText == "" {
+		return errors.New("企业微信应用AgentId不能为空")
+	}
+	if secret == "" {
+		return errors.New("企业微信应用Secret不能为空")
+	}
+	if toUser == "" {
+		toUser = "ALL"
+	}
+
+	agentID, err := strconv.ParseInt(agentIDText, 10, 64)
+	if err != nil {
+		return fmt.Errorf("企业微信应用AgentId格式错误: %w", err)
+	}
+
+	client := resty.New()
+	if proxyURL != "" {
+		client.SetProxy(proxyURL)
+	}
+
+	var tokenResp dto.WechatWorkAccessTokenResponse
+	httpResp, err := client.R().
+		SetHeader("Content-Type", "application/json;chartset=utf-8").
+		SetQueryParam("corpid", corpID).
+		SetQueryParam("corpsecret", secret).
+		SetResult(&tokenResp).
+		Get("https://qyapi.weixin.qq.com/cgi-bin/gettoken")
+	if err != nil {
+		return fmt.Errorf("获取企业微信 access_token 失败: %w", err)
+	}
+	if httpResp.StatusCode() != 200 {
+		return fmt.Errorf("获取企业微信 access_token HTTP 状态码异常: %d", httpResp.StatusCode())
+	}
+	if tokenResp.ErrCode != 0 {
+		return fmt.Errorf("获取企业微信 access_token 失败: %s", tokenResp.ErrMsg)
+	}
+
+	var sendResp dto.WechatWorkSendMessageResponse
+	httpResp, err = client.R().
+		SetHeader("Content-Type", "application/json;chartset=utf-8").
+		SetQueryParam("access_token", tokenResp.AccessToken).
+		SetBody(dto.WechatWorkSendMessageRequest{
+			ToUser:  toUser,
+			MsgType: "text",
+			AgentID: agentID,
+			Text: dto.WechatWorkTextMessage{
+				Content: content,
+			},
+			Safe: 0,
+		}).
+		SetResult(&sendResp).
+		Post("https://qyapi.weixin.qq.com/cgi-bin/message/send")
+	if err != nil {
+		return fmt.Errorf("发送企业微信应用通知失败: %w", err)
+	}
+	if httpResp.StatusCode() != 200 {
+		return fmt.Errorf("发送企业微信应用通知 HTTP 状态码异常: %d", httpResp.StatusCode())
+	}
+	if sendResp.ErrCode != 0 {
+		return fmt.Errorf("发送企业微信应用通知失败: %s", sendResp.ErrMsg)
+	}
+	return nil
+}
+
+func buildOfflineNotificationMessage(req dto.LogoutNotificationRequest) (string, string) {
+	if req.Type == "offline" {
+		return "机器人掉线通知", fmt.Sprintf("您的机器人（%s）掉线啦~~~", vars.RobotRuntime.WxID)
+	}
+	return "机器人发送心跳失败", fmt.Sprintf("您的机器人（%s）第%d次发送心跳失败了~~~", vars.RobotRuntime.WxID, req.RetryCount)
+}
+
+func getTrimmedString(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
 }

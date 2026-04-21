@@ -138,6 +138,7 @@ func RegisterRouter(r *gin.Engine) error {
 	// 系统设置相关接口
 	api.GET("/robot/system-settings", systemSettingsCtl.GetSystemSettings)
 	api.POST("/robot/system-settings", systemSettingsCtl.SaveSystemSettings)
+	api.POST("/robot/system-settings/test-notification", systemSettingsCtl.TestNotification)
 
 	// OSS 设置相关接口
 	api.GET("/robot/oss-settings", ossSettingsCtl.GetOSSSettings)
