@@ -34,7 +34,6 @@ import (
 
 type MessageService struct {
 	ctx            context.Context
-	settings       settings.Settings
 	msgRepo        *repository.Message
 	crmRepo        *repository.ChatRoomMember
 	sysmsgRepo     *repository.SystemMessage
@@ -53,11 +52,40 @@ func NewMessageService(ctx context.Context) *MessageService {
 	}
 }
 
+func buildMessageLogPreview(content string) string {
+	preview := strings.ReplaceAll(strings.TrimSpace(content), "\n", `\n`)
+	previewRunes := []rune(preview)
+	if len(previewRunes) > 80 {
+		return string(previewRunes[:80]) + "..."
+	}
+	return preview
+}
+
+func shouldLogPluginMatch(messagePlugin plugin.MessageHandler) bool {
+	return !slices.Contains(messagePlugin.GetLabels(), "chat")
+}
+
+func (s *MessageService) logPluginMatch(messagePlugin plugin.MessageHandler, msgCtx *plugin.MessageContext) {
+	if msgCtx == nil || msgCtx.Message == nil || !shouldLogPluginMatch(messagePlugin) {
+		return
+	}
+	log.Printf("[PluginMatch] plugin=%s labels=%v msg_id=%d from=%s sender=%s is_chat_room=%t app_msg_type=%d content=%q",
+		messagePlugin.GetName(),
+		messagePlugin.GetLabels(),
+		msgCtx.Message.MsgId,
+		msgCtx.Message.FromWxID,
+		msgCtx.Message.SenderWxID,
+		msgCtx.Message.IsChatRoom,
+		msgCtx.Message.AppMsgType,
+		buildMessageLogPreview(msgCtx.MessageContent),
+	)
+}
+
 // ProcessTextMessage 处理文本消息
-func (s *MessageService) ProcessTextMessage(message *model.Message) {
+func (s *MessageService) ProcessTextMessage(message *model.Message, msgSettings settings.Settings) {
 	msgCtx := &plugin.MessageContext{
 		Context:        s.ctx,
-		Settings:       s.settings,
+		Settings:       msgSettings,
 		Message:        message,
 		MessageContent: message.Content,
 		MessageService: s,
@@ -70,15 +98,16 @@ func (s *MessageService) ProcessTextMessage(message *model.Message) {
 		if !match {
 			continue
 		}
+		s.logPluginMatch(messagePlugin, msgCtx)
 		messagePlugin.Run(msgCtx)
 	}
 }
 
 // ProcessImageMessage 处理图片消息
-func (s *MessageService) ProcessImageMessage(message *model.Message) {
+func (s *MessageService) ProcessImageMessage(message *model.Message, msgSettings settings.Settings) {
 	msgCtx := &plugin.MessageContext{
 		Context:        s.ctx,
-		Settings:       s.settings,
+		Settings:       msgSettings,
 		Message:        message,
 		MessageContent: message.Content,
 		MessageService: s,
@@ -91,6 +120,7 @@ func (s *MessageService) ProcessImageMessage(message *model.Message) {
 		if !match {
 			continue
 		}
+		s.logPluginMatch(messagePlugin, msgCtx)
 		messagePlugin.Run(msgCtx)
 	}
 }
@@ -111,7 +141,7 @@ func (s *MessageService) ProcessEmojiMessage(message *model.Message) {
 }
 
 // ProcessReferMessage 处理引用消息
-func (s *MessageService) ProcessReferMessage(message *model.Message) {
+func (s *MessageService) ProcessReferMessage(message *model.Message, msgSettings settings.Settings) {
 	var xmlMessage robot.XmlMessage
 	err := vars.RobotRuntime.XmlDecoder(message.Content, &xmlMessage)
 	if err != nil {
@@ -134,7 +164,7 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 	}
 	msgCtx := &plugin.MessageContext{
 		Context:        s.ctx,
-		Settings:       s.settings,
+		Settings:       msgSettings,
 		Message:        message,
 		MessageContent: xmlMessage.AppMsg.Title,
 		ReferMessage:   referMessage,
@@ -148,14 +178,15 @@ func (s *MessageService) ProcessReferMessage(message *model.Message) {
 		if !match {
 			continue
 		}
+		s.logPluginMatch(messagePlugin, msgCtx)
 		messagePlugin.Run(msgCtx)
 	}
 }
 
-func (s *MessageService) ProcessRedEnvelopesMessage(message *model.Message) {
+func (s *MessageService) ProcessRedEnvelopesMessage(message *model.Message, msgSettings settings.Settings) {
 	msgCtx := &plugin.MessageContext{
 		Context:        s.ctx,
-		Settings:       s.settings,
+		Settings:       msgSettings,
 		Message:        message,
 		MessageContent: message.Content,
 		MessageService: s,
@@ -168,18 +199,19 @@ func (s *MessageService) ProcessRedEnvelopesMessage(message *model.Message) {
 		if !match {
 			continue
 		}
+		s.logPluginMatch(messagePlugin, msgCtx)
 		messagePlugin.Run(msgCtx)
 	}
 }
 
 // ProcessAppMessage 处理应用消息
-func (s *MessageService) ProcessAppMessage(message *model.Message) {
+func (s *MessageService) ProcessAppMessage(message *model.Message, msgSettings settings.Settings) {
 	if message.AppMsgType == model.AppMsgTypequote {
-		s.ProcessReferMessage(message)
+		s.ProcessReferMessage(message, msgSettings)
 		return
 	}
 	if message.AppMsgType == model.AppMsgTypeRedEnvelopes {
-		s.ProcessRedEnvelopesMessage(message)
+		s.ProcessRedEnvelopesMessage(message, msgSettings)
 		return
 	}
 	if message.AppMsgType == model.AppMsgTypeUrl {
@@ -302,10 +334,10 @@ func (s *MessageService) ProcessRecalledMessage(message *model.Message, msgXml r
 }
 
 // ProcessPatMessage 处理拍一拍消息
-func (s *MessageService) ProcessPatMessage(message *model.Message, msgXml robot.SystemMessage) {
+func (s *MessageService) ProcessPatMessage(message *model.Message, msgXml robot.SystemMessage, msgSettings settings.Settings) {
 	msgCtx := &plugin.MessageContext{
 		Context:        s.ctx,
-		Settings:       s.settings,
+		Settings:       msgSettings,
 		Message:        message,
 		MessageContent: message.Content,
 		Pat:            message.IsChatRoom && msgXml.Pat.PattedUsername == vars.RobotRuntime.WxID,
@@ -317,6 +349,7 @@ func (s *MessageService) ProcessPatMessage(message *model.Message, msgXml robot.
 			if !match {
 				continue
 			}
+			s.logPluginMatch(messagePlugin, msgCtx)
 			messagePlugin.Run(msgCtx)
 		}
 	}
@@ -410,7 +443,7 @@ func (s *MessageService) ProcessNewChatRoomMemberMessage(message *model.Message,
 }
 
 // ProcessSystemMessage 处理系统消息
-func (s *MessageService) ProcessSystemMessage(message *model.Message) {
+func (s *MessageService) ProcessSystemMessage(message *model.Message, msgSettings settings.Settings) {
 	var msgXml robot.SystemMessage
 	err := vars.RobotRuntime.XmlDecoder(message.Content, &msgXml)
 	if err != nil {
@@ -421,7 +454,7 @@ func (s *MessageService) ProcessSystemMessage(message *model.Message) {
 		return
 	}
 	if msgXml.Type == "pat" {
-		s.ProcessPatMessage(message, msgXml)
+		s.ProcessPatMessage(message, msgXml, msgSettings)
 		return
 	}
 	if msgXml.Type == "sysmsgtemplate" &&
@@ -553,7 +586,6 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		if settings == nil {
 			continue
 		}
-		s.settings = settings
 		err := s.msgRepo.Create(&m)
 		if err != nil {
 			log.Printf("入库消息失败: %v", err)
@@ -561,9 +593,9 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		}
 		switch m.Type {
 		case model.MsgTypeText:
-			go s.ProcessTextMessage(&m)
+			go s.ProcessTextMessage(&m, settings)
 		case model.MsgTypeImage:
-			go s.ProcessImageMessage(&m)
+			go s.ProcessImageMessage(&m, settings)
 		case model.MsgTypeVoice:
 			go s.ProcessVoiceMessage(&m)
 		case model.MsgTypeVideo:
@@ -571,14 +603,14 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		case model.MsgTypeEmoticon:
 			go s.ProcessEmojiMessage(&m)
 		case model.MsgTypeApp:
-			go s.ProcessAppMessage(&m)
+			go s.ProcessAppMessage(&m, settings)
 		case model.MsgTypeShareCard:
 			go s.ProcessShareCardMessage(&m)
 		case model.MsgTypeVerify:
 			// 好友添加请求通知消息
 			go s.ProcessFriendVerifyMessage(&m)
 		case model.MsgTypeSystem:
-			go s.ProcessSystemMessage(&m)
+			go s.ProcessSystemMessage(&m, settings)
 		case model.MsgTypeLocation:
 			go s.ProcessLocationMessage(&m)
 		case model.MsgTypePrompt:
