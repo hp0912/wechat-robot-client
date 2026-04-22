@@ -23,6 +23,7 @@ func autoMigrateTasks() []migrateTask {
 				return vars.DB
 			},
 			models: []any{
+				&model.SystemSettings{},
 				&model.GlobalSettings{},
 				&model.ChatRoomSettings{},
 				&model.Memory{},
@@ -71,6 +72,11 @@ func enumMigrations() []enumMigration {
 			table:  "chat_room_settings",
 			column: "news_type",
 			sql:    "ALTER TABLE chat_room_settings MODIFY COLUMN news_type ENUM('','text','image') NULL COMMENT '每日早报类型：text-文本，image-图片'",
+		},
+		{
+			table:  "system_settings",
+			column: "notification_type",
+			sql:    "ALTER TABLE system_settings MODIFY COLUMN notification_type ENUM('push_plus','email','wecom') NOT NULL DEFAULT 'push_plus' COMMENT '通知方式：push_plus-推送加，email-邮件，wecom-企业微信应用'",
 		},
 	}
 }

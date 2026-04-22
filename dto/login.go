@@ -32,26 +32,26 @@ type PushPlusNotificationResponse struct {
 	Data string `json:"data"`
 }
 
-type WechatWorkAccessTokenResponse struct {
+type WeComAccessTokenResponse struct {
 	ErrCode     int    `json:"errcode"`
 	ErrMsg      string `json:"errmsg"`
 	AccessToken string `json:"access_token"`
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-type WechatWorkSendMessageRequest struct {
-	ToUser  string                `json:"touser"`
-	MsgType string                `json:"msgtype"`
-	AgentID int64                 `json:"agentid"`
-	Text    WechatWorkTextMessage `json:"text"`
-	Safe    int                   `json:"safe"`
+type WeComSendMessageRequest struct {
+	ToUser  string           `json:"touser"`
+	MsgType string           `json:"msgtype"`
+	AgentID int64            `json:"agentid"`
+	Text    WeComTextMessage `json:"text"`
+	Safe    int              `json:"safe"`
 }
 
-type WechatWorkTextMessage struct {
+type WeComTextMessage struct {
 	Content string `json:"content"`
 }
 
-type WechatWorkSendMessageResponse struct {
+type WeComSendMessageResponse struct {
 	ErrCode      int    `json:"errcode"`
 	ErrMsg       string `json:"errmsg"`
 	InvalidUser  string `json:"invaliduser"`

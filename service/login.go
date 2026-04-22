@@ -8,15 +8,16 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"strings"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
-
-	"github.com/go-resty/resty/v2"
 )
 
 type LoginService struct {
@@ -325,8 +326,8 @@ func (r *LoginService) sendOfflineNotification(systemSettings *model.SystemSetti
 	switch systemSettings.NotificationType {
 	case model.NotificationTypePushPlus:
 		return r.sendPushPlusNotification(systemSettings, title, content)
-	case model.NotificationTypeWechatWorkApp:
-		return r.sendWechatWorkAppNotification(systemSettings, content)
+	case model.NotificationTypeWeCom:
+		return r.sendWeComNotification(systemSettings, content)
 	case model.NotificationTypeEmail:
 		return errors.New("暂不支持邮件通知")
 	default:
@@ -335,8 +336,8 @@ func (r *LoginService) sendOfflineNotification(systemSettings *model.SystemSetti
 }
 
 func (r *LoginService) sendPushPlusNotification(systemSettings *model.SystemSettings, title, content string) error {
-	pushPlusURL := getTrimmedString(systemSettings.PushPlusURL)
-	pushPlusToken := getTrimmedString(systemSettings.PushPlusToken)
+	pushPlusURL := utils.GetTrimmedString(systemSettings.PushPlusURL)
+	pushPlusToken := utils.GetTrimmedString(systemSettings.PushPlusToken)
 	if pushPlusURL == "" {
 		return errors.New("PushPlus 地址不能为空")
 	}
@@ -367,12 +368,12 @@ func (r *LoginService) sendPushPlusNotification(systemSettings *model.SystemSett
 	return nil
 }
 
-func (r *LoginService) sendWechatWorkAppNotification(systemSettings *model.SystemSettings, content string) error {
-	corpID := getTrimmedString(systemSettings.WechatWorkCorpID)
-	agentIDText := getTrimmedString(systemSettings.WechatWorkAgentID)
-	secret := getTrimmedString(systemSettings.WechatWorkSecret)
-	proxyURL := getTrimmedString(systemSettings.WechatWorkProxyURL)
-	toUser := getTrimmedString(systemSettings.WechatWorkToUser)
+func (r *LoginService) sendWeComNotification(systemSettings *model.SystemSettings, content string) error {
+	corpID := utils.GetTrimmedString(systemSettings.WeComCorpID)
+	agentIDText := utils.GetTrimmedString(systemSettings.WeComAgentID)
+	secret := utils.GetTrimmedString(systemSettings.WeComSecret)
+	proxyURL := utils.GetTrimmedString(systemSettings.WeComProxyURL)
+	toUser := utils.GetTrimmedString(systemSettings.WeComToUser)
 
 	if corpID == "" {
 		return errors.New("企业微信企业ID不能为空")
@@ -397,7 +398,7 @@ func (r *LoginService) sendWechatWorkAppNotification(systemSettings *model.Syste
 		client.SetProxy(proxyURL)
 	}
 
-	var tokenResp dto.WechatWorkAccessTokenResponse
+	var tokenResp dto.WeComAccessTokenResponse
 	httpResp, err := client.R().
 		SetHeader("Content-Type", "application/json;chartset=utf-8").
 		SetQueryParam("corpid", corpID).
@@ -414,15 +415,15 @@ func (r *LoginService) sendWechatWorkAppNotification(systemSettings *model.Syste
 		return fmt.Errorf("获取企业微信 access_token 失败: %s", tokenResp.ErrMsg)
 	}
 
-	var sendResp dto.WechatWorkSendMessageResponse
+	var sendResp dto.WeComSendMessageResponse
 	httpResp, err = client.R().
 		SetHeader("Content-Type", "application/json;chartset=utf-8").
 		SetQueryParam("access_token", tokenResp.AccessToken).
-		SetBody(dto.WechatWorkSendMessageRequest{
+		SetBody(dto.WeComSendMessageRequest{
 			ToUser:  toUser,
 			MsgType: "text",
 			AgentID: agentID,
-			Text: dto.WechatWorkTextMessage{
+			Text: dto.WeComTextMessage{
 				Content: content,
 			},
 			Safe: 0,
@@ -446,11 +447,4 @@ func buildOfflineNotificationMessage(req dto.LogoutNotificationRequest) (string,
 		return "机器人掉线通知", fmt.Sprintf("您的机器人（%s）掉线啦~~~", vars.RobotRuntime.WxID)
 	}
 	return "机器人发送心跳失败", fmt.Sprintf("您的机器人（%s）第%d次发送心跳失败了~~~", vars.RobotRuntime.WxID, req.RetryCount)
-}
-
-func getTrimmedString(value *string) string {
-	if value == nil {
-		return ""
-	}
-	return strings.TrimSpace(*value)
 }
