@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"wechat-robot-client/interface/settings"
@@ -153,6 +154,27 @@ func (s *ChatRoomSettingsService) IsShortVideoParsingEnabled() bool {
 	return false
 }
 
+func (s *ChatRoomSettingsService) logAITrigger(reason, triggerWord, messageContent string) {
+	if s.Message == nil {
+		return
+	}
+	contentPreview := strings.ReplaceAll(strings.TrimSpace(messageContent), "\n", `\n`)
+	contentRunes := []rune(contentPreview)
+	if len(contentRunes) > 80 {
+		contentPreview = string(contentRunes[:80]) + "..."
+	}
+	log.Printf("[AITrigger] reason=%s trigger_word=%q msg_id=%d from=%s sender=%s is_at_me=%t app_msg_type=%d content=%q",
+		reason,
+		triggerWord,
+		s.Message.MsgId,
+		s.Message.FromWxID,
+		s.Message.SenderWxID,
+		s.Message.IsAtMe,
+		s.Message.AppMsgType,
+		contentPreview,
+	)
+}
+
 func (s *ChatRoomSettingsService) IsAITrigger() bool {
 	messageContent := s.Message.Content
 	if s.Message.AppMsgType == model.AppMsgTypequote {
@@ -168,6 +190,7 @@ func (s *ChatRoomSettingsService) IsAITrigger() bool {
 			// 如果是 @所有人，则不处理
 			return false
 		}
+		s.logAITrigger("mentioned", "", messageContent)
 		return true
 	}
 	if s.chatRoomSettings == nil {
@@ -177,16 +200,28 @@ func (s *ChatRoomSettingsService) IsAITrigger() bool {
 		if s.globalSettings.ChatAIEnabled == nil || !*s.globalSettings.ChatAIEnabled {
 			return false
 		}
-		return *s.globalSettings.ChatAITrigger != "" && strings.HasPrefix(messageContent, *s.globalSettings.ChatAITrigger)
+		if *s.globalSettings.ChatAITrigger != "" && strings.HasPrefix(messageContent, *s.globalSettings.ChatAITrigger) {
+			s.logAITrigger("trigger_word.global", *s.globalSettings.ChatAITrigger, messageContent)
+			return true
+		}
+		return false
 	}
 	if s.chatRoomSettings.ChatAIEnabled == nil || !*s.chatRoomSettings.ChatAIEnabled {
 		return false
 	}
 	if s.chatRoomSettings.ChatAITrigger != nil && *s.chatRoomSettings.ChatAITrigger != "" {
-		return *s.chatRoomSettings.ChatAITrigger != "" && strings.HasPrefix(messageContent, *s.chatRoomSettings.ChatAITrigger)
+		if strings.HasPrefix(messageContent, *s.chatRoomSettings.ChatAITrigger) {
+			s.logAITrigger("trigger_word.chat_room", *s.chatRoomSettings.ChatAITrigger, messageContent)
+			return true
+		}
+		return false
 	}
-	return s.globalSettings != nil && s.globalSettings.ChatAITrigger != nil && *s.globalSettings.ChatAITrigger != "" &&
-		strings.HasPrefix(messageContent, *s.globalSettings.ChatAITrigger)
+	if s.globalSettings != nil && s.globalSettings.ChatAITrigger != nil && *s.globalSettings.ChatAITrigger != "" &&
+		strings.HasPrefix(messageContent, *s.globalSettings.ChatAITrigger) {
+		s.logAITrigger("trigger_word.global_fallback", *s.globalSettings.ChatAITrigger, messageContent)
+		return true
+	}
+	return false
 }
 
 func (s *ChatRoomSettingsService) GetAITriggerWord() string {
