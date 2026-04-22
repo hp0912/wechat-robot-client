@@ -39,3 +39,17 @@ func (s *SystemSettings) SaveSystemSettings(c *gin.Context) {
 	}
 	resp.ToResponse(nil)
 }
+func (s *SystemSettings) TestNotification(c *gin.Context) {
+	var req model.SystemSettings
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	err := service.NewSystemSettingService(c).TestNotification(&req)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
