@@ -35,6 +35,7 @@ func autoMigrateTasks() []migrateTask {
 				&model.KnowledgeCategory{},
 				&model.OSSSettings{},
 				&model.MomentSettings{},
+				&model.Skill{},
 			},
 		},
 	}
