@@ -294,6 +294,7 @@ func (s *AgentService) streamChatCompletion(
 		}
 
 		assistantMsg.Content += delta.Content
+		assistantMsg.ReasoningContent += delta.ReasoningContent
 
 		if delta.Refusal != "" {
 			assistantMsg.Refusal += delta.Refusal
