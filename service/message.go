@@ -1993,12 +1993,6 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 		if msg.Type == model.MsgTypeImage && msg.AttachmentUrl != "" {
 			aiMessage.MultiContent = []openai.ChatMessagePart{
 				{
-					Type: openai.ChatMessagePartTypeImageURL,
-					ImageURL: &openai.ChatMessageImageURL{
-						URL: msg.AttachmentUrl,
-					},
-				},
-				{
 					Type: openai.ChatMessagePartTypeText,
 					Text: "图片地址: " + msg.AttachmentUrl,
 				},
@@ -2041,12 +2035,6 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 					continue
 				}
 				aiMessage.MultiContent = []openai.ChatMessagePart{
-					{
-						Type: openai.ChatMessagePartTypeImageURL,
-						ImageURL: &openai.ChatMessageImageURL{
-							URL: refreMsg.AttachmentUrl,
-						},
-					},
 					{
 						Type: openai.ChatMessagePartTypeText,
 						Text: xmlMessage.AppMsg.Title + "\n\n 图片地址: " + refreMsg.AttachmentUrl,
@@ -2120,6 +2108,12 @@ func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []op
 				// 动态表情包 gif
 				if refreMsg.AppMsgType == model.AppMsgTypeEmoji {
 					aiMessage.Content = xmlMessage.AppMsg.Title
+				}
+				// 引用消息
+				if refreMsg.AppMsgType == model.AppMsgTypequote {
+					if !messageCtxMap[msg.MsgId] {
+						// 引用的是引用消息，暂不处理
+					}
 				}
 			}
 		}
