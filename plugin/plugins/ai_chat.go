@@ -341,8 +341,8 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 		RobotCode:        vars.RobotRuntime.RobotCode,
 		DBHost:           vars.MysqlSettings.Host,
 		DBPort:           vars.MysqlSettings.Port,
-		DBUser:           vars.MysqlSettings.User,
-		DBPassword:       vars.MysqlSettings.Password,
+		DBUser:           vars.MysqlSettings.PrivateUser, // 给工具专用的数据库用户，只针对当前机器人数据库有操作权限
+		DBPassword:       vars.MysqlSettings.PrivatePassword,
 		RobotRedisDB:     vars.RobotRuntime.RobotRedisDB,
 		RobotWxID:        vars.RobotRuntime.WxID,
 		FromWxID:         ctx.Message.FromWxID,
