@@ -7,6 +7,10 @@ type RobotContext struct {
 	WeChatClientPort   string
 	RobotID            int64
 	RobotCode          string
+	DBHost             string
+	DBPort             string
+	DBUser             string
+	DBPassword         string
 	RobotRedisDB       uint
 	RobotWxID          string
 	FromWxID           string
@@ -22,6 +26,10 @@ func (rc RobotContext) ToEnvVars() []string {
 		"ROBOT_WECHAT_CLIENT_PORT=" + rc.WeChatClientPort,
 		fmt.Sprintf("ROBOT_ID=%d", rc.RobotID),
 		"ROBOT_CODE=" + rc.RobotCode,
+		"MYSQL_HOST=" + rc.DBHost,
+		"MYSQL_PORT=" + rc.DBPort,
+		"MYSQL_USER=" + rc.DBUser,
+		"MYSQL_PASSWORD=" + rc.DBPassword,
 		fmt.Sprintf("ROBOT_REDIS_DB=%d", rc.RobotRedisDB),
 		"ROBOT_WX_ID=" + rc.RobotWxID,
 		"ROBOT_FROM_WX_ID=" + rc.FromWxID,

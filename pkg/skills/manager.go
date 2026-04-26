@@ -560,14 +560,14 @@ func (m *SkillsManager) executeScript(robotCtx robotctx.RobotContext, argsJSON s
 	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 	cmd.Dir = skill.Path
 
-	// 注入环境变量（继承进程环境 → Skill 配置变量 → RobotContext）
+	// 注入环境变量（继承进程环境 → RobotContext → Skill 配置变量）
 	env := os.Environ()
+	env = append(env, robotCtx.ToEnvVars()...)
 	for _, ev := range skill.EnvVars {
 		if ev.Key != "" {
 			env = append(env, ev.Key+"="+ev.Value)
 		}
 	}
-	env = append(env, robotCtx.ToEnvVars()...)
 	cmd.Env = env
 
 	output, err := cmd.CombinedOutput()
