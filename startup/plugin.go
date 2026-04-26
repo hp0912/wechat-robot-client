@@ -15,6 +15,7 @@ func RegisterMessagePlugin() {
 	vars.MessagePlugin.Register(plugins.NewSliderAccessSecretPlugin())
 	vars.MessagePlugin.Register(plugins.NewChatRoomWxhbNotifyPlugin())
 	vars.MessagePlugin.Register(plugins.NewPodcastPlugin())
+	vars.MessagePlugin.Register(plugins.NewKnowledgeBasePlugin())
 	// 朋友聊天插件
 	vars.MessagePlugin.Register(plugins.NewFriendAIChatPlugin())
 	// 群聊拍一拍交互插件
