@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"maps"
 	"os"
@@ -13,16 +12,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/openai/openai-go/v3"
+	"gorm.io/gorm"
+
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
-	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
-
-	"github.com/sashabaranov/go-openai"
-	"gorm.io/gorm"
 )
 
 // 防抖逻辑：在 5 秒窗口内同一群聊只同步一次
@@ -643,15 +642,9 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 	prompt = fmt.Sprintf("%s\n6. 总结结果不得超过%d字符", prompt, maxCompletionTokens)
 	msg := fmt.Sprintf("群名称: %s\n聊天记录如下:\n%s", chatRoomName, strings.Join(content, "\n"))
 	// AI总结
-	aiMessages := []openai.ChatCompletionMessage{
-		{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: prompt,
-		},
-		{
-			Role:    openai.ChatMessageRoleUser,
-			Content: msg,
-		},
+	aiMessages := []openai.ChatCompletionMessageParamUnion{
+		openai.SystemMessage(prompt),
+		openai.UserMessage(msg),
 	}
 
 	// 默认使用AI回复
@@ -659,24 +652,22 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 	if *setting.ChatAPIKey != "" {
 		aiApiKey = *setting.ChatAPIKey
 	}
-	aiConfig := openai.DefaultConfig(aiApiKey)
 	aiApiBaseURL := strings.TrimRight(globalSettings.ChatBaseURL, "/")
 	if setting.ChatBaseURL != nil && *setting.ChatBaseURL != "" {
 		aiApiBaseURL = strings.TrimRight(*setting.ChatBaseURL, "/")
 	}
-	aiConfig.BaseURL = utils.NormalizeAIBaseURL(aiApiBaseURL)
 	model := globalSettings.ChatRoomSummaryModel
 	if setting.ChatRoomSummaryModel != nil && *setting.ChatRoomSummaryModel != "" {
 		model = *setting.ChatRoomSummaryModel
 	}
-	ai := openai.NewClientWithConfig(aiConfig)
-	stream, err := ai.CreateChatCompletionStream(
+	ai := newOpenAIClient(aiApiKey, aiApiBaseURL)
+	summaryMsg, err := streamChatCompletionMessage(
 		context.Background(),
-		openai.ChatCompletionRequest{
+		&ai,
+		openai.ChatCompletionNewParams{
 			Model:               model,
 			Messages:            aiMessages,
-			Stream:              true,
-			MaxCompletionTokens: maxCompletionTokens,
+			MaxCompletionTokens: openai.Int(int64(maxCompletionTokens)),
 		},
 	)
 	if err != nil {
@@ -684,24 +675,7 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息总结失败，错误信息: "+err.Error())
 		return err
 	}
-	defer stream.Close()
-
-	// 拼接流式响应
-	var summaryContent string
-	for {
-		response, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Printf("群聊记录总结流式读取失败: %v", err.Error())
-			msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息总结失败，错误信息: "+err.Error())
-			return err
-		}
-		if len(response.Choices) > 0 {
-			summaryContent += response.Choices[0].Delta.Content
-		}
-	}
+	summaryContent := summaryMsg.Content
 
 	// 返回消息为空
 	if summaryContent == "" {

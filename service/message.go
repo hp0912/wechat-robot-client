@@ -19,6 +19,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/google/uuid"
+	"github.com/openai/openai-go/v3"
+
 	"wechat-robot-client/dto"
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/interface/settings"
@@ -26,10 +31,6 @@ import (
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
-
-	"github.com/go-resty/resty/v2"
-	"github.com/google/uuid"
-	"github.com/sashabaranov/go-openai"
 )
 
 type MessageService struct {
@@ -1976,156 +1977,146 @@ func (s *MessageService) SendCDNVideo(toWxID string, content string) error {
 	return nil
 }
 
-func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []openai.ChatCompletionMessage {
-	var aiMessages []openai.ChatCompletionMessage
+func (s *MessageService) aiTextMessage(isAssistant bool, content string) openai.ChatCompletionMessageParamUnion {
+	if isAssistant {
+		return openai.AssistantMessage(content)
+	}
+	return openai.UserMessage(content)
+}
+
+func (s *MessageService) aiTextPartMessage(isAssistant bool, texts ...string) openai.ChatCompletionMessageParamUnion {
+	if isAssistant {
+		parts := make([]openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion, 0, len(texts))
+		for _, text := range texts {
+			parts = append(parts, openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion{
+				OfText: &openai.ChatCompletionContentPartTextParam{Text: text},
+			})
+		}
+		return openai.AssistantMessage(parts)
+	}
+
+	parts := make([]openai.ChatCompletionContentPartUnionParam, 0, len(texts))
+	for _, text := range texts {
+		parts = append(parts, openai.TextContentPart(text))
+	}
+	return openai.UserMessage(parts)
+}
+
+func (s *MessageService) buildQuoteAIMessage(msg *model.Message, isAssistant bool) (openai.ChatCompletionMessageParamUnion, bool) {
+	var xmlMessage robot.XmlMessage
+	if err := vars.RobotRuntime.XmlDecoder(msg.Content, &xmlMessage); err != nil {
+		return openai.ChatCompletionMessageParamUnion{}, false
+	}
+
+	switch xmlMessage.AppMsg.ReferMsg.Type {
+	case int(model.MsgTypeText):
+		return s.aiTextPartMessage(isAssistant, xmlMessage.AppMsg.ReferMsg.Content, xmlMessage.AppMsg.Title), true
+	case int(model.MsgTypeImage):
+		referMsg, ok := s.getReferMessageByMsgID(xmlMessage.AppMsg.ReferMsg.SvrID)
+		if !ok {
+			return openai.ChatCompletionMessageParamUnion{}, false
+		}
+		return s.aiTextPartMessage(isAssistant, xmlMessage.AppMsg.Title+"\n\n 图片地址: "+referMsg.AttachmentUrl), true
+	case int(model.MsgTypeVideo):
+		referMsg, ok := s.getReferMessageByMsgID(xmlMessage.AppMsg.ReferMsg.SvrID)
+		if !ok {
+			return openai.ChatCompletionMessageParamUnion{}, false
+		}
+		return s.aiTextMessage(isAssistant, "视频地址: "+referMsg.AttachmentUrl+"\n\n"+xmlMessage.AppMsg.Title), true
+	case int(model.AppMsgTypequote):
+		referMsg, ok := s.getReferMessageByID(xmlMessage.AppMsg.ReferMsg.SvrID)
+		if !ok {
+			return openai.ChatCompletionMessageParamUnion{}, false
+		}
+
+		var subXmlMessage robot.XmlMessage
+		if err := vars.RobotRuntime.XmlDecoder(referMsg.Content, &subXmlMessage); err != nil {
+			return openai.ChatCompletionMessageParamUnion{}, false
+		}
+		return s.aiTextPartMessage(isAssistant, subXmlMessage.AppMsg.Title, xmlMessage.AppMsg.Title), true
+	case int(model.MsgTypeEmoticon):
+		if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
+			return openai.ChatCompletionMessageParamUnion{}, false
+		}
+		return s.aiTextMessage(isAssistant, xmlMessage.AppMsg.Title), true
+	case int(model.MsgTypeApp):
+		referMsg, ok := s.getReferMessageByMsgID(xmlMessage.AppMsg.ReferMsg.SvrID)
+		if !ok {
+			return openai.ChatCompletionMessageParamUnion{}, false
+		}
+		if referMsg.AppMsgType == model.AppMsgTypeEmoji {
+			if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+			return s.aiTextMessage(isAssistant, xmlMessage.AppMsg.Title), true
+		}
+	}
+
+	return openai.ChatCompletionMessageParamUnion{}, false
+}
+
+func (s *MessageService) getReferMessageByMsgID(referMsgIDStr string) (*model.Message, bool) {
+	referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
+	if err != nil {
+		return nil, false
+	}
+	referMsg, err := s.msgRepo.GetByMsgID(referMsgID)
+	if err != nil || referMsg == nil {
+		return nil, false
+	}
+	return referMsg, true
+}
+
+func (s *MessageService) getReferMessageByID(referMsgIDStr string) (*model.Message, bool) {
+	referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
+	if err != nil {
+		return nil, false
+	}
+	referMsg, err := s.msgRepo.GetByID(referMsgID)
+	if err != nil || referMsg == nil {
+		return nil, false
+	}
+	return referMsg, true
+}
+
+func (s *MessageService) buildAIMessageContextMessage(msg *model.Message) (openai.ChatCompletionMessageParamUnion, bool) {
+	isAssistant := msg.SenderWxID == vars.RobotRuntime.WxID
+
+	switch {
+	case msg.Type == model.MsgTypeText:
+		if strings.TrimSpace(msg.Content) == "" {
+			return openai.ChatCompletionMessageParamUnion{}, false
+		}
+		return s.aiTextMessage(isAssistant, msg.Content), true
+	case msg.Type == model.MsgTypeImage && msg.AttachmentUrl != "":
+		return s.aiTextPartMessage(isAssistant, "图片地址: "+msg.AttachmentUrl), true
+	case msg.Type == model.MsgTypeVideo && msg.AttachmentUrl != "":
+		return s.aiTextMessage(isAssistant, "视频地址: "+msg.AttachmentUrl), true
+	case msg.Type == model.MsgTypeApp && msg.AppMsgType == model.AppMsgTypequote:
+		return s.buildQuoteAIMessage(msg, isAssistant)
+	default:
+		return openai.ChatCompletionMessageParamUnion{}, false
+	}
+}
+
+func (s *MessageService) ProcessAIMessageContext(messages []*model.Message) []openai.ChatCompletionMessageParamUnion {
+	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0, len(messages))
 	messageCtxMap := make(map[int64]bool)
 
 	for _, msg := range messages {
-		aiMessage := openai.ChatCompletionMessage{}
-		if msg.SenderWxID == vars.RobotRuntime.WxID {
-			aiMessage.Role = openai.ChatMessageRoleAssistant
-		} else {
-			aiMessage.Role = openai.ChatMessageRoleUser
-		}
-		if msg.Type == model.MsgTypeText {
-			aiMessage.Content = msg.Content
-		}
-		if msg.Type == model.MsgTypeImage && msg.AttachmentUrl != "" {
-			aiMessage.MultiContent = []openai.ChatMessagePart{
-				{
-					Type: openai.ChatMessagePartTypeText,
-					Text: "图片地址: " + msg.AttachmentUrl,
-				},
-			}
-		}
-		if msg.Type == model.MsgTypeVideo && msg.AttachmentUrl != "" {
-			aiMessage.Content = "视频地址: " + msg.AttachmentUrl
-		}
-		if msg.Type == model.MsgTypeApp && msg.AppMsgType == model.AppMsgTypequote {
-			var xmlMessage robot.XmlMessage
-			err := vars.RobotRuntime.XmlDecoder(msg.Content, &xmlMessage)
-			if err != nil {
-				continue
-			}
-			// 引用的是文本消息，将引用的消息内容添加到上下文
-			if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeText) {
-				aiMessage.MultiContent = []openai.ChatMessagePart{
-					{
-						Type: openai.ChatMessagePartTypeText,
-						Text: xmlMessage.AppMsg.ReferMsg.Content,
-					},
-					{
-						Type: openai.ChatMessagePartTypeText,
-						Text: xmlMessage.AppMsg.Title,
-					},
-				}
-			}
-			if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeImage) {
-				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
-				// 字符串转int64
-				referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
-				if err != nil {
-					continue
-				}
-				refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
-				if err != nil {
-					continue
-				}
-				if refreMsg == nil {
-					continue
-				}
-				aiMessage.MultiContent = []openai.ChatMessagePart{
-					{
-						Type: openai.ChatMessagePartTypeText,
-						Text: xmlMessage.AppMsg.Title + "\n\n 图片地址: " + refreMsg.AttachmentUrl,
-					},
-				}
-			}
-			if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeVideo) {
-				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
-				// 字符串转int64
-				referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
-				if err != nil {
-					continue
-				}
-				refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
-				if err != nil {
-					continue
-				}
-				if refreMsg == nil {
-					continue
-				}
-				aiMessage.Content = "视频地址: " + refreMsg.AttachmentUrl + "\n\n" + xmlMessage.AppMsg.Title
-			}
-			if xmlMessage.AppMsg.ReferMsg.Type == int(model.AppMsgTypequote) {
-				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
-				// 字符串转int64
-				referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
-				if err != nil {
-					continue
-				}
-				refreMsg, err := s.msgRepo.GetByID(referMsgID)
-				if err != nil {
-					continue
-				}
-				if refreMsg == nil {
-					continue
-				}
-				var subXmlMessage robot.XmlMessage
-				err = vars.RobotRuntime.XmlDecoder(refreMsg.Content, &subXmlMessage)
-				if err != nil {
-					continue
-				}
-				aiMessage.MultiContent = []openai.ChatMessagePart{
-					{
-						Type: openai.ChatMessagePartTypeText,
-						Text: subXmlMessage.AppMsg.Title,
-					},
-					{
-						Type: openai.ChatMessagePartTypeText,
-						Text: xmlMessage.AppMsg.Title,
-					},
-				}
-			}
-			// 图片表情包 jpg
-			if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeEmoticon) {
-				aiMessage.Content = xmlMessage.AppMsg.Title
-			}
-			if xmlMessage.AppMsg.ReferMsg.Type == int(model.MsgTypeApp) {
-				referMsgIDStr := xmlMessage.AppMsg.ReferMsg.SvrID
-				// 字符串转int64
-				referMsgID, err := strconv.ParseInt(referMsgIDStr, 10, 64)
-				if err != nil {
-					continue
-				}
-				refreMsg, err := s.msgRepo.GetByMsgID(referMsgID)
-				if err != nil {
-					continue
-				}
-				if refreMsg == nil {
-					continue
-				}
-				// 动态表情包 gif
-				if refreMsg.AppMsgType == model.AppMsgTypeEmoji {
-					aiMessage.Content = xmlMessage.AppMsg.Title
-				}
-				// 引用消息
-				if refreMsg.AppMsgType == model.AppMsgTypequote {
-					if !messageCtxMap[msg.MsgId] {
-						// 引用的是引用消息，暂不处理
-					}
-				}
-			}
-		}
-		if strings.TrimSpace(aiMessage.Content) == "" && len(aiMessage.MultiContent) == 0 {
-			continue
-		}
 		if messageCtxMap[msg.MsgId] {
 			continue
 		}
+
+		aiMessage, ok := s.buildAIMessageContextMessage(msg)
+		if !ok {
+			continue
+		}
+
 		messageCtxMap[msg.MsgId] = true
 		aiMessages = append(aiMessages, aiMessage)
 	}
+
 	return aiMessages
 }
 
@@ -2133,7 +2124,7 @@ func (s *MessageService) SetMessageIsInContext(message *model.Message) error {
 	return s.msgRepo.SetMessageIsInContext(message)
 }
 
-func (s *MessageService) GetFriendAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
+func (s *MessageService) GetFriendAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessageParamUnion, error) {
 	messages, err := s.msgRepo.GetFriendAIMessageContext(message)
 	if err != nil {
 		return nil, err
@@ -2150,7 +2141,7 @@ func (s *MessageService) ResetFriendAIMessageContext(message *model.Message) err
 	return s.msgRepo.ResetFriendAIMessageContext(message)
 }
 
-func (s *MessageService) GetChatRoomAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
+func (s *MessageService) GetChatRoomAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessageParamUnion, error) {
 	messages, err := s.msgRepo.GetChatRoomAIMessageContext(message)
 	if err != nil {
 		return nil, err
@@ -2171,7 +2162,7 @@ func (s *MessageService) ResetChatRoomAIMessageContext(message *model.Message) e
 	return s.msgRepo.ResetChatRoomAIMessageContext(message)
 }
 
-func (s *MessageService) GetAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error) {
+func (s *MessageService) GetAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessageParamUnion, error) {
 	if message.IsChatRoom {
 		return s.GetChatRoomAIMessageContext(message)
 	}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go/v3"
 
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/pkg/robotctx"
@@ -20,7 +20,7 @@ func NewSendLocalImageTool(knowledgeService plugin.MessageServiceIface) OpenAITo
 
 }
 
-func (t *SendLocalImageTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *openai.Tool {
+func (t *SendLocalImageTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *openai.ChatCompletionToolUnionParam {
 	systemPrompt, err := t.BuildSystemPrompt(context.Background(), robotCtx)
 	if err != nil {
 		fmt.Printf("构建系统提示词失败: %v\n", err)
@@ -29,30 +29,28 @@ func (t *SendLocalImageTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *ope
 	if systemPrompt == "" {
 		return nil
 	}
-	return &openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "send_local_image",
-			Description: "发送本地图片",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"image_path": map[string]string{
-						"type":        "string",
-						"description": "本地图片的路径",
-					},
+	tool := openai.ChatCompletionFunctionTool(openai.FunctionDefinitionParam{
+		Name:        "send_local_image",
+		Description: openai.String("发送本地图片"),
+		Parameters: openai.FunctionParameters{
+			"type": "object",
+			"properties": map[string]any{
+				"image_path": map[string]string{
+					"type":        "string",
+					"description": "本地图片的路径",
 				},
-				"required": []string{"image_path"},
 			},
+			"required": []string{"image_path"},
 		},
-	}
+	})
+	return &tool
 }
 
 func (t *SendLocalImageTool) BuildSystemPrompt(ctx context.Context, robotCtx *robotctx.RobotContext) (string, error) {
 	return "发送本地图片", nil
 }
 
-func (t *SendLocalImageTool) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
+func (t *SendLocalImageTool) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ChatCompletionMessageToolCallUnion) (string, bool, error) {
 	var args struct {
 		ImagePath string `json:"image_path"`
 	}

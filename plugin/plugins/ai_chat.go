@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go/v3"
 
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/model"
@@ -166,6 +166,113 @@ func (p *AIChatPlugin) SendMessage(ctx *plugin.MessageContext, aiReplyText strin
 	}
 }
 
+func (p *AIChatPlugin) setChatMessageTextContent(message *openai.ChatCompletionMessageParamUnion, text string) {
+	switch {
+	case message.OfDeveloper != nil:
+		message.OfDeveloper.Content = openai.ChatCompletionDeveloperMessageParamContentUnion{OfString: openai.String(text)}
+	case message.OfSystem != nil:
+		message.OfSystem.Content = openai.ChatCompletionSystemMessageParamContentUnion{OfString: openai.String(text)}
+	case message.OfUser != nil:
+		message.OfUser.Content = openai.ChatCompletionUserMessageParamContentUnion{OfString: openai.String(text)}
+	case message.OfAssistant != nil:
+		message.OfAssistant.Content = openai.ChatCompletionAssistantMessageParamContentUnion{OfString: openai.String(text)}
+	case message.OfTool != nil:
+		message.OfTool.Content = openai.ChatCompletionToolMessageParamContentUnion{OfString: openai.String(text)}
+	case message.OfFunction != nil:
+		message.OfFunction.Content = openai.String(text)
+	default:
+		*message = openai.UserMessage(text)
+	}
+}
+
+func (p *AIChatPlugin) trimAITriggerFromText(text, aiTriggerWord string) string {
+	trimmedText := utils.TrimAITriggerAll(text, aiTriggerWord)
+	if trimmedText == "" {
+		return "在吗？"
+	}
+	return trimmedText
+}
+
+func (p *AIChatPlugin) trimAITriggerFromTextParts(parts []openai.ChatCompletionContentPartTextParam, aiTriggerWord string) {
+	for index := range parts {
+		parts[index].Text = p.trimAITriggerFromText(parts[index].Text, aiTriggerWord)
+	}
+}
+
+func (p *AIChatPlugin) trimAITriggerFromUserContentParts(parts []openai.ChatCompletionContentPartUnionParam, aiTriggerWord string) {
+	for index := range parts {
+		if text := parts[index].GetText(); text != nil {
+			*text = p.trimAITriggerFromText(*text, aiTriggerWord)
+		}
+	}
+}
+
+func (p *AIChatPlugin) trimAITriggerFromAssistantContentParts(parts []openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion, aiTriggerWord string) {
+	for index := range parts {
+		if text := parts[index].GetText(); text != nil {
+			*text = p.trimAITriggerFromText(*text, aiTriggerWord)
+		}
+	}
+}
+
+func (p *AIChatPlugin) trimAITriggerFromChatMessage(message *openai.ChatCompletionMessageParamUnion, aiTriggerWord string) {
+	switch content := message.GetContent().AsAny().(type) {
+	case *string:
+		*content = p.trimAITriggerFromText(*content, aiTriggerWord)
+	case *[]openai.ChatCompletionContentPartTextParam:
+		if len(*content) == 0 {
+			p.setChatMessageTextContent(message, "在吗？")
+			return
+		}
+		p.trimAITriggerFromTextParts(*content, aiTriggerWord)
+	case *[]openai.ChatCompletionContentPartUnionParam:
+		if len(*content) == 0 {
+			p.setChatMessageTextContent(message, "在吗？")
+			return
+		}
+		p.trimAITriggerFromUserContentParts(*content, aiTriggerWord)
+	case *[]openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion:
+		if len(*content) == 0 {
+			p.setChatMessageTextContent(message, "在吗？")
+			return
+		}
+		p.trimAITriggerFromAssistantContentParts(*content, aiTriggerWord)
+	default:
+		p.setChatMessageTextContent(message, "在吗？")
+	}
+}
+
+func (p *AIChatPlugin) chatMessageText(message openai.ChatCompletionMessageParamUnion) string {
+	switch content := message.GetContent().AsAny().(type) {
+	case *string:
+		return *content
+	case *[]openai.ChatCompletionContentPartTextParam:
+		var builder strings.Builder
+		for _, part := range *content {
+			builder.WriteString(part.Text)
+		}
+		return builder.String()
+	case *[]openai.ChatCompletionContentPartUnionParam:
+		var builder strings.Builder
+		for _, part := range *content {
+			if text := part.GetText(); text != nil {
+				builder.WriteString(*text)
+			}
+		}
+		return builder.String()
+	case *[]openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion:
+		var builder strings.Builder
+		for _, part := range *content {
+			if text := part.GetText(); text != nil {
+				builder.WriteString(*text)
+			}
+		}
+		return builder.String()
+	default:
+		return ""
+	}
+}
+
 func isRemoteStructuredReplyContent(content string) bool {
 	trimmedContent := strings.ToLower(strings.TrimSpace(content))
 	return strings.HasPrefix(trimmedContent, "http://") || strings.HasPrefix(trimmedContent, "https://")
@@ -311,23 +418,7 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 	}
 	if ctx.Message.IsChatRoom {
 		for index := range aiMessages {
-			// 去除群聊中的AI触发词
-			aiMessages[index].Content = utils.TrimAITriggerAll(aiMessages[index].Content, aiTriggerWord)
-			if aiMessages[index].Content == "" && len(aiMessages[index].MultiContent) == 0 {
-				aiMessages[index].Content = "在吗？"
-			}
-			for index2 := range aiMessages[index].MultiContent {
-				// 去除群聊中的AI触发词
-				multiContentText := utils.TrimAITriggerAll(aiMessages[index].MultiContent[index2].Text, aiTriggerWord)
-				if multiContentText == "" && aiMessages[index].MultiContent[index2].ImageURL == nil {
-					if aiMessages[index].MultiContent[index2].Type == openai.ChatMessagePartTypeText {
-						multiContentText = "在吗？"
-					} else {
-						multiContentText = "链接："
-					}
-				}
-				aiMessages[index].MultiContent[index2].Text = multiContentText
-			}
+			p.trimAITriggerFromChatMessage(&aiMessages[index], aiTriggerWord)
 		}
 	}
 	aiChatService := service.NewAIChatService(ctx.Context, ctx.Settings)
@@ -357,8 +448,6 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 	var aiReplyText string
 	if aiReply.Content != "" {
 		aiReplyText = aiReply.Content
-	} else if len(aiReply.MultiContent) > 0 {
-		aiReplyText = aiReply.MultiContent[0].Text
 	}
 	// aiReplyText 可能包含思维链，<think></think> 标签内的内容是 AI 的思考过程，不应该发送给用户
 	aiReplyText = thinkTagRegexp.ReplaceAllString(aiReplyText, "")
@@ -368,7 +457,7 @@ func (p *AIChatPlugin) Run(ctx *plugin.MessageContext) {
 		aiReplyText = "AI返回了空内容。"
 		if len(aiMessages) > 0 {
 			lastMessage := aiMessages[len(aiMessages)-1]
-			if strings.Contains(lastMessage.Content, "#调试") {
+			if strings.Contains(p.chatMessageText(lastMessage), "#调试") {
 				debugPayload := map[string]any{
 					"ai_messages": aiMessages,
 					"ai_reply":    aiReply,

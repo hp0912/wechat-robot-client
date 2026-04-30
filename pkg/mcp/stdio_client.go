@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -56,8 +55,7 @@ func (c *StdioClient) Connect(ctx context.Context) error {
 	}
 
 	// 追加自定义环境变量
-	envList := os.Environ()
-
+	var envList []string
 	if env, err := c.config.GetEnv(); err == nil && len(env) > 0 {
 		for k, v := range env {
 			envList = append(envList, k+"="+v)

@@ -4,12 +4,13 @@ import (
 	"context"
 	"io"
 	"mime/multipart"
+
+	"github.com/openai/openai-go/v3"
+
 	"wechat-robot-client/dto"
 	"wechat-robot-client/interface/settings"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
-
-	"github.com/sashabaranov/go-openai"
 )
 
 type MessageServiceIface interface {
@@ -30,7 +31,7 @@ type MessageServiceIface interface {
 	SendMusicMessage(toWxID string, songTitle string) error
 	ShareLink(toWxID string, shareLinkInfo robot.ShareLinkMessage) error
 	ResetChatRoomAIMessageContext(message *model.Message) error
-	GetAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessage, error)
+	GetAIMessageContext(message *model.Message) ([]openai.ChatCompletionMessageParamUnion, error)
 	SetMessageIsInContext(message *model.Message) error
 	XmlDecoder(content string) (robot.XmlMessage, error)
 	UpdateMessage(message *model.Message) error

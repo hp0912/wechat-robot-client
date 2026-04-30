@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go/v3"
 	"gorm.io/gorm"
 
 	"wechat-robot-client/interface/ai"
@@ -13,9 +13,9 @@ import (
 )
 
 type OpenAITool interface {
-	GetOpenAITool(robotCtx *robotctx.RobotContext) *openai.Tool
+	GetOpenAITool(robotCtx *robotctx.RobotContext) *openai.ChatCompletionToolUnionParam
 	BuildSystemPrompt(ctx context.Context, robotCtx *robotctx.RobotContext) (string, error)
-	ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error)
+	ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ChatCompletionMessageToolCallUnion) (string, bool, error)
 }
 
 type OpenAIToolsManager struct {
@@ -43,8 +43,8 @@ func (m *OpenAIToolsManager) Shutdown() error {
 	return nil
 }
 
-func (m *OpenAIToolsManager) GetOpenAITools(robotCtx *robotctx.RobotContext) []openai.Tool {
-	var openAITools []openai.Tool
+func (m *OpenAIToolsManager) GetOpenAITools(robotCtx *robotctx.RobotContext) []openai.ChatCompletionToolUnionParam {
+	var openAITools []openai.ChatCompletionToolUnionParam
 	for _, tool := range m.tools {
 		openAITool := tool.GetOpenAITool(robotCtx)
 		if openAITool != nil {
@@ -72,7 +72,7 @@ func (m *OpenAIToolsManager) BuildSystemPrompt(ctx context.Context, robotCtx *ro
 	return sb.String(), nil
 }
 
-func (m *OpenAIToolsManager) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
+func (m *OpenAIToolsManager) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ChatCompletionMessageToolCallUnion) (string, bool, error) {
 	tool, ok := m.tools[toolCall.Function.Name]
 	if !ok {
 		return "", false, fmt.Errorf("未知的工具调用: %s", toolCall.Function.Name)

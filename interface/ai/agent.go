@@ -3,7 +3,7 @@ package ai
 import (
 	"context"
 
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go/v3"
 
 	"wechat-robot-client/pkg/mcp"
 	"wechat-robot-client/pkg/robotctx"
@@ -16,10 +16,10 @@ type AgentService interface {
 	Shutdown(ctx context.Context) error
 	GetMCPManager() *mcp.MCPManager
 	GetSkillsManager() *skills.SkillsManager
-	GetAllTools(robotCtx *robotctx.RobotContext) ([]openai.Tool, error)
+	GetAllTools(robotCtx *robotctx.RobotContext) ([]openai.ChatCompletionToolUnionParam, error)
 	ChatWithTools(
-		robotCtx robotctx.RobotContext,
+		robotCtx *robotctx.RobotContext,
 		client *openai.Client,
-		req openai.ChatCompletionRequest,
+		req openai.ChatCompletionNewParams,
 	) (openai.ChatCompletionMessage, error)
 }
