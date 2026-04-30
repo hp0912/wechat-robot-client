@@ -368,6 +368,7 @@ func (m *Message) GetRecentChatRoomMessages(chatRoomID string, excludeWxIDs []st
 		Joins("LEFT JOIN chat_room_members ON chat_room_members.wechat_id = messages.sender_wxid AND chat_room_members.chat_room_id = messages.from_wxid").
 		Where("messages.from_wxid = ?", chatRoomID).
 		Where("messages.`type` = 1").
+		Where("messages.`is_ai_context` = 0").
 		Where("messages.content != ''").
 		Where("messages.created_at >= ?", fifteenMinutesAgo)
 	if len(excludeWxIDs) > 0 {

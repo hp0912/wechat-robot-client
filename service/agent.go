@@ -3,11 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"strings"
 
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go/v3"
 	"gorm.io/gorm"
 
 	"wechat-robot-client/interface/ai"
@@ -87,8 +86,8 @@ func (s *AgentService) GetSkillsManager() *skills.SkillsManager {
 }
 
 // GetAllTools 获取所有可用工具（OpenAI格式）
-func (s *AgentService) GetAllTools(robotCtx *robotctx.RobotContext) ([]openai.Tool, error) {
-	var tools []openai.Tool
+func (s *AgentService) GetAllTools(robotCtx *robotctx.RobotContext) ([]openai.ChatCompletionToolUnionParam, error) {
+	var tools []openai.ChatCompletionToolUnionParam
 	// 从内部工具管理器获取工具
 	internalTools := s.internalToolsManager.GetOpenAITools(robotCtx)
 	tools = append(tools, internalTools...)
@@ -128,94 +127,84 @@ func (s *AgentService) BuildSystemPrompt(ctx context.Context, robotCtx *robotctx
 }
 
 func (s *AgentService) ChatWithTools(
-	robotCtx robotctx.RobotContext,
+	robotCtx *robotctx.RobotContext,
 	client *openai.Client,
-	req openai.ChatCompletionRequest,
+	req openai.ChatCompletionNewParams,
 ) (openai.ChatCompletionMessage, error) {
 	if len(req.Messages) == 0 {
 		return openai.ChatCompletionMessage{}, fmt.Errorf("messages cannot be empty")
 	}
+
 	// 获取所有可用工具
-	tools, err := s.GetAllTools(&robotCtx)
+	tools, err := s.GetAllTools(robotCtx)
 	if err != nil {
 		return openai.ChatCompletionMessage{}, fmt.Errorf("failed to get tools: %w", err)
 	}
+
 	// 如果没有可用工具，直接调用AI
 	if len(tools) == 0 {
-		return s.chatWithoutTools(client, req)
+		return s.streamChatCompletion(client, req)
 	}
 
 	req.Tools = tools
 
-	// 构建包含工具描述的系统提示词
-	if req.Messages[0].Role == openai.ChatMessageRoleSystem {
-		toolsPrompt, err := s.BuildSystemPrompt(s.ctx, &robotCtx)
-		if err != nil {
-			return openai.ChatCompletionMessage{}, fmt.Errorf("failed to build system prompt: %w", err)
-		}
-		req.Messages[0].Content += "\n" + toolsPrompt
+	// 构建包含工具描述的系统提示词，追加到首条 system 消息或前置新消息
+	toolsPrompt, err := s.BuildSystemPrompt(s.ctx, robotCtx)
+	if err != nil {
+		return openai.ChatCompletionMessage{}, fmt.Errorf("failed to build system prompt: %w", err)
+	}
+	if req.Messages[0].OfSystem != nil {
+		existing := req.Messages[0].OfSystem.Content.OfString.Value
+		req.Messages[0].OfSystem.Content.OfString = openai.String(existing + "\n" + toolsPrompt)
 	} else {
-		toolsPrompt, err := s.BuildSystemPrompt(s.ctx, &robotCtx)
-		if err != nil {
-			return openai.ChatCompletionMessage{}, fmt.Errorf("failed to build system prompt: %w", err)
-		}
-		systemMsg := openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: toolsPrompt,
-		}
-		req.Messages = append([]openai.ChatCompletionMessage{systemMsg}, req.Messages...)
+		req.Messages = append([]openai.ChatCompletionMessageParamUnion{openai.SystemMessage(toolsPrompt)}, req.Messages...)
 	}
 
 	for range vars.MaxToolsIterations {
 		// 调用AI
-		assistantMsg, err := s.streamChatCompletion(client, req)
+		msg, err := s.streamChatCompletion(client, req)
 		if err != nil {
 			return openai.ChatCompletionMessage{}, fmt.Errorf("failed to call ai: %w", err)
 		}
 
-		// 检查是否需要调用工具
-		if len(assistantMsg.ToolCalls) == 0 {
-			// 没有工具调用，返回结果
-			return assistantMsg, nil
+		// 没有工具调用，返回结果
+		if len(msg.ToolCalls) == 0 {
+			return msg, nil
 		}
 
-		// 将assistant消息添加到历史
-		req.Messages = append(req.Messages, assistantMsg)
+		// 将 assistant 消息追加到历史
+		req.Messages = append(req.Messages, msg.ToParam())
 
 		// 执行所有工具调用
-		for _, toolCall := range assistantMsg.ToolCalls {
-			log.Printf("Executing tool: %s", toolCall.Function.Name)
+		for _, tc := range msg.ToolCalls {
+			log.Printf("Executing tool: %s", tc.Function.Name)
 
 			var result string
 			var immediately bool
 			var err error
 
-			if s.skillsManager.IsSkillTool(toolCall.Function.Name) {
+			if s.skillsManager.IsSkillTool(tc.Function.Name) {
 				// skill 工具调用
-				result, err = s.skillsManager.ExecuteToolCall(robotCtx, toolCall)
+				result, err = s.skillsManager.ExecuteToolCall(*robotCtx, tc)
 				immediately = result == vars.AIEnded || strings.HasSuffix(result, "\n"+vars.AIEnded)
 				if immediately {
 					result = vars.AIEnded
 				}
-				if toolCall.Function.Name == "execute_skill_script" {
-					log.Printf("工具[%s]执行结果:\n%s\n", toolCall.Function.Name, result)
+				if tc.Function.Name == "execute_skill_script" {
+					log.Printf("工具[%s]执行结果:\n%s\n", tc.Function.Name, result)
 				}
-			} else if s.internalToolsManager.IsOpenAITool(toolCall.Function.Name) {
+			} else if s.internalToolsManager.IsOpenAITool(tc.Function.Name) {
 				// 内部工具调用
-				result, immediately, err = s.internalToolsManager.ExecuteToolCall(s.ctx, &robotCtx, toolCall)
+				result, immediately, err = s.internalToolsManager.ExecuteToolCall(s.ctx, robotCtx, tc)
 			} else {
 				// MCP 工具调用
-				result, immediately, err = s.mcpManager.ExecuteToolCall(s.ctx, robotCtx, toolCall)
+				result, immediately, err = s.mcpManager.ExecuteToolCall(s.ctx, *robotCtx, tc)
 			}
 
 			if err == nil {
 				// 工具调用结果立即返回
 				if immediately {
-					return openai.ChatCompletionMessage{
-						Role:       openai.ChatMessageRoleAssistant,
-						Content:    result,
-						ToolCallID: toolCall.ID,
-					}, nil
+					return openai.ChatCompletionMessage{Content: result}, nil
 				}
 				// 工具返回空结果时，补充默认提示，避免API报错
 				if result == "" {
@@ -227,123 +216,32 @@ func (s *AgentService) ChatWithTools(
 				log.Println(result)
 			}
 
-			// 将工具结果添加到消息历史
-			toolResultMsg := openai.ChatCompletionMessage{
-				Role:       openai.ChatMessageRoleTool,
-				Content:    result,
-				ToolCallID: toolCall.ID,
-			}
-			req.Messages = append(req.Messages, toolResultMsg)
-		}
-	}
-
-	// 达到最大迭代次数，返回最后的消息
-	if len(req.Messages) > 0 {
-		lastMsg := req.Messages[len(req.Messages)-1]
-		if lastMsg.Role == openai.ChatMessageRoleAssistant {
-			return lastMsg, nil
+			// 将工具结果追加到消息历史
+			req.Messages = append(req.Messages, openai.ToolMessage(result, tc.ID))
 		}
 	}
 
 	return openai.ChatCompletionMessage{}, fmt.Errorf("max iterations reached without final answer")
 }
 
-// chatWithoutTools 不使用工具的简单聊天
-func (s *AgentService) chatWithoutTools(
-	client *openai.Client,
-	req openai.ChatCompletionRequest,
-) (openai.ChatCompletionMessage, error) {
-	return s.streamChatCompletion(client, req)
-}
-
-// streamChatCompletion 处理流式响应并返回完整消息
+// streamChatCompletion 通过流式接口调用 AI 并用 accumulator 汇总完整消息
 func (s *AgentService) streamChatCompletion(
 	client *openai.Client,
-	req openai.ChatCompletionRequest,
+	req openai.ChatCompletionNewParams,
 ) (openai.ChatCompletionMessage, error) {
-	req.Stream = true
-	stream, err := client.CreateChatCompletionStream(s.ctx, req)
-	if err != nil {
-		return openai.ChatCompletionMessage{}, fmt.Errorf("failed to create stream: %w", err)
+	stream := client.Chat.Completions.NewStreaming(s.ctx, req)
+	acc := openai.ChatCompletionAccumulator{}
+	for stream.Next() {
+		acc.AddChunk(stream.Current())
 	}
-	defer stream.Close()
-
-	var assistantMsg openai.ChatCompletionMessage
-	assistantMsg.Role = openai.ChatMessageRoleAssistant
-	var toolCalls []openai.ToolCall
-	var finishReason openai.FinishReason
-
-	for {
-		response, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return openai.ChatCompletionMessage{}, fmt.Errorf("stream error: %w", err)
-		}
-
-		if len(response.Choices) == 0 {
-			continue
-		}
-
-		choice := response.Choices[0]
-		delta := choice.Delta
-
-		if delta.Role != "" {
-			assistantMsg.Role = delta.Role
-		}
-
-		assistantMsg.Content += delta.Content
-		assistantMsg.ReasoningContent += delta.ReasoningContent
-
-		if delta.Refusal != "" {
-			assistantMsg.Refusal += delta.Refusal
-		}
-
-		for _, tc := range delta.ToolCalls {
-			if tc.Index == nil {
-				continue
-			}
-			idx := *tc.Index
-
-			for len(toolCalls) <= idx {
-				toolCalls = append(toolCalls, openai.ToolCall{})
-			}
-
-			if tc.ID != "" {
-				toolCalls[idx].ID = tc.ID
-			}
-			if tc.Type != "" {
-				toolCalls[idx].Type = tc.Type
-			}
-			if tc.Function.Name != "" {
-				toolCalls[idx].Function.Name = tc.Function.Name
-			}
-			toolCalls[idx].Function.Arguments += tc.Function.Arguments
-		}
-
-		// 处理旧版 FunctionCall（向后兼容）
-		if delta.FunctionCall != nil {
-			if assistantMsg.FunctionCall == nil {
-				assistantMsg.FunctionCall = &openai.FunctionCall{}
-			}
-			if delta.FunctionCall.Name != "" {
-				assistantMsg.FunctionCall.Name = delta.FunctionCall.Name
-			}
-			assistantMsg.FunctionCall.Arguments += delta.FunctionCall.Arguments
-		}
-
-		if choice.FinishReason != "" {
-			finishReason = choice.FinishReason
-		}
+	if err := stream.Err(); err != nil {
+		return openai.ChatCompletionMessage{}, fmt.Errorf("stream error: %w", err)
 	}
-
-	assistantMsg.ToolCalls = toolCalls
-
-	if finishReason != "" {
-		log.Printf("Stream finished with reason: %s, toolCalls: %d, content length: %d",
-			finishReason, len(toolCalls), len(assistantMsg.Content))
+	if len(acc.Choices) == 0 {
+		return openai.ChatCompletionMessage{}, fmt.Errorf("no choices in response")
 	}
-
-	return assistantMsg, nil
+	msg := acc.Choices[0].Message
+	log.Printf("Stream finished with reason: %s, toolCalls: %d, content length: %d",
+		acc.Choices[0].FinishReason, len(msg.ToolCalls), len(msg.Content))
+	return msg, nil
 }

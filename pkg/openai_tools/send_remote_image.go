@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go/v3"
 
 	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/pkg/robotctx"
@@ -20,7 +20,7 @@ func NewSendRemoteImageTool(knowledgeService plugin.MessageServiceIface) OpenAIT
 
 }
 
-func (t *SendRemoteImageTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *openai.Tool {
+func (t *SendRemoteImageTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *openai.ChatCompletionToolUnionParam {
 	systemPrompt, err := t.BuildSystemPrompt(context.Background(), robotCtx)
 	if err != nil {
 		fmt.Printf("构建系统提示词失败: %v\n", err)
@@ -29,30 +29,28 @@ func (t *SendRemoteImageTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *op
 	if systemPrompt == "" {
 		return nil
 	}
-	return &openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "send_remote_image",
-			Description: "发送远程图片",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"image_url": map[string]string{
-						"type":        "string",
-						"description": "远程图片的URL地址",
-					},
+	tool := openai.ChatCompletionFunctionTool(openai.FunctionDefinitionParam{
+		Name:        "send_remote_image",
+		Description: openai.String("发送远程图片"),
+		Parameters: openai.FunctionParameters{
+			"type": "object",
+			"properties": map[string]any{
+				"image_url": map[string]string{
+					"type":        "string",
+					"description": "远程图片的URL地址",
 				},
-				"required": []string{"image_url"},
 			},
+			"required": []string{"image_url"},
 		},
-	}
+	})
+	return &tool
 }
 
 func (t *SendRemoteImageTool) BuildSystemPrompt(ctx context.Context, robotCtx *robotctx.RobotContext) (string, error) {
 	return "发送远程图片", nil
 }
 
-func (t *SendRemoteImageTool) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
+func (t *SendRemoteImageTool) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ChatCompletionMessageToolCallUnion) (string, bool, error) {
 	var args struct {
 		ImageURL string `json:"image_url"`
 	}

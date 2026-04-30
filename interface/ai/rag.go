@@ -2,10 +2,11 @@ package ai
 
 import (
 	"context"
+
+	"github.com/openai/openai-go/v3"
+
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/appx"
-
-	"github.com/sashabaranov/go-openai"
 )
 
 // VectorSearchResult 向量搜索结果
@@ -26,7 +27,7 @@ type RetrievedContext struct {
 
 // MemoryService 记忆管理服务接口
 type MemoryService interface {
-	ExtractMemoriesFromConversation(senderWxID, chatRoomID, senderNickname string, messages []openai.ChatCompletionMessage)
+	ExtractMemoriesFromConversation(senderWxID, chatRoomID, senderNickname string, messages []openai.ChatCompletionMessageParamUnion)
 	GetRelevantMemories(ctx context.Context, wxID, chatRoomID, query string, limit int) ([]*model.Memory, error)
 	GetProactiveMemories(ctx context.Context, wxID, chatRoomID string, limit int) ([]*model.Memory, error)
 	GetUserProfile(ctx context.Context, wxID, chatRoomID string) string

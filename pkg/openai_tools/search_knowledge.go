@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go/v3"
 
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
@@ -27,7 +27,7 @@ func NewSearchKnowledgeTool(knowledgeService ai.KnowledgeService) OpenAITool {
 	}
 }
 
-func (t *SearchKnowledgeTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *openai.Tool {
+func (t *SearchKnowledgeTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *openai.ChatCompletionToolUnionParam {
 	systemPrompt, err := t.BuildSystemPrompt(context.Background(), robotCtx)
 	if err != nil {
 		fmt.Printf("构建系统提示词失败: %v\n", err)
@@ -36,23 +36,21 @@ func (t *SearchKnowledgeTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *op
 	if systemPrompt == "" {
 		return nil
 	}
-	return &openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "search_document",
-			Description: "检索当前群聊绑定的文档，根据用户问题语义搜索最相关的知识内容。只有当用户的问题可能与群聊绑定的文档主题相关时，才调用此工具获取准确信息。",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"query": map[string]string{
-						"type":        "string",
-						"description": "用于检索文档的查询语句，应当是用户问题的核心关键词或语义描述",
-					},
+	tool := openai.ChatCompletionFunctionTool(openai.FunctionDefinitionParam{
+		Name:        "search_document",
+		Description: openai.String("检索当前群聊绑定的文档，根据用户问题语义搜索最相关的知识内容。只有当用户的问题可能与群聊绑定的文档主题相关时，才调用此工具获取准确信息。"),
+		Parameters: openai.FunctionParameters{
+			"type": "object",
+			"properties": map[string]any{
+				"query": map[string]string{
+					"type":        "string",
+					"description": "用于检索文档的查询语句，应当是用户问题的核心关键词或语义描述",
 				},
-				"required": []string{"query"},
 			},
+			"required": []string{"query"},
 		},
-	}
+	})
+	return &tool
 }
 
 func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx *robotctx.RobotContext) (string, error) {
@@ -141,7 +139,7 @@ func (t *SearchKnowledgeTool) BuildSystemPrompt(ctx context.Context, robotCtx *r
 	return t.cachedSystemPrompt, nil
 }
 
-func (t *SearchKnowledgeTool) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
+func (t *SearchKnowledgeTool) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ChatCompletionMessageToolCallUnion) (string, bool, error) {
 	var args struct {
 		Query string `json:"query"`
 	}

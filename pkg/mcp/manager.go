@@ -10,14 +10,13 @@ import (
 	"sync"
 	"time"
 
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/openai/openai-go/v3"
+	"gorm.io/gorm"
+
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robotctx"
 	"wechat-robot-client/repository"
-
-	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/sashabaranov/go-openai"
-	"github.com/sashabaranov/go-openai/jsonschema"
-	"gorm.io/gorm"
 )
 
 // MCPManager MCP服务管理器
@@ -127,7 +126,7 @@ func (m *MCPManager) BuildSystemPrompt(ctx context.Context) (string, error) {
 }
 
 // ExecuteToolCall 执行OpenAI函数调用
-func (m *MCPManager) ExecuteToolCall(ctx context.Context, robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, bool, error) {
+func (m *MCPManager) ExecuteToolCall(ctx context.Context, robotCtx robotctx.RobotContext, toolCall openai.ChatCompletionMessageToolCallUnion) (string, bool, error) {
 	// 解析工具名称，提取服务器名称和原始工具名称
 	serverName, toolName, err := m.parseToolName(toolCall.Function.Name)
 	if err != nil {
@@ -387,14 +386,14 @@ func (m *MCPManager) GetMCPTools(ctx context.Context) (map[string][]*sdkmcp.Tool
 }
 
 // GetOpenAITools 将MCP工具转换为OpenAI工具格式
-func (m *MCPManager) GetOpenAITools(ctx context.Context) ([]openai.Tool, error) {
+func (m *MCPManager) GetOpenAITools(ctx context.Context) ([]openai.ChatCompletionToolUnionParam, error) {
 	// 获取所有MCP工具
 	allTools, err := m.GetMCPTools(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mcp tools: %w", err)
 	}
 
-	var openaiTools []openai.Tool
+	var openaiTools []openai.ChatCompletionToolUnionParam
 
 	// 转换每个工具
 	for serverName, tools := range allTools {
@@ -413,19 +412,19 @@ func (m *MCPManager) GetOpenAITools(ctx context.Context) ([]openai.Tool, error) 
 }
 
 // convertSingleTool 转换单个工具
-func (m *MCPManager) convertSingleTool(serverName string, mcpTool *sdkmcp.Tool) (openai.Tool, error) {
+func (m *MCPManager) convertSingleTool(serverName string, mcpTool *sdkmcp.Tool) (openai.ChatCompletionToolUnionParam, error) {
 	// 为工具名称添加服务器前缀以避免冲突
 	toolName := fmt.Sprintf("%s__%s", serverName, mcpTool.Name)
 
 	// 转换inputSchema到OpenAI的参数格式
 	params, noParams, err := m.convertInputSchemaToParameters(mcpTool.InputSchema)
 	if err != nil {
-		return openai.Tool{}, fmt.Errorf("failed to convert input schema: %w", err)
+		return openai.ChatCompletionToolUnionParam{}, fmt.Errorf("failed to convert input schema: %w", err)
 	}
 
-	fn := &openai.FunctionDefinition{
+	fn := openai.FunctionDefinitionParam{
 		Name:        toolName,
-		Description: mcpTool.Description,
+		Description: openai.String(mcpTool.Description),
 	}
 
 	// 只有在不是“无参数工具”时才设置 Parameters
@@ -433,41 +432,41 @@ func (m *MCPManager) convertSingleTool(serverName string, mcpTool *sdkmcp.Tool) 
 		fn.Parameters = params
 	}
 
-	return openai.Tool{
-		Type:     openai.ToolTypeFunction,
-		Function: fn,
-	}, nil
+	return openai.ChatCompletionFunctionTool(fn), nil
 }
 
 // convertInputSchemaToParameters 转换InputSchema到OpenAI参数格式
-func (m *MCPManager) convertInputSchemaToParameters(inputSchema any) (jsonschema.Definition, bool, error) {
+func (m *MCPManager) convertInputSchemaToParameters(inputSchema any) (openai.FunctionParameters, bool, error) {
 	if inputSchema == nil {
-		return jsonschema.Definition{}, true, nil
+		return nil, true, nil
 	}
 
 	schemaBytes, err := json.Marshal(inputSchema)
 	if err != nil {
-		return jsonschema.Definition{}, false, err
+		return nil, false, err
 	}
 
-	var params jsonschema.Definition
+	var params openai.FunctionParameters
 	if err := json.Unmarshal(schemaBytes, &params); err != nil {
-		return jsonschema.Definition{}, false, err
+		return nil, false, err
 	}
 
 	// 如果解析后啥都没有（没有 type / properties / required），也视为无参数
-	isEmpty := (params.Type == "" || params.Type == "object") &&
-		len(params.Properties) == 0 &&
-		len(params.Required) == 0
+	properties, _ := params["properties"].(map[string]any)
+	required, _ := params["required"].([]any)
+	typeValue, _ := params["type"].(string)
+	isEmpty := (typeValue == "" || typeValue == "object") &&
+		len(properties) == 0 &&
+		len(required) == 0
 	if isEmpty {
-		return jsonschema.Definition{}, true, nil
+		return nil, true, nil
 	}
 
-	if params.Type == "" {
-		params.Type = jsonschema.Object
+	if typeValue == "" {
+		params["type"] = "object"
 	}
-	if params.Type == jsonschema.Object && params.Properties == nil {
-		params.Properties = make(map[string]jsonschema.Definition)
+	if params["type"] == "object" && params["properties"] == nil {
+		params["properties"] = map[string]any{}
 	}
 
 	return params, false, nil

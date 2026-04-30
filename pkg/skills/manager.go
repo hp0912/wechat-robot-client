@@ -12,11 +12,11 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"wechat-robot-client/pkg/robotctx"
 
 	"github.com/google/shlex"
-	"github.com/sashabaranov/go-openai"
-	"github.com/sashabaranov/go-openai/jsonschema"
+	"github.com/openai/openai-go/v3"
+
+	"wechat-robot-client/pkg/robotctx"
 )
 
 // SkillRepository 数据库持久化接口（由 repository 层实现）
@@ -345,7 +345,7 @@ func (m *SkillsManager) BuildSystemPrompt() string {
 }
 
 // GetOpenAITools 返回 Skills 相关的 OpenAI Tool 定义
-func (m *SkillsManager) GetOpenAITools() []openai.Tool {
+func (m *SkillsManager) GetOpenAITools() []openai.ChatCompletionToolUnionParam {
 	summaries := m.GetAllSummaries()
 	if len(summaries) == 0 {
 		return nil
@@ -357,71 +357,62 @@ func (m *SkillsManager) GetOpenAITools() []openai.Tool {
 		skillNames = append(skillNames, s.Name)
 	}
 
-	tools := []openai.Tool{
-		{
-			Type: openai.ToolTypeFunction,
-			Function: &openai.FunctionDefinition{
-				Name:        ToolNameActivate,
-				Description: "激活一个 Agent Skill，加载其完整的操作指令。当你判断用户任务与某个可用 Skill 相关时调用此工具。激活后你将获得该 Skill 的完整操作指令，请严格按照指令执行任务。",
-				Parameters: jsonschema.Definition{
-					Type: jsonschema.Object,
-					Properties: map[string]jsonschema.Definition{
-						"skill_name": {
-							Type:        jsonschema.String,
-							Description: "要激活的 Skill 名称",
-							Enum:        skillNames,
-						},
+	tools := []openai.ChatCompletionToolUnionParam{
+		openai.ChatCompletionFunctionTool(openai.FunctionDefinitionParam{
+			Name:        ToolNameActivate,
+			Description: openai.String("激活一个 Agent Skill，加载其完整的操作指令。当你判断用户任务与某个可用 Skill 相关时调用此工具。激活后你将获得该 Skill 的完整操作指令，请严格按照指令执行任务。"),
+			Parameters: openai.FunctionParameters{
+				"type": "object",
+				"properties": map[string]any{
+					"skill_name": map[string]any{
+						"type":        "string",
+						"description": "要激活的 Skill 名称",
+						"enum":        skillNames,
 					},
-					Required: []string{"skill_name"},
 				},
+				"required": []string{"skill_name"},
 			},
-		},
-		{
-			Type: openai.ToolTypeFunction,
-			Function: &openai.FunctionDefinition{
-				Name:        ToolNameReadResource,
-				Description: "读取已激活 Skill 中的附属资源文件。当 Skill 指令中引用了外部文件（如 scripts/、references/、assets/ 下的文件）时调用此工具。",
-				Parameters: jsonschema.Definition{
-					Type: jsonschema.Object,
-					Properties: map[string]jsonschema.Definition{
-						"skill_name": {
-							Type:        jsonschema.String,
-							Description: "Skill 名称",
-						},
-						"file_path": {
-							Type:        jsonschema.String,
-							Description: "要读取的文件相对路径，例如 scripts/extract.py 或 references/REFERENCE.md",
-						},
+		}),
+		openai.ChatCompletionFunctionTool(openai.FunctionDefinitionParam{
+			Name:        ToolNameReadResource,
+			Description: openai.String("读取已激活 Skill 中的附属资源文件。当 Skill 指令中引用了外部文件（如 scripts/、references/、assets/ 下的文件）时调用此工具。"),
+			Parameters: openai.FunctionParameters{
+				"type": "object",
+				"properties": map[string]any{
+					"skill_name": map[string]any{
+						"type":        "string",
+						"description": "Skill 名称",
 					},
-					Required: []string{"skill_name", "file_path"},
-				},
-			},
-		},
-		{
-			Type: openai.ToolTypeFunction,
-			Function: &openai.FunctionDefinition{
-				Name:        ToolNameExecuteScript,
-				Description: "执行已激活 Skill 中的脚本文件。当 Skill 指令要求运行某个脚本（如 Python/Shell 脚本）时调用此工具。脚本将在 Skill 目录下执行。",
-				Parameters: jsonschema.Definition{
-					Type: jsonschema.Object,
-					Properties: map[string]jsonschema.Definition{
-						"skill_name": {
-							Type:        jsonschema.String,
-							Description: "Skill 名称",
-						},
-						"script_path": {
-							Type:        jsonschema.String,
-							Description: "要执行的脚本相对路径，例如 scripts/convert.py 或 scripts/build.sh",
-						},
-						"args": {
-							Type:        jsonschema.String,
-							Description: "传给脚本的命令行参数（空格分隔），可选",
-						},
+					"file_path": map[string]any{
+						"type":        "string",
+						"description": "要读取的文件相对路径，例如 scripts/extract.py 或 references/REFERENCE.md",
 					},
-					Required: []string{"skill_name", "script_path"},
 				},
+				"required": []string{"skill_name", "file_path"},
 			},
-		},
+		}),
+		openai.ChatCompletionFunctionTool(openai.FunctionDefinitionParam{
+			Name:        ToolNameExecuteScript,
+			Description: openai.String("执行已激活 Skill 中的脚本文件。当 Skill 指令要求运行某个脚本（如 Python/Shell 脚本）时调用此工具。脚本将在 Skill 目录下执行。"),
+			Parameters: openai.FunctionParameters{
+				"type": "object",
+				"properties": map[string]any{
+					"skill_name": map[string]any{
+						"type":        "string",
+						"description": "Skill 名称",
+					},
+					"script_path": map[string]any{
+						"type":        "string",
+						"description": "要执行的脚本相对路径，例如 scripts/convert.py 或 scripts/build.sh",
+					},
+					"args": map[string]any{
+						"type":        "string",
+						"description": "传给脚本的命令行参数（空格分隔），可选",
+					},
+				},
+				"required": []string{"skill_name", "script_path"},
+			},
+		}),
 	}
 
 	return tools
@@ -433,7 +424,7 @@ func (m *SkillsManager) IsSkillTool(toolName string) bool {
 }
 
 // ExecuteToolCall 执行 Skills 工具调用，返回结果字符串
-func (m *SkillsManager) ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ToolCall) (string, error) {
+func (m *SkillsManager) ExecuteToolCall(robotCtx robotctx.RobotContext, toolCall openai.ChatCompletionMessageToolCallUnion) (string, error) {
 	switch toolCall.Function.Name {
 	case ToolNameActivate:
 		return m.executeActivate(toolCall.Function.Arguments)
@@ -560,9 +551,8 @@ func (m *SkillsManager) executeScript(robotCtx robotctx.RobotContext, argsJSON s
 	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 	cmd.Dir = skill.Path
 
-	// 注入环境变量（继承进程环境 → RobotContext → Skill 配置变量）
-	env := os.Environ()
-	env = append(env, robotCtx.ToEnvVars()...)
+	// 注入环境变量
+	env := robotCtx.ToEnvVars()
 	for _, ev := range skill.EnvVars {
 		if ev.Key != "" {
 			env = append(env, ev.Key+"="+ev.Value)

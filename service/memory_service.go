@@ -10,15 +10,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/openai/openai-go/v3"
+	"gorm.io/gorm"
+
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/qdrantx"
 	"wechat-robot-client/repository"
-	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
-
-	"github.com/sashabaranov/go-openai"
-	"gorm.io/gorm"
 )
 
 // MemoryService 记忆管理服务
@@ -104,7 +104,7 @@ var tagWeightMap = map[string]float64{
 // senderWxID: 当前对话发送者（私聊或群聊中的某人）
 // chatRoomID: 群ID（私聊时为空）
 // senderNickname: 发送者昵称（用于提取提示词）
-func (s *MemoryService) ExtractMemoriesFromConversation(senderWxID, chatRoomID, senderNickname string, messages []openai.ChatCompletionMessage) {
+func (s *MemoryService) ExtractMemoriesFromConversation(senderWxID, chatRoomID, senderNickname string, messages []openai.ChatCompletionMessageParamUnion) {
 	if len(messages) == 0 {
 		return
 	}
@@ -114,25 +114,23 @@ func (s *MemoryService) ExtractMemoriesFromConversation(senderWxID, chatRoomID, 
 	// 构建对话文本：群聊需要携带身份信息
 	var conversationText strings.Builder
 	for _, msg := range messages {
-		role := "用户"
-		if msg.Role == openai.ChatMessageRoleAssistant {
-			role = "助手"
+		role, msgContent := chatCompletionParamRoleAndContent(msg)
+		if msgContent == "" {
+			continue
 		}
-		if msg.Content != "" {
-			if chatRoomID != "" && msg.Role == openai.ChatMessageRoleUser && strings.HasPrefix(msg.Content, groupObservationPrefix) {
-				observation := strings.TrimSpace(strings.TrimPrefix(msg.Content, groupObservationPrefix))
-				if observation != "" {
-					conversationText.WriteString(observation)
-					conversationText.WriteString("\n")
-				}
-				continue
+		if chatRoomID != "" && role == "user" && strings.HasPrefix(msgContent, groupObservationPrefix) {
+			observation := strings.TrimSpace(strings.TrimPrefix(msgContent, groupObservationPrefix))
+			if observation != "" {
+				conversationText.WriteString(observation)
+				conversationText.WriteString("\n")
 			}
-			if chatRoomID != "" && msg.Role == openai.ChatMessageRoleUser && senderNickname != "" {
-				// 群聊中标注发言者身份
-				fmt.Fprintf(&conversationText, "%s(%s): %s\n", senderNickname, senderWxID, msg.Content)
-			} else {
-				fmt.Fprintf(&conversationText, "%s: %s\n", role, msg.Content)
-			}
+			continue
+		}
+		if chatRoomID != "" && role == "user" && senderNickname != "" {
+			// 群聊中标注发言者身份
+			fmt.Fprintf(&conversationText, "%s(%s): %s\n", senderNickname, senderWxID, msgContent)
+		} else {
+			fmt.Fprintf(&conversationText, "%s: %s\n", chatCompletionParamRoleLabel(role), msgContent)
 		}
 	}
 
@@ -149,10 +147,82 @@ func (s *MemoryService) ExtractMemoriesFromConversation(senderWxID, chatRoomID, 
 	}
 }
 
+func chatCompletionParamRoleAndContent(message openai.ChatCompletionMessageParamUnion) (string, string) {
+	switch {
+	case message.OfAssistant != nil:
+		return "assistant", assistantMessageParamContent(message.OfAssistant.Content)
+	case message.OfUser != nil:
+		return "user", userMessageParamContent(message.OfUser.Content)
+	case message.OfSystem != nil:
+		return "system", systemMessageParamContent(message.OfSystem.Content)
+	case message.OfDeveloper != nil:
+		return "developer", developerMessageParamContent(message.OfDeveloper.Content)
+	default:
+		return "", ""
+	}
+}
+
+func chatCompletionParamRoleLabel(role string) string {
+	switch role {
+	case "assistant":
+		return "助手"
+	case "system", "developer":
+		return "系统"
+	default:
+		return "用户"
+	}
+}
+
+func assistantMessageParamContent(content openai.ChatCompletionAssistantMessageParamContentUnion) string {
+	if content.OfString.Valid() {
+		return content.OfString.Value
+	}
+	parts := make([]string, 0, len(content.OfArrayOfContentParts))
+	for _, part := range content.OfArrayOfContentParts {
+		if text := part.GetText(); text != nil {
+			parts = append(parts, *text)
+		}
+	}
+	return strings.Join(parts, "\n")
+}
+
+func userMessageParamContent(content openai.ChatCompletionUserMessageParamContentUnion) string {
+	if content.OfString.Valid() {
+		return content.OfString.Value
+	}
+	parts := make([]string, 0, len(content.OfArrayOfContentParts))
+	for _, part := range content.OfArrayOfContentParts {
+		if text := part.GetText(); text != nil {
+			parts = append(parts, *text)
+		}
+	}
+	return strings.Join(parts, "\n")
+}
+
+func systemMessageParamContent(content openai.ChatCompletionSystemMessageParamContentUnion) string {
+	if content.OfString.Valid() {
+		return content.OfString.Value
+	}
+	parts := make([]string, 0, len(content.OfArrayOfContentParts))
+	for _, part := range content.OfArrayOfContentParts {
+		parts = append(parts, part.Text)
+	}
+	return strings.Join(parts, "\n")
+}
+
+func developerMessageParamContent(content openai.ChatCompletionDeveloperMessageParamContentUnion) string {
+	if content.OfString.Valid() {
+		return content.OfString.Value
+	}
+	parts := make([]string, 0, len(content.OfArrayOfContentParts))
+	for _, part := range content.OfArrayOfContentParts {
+		parts = append(parts, part.Text)
+	}
+	return strings.Join(parts, "\n")
+}
+
 func (s *MemoryService) callLLMExtract(ctx context.Context, senderWxID, chatRoomID, senderNickname, conversation string) ([]extractedMemory, error) {
-	config := openai.DefaultConfig(s.aiAPIKey)
-	config.BaseURL = utils.NormalizeAIBaseURL(s.aiBaseURL)
-	client := openai.NewClientWithConfig(config)
+	client := newOpenAIClient(s.aiAPIKey, s.aiBaseURL)
 
 	contextHint := "这是一段私聊对话"
 	if chatRoomID != "" {
@@ -193,11 +263,11 @@ func (s *MemoryService) callLLMExtract(ctx context.Context, senderWxID, chatRoom
 
 没有值得记住的信息则返回 []。只返回 JSON。`, contextHint, senderWxID)
 
-	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+	resp, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Model: s.aiModel,
-		Messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: systemPrompt},
-			{Role: openai.ChatMessageRoleUser, Content: conversation},
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(systemPrompt),
+			openai.UserMessage(conversation),
 		},
 	})
 	if err != nil {
@@ -874,16 +944,12 @@ func (s *MemoryService) RefreshUserProfile(ctx context.Context, wxID, chatRoomID
 		nickname = wxID
 	}
 
-	config := openai.DefaultConfig(s.aiAPIKey)
-	config.BaseURL = utils.NormalizeAIBaseURL(s.aiBaseURL)
-	client := openai.NewClientWithConfig(config)
+	client := newOpenAIClient(s.aiAPIKey, s.aiBaseURL)
 
-	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+	resp, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Model: s.aiModel,
-		Messages: []openai.ChatCompletionMessage{
-			{
-				Role: openai.ChatMessageRoleSystem,
-				Content: `你是一个用户画像整合助手。根据以下零散记忆信息，生成一段简洁的用户画像描述。
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(`你是一个用户画像整合助手。根据以下零散记忆信息，生成一段简洁的用户画像描述。
 
 要求：
 - 用自然语言写成，像一张人物资料卡
@@ -891,12 +957,8 @@ func (s *MemoryService) RefreshUserProfile(ctx context.Context, wxID, chatRoomID
 - 不要分类列举，要写成连贯的描述段落
 - 总长度控制在200字以内
 - 如果有恋人、家人、密友、冲突对象或需要后续跟进的事，要优先体现
-- 如果信息太少，就写少一点，不要编造`,
-			},
-			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: fmt.Sprintf("用户昵称：%s\n\n记忆信息：\n%s", nickname, memoryList.String()),
-			},
+- 如果信息太少，就写少一点，不要编造`),
+			openai.UserMessage(fmt.Sprintf("用户昵称：%s\n\n记忆信息：\n%s", nickname, memoryList.String())),
 		},
 	})
 	if err != nil {
@@ -1098,9 +1160,7 @@ func (s *MemoryService) SummarizeExpiredSessions(privateInactiveMinutes, groupIn
 }
 
 func (s *MemoryService) generateSessionSummary(ctx context.Context, session *model.ConversationSession) (string, error) {
-	config := openai.DefaultConfig(s.aiAPIKey)
-	config.BaseURL = utils.NormalizeAIBaseURL(s.aiBaseURL)
-	client := openai.NewClientWithConfig(config)
+	client := newOpenAIClient(s.aiAPIKey, s.aiBaseURL)
 
 	msgRepo := repository.NewMessageRepo(ctx, s.db)
 	var messages []*model.Message
@@ -1124,17 +1184,11 @@ func (s *MemoryService) generateSessionSummary(ctx context.Context, session *mod
 		fmt.Fprintf(&conversationText, "%s: %s\n", nickname, msg.Content)
 	}
 
-	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+	resp, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Model: s.aiModel,
-		Messages: []openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleSystem,
-				Content: "你是对话摘要助手。用2-3句话概括以下对话的主要内容和结论。只输出摘要，不要其他内容。",
-			},
-			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: conversationText.String(),
-			},
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage("你是对话摘要助手。用2-3句话概括以下对话的主要内容和结论。只输出摘要，不要其他内容。"),
+			openai.UserMessage(conversationText.String()),
 		},
 	})
 	if err != nil {
