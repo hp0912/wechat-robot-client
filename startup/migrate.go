@@ -26,8 +26,6 @@ func autoMigrateTasks() []migrateTask {
 				&model.SystemSettings{},
 				&model.GlobalSettings{},
 				&model.ChatRoomSettings{},
-				&model.Memory{},
-				&model.UserProfile{},
 				&model.ConversationSession{},
 				&model.KnowledgeDocument{},
 				&model.ImageKnowledgeDocument{},

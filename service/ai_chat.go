@@ -121,24 +121,3 @@ func (s *AIChatService) buildGroupChatContext(chatRoomID, senderWxID string) str
 
 	return sb.String()
 }
-
-// buildGroupMemoryObservation 构建群聊记忆观察记录。
-// 使用 昵称(wx_id): 内容 的格式显式保留发言者身份，供记忆提取使用。
-func (s *AIChatService) buildGroupMemoryObservation(ctx context.Context, chatRoomID, senderWxID string) string {
-	msgRepo := repository.NewMessageRepo(ctx, vars.DB)
-	recentMsgs, err := msgRepo.GetRecentChatRoomMessages(chatRoomID, []string{vars.RobotRuntime.WxID}, 10)
-	if err != nil {
-		log.Printf("[Memory] 获取群聊观察记录失败: %v", err)
-		return ""
-	}
-
-	var sb strings.Builder
-	for _, msg := range recentMsgs {
-		nickname := msg.SenderNickname
-		if nickname == "" {
-			nickname = msg.SenderWxID
-		}
-		fmt.Fprintf(&sb, "%s(%s): %s\n", nickname, msg.SenderWxID, msg.Content)
-	}
-	return sb.String()
-}

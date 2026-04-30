@@ -36,28 +36,6 @@ type DeleteKnowledgeRequest struct {
 	Title string `json:"title" binding:"required"`
 }
 
-// SaveMemoryRequest 手动保存记忆请求
-type SaveMemoryRequest struct {
-	WxID       string `json:"wx_id"`
-	ChatRoomID string `json:"chat_room_id"`
-	Category   string `json:"category" binding:"required"`
-	Content    string `json:"content" binding:"required"`
-	Importance int    `json:"importance"`
-}
-
-// SearchMemoryRequest 搜索记忆请求
-type SearchMemoryRequest struct {
-	WxID       string `form:"wx_id"`
-	ChatRoomID string `form:"chat_room_id"`
-	Query      string `form:"query"`
-	Limit      int    `form:"limit"`
-}
-
-// DeleteMemoryRequest 删除记忆请求
-type DeleteMemoryRequest struct {
-	ID int64 `json:"id" binding:"required"`
-}
-
 // AddImageKnowledgeRequest 添加图片知识库文档请求
 type AddImageKnowledgeRequest struct {
 	Title       string `json:"title" binding:"required"`

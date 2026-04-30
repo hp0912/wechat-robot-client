@@ -55,29 +55,6 @@ func (s *VectorStoreService) IndexMessage(ctx context.Context, robotCode string,
 	return id, nil
 }
 
-// IndexMemory 将记忆内容向量化并存入 Qdrant
-func (s *VectorStoreService) IndexMemory(ctx context.Context, robotCode string, memoryID int64, content, wxID, category, chatRoomID string) (string, error) {
-	vector, err := s.embedding.Embed(ctx, content)
-	if err != nil {
-		return "", fmt.Errorf("embed memory: %w", err)
-	}
-
-	id := s.qdrant.GenerateID()
-	payload := map[string]*pb.Value{
-		"robot_code":   qdrantx.NewPayloadValue(robotCode),
-		"memory_id":    qdrantx.NewPayloadIntValue(memoryID),
-		"category":     qdrantx.NewPayloadValue(category),
-		"content":      qdrantx.NewPayloadValue(content),
-		"contact_wxid": qdrantx.NewPayloadValue(wxID),
-		"chat_room_id": qdrantx.NewPayloadValue(chatRoomID),
-	}
-
-	if err := s.qdrant.Upsert(ctx, qdrantx.CollectionMemories, id, vector, payload); err != nil {
-		return "", fmt.Errorf("upsert memory vector: %w", err)
-	}
-	return id, nil
-}
-
 // IndexKnowledge 将知识库内容向量化并存入 Qdrant
 func (s *VectorStoreService) IndexKnowledge(ctx context.Context, robotCode string, docID int64, category, title, content string) (string, error) {
 	vector, err := s.embedding.Embed(ctx, content)
