@@ -245,10 +245,13 @@ func (s *AgentService) streamChatCompletion(
 		acc.AddChunk(chunk)
 		// openai-go v3 SDK 没有 reasoning_content 字段，从 ExtraFields 原始 JSON 中提取
 		if len(chunk.Choices) > 0 {
-			if rcField, ok := chunk.Choices[0].Delta.JSON.ExtraFields["reasoning_content"]; ok && rcField.Valid() {
-				var rc string
-				if err := json.Unmarshal([]byte(rcField.Raw()), &rc); err == nil {
-					reasoningSB.WriteString(rc)
+			if rcField, ok := chunk.Choices[0].Delta.JSON.ExtraFields["reasoning_content"]; ok {
+				raw := rcField.Raw()
+				if raw != "" && raw != "null" {
+					var rc string
+					if err := json.Unmarshal([]byte(raw), &rc); err == nil {
+						reasoningSB.WriteString(rc)
+					}
 				}
 			}
 		}
