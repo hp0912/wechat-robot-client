@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -143,7 +144,8 @@ func (s *AgentService) ChatWithTools(
 
 	// 如果没有可用工具，直接调用AI
 	if len(tools) == 0 {
-		return s.streamChatCompletion(client, req)
+		msg, _, err := s.streamChatCompletion(client, req)
+		return msg, err
 	}
 
 	req.Tools = tools
@@ -162,7 +164,7 @@ func (s *AgentService) ChatWithTools(
 
 	for range vars.MaxToolsIterations {
 		// 调用AI
-		msg, err := s.streamChatCompletion(client, req)
+		msg, reasoning, err := s.streamChatCompletion(client, req)
 		if err != nil {
 			return openai.ChatCompletionMessage{}, fmt.Errorf("failed to call ai: %w", err)
 		}
@@ -172,8 +174,13 @@ func (s *AgentService) ChatWithTools(
 			return msg, nil
 		}
 
-		// 将 assistant 消息追加到历史
-		req.Messages = append(req.Messages, msg.ToParam())
+		asstParam := msg.ToParam()
+		if reasoning != "" && asstParam.OfAssistant != nil {
+			asstParam.OfAssistant.SetExtraFields(map[string]any{
+				"reasoning_content": reasoning,
+			})
+		}
+		req.Messages = append(req.Messages, asstParam)
 
 		// 执行所有工具调用
 		for _, tc := range msg.ToolCalls {
@@ -224,24 +231,36 @@ func (s *AgentService) ChatWithTools(
 	return openai.ChatCompletionMessage{}, fmt.Errorf("max iterations reached without final answer")
 }
 
-// streamChatCompletion 通过流式接口调用 AI 并用 accumulator 汇总完整消息
+// streamChatCompletion 通过流式接口调用 AI 并用 accumulator 汇总完整消息。
+// 第二个返回值为累积的 reasoning_content（思考内容），用于回写给后续请求。
 func (s *AgentService) streamChatCompletion(
 	client *openai.Client,
 	req openai.ChatCompletionNewParams,
-) (openai.ChatCompletionMessage, error) {
+) (openai.ChatCompletionMessage, string, error) {
 	stream := client.Chat.Completions.NewStreaming(s.ctx, req)
 	acc := openai.ChatCompletionAccumulator{}
+	var reasoningSB strings.Builder
 	for stream.Next() {
-		acc.AddChunk(stream.Current())
+		chunk := stream.Current()
+		acc.AddChunk(chunk)
+		// openai-go v3 SDK 没有 reasoning_content 字段，从 ExtraFields 原始 JSON 中提取
+		if len(chunk.Choices) > 0 {
+			if rcField, ok := chunk.Choices[0].Delta.JSON.ExtraFields["reasoning_content"]; ok && rcField.Valid() {
+				var rc string
+				if err := json.Unmarshal([]byte(rcField.Raw()), &rc); err == nil {
+					reasoningSB.WriteString(rc)
+				}
+			}
+		}
 	}
 	if err := stream.Err(); err != nil {
-		return openai.ChatCompletionMessage{}, fmt.Errorf("stream error: %w", err)
+		return openai.ChatCompletionMessage{}, "", fmt.Errorf("stream error: %w", err)
 	}
 	if len(acc.Choices) == 0 {
-		return openai.ChatCompletionMessage{}, fmt.Errorf("no choices in response")
+		return openai.ChatCompletionMessage{}, "", fmt.Errorf("no choices in response")
 	}
 	msg := acc.Choices[0].Message
-	log.Printf("Stream finished with reason: %s, toolCalls: %d, content length: %d",
-		acc.Choices[0].FinishReason, len(msg.ToolCalls), len(msg.Content))
-	return msg, nil
+	log.Printf("Stream finished with reason: %s, toolCalls: %d, content length: %d, reasoning length: %d",
+		acc.Choices[0].FinishReason, len(msg.ToolCalls), len(msg.Content), reasoningSB.Len())
+	return msg, reasoningSB.String(), nil
 }
