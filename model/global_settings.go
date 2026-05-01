@@ -41,8 +41,8 @@ type GlobalSettings struct {
 	ImageAIEnabled            *bool          `gorm:"column:image_ai_enabled;default:false;comment:是否启用AI绘图功能" json:"image_ai_enabled"`
 	ImageAISettings           datatypes.JSON `gorm:"column:image_ai_settings;type:json;comment:绘图AI配置项" json:"image_ai_settings"`
 	TTSEnabled                *bool          `gorm:"column:tts_enabled;default:false;comment:是否启用AI文本转语音功能" json:"tts_enabled"`
+	TTSModel                  *string        `gorm:"column:tts_model;type:varchar(100);default:'';comment:文本转语音使用的AI模型名称" json:"tts_model"`
 	TTSSettings               datatypes.JSON `gorm:"column:tts_settings;type:json;comment:文本转语音AI配置项" json:"tts_settings"`
-	LTTSSettings              datatypes.JSON `gorm:"column:ltts_settings;type:json;comment:长文本转语音AI配置项" json:"ltts_settings"`
 	PatEnabled                *bool          `gorm:"column:pat_enabled;default:false;comment:是否启用AI拍一拍功能" json:"pat_enabled"`
 	PatType                   PatType        `gorm:"column:pat_type;type:enum('text','voice');default:'text';comment:拍一拍方式：text-文本，voice-语音" json:"pat_type"`
 	PatText                   string         `gorm:"column:pat_text;type:varchar(255);default:''" json:"pat_text"`

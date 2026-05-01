@@ -77,11 +77,11 @@ func (s *ChatRoomSettingsService) GetAIConfig() settings.AIConfig {
 		if s.globalSettings.ImageAISettings != nil {
 			aiConfig.ImageAISettings = s.globalSettings.ImageAISettings
 		}
+		if s.globalSettings.TTSModel != nil && *s.globalSettings.TTSModel != "" {
+			aiConfig.TTSModel = *s.globalSettings.TTSModel
+		}
 		if s.globalSettings.TTSSettings != nil {
 			aiConfig.TTSSettings = s.globalSettings.TTSSettings
-		}
-		if s.globalSettings.LTTSSettings != nil {
-			aiConfig.LTTSSettings = s.globalSettings.LTTSSettings
 		}
 	}
 	if s.chatRoomSettings != nil {
@@ -106,11 +106,11 @@ func (s *ChatRoomSettingsService) GetAIConfig() settings.AIConfig {
 		if s.chatRoomSettings.ImageAISettings != nil {
 			aiConfig.ImageAISettings = s.chatRoomSettings.ImageAISettings
 		}
+		if s.chatRoomSettings.TTSModel != nil && *s.chatRoomSettings.TTSModel != "" {
+			aiConfig.TTSModel = *s.chatRoomSettings.TTSModel
+		}
 		if s.chatRoomSettings.TTSSettings != nil {
 			aiConfig.TTSSettings = s.chatRoomSettings.TTSSettings
-		}
-		if s.chatRoomSettings.LTTSSettings != nil {
-			aiConfig.LTTSSettings = s.chatRoomSettings.LTTSSettings
 		}
 	}
 	aiConfig.BaseURL = utils.NormalizeAIBaseURL(aiConfig.BaseURL)
