@@ -81,6 +81,36 @@ func (r *Memory) ListRelationMemories(robotCode, chatRoomID, participantWxID str
 	return memories, nil
 }
 
+func (r *Memory) ListMemberMemories(robotCode, chatRoomID, memberWxID string, limit int) ([]*model.Memory, error) {
+	var memories []*model.Memory
+	query := r.DB.WithContext(r.Ctx).
+		Where("robot_code = ? AND chat_room_id = ? AND scope = ? AND contact_wxid = ?", robotCode, chatRoomID, model.MemoryScopeGroupMember, memberWxID).
+		Order("importance DESC, last_seen_at DESC, id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if err := query.Find(&memories).Error; err != nil {
+		return nil, err
+	}
+	return memories, nil
+}
+
+func (r *Memory) ListRelationMemoriesBetween(robotCode, chatRoomID, firstWxID, secondWxID string, limit int) ([]*model.Memory, error) {
+	var memories []*model.Memory
+	query := r.DB.WithContext(r.Ctx).
+		Where("robot_code = ? AND chat_room_id = ? AND scope = ?", robotCode, chatRoomID, model.MemoryScopeRelation).
+		Where("JSON_CONTAINS(participants, JSON_QUOTE(?))", firstWxID).
+		Where("JSON_CONTAINS(participants, JSON_QUOTE(?))", secondWxID).
+		Order("importance DESC, last_seen_at DESC, id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if err := query.Find(&memories).Error; err != nil {
+		return nil, err
+	}
+	return memories, nil
+}
+
 func (r *Memory) UpsertMemberProfile(profile *model.MemberProfile) error {
 	var existing model.MemberProfile
 	err := r.DB.WithContext(r.Ctx).
@@ -131,6 +161,23 @@ func (r *Memory) ListMemberRelationships(robotCode, chatRoomID, memberWxID strin
 	var relationships []*model.MemberRelationship
 	query := r.DB.WithContext(r.Ctx).
 		Where("robot_code = ? AND chat_room_id = ? AND (from_wxid = ? OR to_wxid = ?)", robotCode, chatRoomID, memberWxID, memberWxID).
+		Order("strength DESC, last_seen_at DESC, id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if err := query.Find(&relationships).Error; err != nil {
+		return nil, err
+	}
+	return relationships, nil
+}
+
+func (r *Memory) ListMemberRelationshipsBetween(robotCode, chatRoomID, firstWxID, secondWxID string, limit int) ([]*model.MemberRelationship, error) {
+	if firstWxID > secondWxID {
+		firstWxID, secondWxID = secondWxID, firstWxID
+	}
+	var relationships []*model.MemberRelationship
+	query := r.DB.WithContext(r.Ctx).
+		Where("robot_code = ? AND chat_room_id = ? AND from_wxid = ? AND to_wxid = ?", robotCode, chatRoomID, firstWxID, secondWxID).
 		Order("strength DESC, last_seen_at DESC, id DESC")
 	if limit > 0 {
 		query = query.Limit(limit)

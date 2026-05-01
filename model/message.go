@@ -46,6 +46,7 @@ const (
 	AppMsgTypequote                 AppMessageType = 57     // 引用消息
 	AppMsgTypeAttachUploading       AppMessageType = 74     // 附件上传中
 	AppMsgTypeMusic                 AppMessageType = 76     // 音乐消息
+	AppMsgTypeEcsGift               AppMessageType = 124    // ECS礼物消息
 	AppMsgTypeTransfers             AppMessageType = 2000   // 转账消息
 	AppMsgTypeRedEnvelopes          AppMessageType = 2001   // 红包消息
 	AppMsgTypeReaderType            AppMessageType = 100001 //自定义的消息

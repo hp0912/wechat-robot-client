@@ -35,6 +35,7 @@ type MemoryService struct {
 	contactRepo *repository.Contact
 	crmRepo     *repository.ChatRoomMember
 	gsRepo      *repository.GlobalSettings
+	crsRepo     *repository.ChatRoomSettings
 	mu          sync.Mutex
 }
 
@@ -93,6 +94,7 @@ func NewMemoryService(db *gorm.DB, vectorStore *VectorStoreService) *MemoryServi
 		contactRepo: repository.NewContactRepo(ctx, db),
 		crmRepo:     repository.NewChatRoomMemberRepo(ctx, db),
 		gsRepo:      repository.NewGlobalSettingsRepo(ctx, db),
+		crsRepo:     repository.NewChatRoomSettingsRepo(ctx, db),
 	}
 }
 
@@ -190,6 +192,14 @@ func (s *MemoryService) notifyFriendMessage(ctx context.Context, message *model.
 }
 
 func (s *MemoryService) notifyChatRoomMessage(ctx context.Context, message *model.Message) {
+	blacklist, blacklistSet, err := s.getChatRoomMemoryExtractionBlacklist(message.FromWxID)
+	if err != nil {
+		log.Printf("[Memory] 获取群聊记忆提取黑名单失败: %v", err)
+	}
+	if _, ok := blacklistSet[strings.TrimSpace(message.SenderWxID)]; ok {
+		return
+	}
+
 	now := time.Now().Unix()
 	state, err := s.memoryRepo.GetState(vars.RobotRuntime.RobotCode, string(model.MemoryScopeGroup), "", message.FromWxID)
 	if err != nil {
@@ -226,7 +236,7 @@ func (s *MemoryService) notifyChatRoomMessage(ctx context.Context, message *mode
 		return
 	}
 
-	messages, err := s.msgRepo.GetChatRoomTextMessagesInIDRange(message.FromWxID, state.WindowStartMsgID, message.ID, memoryExtractionMessageLimit)
+	messages, err := s.msgRepo.GetChatRoomTextMessagesInIDRangeExcludeSenders(message.FromWxID, state.WindowStartMsgID, message.ID, blacklist, memoryExtractionMessageLimit)
 	if err != nil {
 		log.Printf("[Memory] 获取群聊消息窗口失败: %v", err)
 		return
@@ -247,6 +257,23 @@ func (s *MemoryService) notifyChatRoomMessage(ctx context.Context, message *mode
 	if err := s.memoryRepo.SaveState(state); err != nil {
 		log.Printf("[Memory] 保存群聊提取状态失败: %v", err)
 	}
+}
+
+func (s *MemoryService) getChatRoomMemoryExtractionBlacklist(chatRoomID string) ([]string, map[string]struct{}, error) {
+	settings, err := s.crsRepo.GetChatRoomSettings(chatRoomID)
+	if err != nil || settings == nil {
+		return nil, map[string]struct{}{}, err
+	}
+	wxIDs, err := settings.GetMemoryExtractionBlacklist()
+	if err != nil {
+		return nil, map[string]struct{}{}, err
+	}
+	wxIDs = normalizeStrings(wxIDs)
+	set := make(map[string]struct{}, len(wxIDs))
+	for _, wxID := range wxIDs {
+		set[wxID] = struct{}{}
+	}
+	return wxIDs, set, nil
 }
 
 func (s *MemoryService) extractAndStore(ctx context.Context, messages []*model.Message, isChatRoom bool, chatRoomID, contactWxID string) error {
@@ -288,8 +315,10 @@ func (s *MemoryService) extractAndStore(ctx context.Context, messages []*model.M
 
 func (s *MemoryService) buildExtractionTranscript(messages []*model.Message, chatRoomID string) string {
 	var sb strings.Builder
+	mentionNormalizer := s.buildMentionNormalizer(chatRoomID)
 	for _, msg := range messages {
-		content := strings.TrimSpace(msg.Content)
+		content, mentionedWxIDs := mentionNormalizer.Normalize(msg.Content)
+		content = strings.TrimSpace(content)
 		if content == "" {
 			continue
 		}
@@ -297,9 +326,84 @@ func (s *MemoryService) buildExtractionTranscript(messages []*model.Message, cha
 			content = string([]rune(content)[:500]) + "..."
 		}
 		name := s.resolveName(chatRoomID, msg.SenderWxID)
+		if len(mentionedWxIDs) > 0 {
+			fmt.Fprintf(&sb, "msg_id=%d sender_wxid=%s sender_name=%s mentioned_wxids=%s created_at=%d content=%q\n", msg.ID, msg.SenderWxID, name, strings.Join(mentionedWxIDs, ","), msg.CreatedAt, content)
+			continue
+		}
 		fmt.Fprintf(&sb, "msg_id=%d sender_wxid=%s sender_name=%s created_at=%d content=%q\n", msg.ID, msg.SenderWxID, name, msg.CreatedAt, content)
 	}
 	return sb.String()
+}
+
+type mentionNormalizer struct {
+	replacements []mentionReplacement
+}
+
+type mentionReplacement struct {
+	alias string
+	wxID  string
+}
+
+func (s *MemoryService) buildMentionNormalizer(chatRoomID string) mentionNormalizer {
+	if strings.TrimSpace(chatRoomID) == "" {
+		return mentionNormalizer{}
+	}
+	members, err := s.crmRepo.GetChatRoomMembers(chatRoomID)
+	if err != nil {
+		log.Printf("[Memory] 获取群成员用于解析@提及失败: %v", err)
+		return mentionNormalizer{}
+	}
+	seen := make(map[string]struct{})
+	replacements := make([]mentionReplacement, 0, len(members)*3)
+	for _, member := range members {
+		if member == nil || strings.TrimSpace(member.WechatID) == "" {
+			continue
+		}
+		aliases := []string{member.Remark, member.Nickname, member.Alias}
+		for _, alias := range aliases {
+			alias = strings.TrimSpace(alias)
+			if alias == "" || strings.Contains(alias, "@") {
+				continue
+			}
+			key := alias + "\x00" + member.WechatID
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			replacements = append(replacements, mentionReplacement{alias: alias, wxID: member.WechatID})
+		}
+	}
+	sort.SliceStable(replacements, func(i, j int) bool {
+		return len([]rune(replacements[i].alias)) > len([]rune(replacements[j].alias))
+	})
+	return mentionNormalizer{replacements: replacements}
+}
+
+func (n mentionNormalizer) Normalize(content string) (string, []string) {
+	if len(n.replacements) == 0 || content == "" {
+		return content, nil
+	}
+	mentionedSet := make(map[string]struct{})
+	result := content
+	for _, replacement := range n.replacements {
+		for _, delimiter := range []string{"\u2005", " "} {
+			mentionText := "@" + replacement.alias + delimiter
+			if !strings.Contains(result, mentionText) {
+				continue
+			}
+			result = strings.ReplaceAll(result, mentionText, "@"+replacement.wxID+delimiter)
+			mentionedSet[replacement.wxID] = struct{}{}
+		}
+	}
+	if len(mentionedSet) == 0 {
+		return result, nil
+	}
+	mentionedWxIDs := make([]string, 0, len(mentionedSet))
+	for wxID := range mentionedSet {
+		mentionedWxIDs = append(mentionedWxIDs, wxID)
+	}
+	sort.Strings(mentionedWxIDs)
+	return result, mentionedWxIDs
 }
 
 func (s *MemoryService) extractMemoriesWithAI(ctx context.Context, settings *model.GlobalSettings, transcript string, isChatRoom bool, chatRoomID, contactWxID string) (*memoryExtractionResult, error) {
@@ -319,6 +423,7 @@ func (s *MemoryService) extractMemoriesWithAI(ctx context.Context, settings *mod
 4. 不确定的信息降低 confidence；没有价值时返回空数组。
 5. content/summary 可以是中文自然语言，但涉及具体人时优先用微信 ID 表达，系统展示时会再转换昵称。
 6. relation_type 用 friend、coworker、helper、familiar、conflict、joke_partner、mentor、other 之一。
+7. transcript 中的 mentioned_wxids 和 content 里的 @wxid 表示明确提及对象，可作为群成员互动和关系判断的重要证据。
 `, scene, scopeRule)
 
 	userPrompt := "聊天窗口如下：\n" + transcript

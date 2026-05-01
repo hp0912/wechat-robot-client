@@ -337,6 +337,9 @@ func (s *ChatRoomSettingsService) SaveChatRoomSettings(data *model.ChatRoomSetti
 	if err := s.normalizeKnowledgeCategories(data); err != nil {
 		return err
 	}
+	if err := s.normalizeMemoryExtractionBlacklist(data); err != nil {
+		return err
+	}
 	if data.ID == 0 {
 		return s.crsRepo.Create(data)
 	}
@@ -344,22 +347,26 @@ func (s *ChatRoomSettingsService) SaveChatRoomSettings(data *model.ChatRoomSetti
 }
 
 func normalizeKnowledgeCategoryCodes(codes []string) []string {
-	if len(codes) == 0 {
+	return normalizeStringList(codes)
+}
+
+func normalizeStringList(values []string) []string {
+	if len(values) == 0 {
 		return nil
 	}
 
-	normalized := make([]string, 0, len(codes))
-	seen := make(map[string]struct{}, len(codes))
-	for _, code := range codes {
-		code = strings.TrimSpace(code)
-		if code == "" {
+	normalized := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
 			continue
 		}
-		if _, ok := seen[code]; ok {
+		if _, ok := seen[value]; ok {
 			continue
 		}
-		seen[code] = struct{}{}
-		normalized = append(normalized, code)
+		seen[value] = struct{}{}
+		normalized = append(normalized, value)
 	}
 
 	return normalized
@@ -416,6 +423,25 @@ func (s *ChatRoomSettingsService) normalizeKnowledgeCategories(data *model.ChatR
 	if len(unsupportedCodes) > 0 {
 		return fmt.Errorf("以下知识库不是文本知识库，暂不支持绑定到群聊: %s", strings.Join(unsupportedCodes, ", "))
 	}
+
+	return nil
+}
+
+func (s *ChatRoomSettingsService) normalizeMemoryExtractionBlacklist(data *model.ChatRoomSettings) error {
+	if data == nil || data.MemoryExtractionBlacklist == nil {
+		return nil
+	}
+
+	wxIDs, err := data.GetMemoryExtractionBlacklist()
+	if err != nil {
+		return fmt.Errorf("memory_extraction_blacklist 格式错误: %w", err)
+	}
+
+	payload, err := json.Marshal(normalizeStringList(wxIDs))
+	if err != nil {
+		return fmt.Errorf("序列化 memory_extraction_blacklist 失败: %w", err)
+	}
+	data.MemoryExtractionBlacklist = payload
 
 	return nil
 }

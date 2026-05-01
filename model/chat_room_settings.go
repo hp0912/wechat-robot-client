@@ -47,6 +47,7 @@ type ChatRoomSettings struct {
 	NewsType                  *NewsType      `gorm:"column:news_type;type:enum('','text','image');comment:每日早报类型：text-文本，image-图片" json:"news_type"`
 	MorningEnabled            *bool          `gorm:"column:morning_enabled;default:false;comment:是否启用早安问候功能" json:"morning_enabled"`
 	KnowledgeCategories       datatypes.JSON `gorm:"column:knowledge_categories;type:json;comment:绑定的知识库分类编码列表" json:"knowledge_categories"`
+	MemoryExtractionBlacklist datatypes.JSON `gorm:"column:memory_extraction_blacklist;type:json;comment:记忆提取黑名单群成员微信ID列表" json:"memory_extraction_blacklist"`
 }
 
 // TableName 设置表名
@@ -64,4 +65,16 @@ func (s *ChatRoomSettings) GetKnowledgeCategoryCodes() ([]string, error) {
 		return nil, err
 	}
 	return codes, nil
+}
+
+// GetMemoryExtractionBlacklist 解析记忆提取黑名单群成员微信ID列表
+func (s *ChatRoomSettings) GetMemoryExtractionBlacklist() ([]string, error) {
+	if s.MemoryExtractionBlacklist == nil {
+		return nil, nil
+	}
+	var wxIDs []string
+	if err := json.Unmarshal(s.MemoryExtractionBlacklist, &wxIDs); err != nil {
+		return nil, err
+	}
+	return wxIDs, nil
 }

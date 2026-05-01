@@ -140,6 +140,7 @@ type AppMessage struct {
 	ReferMsg          ReferMessage   `xml:"refermsg"`
 	WcPayInfo         WcPayInfo      `xml:"wcpayinfo"`
 	Emoji             EmojiInfo      `xml:"emoji"`
+	EcsGift           *EcsGift       `xml:"ecsgift,omitempty"`
 }
 
 type MusicShareItem struct {
@@ -590,4 +591,108 @@ type SendFileMessageResponse struct {
 	StartPos        *uint32       `json:"startPos,omitempty"`
 	DataLen         *uint32       `json:"dataLen,omitempty"`
 	CreateTime      *uint64       `json:"createTime,omitempty"`
+}
+
+type EcsGift struct {
+	SubType               int                 `xml:"subtype"`
+	GiftMsgID             string              `xml:"giftmsgid"`
+	WishMessage           string              `xml:"wishmessage"`
+	TailText              string              `xml:"tailtext"`
+	TakeMethod            int                 `xml:"takemethod"`
+	GiftTitle             string              `xml:"gifttitle"`
+	GiftTitleTemplate     string              `xml:"gifttitletemplate"`
+	RecvUsername          string              `xml:"recvusername"`
+	EllipsisIndex         int                 `xml:"ellipsisindex"`
+	Gifts                 EcsGiftList         `xml:"gifts"`
+	JumpInfo              EcsGiftJumpInfo     `xml:"jumpinfo"`
+	WishImgInfo           EcsGiftWishImgInfo  `xml:"wishimginfo"`
+	DisableReceive        string              `xml:"disable_receive"`
+	GiftSourceName        string              `xml:"giftsourcename"`
+	GiftCover             EcsGiftCover        `xml:"giftcover"`
+	DrawTimeWording       string              `xml:"drawtimewording"`
+	LotteryMethod         string              `xml:"lotterymethod"`
+	GiftAnimationMaterial EcsGiftAnimMaterial `xml:"giftanimationmaterial"`
+	AppMsgSign            string              `xml:"appmsg_sign"`
+}
+
+type EcsGiftList struct {
+	Gifts []EcsGiftItem `xml:"gift"`
+}
+
+type EcsGiftItem struct {
+	OrderID             string `xml:"orderid"`
+	SkuImgURL           string `xml:"skuimgurl"`
+	SkuTitle            string `xml:"skutitle"`
+	SkuSaleParams       string `xml:"skusaleparams"`
+	SkuPrice            int    `xml:"skuprice"`
+	GiftStatus          int    `xml:"giftstatus"`
+	IsSkuChange         int    `xml:"isskuchange"`
+	BgStartColor        string `xml:"bgstartcolor"`
+	BgEndColor          string `xml:"bgendcolor"`
+	StatusWording       string `xml:"statuswording"`
+	StatusStyle         int    `xml:"statusstyle"`
+	StatusVersion       int    `xml:"statusversion"`
+	DetailStatusWording string `xml:"detailstatuswording"`
+	PresentCntWording   string `xml:"presentcntwording"`
+	DeliveryMethod      int    `xml:"delivery_method"`
+}
+
+type EcsGiftJumpInfo struct {
+	JumpBizType  string             `xml:"jumpbiztype"`
+	MiniAppInfo  EcsGiftMiniAppInfo `xml:"miniappinfo"`
+	LiteAppInfo  EcsGiftLiteAppInfo `xml:"liteappinfo"`
+	Html5Info    EcsGiftHtml5Info   `xml:"html5info"`
+	JumpPriority string             `xml:"jumppriority"`
+	NativeInfo   EcsGiftNativeInfo  `xml:"nativeinfo"`
+}
+
+type EcsGiftMiniAppInfo struct {
+	AppID       string `xml:"appid"`
+	AppUsername string `xml:"appusername"`
+	Path        string `xml:"path"`
+	Scene       string `xml:"scene"`
+	SceneNote   string `xml:"scenenote"`
+	VersionType string `xml:"versiontype"`
+}
+
+type EcsGiftLiteAppInfo struct {
+	AppID      string `xml:"appid"`
+	Path       string `xml:"path"`
+	Query      string `xml:"query"`
+	DefaultURL string `xml:"defaulturl"`
+}
+
+type EcsGiftHtml5Info struct {
+	URL string `xml:"url"`
+}
+
+type EcsGiftNativeInfo struct {
+	NativeURI string `xml:"nativeuri"`
+	Params    string `xml:"params"`
+}
+
+type EcsGiftWishImgInfo struct {
+	FileID        string `xml:"fileid"`
+	AesKey        string `xml:"aeskey"`
+	Width         string `xml:"width"`
+	Height        string `xml:"height"`
+	PickArgbColor string `xml:"pickargbcolor"`
+}
+
+type EcsGiftCover struct {
+	MsgCover         string `xml:"msgcover"`
+	BoxOuterCover    string `xml:"boxoutercover"`
+	BoxInnerCover    string `xml:"boxinnercover"`
+	NormalCover      string `xml:"normalcover"`
+	VideoCover       string `xml:"videocover"`
+	VideoRecvCover   string `xml:"videorecvcover"`
+	VideoNormalCover string `xml:"videonomalcover"`
+}
+
+type EcsGiftAnimMaterial struct {
+	FrontPageResName      string `xml:"frontpagresname"`
+	BackgroundPageResName string `xml:"backgroudpagresname"`
+	MBBasicItemType       string `xml:"mbbasicitemtype"`
+	MBFlyItemType         string `xml:"mbflyitemtype"`
+	MBMiniVersion         string `xml:"mbminiversion"`
 }

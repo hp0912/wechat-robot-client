@@ -18,13 +18,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/h2non/filetype"
+
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/vars"
-
-	"github.com/h2non/filetype"
 )
 
 type MomentsService struct {
@@ -47,10 +47,14 @@ func (s *MomentsService) SyncMomentStart() {
 	ctx := context.Background()
 	vars.RobotRuntime.SyncMomentContext, vars.RobotRuntime.SyncMomentCancel = context.WithCancel(ctx)
 	for {
+		syncInterval := 120
+		if momentSettings, err := s.momentSettingsRepo.GetMomentSettings(); err == nil && momentSettings != nil && momentSettings.SyncInterval >= 10 {
+			syncInterval = momentSettings.SyncInterval
+		}
 		select {
 		case <-vars.RobotRuntime.SyncMomentContext.Done():
 			return
-		case <-time.After(10 * time.Minute):
+		case <-time.After(time.Duration(syncInterval) * time.Minute):
 			log.Println("开始同步朋友圈~")
 			if vars.RobotRuntime.Status == model.RobotStatusOffline {
 				continue
@@ -86,6 +90,7 @@ func (s *MomentsService) SyncMoments() {
 			CommentModel:        "",
 			CommentPrompt:       "",
 			MaxCompletionTokens: nil,
+			SyncInterval:        120,
 		})
 		if err != nil {
 			log.Println("创建朋友圈设置失败: ", err)
