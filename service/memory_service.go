@@ -696,22 +696,26 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 	memories := make([]*model.Memory, 0)
 	seen := make(map[int64]bool)
 	appendSearch := func(contactWxID, chatRoomID string, limit int) {
+		start := time.Now()
 		results, err := s.vectorStore.SearchMemories(ctx, vars.RobotRuntime.RobotCode, query, contactWxID, chatRoomID, limit)
 		if err != nil {
 			log.Printf("[Memory] 记忆召回失败: %v", err)
 			return
 		}
+		log.Printf("[SearchMemories] 检索记忆耗时: %v", time.Since(start))
 		vectorIDs := make([]string, 0, len(results))
 		for _, result := range results {
 			if result.ID != "" {
 				vectorIDs = append(vectorIDs, result.ID)
 			}
 		}
+		start = time.Now()
 		items, err := s.memoryRepo.GetMemoriesByVectorIDs(vectorIDs)
 		if err != nil {
 			log.Printf("[Memory] 查询记忆详情失败: %v", err)
 			return
 		}
+		log.Printf("[GetMemoriesByVectorIDs] 查询记忆详情耗时: %v", time.Since(start))
 		for _, item := range items {
 			if item != nil && !seen[item.ID] {
 				seen[item.ID] = true
@@ -721,8 +725,11 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 	}
 
 	if isChatRoom {
+		start := time.Now()
 		appendSearch(senderWxID, fromWxID, 6)
 		appendSearch("", fromWxID, 6)
+		log.Printf("[appendSearch] 检索记忆总耗时: %v", time.Since(start))
+		start = time.Now()
 		relationMemories, err := s.memoryRepo.ListRelationMemories(vars.RobotRuntime.RobotCode, fromWxID, senderWxID, 5)
 		if err == nil {
 			for _, item := range relationMemories {
@@ -732,11 +739,15 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 				}
 			}
 		}
+		log.Printf("[ListRelationMemories] 检索关系耗时: %v", time.Since(start))
 	} else {
 		appendSearch(fromWxID, "", 8)
 	}
 
-	return s.renderPromptContext(fromWxID, senderWxID, isChatRoom, memories)
+	start := time.Now()
+	result := s.renderPromptContext(fromWxID, senderWxID, isChatRoom, memories)
+	log.Printf("[renderPromptContext] 构建提示语耗时: %v", time.Since(start))
+	return result
 }
 
 func (s *MemoryService) renderPromptContext(fromWxID, senderWxID string, isChatRoom bool, memories []*model.Memory) string {
