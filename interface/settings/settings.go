@@ -15,8 +15,8 @@ type AIConfig struct {
 	Prompt                string
 	MaxCompletionTokens   int
 	ImageAISettings       datatypes.JSON
+	TTSModel              string
 	TTSSettings           datatypes.JSON
-	LTTSSettings          datatypes.JSON
 }
 
 type PatConfig struct {

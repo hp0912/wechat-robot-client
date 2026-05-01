@@ -20,8 +20,8 @@ type ChatRoomSettings struct {
 	ImageAIEnabled            *bool          `gorm:"column:image_ai_enabled;default:false;comment:是否启用AI绘图功能" json:"image_ai_enabled"`
 	ImageAISettings           datatypes.JSON `gorm:"column:image_ai_settings;type:json;comment:绘图AI配置项" json:"image_ai_settings"`
 	TTSEnabled                *bool          `gorm:"column:tts_enabled;default:false;comment:是否启用AI文本转语音功能" json:"tts_enabled"`
+	TTSModel                  *string        `gorm:"column:tts_model;type:varchar(100);default:'';comment:文本转语音使用的AI模型名称" json:"tts_model"`
 	TTSSettings               datatypes.JSON `gorm:"column:tts_settings;type:json;comment:文本转语音配置项" json:"tts_settings"`
-	LTTSSettings              datatypes.JSON `gorm:"column:ltts_settings;type:json;comment:长文本转语音配置项" json:"ltts_settings"`
 	ShortVideoParsingEnabled  *bool          `gorm:"column:short_video_parsing_enabled;not null;default:true;comment:是否启用短视频解析功能" json:"short_video_parsing_enabled"`
 	WxhbNotifyEnabled         *bool          `gorm:"column:wxhb_notify_enabled;default:false;comment:是否启用微信红包通知功能" json:"wxhb_notify_enabled"`
 	WxhbNotifyMemberList      *string        `gorm:"column:wxhb_notify_member_list;type:text;not null;comment:微信红包通知的成员列表，逗号分隔的微信ID" json:"wxhb_notify_member_list"`
