@@ -44,6 +44,14 @@ func (s *AIChatService) Chat(robotCtx robotctx.RobotContext, aiMessages []openai
 	var systemMessages []openai.ChatCompletionMessageParamUnion
 	// 系统提示词
 	systemMessages = append(systemMessages, openai.SystemMessage(basePrompt.String()))
+	currentQuery := s.latestChatMessageText(aiMessages)
+	if vars.MemoryService != nil {
+		start := time.Now()
+		if memoryCtx := vars.MemoryService.BuildPromptContext(s.ctx, currentQuery, robotCtx.FromWxID, robotCtx.SenderWxID, strings.Contains(robotCtx.FromWxID, "@chatroom")); memoryCtx != "" {
+			systemMessages = append(systemMessages, openai.SystemMessage(memoryCtx))
+		}
+		log.Printf("[MemoryContext] 构建长期记忆上下文耗时: %v", time.Since(start))
+	}
 	if strings.Contains(robotCtx.FromWxID, "@chatroom") {
 		start := time.Now()
 		// 群聊上下文：当前用户元信息 + 最近其他群友消息
@@ -69,6 +77,47 @@ func (s *AIChatService) Chat(robotCtx robotctx.RobotContext, aiMessages []openai
 	log.Printf("[AI] 接口调用耗时: %v", time.Since(aiStart))
 
 	return reply, err
+}
+
+func (s *AIChatService) latestChatMessageText(messages []openai.ChatCompletionMessageParamUnion) string {
+	for i := len(messages) - 1; i >= 0; i-- {
+		text := s.chatMessageParamText(messages[i])
+		if strings.TrimSpace(text) != "" {
+			return text
+		}
+	}
+	return ""
+}
+
+func (s *AIChatService) chatMessageParamText(message openai.ChatCompletionMessageParamUnion) string {
+	switch content := message.GetContent().AsAny().(type) {
+	case *string:
+		return *content
+	case *[]openai.ChatCompletionContentPartTextParam:
+		var builder strings.Builder
+		for _, part := range *content {
+			builder.WriteString(part.Text)
+		}
+		return builder.String()
+	case *[]openai.ChatCompletionContentPartUnionParam:
+		var builder strings.Builder
+		for _, part := range *content {
+			if text := part.GetText(); text != nil {
+				builder.WriteString(*text)
+			}
+		}
+		return builder.String()
+	case *[]openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion:
+		var builder strings.Builder
+		for _, part := range *content {
+			if text := part.GetText(); text != nil {
+				builder.WriteString(*text)
+			}
+		}
+		return builder.String()
+	default:
+		return ""
+	}
 }
 
 // buildGroupChatContext 构建群聊上下文：当前用户元信息 + 最近其他群友消息

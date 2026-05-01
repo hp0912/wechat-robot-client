@@ -77,42 +77,27 @@ func (s *VectorStoreService) IndexKnowledge(ctx context.Context, robotCode strin
 	return id, nil
 }
 
-// SearchMessages 语义搜索历史消息
-func (s *VectorStoreService) SearchMessages(ctx context.Context, robotCode string, query string, contactWxID, chatRoomID string, topK int) ([]ai.VectorSearchResult, error) {
-	vector, err := s.embedding.Embed(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("embed query: %w", err)
-	}
-
-	var conditions []*pb.Condition
-	if robotCode != "" {
-		conditions = append(conditions, qdrantx.BuildMatchFilter("robot_code", robotCode))
-	}
-	if contactWxID != "" {
-		conditions = append(conditions, qdrantx.BuildMatchFilter("contact_wxid", contactWxID))
-	}
-	if chatRoomID != "" {
-		conditions = append(conditions, qdrantx.BuildMatchFilter("chat_room_id", chatRoomID))
-	}
-
-	var filter *pb.Filter
-	if len(conditions) > 0 {
-		filter = &pb.Filter{Must: conditions}
-	}
-
-	results, err := s.qdrant.Search(ctx, qdrantx.CollectionMessages, vector, uint64(topK), filter)
-	if err != nil {
-		return nil, err
-	}
-	return s.convertResults(results), nil
-}
-
 // SearchMemories 语义搜索记忆（作用域感知）
 // wxID 和 chatRoomID 共同决定搜索范围：
 //   - wxID 有值, chatRoomID 为空 → 只搜索该用户的全局个人记忆
 //   - wxID 有值, chatRoomID 有值 → 只搜索该用户在该群的群内个人记忆
 //   - wxID 为空, chatRoomID 有值 → 只搜索该群的群级别记忆
 func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode string, query, wxID, chatRoomID string, topK int) ([]ai.VectorSearchResult, error) {
+	scope := ""
+	contactWxID := ""
+	switch {
+	case wxID != "" && chatRoomID == "":
+		scope = "friend"
+		contactWxID = wxID
+	case wxID != "" && chatRoomID != "":
+		scope = "group_member"
+		contactWxID = wxID
+	case wxID == "" && chatRoomID != "":
+		scope = "group"
+	default:
+		return nil, fmt.Errorf("memory search scope is empty")
+	}
+
 	vector, err := s.embedding.Embed(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("embed query: %w", err)
@@ -122,10 +107,8 @@ func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode strin
 	if robotCode != "" {
 		conditions = append(conditions, qdrantx.BuildMatchFilter("robot_code", robotCode))
 	}
-	if wxID != "" {
-		conditions = append(conditions, qdrantx.BuildMatchFilter("contact_wxid", wxID))
-	}
-	// 始终过滤 chat_room_id：空字符串精确匹配全局记忆，非空匹配特定群
+	conditions = append(conditions, qdrantx.BuildMatchFilter("scope", scope))
+	conditions = append(conditions, qdrantx.BuildMatchFilter("contact_wxid", contactWxID))
 	conditions = append(conditions, qdrantx.BuildMatchFilter("chat_room_id", chatRoomID))
 
 	filter := &pb.Filter{Must: conditions}
@@ -135,6 +118,34 @@ func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode strin
 		return nil, err
 	}
 	return s.convertResults(results), nil
+}
+
+func (s *VectorStoreService) IndexMemory(ctx context.Context, robotCode string, memoryID int64, vectorID, scope, category, content, contactWxID, chatRoomID, participants string, updatedAt int64) (string, error) {
+	vector, err := s.embedding.Embed(ctx, content)
+	if err != nil {
+		return "", fmt.Errorf("embed memory: %w", err)
+	}
+
+	id := vectorID
+	if id == "" {
+		id = s.qdrant.GenerateID()
+	}
+	payload := map[string]*pb.Value{
+		"robot_code":   qdrantx.NewPayloadValue(robotCode),
+		"memory_id":    qdrantx.NewPayloadIntValue(memoryID),
+		"scope":        qdrantx.NewPayloadValue(scope),
+		"category":     qdrantx.NewPayloadValue(category),
+		"content":      qdrantx.NewPayloadValue(content),
+		"contact_wxid": qdrantx.NewPayloadValue(contactWxID),
+		"chat_room_id": qdrantx.NewPayloadValue(chatRoomID),
+		"participants": qdrantx.NewPayloadValue(participants),
+		"updated_at":   qdrantx.NewPayloadIntValue(updatedAt),
+	}
+
+	if err := s.qdrant.Upsert(ctx, qdrantx.CollectionMemories, id, vector, payload); err != nil {
+		return "", fmt.Errorf("upsert memory vector: %w", err)
+	}
+	return id, nil
 }
 
 // SearchKnowledge 语义搜索知识库

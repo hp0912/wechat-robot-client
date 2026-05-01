@@ -46,6 +46,7 @@ var QdrantClient *qdrantx.QdrantClient
 // RAG
 var KnowledgeService ai.KnowledgeService
 var ImageKnowledgeService ai.ImageKnowledgeService
+var MemoryService ai.MemoryService
 
 var Webhook struct {
 	URL     string

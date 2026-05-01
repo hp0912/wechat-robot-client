@@ -38,3 +38,8 @@ type ImageKnowledgeService interface {
 	SearchByImage(ctx context.Context, imageURL, category string, limit int) ([]VectorSearchResult, error)
 	ReindexAll(ctx context.Context) error
 }
+
+type MemoryService interface {
+	NotifyMessage(ctx context.Context, message *model.Message)
+	BuildPromptContext(ctx context.Context, query, fromWxID, senderWxID string, isChatRoom bool) string
+}

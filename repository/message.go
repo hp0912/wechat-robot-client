@@ -394,3 +394,31 @@ func (m *Message) GetRecentTextMessages(sinceID int64, limit int) ([]*model.Mess
 		Find(&messages).Error
 	return messages, err
 }
+
+func (m *Message) GetFriendTextMessagesInIDRange(contactWxID string, startMsgID, endMsgID int64, limit int) ([]*model.Message, error) {
+	var messages []*model.Message
+	query := m.DB.WithContext(m.Ctx).
+		Where("from_wxid = ?", contactWxID).
+		Where("id >= ? AND id <= ?", startMsgID, endMsgID).
+		Where("`type` = 1 AND content != ''").
+		Order("id ASC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	err := query.Find(&messages).Error
+	return messages, err
+}
+
+func (m *Message) GetChatRoomTextMessagesInIDRange(chatRoomID string, startMsgID, endMsgID int64, limit int) ([]*model.Message, error) {
+	var messages []*model.Message
+	query := m.DB.WithContext(m.Ctx).
+		Where("from_wxid = ?", chatRoomID).
+		Where("id >= ? AND id <= ?", startMsgID, endMsgID).
+		Where("`type` = 1 AND content != ''").
+		Order("id ASC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	err := query.Find(&messages).Error
+	return messages, err
+}

@@ -91,6 +91,7 @@ func reloadRAGServices(globalSettings *model.GlobalSettings) error {
 		log.Println("[RAG] AI 配置未设置（ChatBaseURL/ChatAPIKey/TextEmbeddingModel），RAG 服务跳过初始化")
 		vars.KnowledgeService = nil
 		vars.ImageKnowledgeService = nil
+		vars.MemoryService = nil
 		return nil
 	}
 
@@ -122,6 +123,13 @@ func reloadRAGServices(globalSettings *model.GlobalSettings) error {
 
 	// 初始化 Knowledge 服务
 	vars.KnowledgeService = service.NewKnowledgeService(vars.DB, vectorStoreSvc)
+	if globalSettings.MemoryEnabled == nil || *globalSettings.MemoryEnabled {
+		vars.MemoryService = service.NewMemoryService(vars.DB, vectorStoreSvc)
+		log.Println("长期记忆服务初始化完成")
+	} else {
+		vars.MemoryService = nil
+		log.Println("长期记忆服务已禁用")
+	}
 	log.Println("RAG 服务初始化完成")
 
 	return nil
