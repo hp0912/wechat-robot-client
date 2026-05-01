@@ -13,7 +13,7 @@ const (
 // EmbeddingTask 向量化任务队列
 type EmbeddingTask struct {
 	ID          int64               `gorm:"primarykey" json:"id"`
-	SourceType  string              `gorm:"column:source_type;size:32;index:idx_source,priority:1" json:"source_type"` // message / memory / knowledge
+	SourceType  string              `gorm:"column:source_type;size:32;index:idx_source,priority:1" json:"source_type"` // message / knowledge
 	SourceID    int64               `gorm:"column:source_id;index:idx_source,priority:2" json:"source_id"`
 	Content     string              `gorm:"column:content;type:text" json:"content"`
 	Status      EmbeddingTaskStatus `gorm:"column:status;size:32;default:pending;index;index:idx_source,priority:3;index:idx_status_processed,priority:1" json:"status"`

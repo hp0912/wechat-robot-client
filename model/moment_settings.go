@@ -13,6 +13,7 @@ type MomentSettings struct {
 	CommentModel        string  `gorm:"type:varchar(100);default:'';comment:评论模型" json:"comment_model"`
 	CommentPrompt       string  `gorm:"type:text;comment:评论系统提示词" json:"comment_prompt"`
 	MaxCompletionTokens *int    `gorm:"default:0;comment:评论最大回复" json:"max_completion_tokens"`
+	SyncInterval        int     `gorm:"default:120;comment:朋友圈同步间隔(分钟)" json:"sync_interval" binding:"min=10,max=86400"`
 }
 
 func (MomentSettings) TableName() string {

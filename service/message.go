@@ -592,6 +592,9 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 			log.Printf("入库消息失败: %v", err)
 			continue
 		}
+		if m.Type == model.MsgTypeText && vars.MemoryService != nil {
+			go vars.MemoryService.NotifyMessage(context.Background(), &m)
+		}
 		switch m.Type {
 		case model.MsgTypeText:
 			go s.ProcessTextMessage(&m, settings)

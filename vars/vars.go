@@ -43,11 +43,10 @@ var SkillsDir string
 // Qdrant 客户端
 var QdrantClient *qdrantx.QdrantClient
 
-// RAG & 记忆相关服务
-var MemoryService ai.MemoryService
-var RAGService ai.RAGService
+// RAG
 var KnowledgeService ai.KnowledgeService
 var ImageKnowledgeService ai.ImageKnowledgeService
+var MemoryService ai.MemoryService
 
 var Webhook struct {
 	URL     string

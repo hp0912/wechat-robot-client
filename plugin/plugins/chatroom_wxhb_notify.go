@@ -28,7 +28,7 @@ func (p *ChatRoomWxhbNotifyPlugin) GetLabels() []string {
 }
 
 func (p *ChatRoomWxhbNotifyPlugin) Match(ctx *plugin.MessageContext) bool {
-	return ctx.Message.Type == model.MsgTypeApp && ctx.Message.AppMsgType == model.AppMsgTypeRedEnvelopes
+	return ctx.Message.Type == model.MsgTypeApp && (ctx.Message.AppMsgType == model.AppMsgTypeRedEnvelopes || ctx.Message.AppMsgType == model.AppMsgTypeEcsGift)
 }
 
 func (p *ChatRoomWxhbNotifyPlugin) PreAction(ctx *plugin.MessageContext) bool {
@@ -71,17 +71,37 @@ func (p *ChatRoomWxhbNotifyPlugin) Run(ctx *plugin.MessageContext) {
 		return
 	}
 
-	if xmlMessage.AppMsg.WcPayInfo.SceneID == "1001" {
-		log.Println("群收款通知~")
-		return
+	var notifyText string
+	var exclusiveRecv string
+
+	if ctx.Message.AppMsgType == model.AppMsgTypeEcsGift {
+		if xmlMessage.AppMsg.EcsGift == nil {
+			log.Printf("礼物消息EcsGift为空: 群ID=%s", ctx.Message.FromWxID)
+			return
+		}
+		if xmlMessage.AppMsg.EcsGift.SubType != 1 {
+			log.Printf("未知的礼物类型")
+			return
+		}
+		notifyText = "礼物来啦~"
+		if xmlMessage.AppMsg.EcsGift.TakeMethod == 2 {
+			exclusiveRecv = xmlMessage.AppMsg.EcsGift.RecvUsername
+		}
+	} else {
+		if xmlMessage.AppMsg.WcPayInfo.SceneID == "1001" {
+			log.Println("群收款通知~")
+			return
+		}
+		notifyText = "红包来啦~"
+		exclusiveRecv = xmlMessage.AppMsg.WcPayInfo.ExclusiveRecvUsername
 	}
 
-	notifyTargets := p.buildNotifyTargets(ctx.Message.SenderWxID, xmlMessage.AppMsg.WcPayInfo.ExclusiveRecvUsername)
+	notifyTargets := p.buildNotifyTargets(ctx.Message.SenderWxID, exclusiveRecv)
 	if len(notifyTargets) == 0 {
 		return
 	}
 
-	_ = ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, "红包来啦~", notifyTargets...)
+	_ = ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, notifyText, notifyTargets...)
 }
 
 func (p *ChatRoomWxhbNotifyPlugin) buildNotifyTargets(senderWxID, exclusiveRecvUsername string) []string {

@@ -75,7 +75,7 @@ func (q *QdrantClient) InitCollection(ctx context.Context, name string, dimensio
 func (q *QdrantClient) createPayloadIndexes(ctx context.Context, collection string) error {
 	indexes := map[string][]string{
 		CollectionMessages:       {"robot_code", "contact_wxid", "chat_room_id", "chat_room_member_wxid"},
-		CollectionMemories:       {"robot_code", "contact_wxid", "chat_room_id", "category"},
+		CollectionMemories:       {"robot_code", "scope", "contact_wxid", "chat_room_id", "category"},
 		CollectionKnowledge:      {"robot_code", "category", "title"},
 		CollectionImageKnowledge: {"robot_code", "category", "title"},
 	}

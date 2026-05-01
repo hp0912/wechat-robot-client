@@ -2,8 +2,6 @@ package repository
 
 import (
 	"context"
-	"strings"
-	"time"
 	"wechat-robot-client/model"
 
 	"gorm.io/gorm"
@@ -18,244 +16,174 @@ func NewMemoryRepo(ctx context.Context, db *gorm.DB) *Memory {
 	return &Memory{Ctx: ctx, DB: db}
 }
 
-func (r *Memory) Create(memory *model.Memory) error {
-	now := time.Now().Unix()
-	memory.CreatedAt = now
-	memory.UpdatedAt = now
-	return r.DB.WithContext(r.Ctx).Create(memory).Error
-}
-
-func (r *Memory) Update(memory *model.Memory) error {
-	memory.UpdatedAt = time.Now().Unix()
-	return r.DB.WithContext(r.Ctx).Save(memory).Error
-}
-
-func (r *Memory) Delete(id int64) error {
-	return r.DB.WithContext(r.Ctx).Delete(&model.Memory{}, id).Error
-}
-
-func (r *Memory) GetByID(id int64) (*model.Memory, error) {
-	var memory model.Memory
-	err := r.DB.WithContext(r.Ctx).Where("id = ?", id).First(&memory).Error
+func (r *Memory) GetState(robotCode, scope, contactWxID, chatRoomID string) (*model.MemoryExtractionState, error) {
+	var state model.MemoryExtractionState
+	err := r.DB.WithContext(r.Ctx).
+		Where("robot_code = ? AND scope = ? AND contact_wxid = ? AND chat_room_id = ?", robotCode, scope, contactWxID, chatRoomID).
+		First(&state).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
-	return &memory, err
+	if err != nil {
+		return nil, err
+	}
+	return &state, nil
 }
 
-// GetByIDs 批量获取记忆
-func (r *Memory) GetByIDs(ids []int64) ([]*model.Memory, error) {
+func (r *Memory) SaveState(state *model.MemoryExtractionState) error {
+	if state.ID == 0 {
+		return r.DB.WithContext(r.Ctx).Create(state).Error
+	}
+	return r.DB.WithContext(r.Ctx).Where("id = ?", state.ID).Updates(state).Error
+}
+
+func (r *Memory) GetByHash(robotCode, hash string) (*model.Memory, error) {
+	var memory model.Memory
+	err := r.DB.WithContext(r.Ctx).Where("robot_code = ? AND hash = ?", robotCode, hash).First(&memory).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &memory, nil
+}
+
+func (r *Memory) CreateMemory(memory *model.Memory) error {
+	return r.DB.WithContext(r.Ctx).Create(memory).Error
+}
+
+func (r *Memory) UpdateMemory(memory *model.Memory) error {
+	return r.DB.WithContext(r.Ctx).Where("id = ?", memory.ID).Updates(memory).Error
+}
+
+func (r *Memory) GetMemoriesByVectorIDs(vectorIDs []string) ([]*model.Memory, error) {
+	if len(vectorIDs) == 0 {
+		return nil, nil
+	}
 	var memories []*model.Memory
-	err := r.DB.WithContext(r.Ctx).
-		Where("id IN ?", ids).
-		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix()).
-		Find(&memories).Error
+	err := r.DB.WithContext(r.Ctx).Where("vector_id IN ?", vectorIDs).Find(&memories).Error
 	return memories, err
 }
 
-// GetByWxID 获取某人的所有记忆（全局），按重要性排序
-func (r *Memory) GetByWxID(wxID string, limit int) ([]*model.Memory, error) {
-	var memories []*model.Memory
-	err := r.DB.WithContext(r.Ctx).
-		Where("wx_id = ? AND chat_room_id = ''", wxID).
-		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix()).
-		Order("importance DESC, updated_at DESC").
-		Limit(limit).
-		Find(&memories).Error
-	return memories, err
-}
-
-// GetByWxIDAndChatRoom 获取某人在某群内的记忆
-func (r *Memory) GetByWxIDAndChatRoom(wxID, chatRoomID string, limit int) ([]*model.Memory, error) {
-	var memories []*model.Memory
-	err := r.DB.WithContext(r.Ctx).
-		Where("wx_id = ? AND chat_room_id = ?", wxID, chatRoomID).
-		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix()).
-		Order("importance DESC, updated_at DESC").
-		Limit(limit).
-		Find(&memories).Error
-	return memories, err
-}
-
-// GetByWxIDAllScopes 获取某人在所有作用域的记忆（全局 + 所有群）
-func (r *Memory) GetByWxIDAllScopes(wxID string, limit int) ([]*model.Memory, error) {
-	var memories []*model.Memory
-	err := r.DB.WithContext(r.Ctx).
-		Where("wx_id = ?", wxID).
-		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix()).
-		Order("importance DESC, updated_at DESC").
-		Limit(limit).
-		Find(&memories).Error
-	return memories, err
-}
-
-// GetByChatRoom 获取群级别记忆（wx_id 为空）
-func (r *Memory) GetByChatRoom(chatRoomID string, limit int) ([]*model.Memory, error) {
-	var memories []*model.Memory
-	err := r.DB.WithContext(r.Ctx).
-		Where("wx_id = '' AND chat_room_id = ?", chatRoomID).
-		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix()).
-		Order("importance DESC, updated_at DESC").
-		Limit(limit).
-		Find(&memories).Error
-	return memories, err
-}
-
-// ListByScope 获取某个会话视角下的候选记忆（全局个人 + 群内个人 + 群级别）。
-func (r *Memory) ListByScope(wxID, chatRoomID string, limit int) ([]*model.Memory, error) {
-	var memories []*model.Memory
-	query := r.scopeQuery(wxID, chatRoomID).
-		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix())
-	err := query.
-		Order("importance DESC, updated_at DESC").
-		Limit(limit).
-		Find(&memories).Error
-	return memories, err
-}
-
-// ListDueMemories 获取适合主动跟进的提醒类记忆。
-func (r *Memory) ListDueMemories(wxID, chatRoomID string, until, cooldownBefore int64, limit int) ([]*model.Memory, error) {
-	now := time.Now().Unix()
-	var memories []*model.Memory
-	query := r.scopeQuery(wxID, chatRoomID).
-		Where("expire_at = 0 OR expire_at > ?", now).
-		Where("last_access_at = 0 OR last_access_at < ?", cooldownBefore).
-		Where("((reminder_at > 0 AND reminder_at <= ?) OR (category = ? AND happened_at > 0 AND happened_at >= ? AND happened_at <= ?))",
-			until,
-			model.MemoryCategoryEvent,
-			now-12*60*60,
-			until,
-		)
-	err := query.
-		Order("importance DESC, reminder_at ASC, happened_at ASC, updated_at DESC").
-		Limit(limit).
-		Find(&memories).Error
-	return memories, err
-}
-
-// GetAllByWxIDForProfile 获取某人的所有记忆，用于生成画像摘要
-func (r *Memory) GetAllByWxIDForProfile(wxID, chatRoomID string) ([]*model.Memory, error) {
+func (r *Memory) ListRelationMemories(robotCode, chatRoomID, participantWxID string, limit int) ([]*model.Memory, error) {
 	var memories []*model.Memory
 	query := r.DB.WithContext(r.Ctx).
-		Where("wx_id = ?", wxID).
-		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix())
-	if chatRoomID != "" {
-		query = query.Where("chat_room_id = '' OR chat_room_id = ?", chatRoomID)
-	} else {
-		query = query.Where("chat_room_id = ''")
+		Where("robot_code = ? AND chat_room_id = ? AND scope = ?", robotCode, chatRoomID, model.MemoryScopeRelation).
+		Where("JSON_CONTAINS(participants, JSON_QUOTE(?))", participantWxID).
+		Order("importance DESC, last_seen_at DESC, id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
 	}
-	err := query.Order("importance DESC, updated_at DESC").
-		Limit(100).
-		Find(&memories).Error
-	return memories, err
+	if err := query.Find(&memories).Error; err != nil {
+		return nil, err
+	}
+	return memories, nil
 }
 
-// GetDistinctWxIDs 获取有记忆的所有用户 wxID 列表
-func (r *Memory) GetDistinctWxIDs() ([]string, error) {
-	var wxIDs []string
-	err := r.DB.WithContext(r.Ctx).
-		Model(&model.Memory{}).
-		Where("wx_id != ''").
-		Distinct("wx_id").
-		Pluck("wx_id", &wxIDs).Error
-	return wxIDs, err
-}
-
-// GetDistinctChatRoomsByWxID 获取某用户有群内记忆的所有群 ID
-func (r *Memory) GetDistinctChatRoomsByWxID(wxID string) ([]string, error) {
-	var chatRoomIDs []string
-	err := r.DB.WithContext(r.Ctx).
-		Model(&model.Memory{}).
-		Where("wx_id = ? AND chat_room_id != ''", wxID).
-		Distinct("chat_room_id").
-		Pluck("chat_room_id", &chatRoomIDs).Error
-	return chatRoomIDs, err
-}
-
-// IncrementAccessCount 增加访问计数
-func (r *Memory) IncrementAccessCount(ids []int64) error {
-	return r.DB.WithContext(r.Ctx).
-		Model(&model.Memory{}).
-		Where("id IN ?", ids).
-		Updates(map[string]any{
-			"access_count":   gorm.Expr("access_count + 1"),
-			"last_access_at": time.Now().Unix(),
-		}).Error
-}
-
-// DecayMemories 衰减长期未访问的记忆重要性
-// 跳过带有重要关系标签或高权重关系类型的核心记忆，避免恋人/家人等信息被误衰减
-func (r *Memory) DecayMemories(inactiveDays int) error {
-	threshold := time.Now().AddDate(0, 0, -inactiveDays).Unix()
-	protectedRelations := []string{"romantic_partner", "spouse", "family", "close_friend", "best_friend"}
-	return r.DB.WithContext(r.Ctx).
-		Model(&model.Memory{}).
-		Where("last_access_at > 0 AND last_access_at < ? AND importance > 1", threshold).
-		Where("relation_type NOT IN ?", protectedRelations).
-		Where("tags NOT LIKE ? AND tags NOT LIKE ? AND tags NOT LIKE ?",
-			"%important_person%", "%romantic%", "%family%").
-		Update("importance", gorm.Expr("importance - 1")).Error
-}
-
-// DeleteExpired 删除过期记忆
-func (r *Memory) DeleteExpired() error {
-	return r.DB.WithContext(r.Ctx).
-		Where("expire_at > 0 AND expire_at < ?", time.Now().Unix()).
-		Delete(&model.Memory{}).Error
-}
-
-// SearchByKeyword 关键词搜索记忆
-func (r *Memory) SearchByKeyword(wxID, chatRoomID, keyword string, limit int) ([]*model.Memory, error) {
+func (r *Memory) ListMemberMemories(robotCode, chatRoomID, memberWxID string, limit int) ([]*model.Memory, error) {
 	var memories []*model.Memory
 	query := r.DB.WithContext(r.Ctx).
-		Where("expire_at = 0 OR expire_at > ?", time.Now().Unix())
-	if wxID != "" {
-		query = query.Where("wx_id = ?", wxID)
+		Where("robot_code = ? AND chat_room_id = ? AND scope = ? AND contact_wxid = ?", robotCode, chatRoomID, model.MemoryScopeGroupMember, memberWxID).
+		Order("importance DESC, last_seen_at DESC, id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
 	}
-	if chatRoomID != "" {
-		query = query.Where("(chat_room_id = '' OR chat_room_id = ?)", chatRoomID)
+	if err := query.Find(&memories).Error; err != nil {
+		return nil, err
 	}
-	escaped := escapeLikeKeyword(keyword)
-	err := query.
-		Where("content LIKE ?", "%"+escaped+"%").
-		Order("importance DESC").
-		Limit(limit).
-		Find(&memories).Error
-	return memories, err
+	return memories, nil
 }
 
-// FindAllPaged 分页获取全部记忆（用于批量重建向量索引）
-func (r *Memory) FindAllPaged(page, pageSize int) ([]*model.Memory, error) {
+func (r *Memory) ListRelationMemoriesBetween(robotCode, chatRoomID, firstWxID, secondWxID string, limit int) ([]*model.Memory, error) {
 	var memories []*model.Memory
+	query := r.DB.WithContext(r.Ctx).
+		Where("robot_code = ? AND chat_room_id = ? AND scope = ?", robotCode, chatRoomID, model.MemoryScopeRelation).
+		Where("JSON_CONTAINS(participants, JSON_QUOTE(?))", firstWxID).
+		Where("JSON_CONTAINS(participants, JSON_QUOTE(?))", secondWxID).
+		Order("importance DESC, last_seen_at DESC, id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if err := query.Find(&memories).Error; err != nil {
+		return nil, err
+	}
+	return memories, nil
+}
+
+func (r *Memory) UpsertMemberProfile(profile *model.MemberProfile) error {
+	var existing model.MemberProfile
 	err := r.DB.WithContext(r.Ctx).
-		Order("id ASC").
-		Offset((page - 1) * pageSize).
-		Limit(pageSize).
-		Find(&memories).Error
-	return memories, err
+		Where("robot_code = ? AND chat_room_id = ? AND member_wxid = ?", profile.RobotCode, profile.ChatRoomID, profile.MemberWxID).
+		First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		return r.DB.WithContext(r.Ctx).Create(profile).Error
+	}
+	if err != nil {
+		return err
+	}
+	profile.ID = existing.ID
+	profile.CreatedAt = existing.CreatedAt
+	return r.DB.WithContext(r.Ctx).Where("id = ?", existing.ID).Updates(profile).Error
 }
 
-// escapeLikeKeyword 转义 LIKE 通配符，防止用户输入中的 % 和 _ 改变查询语义
-func escapeLikeKeyword(keyword string) string {
-	keyword = strings.ReplaceAll(keyword, "\\", "\\\\")
-	keyword = strings.ReplaceAll(keyword, "%", "\\%")
-	keyword = strings.ReplaceAll(keyword, "_", "\\_")
-	return keyword
+func (r *Memory) GetMemberProfile(robotCode, chatRoomID, memberWxID string) (*model.MemberProfile, error) {
+	var profile model.MemberProfile
+	err := r.DB.WithContext(r.Ctx).
+		Where("robot_code = ? AND chat_room_id = ? AND member_wxid = ?", robotCode, chatRoomID, memberWxID).
+		First(&profile).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &profile, nil
 }
 
-func (r *Memory) scopeQuery(wxID, chatRoomID string) *gorm.DB {
-	query := r.DB.WithContext(r.Ctx).Model(&model.Memory{})
-	if chatRoomID == "" {
-		return query.Where("wx_id = ? AND chat_room_id = ''", wxID)
+func (r *Memory) UpsertMemberRelationship(rel *model.MemberRelationship) error {
+	var existing model.MemberRelationship
+	err := r.DB.WithContext(r.Ctx).
+		Where("robot_code = ? AND chat_room_id = ? AND from_wxid = ? AND to_wxid = ? AND relation_type = ?", rel.RobotCode, rel.ChatRoomID, rel.FromWxID, rel.ToWxID, rel.RelationType).
+		First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		return r.DB.WithContext(r.Ctx).Create(rel).Error
 	}
-	if wxID == "" {
-		return query.Where("wx_id = '' AND chat_room_id = ?", chatRoomID)
+	if err != nil {
+		return err
 	}
-	return query.Where(
-		"((wx_id = ? AND chat_room_id = '') OR (wx_id = ? AND chat_room_id = ?) OR (wx_id = '' AND chat_room_id = ?))",
-		wxID,
-		wxID,
-		chatRoomID,
-		chatRoomID,
-	)
+	rel.ID = existing.ID
+	rel.CreatedAt = existing.CreatedAt
+	return r.DB.WithContext(r.Ctx).Where("id = ?", existing.ID).Updates(rel).Error
+}
+
+func (r *Memory) ListMemberRelationships(robotCode, chatRoomID, memberWxID string, limit int) ([]*model.MemberRelationship, error) {
+	var relationships []*model.MemberRelationship
+	query := r.DB.WithContext(r.Ctx).
+		Where("robot_code = ? AND chat_room_id = ? AND (from_wxid = ? OR to_wxid = ?)", robotCode, chatRoomID, memberWxID, memberWxID).
+		Order("strength DESC, last_seen_at DESC, id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if err := query.Find(&relationships).Error; err != nil {
+		return nil, err
+	}
+	return relationships, nil
+}
+
+func (r *Memory) ListMemberRelationshipsBetween(robotCode, chatRoomID, firstWxID, secondWxID string, limit int) ([]*model.MemberRelationship, error) {
+	if firstWxID > secondWxID {
+		firstWxID, secondWxID = secondWxID, firstWxID
+	}
+	var relationships []*model.MemberRelationship
+	query := r.DB.WithContext(r.Ctx).
+		Where("robot_code = ? AND chat_room_id = ? AND from_wxid = ? AND to_wxid = ?", robotCode, chatRoomID, firstWxID, secondWxID).
+		Order("strength DESC, last_seen_at DESC, id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if err := query.Find(&relationships).Error; err != nil {
+		return nil, err
+	}
+	return relationships, nil
 }

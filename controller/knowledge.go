@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"wechat-robot-client/dto"
-	"wechat-robot-client/model"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/pkg/qdrantx"
 	"wechat-robot-client/service"
@@ -165,69 +164,6 @@ func (k *Knowledge) ReindexAll(c *gin.Context) {
 	resp.ToResponse("reindex started")
 }
 
-// --- 记忆管理接口 ---
-
-// SaveMemory 手动保存记忆
-func (k *Knowledge) SaveMemory(c *gin.Context) {
-	resp := appx.NewResponse(c)
-	var req dto.SaveMemoryRequest
-	if ok, _ := appx.BindAndValid(c, &req); !ok {
-		resp.ToErrorResponse(errors.New("参数错误"))
-		return
-	}
-	if req.Importance <= 0 {
-		req.Importance = 5
-	}
-	memory := &model.Memory{
-		WxID:       req.WxID,
-		ChatRoomID: req.ChatRoomID,
-		Category:   model.MemoryCategory(req.Category),
-		Content:    req.Content,
-		Importance: req.Importance,
-	}
-	err := vars.MemoryService.SaveManualMemory(c.Request.Context(), memory)
-	if err != nil {
-		resp.ToErrorResponse(err)
-		return
-	}
-	resp.ToResponse(memory)
-}
-
-// SearchMemory 搜索记忆
-func (k *Knowledge) SearchMemory(c *gin.Context) {
-	resp := appx.NewResponse(c)
-	var req dto.SearchMemoryRequest
-	if ok, _ := appx.BindAndValid(c, &req); !ok {
-		resp.ToErrorResponse(errors.New("参数错误"))
-		return
-	}
-	if req.Limit <= 0 {
-		req.Limit = 10
-	}
-	memories, err := vars.MemoryService.GetRelevantMemories(c.Request.Context(), req.WxID, req.ChatRoomID, req.Query, req.Limit)
-	if err != nil {
-		resp.ToErrorResponse(err)
-		return
-	}
-	resp.ToResponse(memories)
-}
-
-// DeleteMemory 删除记忆
-func (k *Knowledge) DeleteMemory(c *gin.Context) {
-	resp := appx.NewResponse(c)
-	var req dto.DeleteMemoryRequest
-	if ok, _ := appx.BindAndValid(c, &req); !ok {
-		resp.ToErrorResponse(errors.New("参数错误"))
-		return
-	}
-	err := vars.MemoryService.DeleteMemory(c.Request.Context(), req.ID)
-	if err != nil {
-		resp.ToErrorResponse(err)
-		return
-	}
-	resp.ToResponse(nil)
-}
-
 // --- 图片知识库接口 ---
 
 // AddImageDocument 添加图片知识库文档
@@ -369,7 +305,7 @@ func (k *Knowledge) ReindexAllVectors(c *gin.Context) {
 		resp.ToErrorResponse(errors.New("Qdrant 未初始化"))
 		return
 	}
-	if vars.KnowledgeService == nil || vars.MemoryService == nil {
+	if vars.KnowledgeService == nil {
 		resp.ToErrorResponse(errors.New("RAG 服务未初始化，请先完成 AI 配置"))
 		return
 	}
@@ -413,12 +349,6 @@ func (k *Knowledge) ReindexAllVectors(c *gin.Context) {
 			log.Printf("[ReindexAll] 知识库重建失败: %v", err)
 		}
 		log.Printf("[ReindexAll] 知识库向量重建完成")
-
-		// 3. 重建记忆向量
-		if err := vars.MemoryService.ReindexAll(bgCtx); err != nil {
-			log.Printf("[ReindexAll] 记忆重建失败: %v", err)
-		}
-		log.Printf("[ReindexAll] 记忆向量重建完成")
 
 		log.Printf("[ReindexAll] 全量重建完成")
 	}()
