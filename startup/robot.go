@@ -2,6 +2,7 @@ package startup
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -38,11 +39,17 @@ func InitWechatRobot() error {
 	vars.RobotRuntime.DeviceID = robotAdmin.DeviceID
 	vars.RobotRuntime.DeviceName = robotAdmin.DeviceName
 	vars.RobotRuntime.Status = robotAdmin.Status
+	var proxy robot.ProxyInfo
+	if robotAdmin.Proxy != nil {
+		if err := json.Unmarshal(robotAdmin.Proxy, &proxy); err != nil {
+			log.Println("解析代理配置失败:", err)
+		}
+	}
 	var client *robot.Client
 	if vars.WechatServerHost != "" {
-		client = robot.NewClient(robot.WechatDomain(vars.WechatServerHost))
+		client = robot.NewClient(robot.WechatDomain(vars.WechatServerHost), proxy)
 	} else {
-		client = robot.NewClient(robot.WechatDomain(fmt.Sprintf("server_%s:%d", robotAdmin.RobotCode, 9000)))
+		client = robot.NewClient(robot.WechatDomain(fmt.Sprintf("server_%s:%d", robotAdmin.RobotCode, 9000)), proxy)
 	}
 
 	vars.RobotRuntime.Client = client

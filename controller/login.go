@@ -155,6 +155,17 @@ func (lg *Login) LoginA16Data(c *gin.Context) {
 	resp.ToResponse(data)
 }
 
+func (lg *Login) SetProxy(c *gin.Context) {
+	var req robot.ProxyInfo
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	service.NewLoginService(c).SetProxy(req)
+	resp.ToResponse(nil)
+}
+
 func (lg *Login) ImportLoginData(c *gin.Context) {
 	var req struct {
 		Data string `json:"data" binding:"required"`

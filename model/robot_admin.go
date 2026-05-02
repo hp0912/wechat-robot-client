@@ -21,6 +21,7 @@ type RobotAdmin struct {
 	Owner        string         `gorm:"column:owner;index;length:64" json:"owner"`                  // 当前机器人的拥有者
 	DeviceID     string         `gorm:"column:device_id;" json:"device_id"`                         // 当前机器人登陆的设备Id
 	DeviceName   string         `gorm:"column:device_name" json:"device_name"`                      // 当前机器人登陆的设备名称
+	Proxy        datatypes.JSON `gorm:"column:proxy;type:json" json:"proxy"`                        // 当前机器人的代理配置
 	WeChatID     string         `gorm:"column:wechat_id;index;length:64" json:"wechat_id"`          // 当前机器人登陆的微信id
 	Alias        *string        `gorm:"column:alias;length:64" json:"alias"`                        // 当前机器人登陆的自定义微信号
 	BindMobile   *string        `gorm:"column:bind_mobile" json:"bind_mobile"`                      // 当前机器人登陆的手机号

@@ -1242,6 +1242,7 @@ func (r *Robot) LoginYPayVerificationcode(req VerificationCodeRequest) error {
 	return r.Client.LoginYPayVerificationcode(req)
 }
 
+// LoginData62Login Data62 登录
 func (r *Robot) LoginData62Login(username, password string) (UnifyAuthResponse, error) {
 	var data62 string
 	if r.WxID != "" {
@@ -1259,14 +1260,17 @@ func (r *Robot) LoginData62Login(username, password string) (UnifyAuthResponse, 
 	})
 }
 
+// LoginData62SMSAgain Data62 重新发送短信
 func (r *Robot) LoginData62SMSAgain(req LoginData62SMSAgainRequest) (string, error) {
 	return r.Client.LoginData62SMSAgain(req)
 }
 
+// LoginData62SMSVerify Data62 验证短信验证码
 func (r *Robot) LoginData62SMSVerify(req LoginData62SMSVerifyRequest) (string, error) {
 	return r.Client.LoginData62SMSVerify(req)
 }
 
+// LoginA16Data A16 登录
 func (r *Robot) LoginA16Data(username, password string) (UnifyAuthResponse, error) {
 	var a16 string
 	if r.WxID == "" {

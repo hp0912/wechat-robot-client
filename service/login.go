@@ -247,6 +247,10 @@ func (s *LoginService) LoginA16Data(username, password string) (resp robot.Unify
 	return
 }
 
+func (s *LoginService) SetProxy(req robot.ProxyInfo) {
+	vars.RobotRuntime.Client.SetProxy(req)
+}
+
 func (s *LoginService) ImportLoginData(loginDataStr string) (err error) {
 	var loginData robot.LoginData
 	err = json.Unmarshal([]byte(loginDataStr), &loginData)
