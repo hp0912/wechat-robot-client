@@ -1,3 +1,10 @@
 .git
 .vscode
 .github
+.deploy
+wechat-robot-client
+*.log
+*.md
+dev-wechat-ipad-example.yml
+ipad.swagger.yml
+.DS_Store
