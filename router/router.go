@@ -84,6 +84,7 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/login/data62-sms-again", loginCtl.LoginData62SMSAgain)
 	api.POST("/robot/login/data62-sms-verify", loginCtl.LoginData62SMSVerify)
 	api.POST("/robot/login/a16", loginCtl.LoginA16Data)
+	api.POST("/robot/login/set-proxy", loginCtl.SetProxy)
 	api.DELETE("/robot/logout", loginCtl.Logout)
 
 	// 联系人相关接口
@@ -110,8 +111,6 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/robot/chat-room/announcement", chatRoomCtl.GroupSetChatRoomAnnouncement)
 	api.DELETE("/robot/chat-room/members", chatRoomCtl.GroupDelChatRoomMember)
 	api.DELETE("/robot/chat-room/quit", chatRoomCtl.GroupQuit)
-
-	api.GET("/robot/chat/history", chatHistoryCtl.GetChatHistory)
 
 	// 消息相关接口
 	api.POST("/robot/message/revoke", messageCtl.MessageRevoke)
@@ -194,13 +193,12 @@ func RegisterRouter(r *gin.Engine) error {
 	api.GET("/robot/chat/voice/download", attachDownloadCtl.DownloadVoice)
 	api.GET("/robot/chat/file/download", attachDownloadCtl.DownloadFile)
 	api.GET("/robot/chat/video/download", attachDownloadCtl.DownloadVideo)
+	api.GET("/robot/chat/history", chatHistoryCtl.GetChatHistory)
 
 	api.GET("/robot/global-settings", globalSettingsCtl.GetGlobalSettings)
 	api.POST("/robot/global-settings", globalSettingsCtl.SaveGlobalSettings)
-
 	api.GET("/robot/friend-settings", friendSettingsCtl.GetFriendSettings)
 	api.POST("/robot/friend-settings", friendSettingsCtl.SaveFriendSettings)
-
 	api.GET("/robot/chat-room-settings", chatRoomSettingsCtl.GetChatRoomSettings)
 	api.POST("/robot/chat-room-settings", chatRoomSettingsCtl.SaveChatRoomSettings)
 

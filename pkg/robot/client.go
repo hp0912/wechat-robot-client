@@ -52,17 +52,23 @@ func (c ClientResponse[T]) CheckError(err error) error {
 type Client struct {
 	client      *resty.Client
 	Domain      WechatDomain
+	Proxy       ProxyInfo
 	limiter     *rate.Limiter
 	autoLimiter *rate.Limiter
 }
 
-func NewClient(domain WechatDomain) *Client {
+func NewClient(domain WechatDomain, proxy ProxyInfo) *Client {
 	return &Client{
 		client:      resty.New(),
 		Domain:      domain,
+		Proxy:       proxy,
 		limiter:     rate.NewLimiter(rate.Every(time.Second), 1),
 		autoLimiter: rate.NewLimiter(rate.Every(15*time.Second), 1),
 	}
+}
+
+func (c *Client) SetProxy(proxy ProxyInfo) {
+	c.Proxy = proxy
 }
 
 func (c *Client) IsRunning() bool {
@@ -142,7 +148,8 @@ func (c *Client) AwakenLogin(wxid string) (resp QrCode, err error) {
 	httpResp, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(AwakenLoginRequest{
-			Wxid: wxid,
+			Wxid:  wxid,
+			Proxy: c.Proxy,
 		}).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginAwaken))
@@ -165,6 +172,7 @@ func (c *Client) GetQrCode(loginType, deviceId, deviceName string) (resp GetQRCo
 			DeviceID:   deviceId,
 			DeviceName: deviceName,
 			LoginType:  loginType,
+			Proxy:      c.Proxy,
 		}).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginGetQR))
@@ -183,6 +191,7 @@ func (c *Client) LoginGetQRMac(deviceId, deviceName string) (resp GetQRCode, err
 		SetBody(LoginGetQRRequest{
 			DeviceID:   deviceId,
 			DeviceName: deviceName,
+			Proxy:      c.Proxy,
 		}).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), LoginGetQRMac))
@@ -273,7 +282,10 @@ func (c *Client) LoginGetA16Data(wxid string) (resp string, err error) {
 	return
 }
 
+// LoginData62SMSApply 申请短信验证码
 func (c *Client) LoginData62SMSApply(req Data62LoginRequest) (resp UnifyAuthResponse, err error) {
+	req.Proxy = c.Proxy
+
 	var result ClientResponse[UnifyAuthResponse]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
@@ -298,6 +310,8 @@ func (c *Client) LoginData62SMSApply(req Data62LoginRequest) (resp UnifyAuthResp
 
 // LoginData62SMSAgain 重新发送验证码
 func (c *Client) LoginData62SMSAgain(req LoginData62SMSAgainRequest) (resp string, err error) {
+	req.Proxy = c.Proxy
+
 	var result ClientResponse[string]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
@@ -313,6 +327,8 @@ func (c *Client) LoginData62SMSAgain(req LoginData62SMSAgainRequest) (resp strin
 
 // LoginData62SMSVerify 短信验证
 func (c *Client) LoginData62SMSVerify(req LoginData62SMSVerifyRequest) (resp string, err error) {
+	req.Proxy = c.Proxy
+
 	var result ClientResponse[string]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
@@ -326,7 +342,10 @@ func (c *Client) LoginData62SMSVerify(req LoginData62SMSVerifyRequest) (resp str
 	return
 }
 
+// LoginA16Data A16 登录
 func (c *Client) LoginA16Data(req A16LoginRequest) (resp UnifyAuthResponse, err error) {
+	req.Proxy = c.Proxy
+
 	var result ClientResponse[UnifyAuthResponse]
 	_, err = c.client.R().
 		SetHeader("Content-Type", "application/json").
