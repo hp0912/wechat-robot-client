@@ -14,6 +14,7 @@ import (
 	"wechat-robot-client/interface/ai"
 	"wechat-robot-client/model"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 
 	"github.com/openai/openai-go/v3"
@@ -131,6 +132,16 @@ func (s *MemoryService) enabled() bool {
 	return settings.ChatBaseURL != "" && settings.ChatAPIKey != "" && settings.ChatModel != "" && s.vectorStore != nil
 }
 
+func (s *MemoryService) shouldDiscardMemoryMessage(state *model.MemoryExtractionState, messageID int64) bool {
+	if state == nil || messageID <= 0 {
+		return false
+	}
+	if state.LastExtractedMsgID > 0 && messageID <= state.LastExtractedMsgID {
+		return true
+	}
+	return state.WindowStartMsgID > 0 && messageID < state.WindowStartMsgID
+}
+
 func (s *MemoryService) notifyFriendMessage(ctx context.Context, message *model.Message) {
 	now := time.Now().Unix()
 	state, err := s.memoryRepo.GetState(vars.RobotRuntime.RobotCode, string(model.MemoryScopeFriend), message.FromWxID, "")
@@ -145,7 +156,7 @@ func (s *MemoryService) notifyFriendMessage(ctx context.Context, message *model.
 			ContactWxID:      message.FromWxID,
 			WindowStartMsgID: message.ID,
 			WindowStartedAt:  message.CreatedAt,
-			PendingCount:     1,
+			PendingCount:     utils.IntPtr(1),
 			CreatedAt:        now,
 			UpdatedAt:        now,
 		}
@@ -155,11 +166,17 @@ func (s *MemoryService) notifyFriendMessage(ctx context.Context, message *model.
 		return
 	}
 
-	if state.PendingCount == 0 || state.WindowStartMsgID == 0 {
+	if s.shouldDiscardMemoryMessage(state, message.ID) {
+		return
+	}
+
+	pendingCount := utils.PtrIntValue(state.PendingCount)
+	if pendingCount == 0 || state.WindowStartMsgID == 0 {
 		state.WindowStartMsgID = message.ID
 		state.WindowStartedAt = message.CreatedAt
 	}
-	state.PendingCount++
+	pendingCount++
+	state.PendingCount = utils.IntPtr(pendingCount)
 	state.UpdatedAt = now
 	if message.CreatedAt-state.WindowStartedAt < friendMemoryIntervalSeconds {
 		if err := s.memoryRepo.SaveState(state); err != nil {
@@ -182,7 +199,7 @@ func (s *MemoryService) notifyFriendMessage(ctx context.Context, message *model.
 	}
 	state.WindowStartMsgID = message.ID + 1
 	state.WindowStartedAt = message.CreatedAt
-	state.PendingCount = 0
+	state.PendingCount = utils.IntPtr(0)
 	state.LastExtractedMsgID = message.ID
 	state.LastExtractedAt = now
 	state.UpdatedAt = now
@@ -213,7 +230,7 @@ func (s *MemoryService) notifyChatRoomMessage(ctx context.Context, message *mode
 			ChatRoomID:       message.FromWxID,
 			WindowStartMsgID: message.ID,
 			WindowStartedAt:  message.CreatedAt,
-			PendingCount:     1,
+			PendingCount:     utils.IntPtr(1),
 			CreatedAt:        now,
 			UpdatedAt:        now,
 		}
@@ -223,13 +240,19 @@ func (s *MemoryService) notifyChatRoomMessage(ctx context.Context, message *mode
 		return
 	}
 
-	if state.PendingCount == 0 || state.WindowStartMsgID == 0 {
+	if s.shouldDiscardMemoryMessage(state, message.ID) {
+		return
+	}
+
+	pendingCount := utils.PtrIntValue(state.PendingCount)
+	if pendingCount == 0 || state.WindowStartMsgID == 0 {
 		state.WindowStartMsgID = message.ID
 		state.WindowStartedAt = message.CreatedAt
 	}
-	state.PendingCount++
+	pendingCount++
+	state.PendingCount = utils.IntPtr(pendingCount)
 	state.UpdatedAt = now
-	if state.PendingCount < chatRoomMemoryMessageCount {
+	if pendingCount < chatRoomMemoryMessageCount {
 		if err := s.memoryRepo.SaveState(state); err != nil {
 			log.Printf("[Memory] 更新群聊提取状态失败: %v", err)
 		}
@@ -250,7 +273,7 @@ func (s *MemoryService) notifyChatRoomMessage(ctx context.Context, message *mode
 	}
 	state.WindowStartMsgID = message.ID + 1
 	state.WindowStartedAt = message.CreatedAt
-	state.PendingCount = 0
+	state.PendingCount = utils.IntPtr(0)
 	state.LastExtractedMsgID = message.ID
 	state.LastExtractedAt = now
 	state.UpdatedAt = now

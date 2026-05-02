@@ -60,7 +60,7 @@ type MemoryExtractionState struct {
 	ChatRoomID         string `gorm:"column:chat_room_id;type:varchar(128);not null;default:'';uniqueIndex:idx_memory_extraction_scope,priority:4" json:"chat_room_id"`
 	WindowStartMsgID   int64  `gorm:"column:window_start_msg_id;not null;default:0" json:"window_start_msg_id"`
 	WindowStartedAt    int64  `gorm:"column:window_started_at;not null;default:0" json:"window_started_at"`
-	PendingCount       int    `gorm:"column:pending_count;not null;default:0" json:"pending_count"`
+	PendingCount       *int   `gorm:"column:pending_count;not null;default:0" json:"pending_count"`
 	LastExtractedMsgID int64  `gorm:"column:last_extracted_msg_id;not null;default:0" json:"last_extracted_msg_id"`
 	LastExtractedAt    int64  `gorm:"column:last_extracted_at;not null;default:0" json:"last_extracted_at"`
 	CreatedAt          int64  `gorm:"column:created_at;not null;default:0" json:"created_at"`
