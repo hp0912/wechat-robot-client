@@ -77,12 +77,29 @@ func (s *VectorStoreService) IndexKnowledge(ctx context.Context, robotCode strin
 	return id, nil
 }
 
-// SearchMemories 语义搜索记忆（作用域感知）
-// wxID 和 chatRoomID 共同决定搜索范围：
-//   - wxID 有值, chatRoomID 为空 → 只搜索该用户的全局个人记忆
-//   - wxID 有值, chatRoomID 有值 → 只搜索该用户在该群的群内个人记忆
-//   - wxID 为空, chatRoomID 有值 → 只搜索该群的群级别记忆
 func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode string, query, wxID, chatRoomID string, topK int) ([]ai.VectorSearchResult, error) {
+	vector, err := s.EmbedMemoryQuery(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	return s.SearchMemoriesByVector(ctx, robotCode, vector, wxID, chatRoomID, topK)
+}
+
+func (s *VectorStoreService) EmbedMemoryQuery(ctx context.Context, query string) ([]float32, error) {
+	if s.embedding == nil {
+		return nil, fmt.Errorf("embedding service is nil")
+	}
+	vector, err := s.embedding.Embed(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("embed query: %w", err)
+	}
+	return vector, nil
+}
+
+func (s *VectorStoreService) SearchMemoriesByVector(ctx context.Context, robotCode string, vector []float32, wxID, chatRoomID string, topK int) ([]ai.VectorSearchResult, error) {
+	if len(vector) == 0 {
+		return nil, fmt.Errorf("memory search vector is empty")
+	}
 	scope := ""
 	contactWxID := ""
 	switch {
@@ -96,11 +113,6 @@ func (s *VectorStoreService) SearchMemories(ctx context.Context, robotCode strin
 		scope = "group"
 	default:
 		return nil, fmt.Errorf("memory search scope is empty")
-	}
-
-	vector, err := s.embedding.Embed(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("embed query: %w", err)
 	}
 
 	var conditions []*pb.Condition

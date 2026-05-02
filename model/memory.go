@@ -40,7 +40,7 @@ type Memory struct {
 	Source         string         `gorm:"column:source;type:varchar(32);not null;default:'chat'" json:"source"`
 	EvidenceMsgIDs datatypes.JSON `gorm:"column:evidence_msg_ids;type:json" json:"evidence_msg_ids"`
 	Hash           string         `gorm:"column:hash;type:char(64);not null;uniqueIndex:idx_memory_hash,priority:2" json:"hash"`
-	VectorID       string         `gorm:"column:vector_id;type:varchar(64)" json:"vector_id"`
+	VectorID       string         `gorm:"column:vector_id;type:varchar(64);index:idx_memory_vector_id" json:"vector_id"`
 	OccurredAt     int64          `gorm:"column:occurred_at;not null;default:0" json:"occurred_at"`
 	LastSeenAt     int64          `gorm:"column:last_seen_at;not null;default:0" json:"last_seen_at"`
 	ExpiresAt      int64          `gorm:"column:expires_at;not null;default:0" json:"expires_at"`
@@ -95,10 +95,10 @@ func (MemberProfile) TableName() string {
 
 type MemberRelationship struct {
 	ID                int64          `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	RobotCode         string         `gorm:"column:robot_code;type:varchar(64);not null;uniqueIndex:idx_member_relationship,priority:1" json:"robot_code"`
-	ChatRoomID        string         `gorm:"column:chat_room_id;type:varchar(128);not null;uniqueIndex:idx_member_relationship,priority:2" json:"chat_room_id"`
-	FromWxID          string         `gorm:"column:from_wxid;type:varchar(128);not null;uniqueIndex:idx_member_relationship,priority:3" json:"from_wxid"`
-	ToWxID            string         `gorm:"column:to_wxid;type:varchar(128);not null;uniqueIndex:idx_member_relationship,priority:4" json:"to_wxid"`
+	RobotCode         string         `gorm:"column:robot_code;type:varchar(64);not null;uniqueIndex:idx_member_relationship,priority:1;index:idx_member_relationship_from,priority:1;index:idx_member_relationship_to,priority:1" json:"robot_code"`
+	ChatRoomID        string         `gorm:"column:chat_room_id;type:varchar(128);not null;uniqueIndex:idx_member_relationship,priority:2;index:idx_member_relationship_from,priority:2;index:idx_member_relationship_to,priority:2" json:"chat_room_id"`
+	FromWxID          string         `gorm:"column:from_wxid;type:varchar(128);not null;uniqueIndex:idx_member_relationship,priority:3;index:idx_member_relationship_from,priority:3" json:"from_wxid"`
+	ToWxID            string         `gorm:"column:to_wxid;type:varchar(128);not null;uniqueIndex:idx_member_relationship,priority:4;index:idx_member_relationship_to,priority:3" json:"to_wxid"`
 	RelationType      string         `gorm:"column:relation_type;type:varchar(64);not null;default:'';uniqueIndex:idx_member_relationship,priority:5" json:"relation_type"`
 	Strength          int            `gorm:"column:strength;not null;default:50" json:"strength"`
 	Summary           string         `gorm:"column:summary;type:text" json:"summary"`
