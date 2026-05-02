@@ -713,33 +713,59 @@ func (s *MemoryService) saveMemberRelationship(ctx context.Context, item extract
 }
 
 func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID, senderWxID string, isChatRoom bool) string {
-	if strings.TrimSpace(query) == "" || !s.enabled() || s.vectorStore == nil {
+	query = strings.TrimSpace(query)
+	if query == "" || !s.enabled() || s.vectorStore == nil {
 		return ""
 	}
+	start := time.Now()
+	queryVector, err := s.vectorStore.EmbedMemoryQuery(ctx, query)
+	if err != nil {
+		log.Printf("[Memory] 记忆查询向量化失败: %v", err)
+	} else {
+		log.Printf("[EmbedMemoryQuery] 记忆查询向量化耗时: %v", time.Since(start))
+	}
+
 	memories := make([]*model.Memory, 0)
 	seen := make(map[int64]bool)
+	vectorIDs := make([]string, 0, 17)
+	seenVectorIDs := make(map[string]bool)
 	appendSearch := func(contactWxID, chatRoomID string, limit int) {
+		if len(queryVector) == 0 {
+			return
+		}
 		start := time.Now()
-		results, err := s.vectorStore.SearchMemories(ctx, vars.RobotRuntime.RobotCode, query, contactWxID, chatRoomID, limit)
+		results, err := s.vectorStore.SearchMemoriesByVector(ctx, vars.RobotRuntime.RobotCode, queryVector, contactWxID, chatRoomID, limit)
 		if err != nil {
 			log.Printf("[Memory] 记忆召回失败: %v", err)
 			return
 		}
 		log.Printf("[SearchMemories] 检索记忆耗时: %v", time.Since(start))
-		vectorIDs := make([]string, 0, len(results))
 		for _, result := range results {
-			if result.ID != "" {
+			if result.ID != "" && !seenVectorIDs[result.ID] {
+				seenVectorIDs[result.ID] = true
 				vectorIDs = append(vectorIDs, result.ID)
 			}
 		}
-		start = time.Now()
+	}
+	appendVectorMemories := func() {
+		if len(vectorIDs) == 0 {
+			return
+		}
+		start := time.Now()
 		items, err := s.memoryRepo.GetMemoriesByVectorIDs(vectorIDs)
 		if err != nil {
 			log.Printf("[Memory] 查询记忆详情失败: %v", err)
 			return
 		}
 		log.Printf("[GetMemoriesByVectorIDs] 查询记忆详情耗时: %v", time.Since(start))
+		memoryByVectorID := make(map[string]*model.Memory, len(items))
 		for _, item := range items {
+			if item != nil && item.VectorID != "" {
+				memoryByVectorID[item.VectorID] = item
+			}
+		}
+		for _, vectorID := range vectorIDs {
+			item := memoryByVectorID[vectorID]
 			if item != nil && !seen[item.ID] {
 				seen[item.ID] = true
 				memories = append(memories, item)
@@ -748,10 +774,11 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 	}
 
 	if isChatRoom {
-		start := time.Now()
+		start = time.Now()
 		appendSearch(senderWxID, fromWxID, 6)
 		appendSearch("", fromWxID, 6)
 		log.Printf("[appendSearch] 检索记忆总耗时: %v", time.Since(start))
+		appendVectorMemories()
 		start = time.Now()
 		relationMemories, err := s.memoryRepo.ListRelationMemories(vars.RobotRuntime.RobotCode, fromWxID, senderWxID, 5)
 		if err == nil {
@@ -765,9 +792,10 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 		log.Printf("[ListRelationMemories] 检索关系耗时: %v", time.Since(start))
 	} else {
 		appendSearch(fromWxID, "", 8)
+		appendVectorMemories()
 	}
 
-	start := time.Now()
+	start = time.Now()
 	result := s.renderPromptContext(fromWxID, senderWxID, isChatRoom, memories)
 	log.Printf("[renderPromptContext] 构建提示语耗时: %v", time.Since(start))
 	return result
@@ -775,16 +803,17 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 
 func (s *MemoryService) renderPromptContext(fromWxID, senderWxID string, isChatRoom bool, memories []*model.Memory) string {
 	var sb strings.Builder
+	nameResolver := newMemoryNameResolver(s)
 	if isChatRoom {
 		profile, err := s.memoryRepo.GetMemberProfile(vars.RobotRuntime.RobotCode, fromWxID, senderWxID)
 		if err == nil && profile != nil {
-			name := s.resolveName(fromWxID, senderWxID)
-			fmt.Fprintf(&sb, "[当前群成员画像]\n关于 %s：%s\n", name, s.replaceKnownWxIDs(fromWxID, profile.Summary, []string{senderWxID}))
+			name := nameResolver.resolveName(fromWxID, senderWxID)
+			fmt.Fprintf(&sb, "[当前群成员画像]\n关于 %s：%s\n", name, nameResolver.replaceKnownWxIDs(fromWxID, profile.Summary, []string{senderWxID}))
 			if profile.Personality != "" {
-				fmt.Fprintf(&sb, "性格特点：%s\n", s.replaceKnownWxIDs(fromWxID, profile.Personality, []string{senderWxID}))
+				fmt.Fprintf(&sb, "性格特点：%s\n", nameResolver.replaceKnownWxIDs(fromWxID, profile.Personality, []string{senderWxID}))
 			}
 			if profile.CommunicationStyle != "" {
-				fmt.Fprintf(&sb, "沟通风格：%s\n", s.replaceKnownWxIDs(fromWxID, profile.CommunicationStyle, []string{senderWxID}))
+				fmt.Fprintf(&sb, "沟通风格：%s\n", nameResolver.replaceKnownWxIDs(fromWxID, profile.CommunicationStyle, []string{senderWxID}))
 			}
 		}
 		relationships, err := s.memoryRepo.ListMemberRelationships(vars.RobotRuntime.RobotCode, fromWxID, senderWxID, 5)
@@ -795,7 +824,7 @@ func (s *MemoryService) renderPromptContext(fromWxID, senderWxID string, isChatR
 			sb.WriteString("[当前群成员关系]\n")
 			for _, rel := range relationships {
 				participants := []string{rel.FromWxID, rel.ToWxID}
-				fmt.Fprintf(&sb, "- %s 与 %s：%s\n", s.resolveName(fromWxID, rel.FromWxID), s.resolveName(fromWxID, rel.ToWxID), s.replaceKnownWxIDs(fromWxID, rel.Summary, participants))
+				fmt.Fprintf(&sb, "- %s 与 %s：%s\n", nameResolver.resolveName(fromWxID, rel.FromWxID), nameResolver.resolveName(fromWxID, rel.ToWxID), nameResolver.replaceKnownWxIDs(fromWxID, rel.Summary, participants))
 			}
 		}
 	}
@@ -806,12 +835,12 @@ func (s *MemoryService) renderPromptContext(fromWxID, senderWxID string, isChatR
 		sb.WriteString("[长期记忆]\n")
 		for _, memory := range memories {
 			participants := parseStringArray(memory.Participants)
-			content := s.replaceKnownWxIDs(memory.ChatRoomID, memory.Content, append(participants, memory.ContactWxID))
+			content := nameResolver.replaceKnownWxIDs(memory.ChatRoomID, memory.Content, append(participants, memory.ContactWxID))
 			switch memory.Scope {
 			case model.MemoryScopeFriend:
-				fmt.Fprintf(&sb, "- 关于 %s：%s\n", s.resolveName("", memory.ContactWxID), content)
+				fmt.Fprintf(&sb, "- 关于 %s：%s\n", nameResolver.resolveName("", memory.ContactWxID), content)
 			case model.MemoryScopeGroupMember:
-				fmt.Fprintf(&sb, "- 关于 %s：%s\n", s.resolveName(memory.ChatRoomID, memory.ContactWxID), content)
+				fmt.Fprintf(&sb, "- 关于 %s：%s\n", nameResolver.resolveName(memory.ChatRoomID, memory.ContactWxID), content)
 			case model.MemoryScopeRelation:
 				fmt.Fprintf(&sb, "- 群成员关系：%s\n", content)
 			default:
@@ -820,6 +849,43 @@ func (s *MemoryService) renderPromptContext(fromWxID, senderWxID string, isChatR
 		}
 	}
 	return strings.TrimSpace(sb.String())
+}
+
+type memoryNameResolver struct {
+	service *MemoryService
+	cache   map[string]string
+}
+
+func newMemoryNameResolver(service *MemoryService) *memoryNameResolver {
+	return &memoryNameResolver{
+		service: service,
+		cache:   make(map[string]string),
+	}
+}
+
+func (resolver *memoryNameResolver) resolveName(chatRoomID, wxID string) string {
+	wxID = strings.TrimSpace(wxID)
+	if wxID == "" {
+		return ""
+	}
+	cacheKey := chatRoomID + "\x00" + wxID
+	if name, ok := resolver.cache[cacheKey]; ok {
+		return name
+	}
+	name := resolver.service.resolveName(chatRoomID, wxID)
+	resolver.cache[cacheKey] = name
+	return name
+}
+
+func (resolver *memoryNameResolver) replaceKnownWxIDs(chatRoomID, content string, wxIDs []string) string {
+	result := content
+	for _, wxID := range normalizeStrings(wxIDs) {
+		if wxID == "" {
+			continue
+		}
+		result = strings.ReplaceAll(result, wxID, resolver.resolveName(chatRoomID, wxID))
+	}
+	return result
 }
 
 func (s *MemoryService) resolveName(chatRoomID, wxID string) string {
