@@ -21,7 +21,7 @@
       }
 
       body {
-        width: 1400px;
+        width: 800px;
         overflow-x: hidden;
         letter-spacing: 0;
       }
@@ -29,7 +29,7 @@
       .page {
         position: relative;
         min-height: 100vh;
-        padding: 56px 72px 72px;
+        padding: 40px 32px;
         background:
           radial-gradient(
             circle at 10% 2%,
@@ -193,25 +193,16 @@
       }
 
       .topics {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
       }
 
       .topic-card {
         display: flex;
         flex-direction: column;
-        min-height: 344px;
-        padding: 24px;
-        border-radius: 22px;
-      }
-
-      .topic-card.span-2 {
-        grid-column: span 2;
-      }
-
-      .topic-card.span-3 {
-        grid-column: span 3;
+        padding: 20px;
+        border-radius: 16px;
       }
 
       .topic-meta {
@@ -346,8 +337,8 @@
       }
 
       .resources {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        display: flex;
+        flex-direction: column;
         gap: 16px;
       }
 
