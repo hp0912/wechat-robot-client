@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{.Title}}</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #020617;
+        color: #e5e7eb;
+        font-family:
+          "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial,
+          sans-serif;
+      }
+
+      body {
+        width: 1400px;
+        overflow-x: hidden;
+        letter-spacing: 0;
+      }
+
+      .page {
+        position: relative;
+        min-height: 100vh;
+        padding: 56px 72px 72px;
+        background:
+          radial-gradient(
+            circle at 10% 2%,
+            rgba(34, 211, 238, 0.18),
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at 88% 12%,
+            rgba(168, 85, 247, 0.16),
+            transparent 26%
+          ),
+          radial-gradient(
+            circle at 50% 95%,
+            rgba(250, 204, 21, 0.08),
+            transparent 28%
+          ),
+          linear-gradient(135deg, #020617 0%, #0f172a 52%, #111827 100%);
+      }
+
+      .page::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.85),
+          transparent 82%
+        );
+        pointer-events: none;
+      }
+
+      .content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero {
+        text-align: center;
+        margin-bottom: 42px;
+      }
+
+      .model-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        max-width: 900px;
+        padding: 10px 18px;
+        border: 1px solid rgba(168, 85, 247, 0.35);
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.62);
+        color: #d8b4fe;
+        font-size: 18px;
+        font-weight: 600;
+        box-shadow: 0 18px 80px rgba(15, 23, 42, 0.55);
+      }
+
+      .model-pill strong {
+        color: #ffffff;
+        font-weight: 800;
+      }
+
+      h1 {
+        margin: 24px 0 10px;
+        font-size: 68px;
+        line-height: 1.08;
+        font-weight: 900;
+        color: transparent;
+        background: linear-gradient(90deg, #22d3ee, #60a5fa, #a855f7, #22d3ee);
+        background-size: 220% 100%;
+        background-clip: text;
+        -webkit-background-clip: text;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: #94a3b8;
+        font-size: 18px;
+      }
+
+      .glass {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(15, 23, 42, 0.66);
+        box-shadow: 0 26px 90px rgba(2, 6, 23, 0.44);
+        backdrop-filter: blur(18px);
+      }
+
+      .overview {
+        position: relative;
+        display: grid;
+        grid-template-columns: 76px 1fr;
+        gap: 22px;
+        padding: 32px;
+        margin-bottom: 28px;
+        border-radius: 24px;
+        overflow: hidden;
+      }
+
+      .overview::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 6px;
+        height: 100%;
+        background: linear-gradient(180deg, #22d3ee, #a855f7);
+      }
+
+      .overview-icon,
+      .resource-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        background: rgba(14, 165, 233, 0.12);
+        color: #67e8f9;
+        font-size: 34px;
+      }
+
+      .section-title {
+        margin: 0 0 12px;
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: 850;
+      }
+
+      .overview-text {
+        margin: 0;
+        color: #cbd5e1;
+        font-size: 21px;
+        line-height: 1.78;
+      }
+
+      .stats-bar {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+
+      .stat {
+        padding: 18px 22px;
+        border-radius: 18px;
+      }
+
+      .stat-label {
+        color: #94a3b8;
+        font-size: 15px;
+      }
+
+      .stat-value {
+        margin-top: 8px;
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: 850;
+      }
+
+      .topics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+      }
+
+      .topic-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 344px;
+        padding: 24px;
+        border-radius: 22px;
+      }
+
+      .topic-card.span-2 {
+        grid-column: span 2;
+      }
+
+      .topic-card.span-3 {
+        grid-column: span 3;
+      }
+
+      .topic-meta {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .heat {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        max-width: 58%;
+        padding: 8px 11px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .time {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-width: 128px;
+        color: #94a3b8;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+      }
+
+      .topic-title {
+        margin: 0 0 15px;
+        color: #ffffff;
+        font-size: 26px;
+        line-height: 1.3;
+        font-weight: 850;
+      }
+
+      .participants {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .participant {
+        max-width: 100%;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: rgba(30, 41, 59, 0.92);
+        color: #cbd5e1;
+        font-size: 14px;
+        line-height: 1.2;
+      }
+
+      .process {
+        flex: 1;
+        margin: 0 0 18px;
+        color: #aeb9c9;
+        font-size: 17px;
+        line-height: 1.72;
+      }
+
+      .comment {
+        margin-top: auto;
+        padding: 13px 14px;
+        border-left: 3px solid currentColor;
+        border-radius: 0 12px 12px 0;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .accent-rose .heat {
+        border: 1px solid rgba(244, 63, 94, 0.28);
+        background: rgba(244, 63, 94, 0.12);
+        color: #fb7185;
+      }
+
+      .accent-orange .heat {
+        border: 1px solid rgba(249, 115, 22, 0.28);
+        background: rgba(249, 115, 22, 0.12);
+        color: #fb923c;
+      }
+
+      .accent-yellow .heat {
+        border: 1px solid rgba(234, 179, 8, 0.28);
+        background: rgba(234, 179, 8, 0.12);
+        color: #facc15;
+      }
+
+      .accent-cyan .comment {
+        background: rgba(8, 145, 178, 0.13);
+        color: #a5f3fc;
+      }
+
+      .accent-purple .comment {
+        background: rgba(126, 34, 206, 0.14);
+        color: #e9d5ff;
+      }
+
+      .accent-green .comment {
+        background: rgba(22, 163, 74, 0.13);
+        color: #bbf7d0;
+      }
+
+      .accent-yellow .comment {
+        background: rgba(202, 138, 4, 0.13);
+        color: #fef08a;
+      }
+
+      .accent-rose .comment {
+        background: rgba(190, 18, 60, 0.13);
+        color: #fecdd3;
+      }
+
+      .accent-orange .comment {
+        background: rgba(194, 65, 12, 0.13);
+        color: #fed7aa;
+      }
+
+      .resources-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 48px 0 18px;
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: 850;
+      }
+
+      .resources {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .resource-card {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: 16px;
+        align-items: center;
+        min-height: 108px;
+        padding: 18px;
+        border-radius: 18px;
+      }
+
+      .resource-name {
+        margin: 0 0 6px;
+        color: #f8fafc;
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .resource-desc,
+      .resource-url {
+        margin: 0;
+        color: #94a3b8;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+      }
+
+      .footer {
+        margin-top: 34px;
+        color: #64748b;
+        font-size: 13px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="content">
+        <section class="hero">
+          <div class="model-pill">
+            <span>🤖</span>
+            <span>本次总结由 <strong>{{.SummaryModel}}</strong> 强力加持</span>
+          </div>
+          <h1>{{.ChatRoomName}}早报</h1>
+          <p class="subtitle">{{.ChatRoomName}} · {{.GeneratedAt}}</p>
+        </section>
+
+        <section class="glass overview">
+          <div class="overview-icon">◎</div>
+          <div>
+            <h2 class="section-title">整体氛围洞察</h2>
+            <p class="overview-text">{{.Overall}}</p>
+          </div>
+        </section>
+
+        <section class="stats-bar">
+          <div class="glass stat">
+            <div class="stat-label">核心话题</div>
+            <div class="stat-value">{{.TopicCount}} 个</div>
+          </div>
+          <div class="glass stat">
+            <div class="stat-label">分享资源</div>
+            <div class="stat-value">{{.ResourceCount}} 条</div>
+          </div>
+          <div class="glass stat">
+            <div class="stat-label">最高热度</div>
+            <div class="stat-value">{{.MaxHeatText}}</div>
+          </div>
+        </section>
+
+        <section class="topics">
+          {{range .Topics}}
+          <article class="glass topic-card accent-{{.Accent}} {{.SpanClass}}">
+            <div class="topic-meta">
+              <div class="heat">
+                <span>{{.HeatIcon}}</span><span>{{.HeatLabel}}</span>
+              </div>
+              <div class="time">{{.TimeRange}}</div>
+            </div>
+            <h3 class="topic-title">{{.Number}} {{.Title}}</h3>
+            <div class="participants">
+              {{range .Participants}}<span class="participant">{{.}}</span
+              >{{end}}
+            </div>
+            <p class="process">{{.Process}}</p>
+            <div class="comment"><strong>锐评：</strong>{{.Comment}}</div>
+          </article>
+          {{end}}
+        </section>
+
+        {{if .Resources}}
+        <section>
+          <h2 class="resources-title">
+            <span>🔗</span><span>分享资源库</span>
+          </h2>
+          <div class="resources">
+            {{range .Resources}}
+            <div class="glass resource-card">
+              <div class="resource-icon">{{.Icon}}</div>
+              <div>
+                <h3 class="resource-name">{{.Title}}</h3>
+                <p class="resource-desc">{{.Description}}</p>
+                {{if .URL}}
+                <p class="resource-url">{{.URL}}</p>
+                {{end}}
+              </div>
+            </div>
+            {{end}}
+          </div>
+        </section>
+        {{end}}
+
+        <footer class="footer">Generated by wechat-robot-client</footer>
+      </div>
+    </main>
+  </body>
+</html>

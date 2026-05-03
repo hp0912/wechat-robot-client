@@ -73,6 +73,16 @@ func enumMigrations() []enumMigration {
 			sql:    "ALTER TABLE oss_settings MODIFY COLUMN auto_upload_file_mode ENUM('all','ai_only') NOT NULL DEFAULT 'ai_only' COMMENT '自动上传文件模式'",
 		},
 		{
+			table:  "global_settings",
+			column: "chat_room_summary_mode",
+			sql:    "ALTER TABLE global_settings MODIFY COLUMN chat_room_summary_mode ENUM('text','image') NOT NULL DEFAULT 'text' COMMENT '群聊总结模式：text-文本，image-图片'",
+		},
+		{
+			table:  "chat_room_settings",
+			column: "chat_room_summary_mode",
+			sql:    "ALTER TABLE chat_room_settings MODIFY COLUMN chat_room_summary_mode ENUM('text','image') NULL COMMENT '群聊总结模式：text-文本，image-图片'",
+		},
+		{
 			table:  "chat_room_settings",
 			column: "news_type",
 			sql:    "ALTER TABLE chat_room_settings MODIFY COLUMN news_type ENUM('','text','image') NULL COMMENT '每日早报类型：text-文本，image-图片'",

@@ -55,12 +55,72 @@ type VideoParseData struct {
 	MusicURL   string   `json:"music_url"`
 }
 
+type DouyinRouterData struct {
+	LoaderData map[string]DouyinLoaderPageData `json:"loaderData"`
+}
+
+type DouyinLoaderPageData struct {
+	VideoInfoRes DouyinVideoInfoRes `json:"videoInfoRes"`
+}
+
+type DouyinVideoInfoRes struct {
+	ItemList []DouyinAwemeItem `json:"item_list"`
+}
+
+type DouyinAwemeItem struct {
+	Desc       string            `json:"desc"`
+	Author     DouyinAuthor      `json:"author"`
+	Music      DouyinMusic       `json:"music"`
+	Video      DouyinVideo       `json:"video"`
+	Images     []DouyinImageInfo `json:"images"`
+	ImageInfos []DouyinImageInfo `json:"image_infos"`
+	ImgBitrate []DouyinImageGear `json:"img_bitrate"`
+}
+
+type DouyinAuthor struct {
+	Nickname     string            `json:"nickname"`
+	Signature    string            `json:"signature"`
+	AvatarThumb  DouyinURLResource `json:"avatar_thumb"`
+	AvatarMedium DouyinURLResource `json:"avatar_medium"`
+}
+
+type DouyinMusic struct {
+	Mid         string            `json:"mid"`
+	Title       string            `json:"title"`
+	Author      string            `json:"author"`
+	PlayURL     DouyinURLResource `json:"play_url"`
+	CoverHD     DouyinURLResource `json:"cover_hd"`
+	CoverLarge  DouyinURLResource `json:"cover_large"`
+	CoverMedium DouyinURLResource `json:"cover_medium"`
+	CoverThumb  DouyinURLResource `json:"cover_thumb"`
+}
+
+type DouyinVideo struct {
+	Duration *int64            `json:"duration"`
+	PlayAddr DouyinURLResource `json:"play_addr"`
+	Cover    DouyinURLResource `json:"cover"`
+}
+
+type DouyinImageInfo struct {
+	URI             string   `json:"uri"`
+	URLList         []string `json:"url_list"`
+	DownloadURLList []string `json:"download_url_list"`
+}
+
+type DouyinImageGear struct {
+	Name   string            `json:"name"`
+	Images []DouyinImageInfo `json:"images"`
+}
+
+type DouyinURLResource struct {
+	URI     string   `json:"uri"`
+	URLList []string `json:"url_list"`
+}
+
 const douyinUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1"
 
 var (
-	douyinRouterDataRegexp  = regexp.MustCompile(`(?s)window\._ROUTER_DATA\s*=\s*({.*?})\s*</script>`)
-	douyinLegacyPlayRegexp  = regexp.MustCompile(`"play_addr":\s*\{\s*"uri":\s*"[^"]*",\s*"url_list":\s*\[([^\]]*)\]`)
-	douyinLegacyCoverRegexp = regexp.MustCompile(`"cover":\s*\{\s*"url_list":\s*\[\s*"([^"]+)"`)
+	douyinRouterDataRegexp = regexp.MustCompile(`(?s)window\._ROUTER_DATA\s*=\s*({.*?})\s*</script>`)
 )
 
 type DouyinVideoParsePlugin struct{}
@@ -193,7 +253,6 @@ func parseDouyinVideo(rawURL string) (VideoParseResponse, error) {
 	if err != nil {
 		return VideoParseResponse{}, err
 	}
-
 	data, err := parseDouyinPageHTML(htmlContent)
 	if err != nil {
 		return VideoParseResponse{}, err
@@ -268,51 +327,30 @@ func parseDouyinPageHTML(htmlContent string) (VideoParseData, error) {
 			return video, nil
 		}
 	}
-
-	if video, ok := parseDouyinLegacyVideo(htmlContent); ok {
-		return video, nil
-	}
-	return VideoParseData{}, fmt.Errorf("未找到可解析的抖音图文或视频内容")
+	return VideoParseData{}, fmt.Errorf("阿拉蕾，解析出错了~")
 }
 
-func extractDouyinAwemeItem(htmlContent string) (map[string]any, bool) {
+func extractDouyinAwemeItem(htmlContent string) (DouyinAwemeItem, bool) {
 	match := douyinRouterDataRegexp.FindStringSubmatch(htmlContent)
 	if len(match) < 2 {
-		return nil, false
+		return DouyinAwemeItem{}, false
 	}
 
-	var routerData map[string]any
+	var routerData DouyinRouterData
 	if err := json.Unmarshal([]byte(match[1]), &routerData); err != nil {
 		log.Printf("解析抖音 _ROUTER_DATA 失败: %v\n", err)
-		return nil, false
+		return DouyinAwemeItem{}, false
 	}
 
-	loaderData, ok := routerData["loaderData"].(map[string]any)
-	if !ok {
-		return nil, false
-	}
-	for _, pageDataValue := range loaderData {
-		pageData, ok := pageDataValue.(map[string]any)
-		if !ok {
-			continue
-		}
-		videoInfoRes, ok := pageData["videoInfoRes"].(map[string]any)
-		if !ok {
-			continue
-		}
-		itemList, ok := videoInfoRes["item_list"].([]any)
-		if !ok || len(itemList) == 0 {
-			continue
-		}
-		item, ok := itemList[0].(map[string]any)
-		if ok {
-			return item, true
+	for _, pageData := range routerData.LoaderData {
+		if len(pageData.VideoInfoRes.ItemList) > 0 {
+			return pageData.VideoInfoRes.ItemList[0], true
 		}
 	}
-	return nil, false
+	return DouyinAwemeItem{}, false
 }
 
-func parseDouyinNoteItem(item map[string]any) (VideoParseData, bool) {
+func parseDouyinNoteItem(item DouyinAwemeItem) (VideoParseData, bool) {
 	imageURLGroups := pickDouyinImageURLGroups(item)
 	if len(imageURLGroups) == 0 {
 		return VideoParseData{}, false
@@ -322,33 +360,28 @@ func parseDouyinNoteItem(item map[string]any) (VideoParseData, bool) {
 	for _, group := range imageURLGroups {
 		imageURLs = append(imageURLs, group[0])
 	}
-	desc := cleanDouyinText(stringFromAny(item["desc"]))
+	desc := cleanDouyinText(item.Desc)
 	return VideoParseData{
-		Author:   cleanDouyinText(nestedString(item, "author", "nickname")),
+		Author:   cleanDouyinText(item.Author.Nickname),
+		Avatar:   pickDouyinAvatarURL(item.Author),
 		Title:    desc,
 		Desc:     desc,
 		Images:   imageURLs,
-		MusicURL: pickFirstDouyinURL(nestedStringList(item, "music", "play_url", "url_list")),
+		MusicURL: pickDouyinNoteMusicURL(item),
 	}, true
 }
 
-func pickDouyinImageURLGroups(item map[string]any) [][]string {
-	imageList := listFromAny(item["images"])
+func pickDouyinImageURLGroups(item DouyinAwemeItem) [][]string {
+	imageList := item.Images
 	if len(imageList) == 0 {
-		imageList = listFromAny(item["image_infos"])
+		imageList = item.ImageInfos
 	}
-
 	imageURLGroups := make([][]string, 0, len(imageList))
 	seenGroups := make(map[string]bool)
-	for _, imageValue := range imageList {
-		imageInfo, ok := imageValue.(map[string]any)
-		if !ok {
-			continue
-		}
-
+	for _, imageInfo := range imageList {
 		candidates := make([]string, 0)
 		seenURLs := make(map[string]bool)
-		for _, imageURL := range stringListFromAny(imageInfo["url_list"]) {
+		for _, imageURL := range imageInfo.URLList {
 			if !strings.HasPrefix(imageURL, "http") {
 				continue
 			}
@@ -369,65 +402,43 @@ func pickDouyinImageURLGroups(item map[string]any) [][]string {
 	return imageURLGroups
 }
 
-func parseDouyinVideoItem(item map[string]any) (VideoParseData, bool) {
-	video, ok := item["video"].(map[string]any)
-	if !ok {
-		return VideoParseData{}, false
-	}
-	if duration, ok := numberFromAny(video["duration"]); ok && duration == 0 {
+func parseDouyinVideoItem(item DouyinAwemeItem) (VideoParseData, bool) {
+	if item.Video.Duration != nil && *item.Video.Duration == 0 {
 		return VideoParseData{}, false
 	}
 
-	videoURL := pickDouyinVideoURL(nestedStringList(video, "play_addr", "url_list"))
+	videoURL := pickDouyinVideoURL(item.Video.PlayAddr.URLList)
 	if videoURL == "" {
 		return VideoParseData{}, false
 	}
 
-	desc := cleanDouyinText(stringFromAny(item["desc"]))
+	desc := cleanDouyinText(item.Desc)
 	return VideoParseData{
-		Author:   cleanDouyinText(nestedString(item, "author", "nickname")),
+		Author:   cleanDouyinText(item.Author.Nickname),
+		Avatar:   pickDouyinAvatarURL(item.Author),
 		Title:    desc,
 		Desc:     desc,
-		Cover:    pickFirstDouyinURL(nestedStringList(video, "cover", "url_list")),
+		Cover:    pickPreferredDouyinURL(item.Video.Cover.URLList),
 		URL:      videoURL,
-		MusicURL: pickFirstDouyinURL(nestedStringList(item, "music", "play_url", "url_list")),
+		MusicURL: pickPreferredDouyinURL(item.Music.PlayURL.URLList),
 	}, true
 }
 
-func parseDouyinLegacyVideo(htmlContent string) (VideoParseData, bool) {
-	match := douyinLegacyPlayRegexp.FindStringSubmatch(htmlContent)
-	if len(match) < 2 {
-		return VideoParseData{}, false
+func pickDouyinAvatarURL(author DouyinAuthor) string {
+	if avatarURL := pickPreferredDouyinURL(author.AvatarMedium.URLList); avatarURL != "" {
+		return avatarURL
 	}
+	return pickPreferredDouyinURL(author.AvatarThumb.URLList)
+}
 
-	urls := make([]string, 0)
-	if err := json.Unmarshal([]byte("["+match[1]+"]"), &urls); err != nil {
-		for _, rawURL := range strings.Split(match[1], ",") {
-			trimmedURL := strings.Trim(strings.TrimSpace(rawURL), `"`)
-			if trimmedURL != "" {
-				urls = append(urls, trimmedURL)
-			}
-		}
+func pickDouyinNoteMusicURL(item DouyinAwemeItem) string {
+	if musicURL := pickPreferredDouyinURL(item.Music.PlayURL.URLList); musicURL != "" {
+		return musicURL
 	}
-
-	videoURL := pickDouyinVideoURL(urls)
-	if videoURL == "" {
-		return VideoParseData{}, false
+	if strings.HasPrefix(item.Video.PlayAddr.URI, "http") {
+		return decodeDouyinEscapedValue(item.Video.PlayAddr.URI)
 	}
-
-	cover := ""
-	if coverMatch := douyinLegacyCoverRegexp.FindStringSubmatch(htmlContent); len(coverMatch) > 1 {
-		cover = decodeDouyinEscapedValue(coverMatch[1])
-	}
-
-	desc := matchDouyinJSONString(htmlContent, "desc")
-	return VideoParseData{
-		Author: matchDouyinJSONString(htmlContent, "nickname"),
-		Title:  desc,
-		Desc:   desc,
-		Cover:  cover,
-		URL:    videoURL,
-	}, true
+	return pickPreferredDouyinURL(item.Video.PlayAddr.URLList)
 }
 
 func pickDouyinVideoURL(urls []string) string {
@@ -450,13 +461,24 @@ func pickDouyinVideoURL(urls []string) string {
 	return ""
 }
 
-func pickFirstDouyinURL(urls []string) string {
+func pickPreferredDouyinURL(urls []string) string {
+	firstURL := ""
 	for _, rawURL := range urls {
-		if rawURL != "" {
-			return decodeDouyinEscapedValue(rawURL)
+		if rawURL == "" {
+			continue
+		}
+		decodedURL := decodeDouyinEscapedValue(rawURL)
+		if decodedURL == "" {
+			continue
+		}
+		if strings.HasPrefix(decodedURL, "https://p26") {
+			return decodedURL
+		}
+		if firstURL == "" {
+			firstURL = decodedURL
 		}
 	}
-	return ""
+	return firstURL
 }
 
 func matchDouyinJSONString(text string, key string) string {
