@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"wechat-robot-client/model"
+	robotXMLTemplate "wechat-robot-client/pkg/templates/robot"
 )
 
 type Robot struct {
@@ -1137,7 +1138,7 @@ func (r *Robot) MsgSendFileFromLocal(toWxID, tempFilePath string) (*SendAppRespo
 
 func (r *Robot) SendMusicMessage(toWxID string, songInfo SongInfo) (appMessage SendAppResponse, err error) {
 	musicXmlPath := filepath.Join("xml", "music.xml")
-	xmlTemplate, err := XmlFolder.ReadFile(musicXmlPath)
+	xmlTemplate, err := robotXMLTemplate.FS.ReadFile(musicXmlPath)
 	if err != nil {
 		err = fmt.Errorf("读取音乐XML模板失败: %w", err)
 		return

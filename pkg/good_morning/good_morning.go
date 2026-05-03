@@ -11,16 +11,17 @@ import (
 	"path/filepath"
 	"time"
 	"wechat-robot-client/dto"
+	goodMorningTemplate "wechat-robot-client/pkg/templates/goodmorning"
 
 	"github.com/chromedp/chromedp"
 )
 
 func Draw(dailyWords string, summary dto.ChatRoomSummary) (io.Reader, error) {
-	indexTplBytes, err := Assets.ReadFile("assets/index.html")
+	indexTplBytes, err := goodMorningTemplate.Assets.ReadFile("assets/index.html")
 	if err != nil {
 		return nil, fmt.Errorf("read index template: %w", err)
 	}
-	backgroundBytes, err := Assets.ReadFile("assets/background.jpg")
+	backgroundBytes, err := goodMorningTemplate.Assets.ReadFile("assets/background.jpg")
 	if err != nil {
 		return nil, fmt.Errorf("read background: %w", err)
 	}
