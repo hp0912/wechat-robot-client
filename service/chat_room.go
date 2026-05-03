@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openai/openai-go/v3"
 	"gorm.io/gorm"
 
 	"wechat-robot-client/dto"
@@ -620,70 +619,50 @@ func (s *ChatRoomService) ChatRoomAISummaryByChatRoomID(globalSettings *model.Gl
 		content = append(content, fmt.Sprintf(`[%s] {"%s": "%s"}--end--`, timeStr, message.Nickname, strings.ReplaceAll(message.Message, "\n", "。。")))
 	}
 
-	maxCompletionTokens := 2000
-	prompt := `你是一个中文的群聊总结的助手，你可以为一个微信的群聊记录，提取并总结每个时间段大家在重点讨论的话题内容。
-
-每一行代表一个人的发言，每一行的的格式为： {"[time] {nickname}": "{content}"}--end--
-
-请帮我将给出的群聊内容总结成一个今日的群聊报告，包含不多于10个的话题的总结（如果还有更多话题，可以在后面简单补充）。每个话题包含以下内容：
-- 话题名(50字以内，带序号1️⃣2️⃣3️⃣，同时附带热度，以🔥数量表示）
-- 参与者(不超过5个人，将重复的人名去重)
-- 时间段(从几点到几点)
-- 过程(50到200字左右）
-- 评价(50字以下)
-- 分割线： ------------
-
-另外有以下要求：
-1. 每个话题结束使用 ------------ 分割
-2. 使用中文冒号
-3. 无需大标题
-4. 开始给出本群讨论风格的整体评价，例如活跃、太水、太黄、太暴力、话题不集中、无聊诸如此类
-5. 群友分享的链接资源要提取出来，并附加在总结的最后`
-	prompt = fmt.Sprintf("%s\n6. 总结结果不得超过%d字符", prompt, maxCompletionTokens)
-	msg := fmt.Sprintf("群名称: %s\n聊天记录如下:\n%s", chatRoomName, strings.Join(content, "\n"))
-	// AI总结
-	aiMessages := []openai.ChatCompletionMessageParamUnion{
-		openai.SystemMessage(prompt),
-		openai.UserMessage(msg),
-	}
-
 	// 默认使用AI回复
 	aiApiKey := globalSettings.ChatAPIKey
-	if *setting.ChatAPIKey != "" {
+	if setting.ChatAPIKey != nil && *setting.ChatAPIKey != "" {
 		aiApiKey = *setting.ChatAPIKey
 	}
 	aiApiBaseURL := strings.TrimRight(globalSettings.ChatBaseURL, "/")
 	if setting.ChatBaseURL != nil && *setting.ChatBaseURL != "" {
 		aiApiBaseURL = strings.TrimRight(*setting.ChatBaseURL, "/")
 	}
-	model := globalSettings.ChatRoomSummaryModel
+	summaryModel := globalSettings.ChatRoomSummaryModel
 	if setting.ChatRoomSummaryModel != nil && *setting.ChatRoomSummaryModel != "" {
-		model = *setting.ChatRoomSummaryModel
+		summaryModel = *setting.ChatRoomSummaryModel
 	}
-	ai := newOpenAIClient(aiApiKey, aiApiBaseURL)
-	summaryMsg, err := streamChatCompletionMessage(
-		context.Background(),
-		&ai,
-		openai.ChatCompletionNewParams{
-			Model:               model,
-			Messages:            aiMessages,
-			MaxCompletionTokens: openai.Int(int64(maxCompletionTokens)),
-		},
-	)
+	report, err := s.generateChatRoomSummaryReport(context.Background(), aiApiKey, aiApiBaseURL, summaryModel, chatRoomName, content)
 	if err != nil {
 		log.Printf("群聊记录总结失败: %v", err.Error())
 		msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息总结失败，错误信息: "+err.Error())
 		return err
 	}
-	summaryContent := summaryMsg.Content
 
 	// 返回消息为空
-	if summaryContent == "" {
+	if report == nil || (report.Overall == "" && len(report.Topics) == 0) {
 		msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息总结失败，AI返回结果为空")
 		return nil
 	}
-	replyMsg := fmt.Sprintf("#消息总结\n让我们一起来看看群友们都聊了什么有趣的话题吧~\n\n本次总结由**%s**加持\n\n%s", model, summaryContent)
-	msgService.SendLongTextMessage(setting.ChatRoomID, replyMsg)
+	mode := globalSettings.ChatRoomSummaryMode
+	if setting.ChatRoomSummaryMode != nil && *setting.ChatRoomSummaryMode != "" {
+		mode = *setting.ChatRoomSummaryMode
+	}
+	switch mode {
+	case model.ChatRoomSummaryModeImage:
+		data := buildChatRoomSummaryTemplateData(chatRoomName, summaryModel, report)
+		if err := s.sendChatRoomSummaryImage(context.Background(), msgService, setting.ChatRoomID, data); err != nil {
+			log.Printf("群聊记录总结图片发送失败: %v", err)
+			msgService.SendTextMessage(setting.ChatRoomID, "#昨日消息总结\n\n群聊消息图片生成失败，错误信息: "+err.Error())
+			return err
+		}
+	case model.ChatRoomSummaryModeText:
+		replyMsg := renderChatRoomSummaryText(summaryModel, report)
+		return msgService.SendLongTextMessage(setting.ChatRoomID, replyMsg)
+	default:
+		replyMsg := renderChatRoomSummaryText(summaryModel, report)
+		return msgService.SendLongTextMessage(setting.ChatRoomID, replyMsg)
+	}
 	return nil
 }
 
