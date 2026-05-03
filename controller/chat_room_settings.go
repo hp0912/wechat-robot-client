@@ -88,6 +88,9 @@ func (ct *ChatRoomSettings) SaveChatRoomSettings(c *gin.Context) {
 			return
 		}
 	}
+	if req.ChatRoomSummaryMode != nil && *req.ChatRoomSummaryMode == "" {
+		req.ChatRoomSummaryMode = nil
+	}
 	err := service.NewChatRoomSettingsService(c).SaveChatRoomSettings(&req)
 	if err != nil {
 		resp.ToErrorResponse(err)
