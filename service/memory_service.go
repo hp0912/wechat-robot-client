@@ -717,12 +717,9 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 	if query == "" || !s.enabled() || s.vectorStore == nil {
 		return ""
 	}
-	start := time.Now()
 	queryVector, err := s.vectorStore.EmbedMemoryQuery(ctx, query)
 	if err != nil {
 		log.Printf("[Memory] 记忆查询向量化失败: %v", err)
-	} else {
-		log.Printf("[EmbedMemoryQuery] 记忆查询向量化耗时: %v", time.Since(start))
 	}
 
 	memories := make([]*model.Memory, 0)
@@ -733,13 +730,11 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 		if len(queryVector) == 0 {
 			return
 		}
-		start := time.Now()
 		results, err := s.vectorStore.SearchMemoriesByVector(ctx, vars.RobotRuntime.RobotCode, queryVector, contactWxID, chatRoomID, limit)
 		if err != nil {
 			log.Printf("[Memory] 记忆召回失败: %v", err)
 			return
 		}
-		log.Printf("[SearchMemories] 检索记忆耗时: %v", time.Since(start))
 		for _, result := range results {
 			if result.ID != "" && !seenVectorIDs[result.ID] {
 				seenVectorIDs[result.ID] = true
@@ -751,13 +746,11 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 		if len(vectorIDs) == 0 {
 			return
 		}
-		start := time.Now()
 		items, err := s.memoryRepo.GetMemoriesByVectorIDs(vectorIDs)
 		if err != nil {
 			log.Printf("[Memory] 查询记忆详情失败: %v", err)
 			return
 		}
-		log.Printf("[GetMemoriesByVectorIDs] 查询记忆详情耗时: %v", time.Since(start))
 		memoryByVectorID := make(map[string]*model.Memory, len(items))
 		for _, item := range items {
 			if item != nil && item.VectorID != "" {
@@ -774,12 +767,9 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 	}
 
 	if isChatRoom {
-		start = time.Now()
 		appendSearch(senderWxID, fromWxID, 6)
 		appendSearch("", fromWxID, 6)
-		log.Printf("[appendSearch] 检索记忆总耗时: %v", time.Since(start))
 		appendVectorMemories()
-		start = time.Now()
 		relationMemories, err := s.memoryRepo.ListRelationMemories(vars.RobotRuntime.RobotCode, fromWxID, senderWxID, 5)
 		if err == nil {
 			for _, item := range relationMemories {
@@ -789,16 +779,12 @@ func (s *MemoryService) BuildPromptContext(ctx context.Context, query, fromWxID,
 				}
 			}
 		}
-		log.Printf("[ListRelationMemories] 检索关系耗时: %v", time.Since(start))
 	} else {
 		appendSearch(fromWxID, "", 8)
 		appendVectorMemories()
 	}
 
-	start = time.Now()
-	result := s.renderPromptContext(fromWxID, senderWxID, isChatRoom, memories)
-	log.Printf("[renderPromptContext] 构建提示语耗时: %v", time.Since(start))
-	return result
+	return s.renderPromptContext(fromWxID, senderWxID, isChatRoom, memories)
 }
 
 func (s *MemoryService) renderPromptContext(fromWxID, senderWxID string, isChatRoom bool, memories []*model.Memory) string {

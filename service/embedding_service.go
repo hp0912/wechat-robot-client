@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"math"
 	"time"
 
@@ -50,6 +51,8 @@ func (s *EmbeddingService) Embed(ctx context.Context, text string) ([]float32, e
 		return cached, nil
 	}
 
+	start := time.Now()
+
 	resp, err := s.client.Embeddings.New(ctx, openai.EmbeddingNewParams{
 		Input: openai.EmbeddingNewParamsInputUnion{
 			OfString: openai.String(text),
@@ -64,8 +67,14 @@ func (s *EmbeddingService) Embed(ctx context.Context, text string) ([]float32, e
 		return nil, fmt.Errorf("empty embedding response")
 	}
 
+	log.Printf("[Embed] embed 接口调用耗时: %v", time.Since(start))
+
+	start = time.Now()
 	vector := float64SliceToFloat32(resp.Data[0].Embedding)
 	s.setCache(ctx, text, vector)
+
+	log.Printf("[Embed] embed 缓存耗时: %v", time.Since(start))
+
 	return vector, nil
 }
 
