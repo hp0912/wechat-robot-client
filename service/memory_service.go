@@ -447,7 +447,7 @@ func (s *MemoryService) extractMemoriesWithAI(ctx context.Context, settings *mod
 5. content/summary 可以是中文自然语言，但涉及具体人时优先用微信 ID 表达，系统展示时会再转换昵称。
 6. relation_type 用 friend、coworker、helper、familiar、conflict、joke_partner、mentor、other 之一。
 7. transcript 中的 mentioned_wxids 和 content 里的 @wxid 表示明确提及对象，可作为群成员互动和关系判断的重要证据。
-8. Always respond using valid JSON format only.
+8. 必须使用有效的 JSON 格式数据进行回复。
 `, scene, scopeRule)
 
 	userPrompt := "聊天窗口如下：\n" + transcript
