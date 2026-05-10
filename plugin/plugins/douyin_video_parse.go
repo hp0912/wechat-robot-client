@@ -155,6 +155,10 @@ func (p *DouyinVideoParsePlugin) PostAction(ctx *plugin.MessageContext) {
 }
 
 func (p *DouyinVideoParsePlugin) Match(ctx *plugin.MessageContext) bool {
+	if ctx.ReferMessage != nil {
+		// 不解析引用的抖音链接
+		return false
+	}
 	return strings.Contains(ctx.Message.Content, "https://v.douyin.com")
 }
 
