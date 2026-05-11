@@ -8,6 +8,10 @@
 
 请遵守相关法律法规，合法合规使用本项目。
 
+## 在线文档
+
+[https://wechat-doc.houhoukang.com/](https://wechat-doc.houhoukang.com/)
+
 ## 官方交流群
 
 <table>
