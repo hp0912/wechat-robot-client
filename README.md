@@ -54,6 +54,8 @@
 
   - MCP 服务: [https://github.com/hp0912/wechat-robot-mcp-server](https://github.com/hp0912/wechat-robot-mcp-server) 官方内置 MCP 服务
 
+  - Skills: [https://git.houhoukang.com/houhou/wechat-robot-skills](https://git.houhoukang.com/houhou/wechat-robot-skills) 官方 Skills 仓库
+
   - UUID生成器: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-uuid:latest
 
   - Mac 扫码登录自动过滑块: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-slider:latest
