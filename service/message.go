@@ -1,4 +1,4 @@
-package service
+﻿package service
 
 import (
 	"bytes"
@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"mime/multipart"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -642,6 +643,8 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 			} else {
 				// 更新联系人信息
 				NewContactService(context.Background()).DebounceSyncContact(*contact.UserName.String)
+				// 检测昵称变更并通知所在群
+				s.detectAndNotifyNicknameChange(contact)
 			}
 		}
 	}
@@ -1263,11 +1266,15 @@ func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL str
 	tempFilePath := tempFile.Name()
 	defer os.Remove(tempFilePath)
 
+	const defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1"
+
 	// 尝试分片下载
 	chunkSize := int64(1024 * 1024)
 	// 先尝试请求第一个分片，检测是否支持 Range
 	rangeHeader := fmt.Sprintf("bytes=0-%d", chunkSize-1)
 	resp, err := resty.New().R().
+		SetHeader("User-Agent", defaultUA).
+		SetHeader("Referer", "https://www.douyin.com/").
 		SetHeader("Range", rangeHeader).
 		SetDoNotParseResponse(true).
 		Get(videoURL)
@@ -1310,6 +1317,8 @@ func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL str
 
 			rangeHeader := fmt.Sprintf("bytes=%d-%d", start, end)
 			chunkResp, err := resty.New().R().
+				SetHeader("User-Agent", defaultUA).
+				SetHeader("Referer", "https://www.douyin.com/").
 				SetHeader("Range", rangeHeader).
 				SetDoNotParseResponse(true).
 				Get(videoURL)
@@ -1347,7 +1356,25 @@ func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL str
 
 	tempFile.Close()
 
-	message, err := vars.RobotRuntime.MsgSendVideoFromLocal(toWxID, tempFilePath)
+	// 检查视频大小，超过 20MB 则用 ffmpeg 压缩
+	const maxVideoSize = 20 * 1024 * 1024
+	sendPath := tempFilePath
+	fileInfo, statErr := os.Stat(tempFilePath)
+	if statErr == nil && fileInfo.Size() > maxVideoSize {
+		compressedPath := tempFilePath + "_compressed.mp4"
+		log.Printf("[视频压缩] 原始大小: %dMB，开始压缩...", fileInfo.Size()/1024/1024)
+		if compressErr := compressVideoWithFFmpeg(tempFilePath, compressedPath, maxVideoSize); compressErr != nil {
+			log.Printf("[视频压缩] 压缩失败: %v，尝试直接发送原始文件", compressErr)
+		} else {
+			sendPath = compressedPath
+			defer os.Remove(compressedPath)
+			if ci, err2 := os.Stat(compressedPath); err2 == nil {
+				log.Printf("[视频压缩] 压缩完成: %dMB -> %dMB", fileInfo.Size()/1024/1024, ci.Size()/1024/1024)
+			}
+		}
+	}
+
+	message, err := vars.RobotRuntime.MsgSendVideoFromLocal(toWxID, sendPath)
 	if err != nil {
 		return err
 	}
@@ -2202,6 +2229,109 @@ func (s *MessageService) ChatRoomAIDisabled(chatRoomID string) error {
 	return nil
 }
 
+// detectAndNotifyNicknameChange 检测联系人昵称变更并通知所在群
+func (s *MessageService) detectAndNotifyNicknameChange(contact *robot.Contact) {
+	// 获取新的昵称
+	if contact.NickName.String == nil || *contact.NickName.String == "" {
+		return
+	}
+	newNickname := *contact.NickName.String
+	wechatID := *contact.UserName.String
+
+	// 获取该联系人所在的所有群（未离开的群成员记录）
+	members, err := s.crmRepo.GetChatRoomMemberByWeChatID(wechatID)
+	if err != nil {
+		log.Printf("[昵称变更] 查询群成员记录失败: %v", err)
+		return
+	}
+	if len(members) == 0 {
+		return
+	}
+
+	// 遍历每个群，检查昵称是否有变化
+	for _, member := range members {
+		if member.IsLeaved != nil && *member.IsLeaved {
+			continue
+		}
+		oldNickname := member.Nickname
+		remark := member.Remark
+		if oldNickname == "" && remark != "" {
+			oldNickname = remark
+		}
+		if oldNickname == newNickname || oldNickname == "" {
+			continue
+		}
+		// 昵称确实变了，更新数据库中的昵称
+		err = s.crmRepo.UpdateMemberInfo(member.ChatRoomID, wechatID, map[string]any{
+			"nickname": newNickname,
+		})
+		if err != nil {
+			log.Printf("[昵称变更] 更新群成员昵称失败: %v", err)
+		}
+
+		// 发送通知到群
+		notifyMsg := fmt.Sprintf("📋 群成员变动通知：\n📝 昵称修改：%s（%s → %s）", newNickname, oldNickname, newNickname)
+		err = s.SendTextMessage(member.ChatRoomID, notifyMsg)
+		if err != nil {
+			log.Printf("[昵称变更] 发送通知失败: %v", err)
+		} else {
+			log.Printf("[昵称变更] %s 在群 %s 中昵称已变更: %s -> %s", wechatID, member.ChatRoomID, oldNickname, newNickname)
+		}
+	}
+}
+
 func (s *MessageService) GetChatRoomMember(chatRoomID string, wechatID string) (*model.ChatRoomMember, error) {
 	return s.crmRepo.GetChatRoomMember(chatRoomID, wechatID)
 }
+
+// compressVideoWithFFmpeg 使用 ffmpeg 压缩视频到目标大小以内
+func compressVideoWithFFmpeg(inputPath, outputPath string, targetSize int64) error {
+	// 先获取视频时长
+	probeCmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", inputPath)
+	durationOutput, err := probeCmd.Output()
+	if err != nil {
+		return fmt.Errorf("获取视频时长失败: %w", err)
+	}
+
+	durationStr := strings.TrimSpace(string(durationOutput))
+	duration, err := strconv.ParseFloat(durationStr, 64)
+	if err != nil || duration <= 0 {
+		duration = 60 // 默认假设60秒
+	}
+
+	// 计算目标码率 (bits/s)，留 10% 余量给音频
+	targetBitrate := int64(float64(targetSize) * 8 * 0.9 / duration)
+	if targetBitrate < 100000 {
+		targetBitrate = 100000 // 最低 100kbps
+	}
+	bitrateStr := fmt.Sprintf("%dk", targetBitrate/1000)
+
+	// 使用 ffmpeg 压缩：降低码率 + 缩小分辨率
+	ffmpegCmd := exec.Command("ffmpeg", "-y", "-i", inputPath,
+		"-c:v", "libx264", "-preset", "fast", "-b:v", bitrateStr,
+		"-vf", "scale='min(720,iw)':-2",
+		"-c:a", "aac", "-b:a", "64k",
+		"-movflags", "+faststart",
+		"-max_muxing_queue_size", "1024",
+		outputPath,
+	)
+	output, err := ffmpegCmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("ffmpeg 压缩失败: %w, output: %s", err, string(output))
+	}
+
+	// 验证输出文件
+	outInfo, err := os.Stat(outputPath)
+	if err != nil {
+		return fmt.Errorf("压缩后文件不存在: %w", err)
+	}
+	if outInfo.Size() == 0 {
+		return fmt.Errorf("压缩后文件为空")
+	}
+
+	return nil
+}
+
+
+
+
