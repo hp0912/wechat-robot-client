@@ -155,10 +155,6 @@ func (p *DouyinVideoParsePlugin) PostAction(ctx *plugin.MessageContext) {
 }
 
 func (p *DouyinVideoParsePlugin) Match(ctx *plugin.MessageContext) bool {
-	if ctx.ReferMessage != nil {
-		// 不解析引用的抖音链接
-		return false
-	}
 	return strings.Contains(ctx.Message.Content, "https://v.douyin.com")
 }
 
@@ -610,7 +606,11 @@ func mergeImagesVertical(ctx *plugin.MessageContext, imageURLs []string) ([]byte
 	maxWidth := 0
 
 	for _, imageURL := range imageURLs {
-		resp, err := client.R().SetDoNotParseResponse(true).Get(imageURL)
+		resp, err := client.R().
+			SetHeader("User-Agent", douyinUserAgent).
+			SetHeader("Referer", "https://www.douyin.com/").
+			SetDoNotParseResponse(true).
+			Get(imageURL)
 		if err != nil {
 			return nil, fmt.Errorf("下载图片失败: %w", err)
 		}
