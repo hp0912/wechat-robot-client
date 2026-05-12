@@ -1293,6 +1293,12 @@ func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL str
 			}
 		}
 
+		if contentLength > maxVideoSize {
+			resp.RawBody().Close()
+			tempFile.Close()
+			return fmt.Errorf("视频大小 %dMB 超过限制 %dMB，取消下载", contentLength/(1024*1024), maxVideoSize/(1024*1024))
+		}
+
 		// 写入第一个分片
 		_, err = io.Copy(tempFile, resp.RawBody())
 		resp.RawBody().Close()
@@ -1333,11 +1339,20 @@ func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL str
 		}
 	} else if resp.StatusCode() == 200 {
 		log.Println("服务器不支持 Range 请求，使用普通下载方式")
-		_, err = io.Copy(tempFile, resp.RawBody())
+		if contentLen := resp.RawResponse.ContentLength; contentLen > maxVideoSize {
+			resp.RawBody().Close()
+			tempFile.Close()
+			return fmt.Errorf("视频大小 %dMB 超过限制 %dMB，取消下载", contentLen/(1024*1024), maxVideoSize/(1024*1024))
+		}
+		n, err := io.Copy(tempFile, io.LimitReader(resp.RawBody(), maxVideoSize+1))
 		resp.RawBody().Close()
 		if err != nil {
 			tempFile.Close()
 			return fmt.Errorf("写入视频数据失败: %w", err)
+		}
+		if n > maxVideoSize {
+			tempFile.Close()
+			return fmt.Errorf("视频大小超过限制 %dMB，取消下载", maxVideoSize/(1024*1024))
 		}
 	} else {
 		resp.RawBody().Close()
