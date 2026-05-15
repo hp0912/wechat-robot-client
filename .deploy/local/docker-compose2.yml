@@ -56,7 +56,7 @@ services:
       - "6333:6333"   # REST API
       - "6334:6334"   # gRPC
     volumes:
-      - ./qdrant_data:/qdrant/storage
+      - wechat_admin_qdrant_data:/qdrant/storage
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
       - QDRANT__SERVICE__API_KEY=x1234567890 # 自行修改，向量库的 API 密钥
@@ -257,3 +257,6 @@ secrets:
     file: ./secrets/mysql_root_password.txt
   mysql_user_password:
     file: ./secrets/mysql_user_password.txt
+
+volumes:
+  wechat_admin_qdrant_data:
