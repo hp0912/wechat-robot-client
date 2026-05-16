@@ -1,10 +1,16 @@
 package controller
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
+	"wechat-robot-client/vars"
 
 	"github.com/gin-gonic/gin"
 )
@@ -79,12 +85,18 @@ go tool pprof -pdf http://your-domain/api/v1/pprof/debug/pprof/heap > heap.pdf
 */
 type PprofProxy struct {
 	proxy *httputil.ReverseProxy
+	err   error
 }
 
-func NewPprofProxyController(targetURL string) *PprofProxy {
-	target, err := url.Parse(targetURL)
-	if err != nil {
-		panic("invalid pprof target URL: " + err.Error())
+var hrefRegexp = regexp.MustCompile(`href=(["'])([^"']+)(["'])`)
+
+func NewPprofProxyController() *PprofProxy {
+	target, err := url.Parse(vars.PprofProxyURL)
+	if err != nil || target.Scheme == "" || target.Host == "" {
+		if err == nil {
+			err = fmt.Errorf("missing scheme or host")
+		}
+		return &PprofProxy{err: fmt.Errorf("invalid pprof target URL %q: %w", vars.PprofProxyURL, err)}
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
@@ -93,6 +105,21 @@ func NewPprofProxyController(targetURL string) *PprofProxy {
 		originalDirector(req)
 		req.URL.Path = strings.TrimPrefix(req.URL.Path, "/api/v1/robot/pprof")
 		req.Host = target.Host
+	}
+	proxy.ModifyResponse = func(res *http.Response) error {
+		if !strings.Contains(res.Header.Get("Content-Type"), "text/html") {
+			return nil
+		}
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+		_ = res.Body.Close()
+		body = rewritePprofHTMLLinks(body, "/api/v1/robot/pprof/debug/pprof/")
+		res.Body = io.NopCloser(bytes.NewReader(body))
+		res.ContentLength = int64(len(body))
+		res.Header.Set("Content-Length", strconv.Itoa(len(body)))
+		return nil
 	}
 
 	// 自定义错误处理
@@ -107,5 +134,46 @@ func NewPprofProxyController(targetURL string) *PprofProxy {
 }
 
 func (p *PprofProxy) ProxyPprof(c *gin.Context) {
+	if p.err != nil {
+		c.String(http.StatusBadGateway, "pprof proxy error: %s", p.err.Error())
+		return
+	}
 	p.proxy.ServeHTTP(c.Writer, c.Request)
+}
+
+func rewritePprofHTMLLinks(body []byte, basePath string) []byte {
+	return hrefRegexp.ReplaceAllFunc(body, func(match []byte) []byte {
+		parts := hrefRegexp.FindSubmatch(match)
+		if len(parts) != 4 {
+			return match
+		}
+		rewritten, ok := rewritePprofHref(string(parts[2]), basePath)
+		if !ok {
+			return match
+		}
+		return []byte("href=" + string(parts[1]) + rewritten + string(parts[3]))
+	})
+}
+
+func rewritePprofHref(rawHref string, basePath string) (string, bool) {
+	parsed, err := url.Parse(rawHref)
+	if err != nil || parsed.IsAbs() || parsed.Host != "" {
+		return "", false
+	}
+	profilePath := parsed.Path
+	if index := strings.Index(profilePath, "/debug/pprof"); index >= 0 {
+		profilePath = profilePath[index+len("/debug/pprof"):]
+	} else if strings.HasPrefix(profilePath, "/") {
+		return "", false
+	}
+	profilePath = strings.TrimLeft(profilePath, "/")
+
+	rewritten := basePath + profilePath
+	if parsed.RawQuery != "" {
+		rewritten += "?" + parsed.RawQuery
+	}
+	if parsed.Fragment != "" {
+		rewritten += "#" + parsed.Fragment
+	}
+	return rewritten, true
 }

@@ -5,7 +5,6 @@ import (
 
 	"wechat-robot-client/controller"
 	"wechat-robot-client/middleware"
-	"wechat-robot-client/vars"
 )
 
 var chatHistoryCtl *controller.ChatHistory
@@ -47,7 +46,7 @@ func initController() {
 	systemSettingsCtl = controller.NewSystemSettingsController()
 	ossSettingsCtl = controller.NewOSSSettingsController()
 	mcpServerCtl = controller.NewMCPController()
-	pprofProxyCtl = controller.NewPprofProxyController(vars.PprofProxyURL)
+	pprofProxyCtl = controller.NewPprofProxyController()
 	probeCtl = controller.NewProbeController()
 	skillCtl = controller.NewSkillController()
 	knowledgeCtl = controller.NewKnowledgeController()

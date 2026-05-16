@@ -31,30 +31,6 @@ func (s *VectorStoreService) SetImageEmbedding(svc *ImageEmbeddingService) {
 	s.imageEmbedding = svc
 }
 
-// IndexMessage 将消息内容向量化并存入 Qdrant
-func (s *VectorStoreService) IndexMessage(ctx context.Context, robotCode string, msgID int64, content, contactWxID, chatRoomID, senderWxID string, createdAt int64) (string, error) {
-	vector, err := s.embedding.Embed(ctx, content)
-	if err != nil {
-		return "", fmt.Errorf("embed message: %w", err)
-	}
-
-	id := s.qdrant.GenerateID()
-	payload := map[string]*pb.Value{
-		"robot_code":            qdrantx.NewPayloadValue(robotCode),
-		"msg_id":                qdrantx.NewPayloadIntValue(msgID),
-		"content":               qdrantx.NewPayloadValue(content),
-		"contact_wxid":          qdrantx.NewPayloadValue(contactWxID),
-		"chat_room_id":          qdrantx.NewPayloadValue(chatRoomID),
-		"chat_room_member_wxid": qdrantx.NewPayloadValue(senderWxID),
-		"created_at":            qdrantx.NewPayloadIntValue(createdAt),
-	}
-
-	if err := s.qdrant.Upsert(ctx, qdrantx.CollectionMessages, id, vector, payload); err != nil {
-		return "", fmt.Errorf("upsert message vector: %w", err)
-	}
-	return id, nil
-}
-
 // IndexKnowledge 将知识库内容向量化并存入 Qdrant
 func (s *VectorStoreService) IndexKnowledge(ctx context.Context, robotCode string, docID int64, category, title, content string) (string, error) {
 	vector, err := s.embedding.Embed(ctx, content)
