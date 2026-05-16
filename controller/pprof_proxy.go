@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"wechat-robot-client/vars"
 
 	"github.com/gin-gonic/gin"
 )
@@ -89,13 +90,13 @@ type PprofProxy struct {
 
 var hrefRegexp = regexp.MustCompile(`href=(["'])([^"']+)(["'])`)
 
-func NewPprofProxyController(targetURL string) *PprofProxy {
-	target, err := url.Parse(targetURL)
+func NewPprofProxyController() *PprofProxy {
+	target, err := url.Parse(vars.PprofProxyURL)
 	if err != nil || target.Scheme == "" || target.Host == "" {
 		if err == nil {
 			err = fmt.Errorf("missing scheme or host")
 		}
-		return &PprofProxy{err: fmt.Errorf("invalid pprof target URL %q: %w", targetURL, err)}
+		return &PprofProxy{err: fmt.Errorf("invalid pprof target URL %q: %w", vars.PprofProxyURL, err)}
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
