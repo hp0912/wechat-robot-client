@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	CollectionMessages       = "messages"
 	CollectionMemories       = "memories"
 	CollectionKnowledge      = "knowledge"
 	CollectionImageKnowledge = "image_knowledge"
@@ -35,9 +34,9 @@ func NewQdrantClient(host string, port int, apiKey string) (*QdrantClient, error
 	return &QdrantClient{client: client}, nil
 }
 
-// InitCollections 初始化文本相关集合（messages, memories, knowledge）
+// InitCollections 初始化文本相关集合（memories, knowledge）
 func (q *QdrantClient) InitCollections(ctx context.Context, dimension uint64) error {
-	collections := []string{CollectionMessages, CollectionMemories, CollectionKnowledge}
+	collections := []string{CollectionMemories, CollectionKnowledge}
 	for _, collectionName := range collections {
 		if err := q.InitCollection(ctx, collectionName, dimension); err != nil {
 			return err
@@ -74,7 +73,6 @@ func (q *QdrantClient) InitCollection(ctx context.Context, name string, dimensio
 
 func (q *QdrantClient) createPayloadIndexes(ctx context.Context, collection string) error {
 	indexes := map[string][]string{
-		CollectionMessages:       {"robot_code", "contact_wxid", "chat_room_id", "chat_room_member_wxid"},
 		CollectionMemories:       {"robot_code", "scope", "contact_wxid", "chat_room_id", "category"},
 		CollectionKnowledge:      {"robot_code", "category", "title"},
 		CollectionImageKnowledge: {"robot_code", "category", "title"},

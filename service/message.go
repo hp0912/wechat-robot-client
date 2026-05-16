@@ -566,6 +566,7 @@ func (s *MessageService) InitSettingsByMessage(message *model.Message) (settings
 
 func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 	for _, message := range syncResp.AddMsgs {
+		now := time.Now().Unix()
 		m := model.Message{
 			MsgId:              message.NewMsgId,
 			ClientMsgId:        message.MsgId,
@@ -576,7 +577,7 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 			FromWxID:           *message.FromUserName.String,
 			ToWxID:             *message.ToUserName.String,
 			CreatedAt:          message.CreateTime,
-			UpdatedAt:          time.Now().Unix(),
+			UpdatedAt:          now,
 		}
 		s.ProcessMessageSender(&m)
 		if !s.ProcessMessageShouldInsertToDB(&m) {
@@ -594,6 +595,10 @@ func (s *MessageService) ProcessMessage(syncResp robot.SyncMessage) {
 		}
 		if m.Type == model.MsgTypeText && vars.MemoryService != nil {
 			go vars.MemoryService.NotifyMessage(context.Background(), &m)
+		}
+		if message.CreateTime < now-600 {
+			// 消息太旧了，不处理了
+			continue
 		}
 		switch m.Type {
 		case model.MsgTypeText:

@@ -116,6 +116,8 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 				}
 				if member.DisplayName != nil && *member.DisplayName != "" {
 					updateMember["remark"] = *member.DisplayName
+				} else {
+					updateMember["remark"] = ""
 				}
 				// 已经离开，重新加入群聊的人
 				if existMember.IsLeaved != nil && *existMember.IsLeaved {
@@ -446,6 +448,7 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 				"wechat_id": memberUserName,
 				"alias":     member.Alias,
 				"nickname":  *member.NickName.String,
+				"sex":       member.Sex,
 				"avatar":    member.SmallHeadImgUrl,
 				"is_leaved": &isLeaved, // 确保标记为未离开
 				"leaved_at": nil,       // 清除离开时间
@@ -464,6 +467,7 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 				WechatID:        memberUserName,
 				Alias:           member.Alias,
 				Nickname:        *member.NickName.String,
+				Sex:             &member.Sex,
 				Avatar:          member.SmallHeadImgUrl,
 				InviterWechatID: "",
 				IsLeaved:        &isLeaved,

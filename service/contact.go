@@ -100,7 +100,7 @@ func (s *ContactService) FriendSendRequestFromChatRoom(req dto.FriendSendRequest
 	if contact != nil {
 		return fmt.Errorf("你们已经是好友了: %s", contact.WechatID)
 	}
-	c, err := vars.RobotRuntime.GetContactDetail(chatRoomMember.ChatRoomID, []string{chatRoomMember.WechatID})
+	c, err := vars.RobotRuntime.GetContactDetail("", []string{chatRoomMember.WechatID})
 	if err != nil {
 		return fmt.Errorf("获取联系人详情失败: %v", err)
 	}

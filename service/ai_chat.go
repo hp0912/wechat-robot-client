@@ -130,12 +130,36 @@ func (s *AIChatService) buildGroupChatContext(chatRoomID, senderWxID string) str
 		log.Printf("[GroupContext] 获取群成员信息失败: %v", err)
 	}
 	if member != nil {
+		// 性别缺失时通过接口获取并回写数据库
+		if member.Sex == nil {
+			if detailResp, err := vars.RobotRuntime.GetContactDetail("", []string{senderWxID}); err != nil {
+				log.Printf("[GroupContext] 获取联系人详情失败: %v", err)
+			} else if len(detailResp.ContactList) > 0 {
+				sexVal := detailResp.ContactList[0].Sex
+				member.Sex = &sexVal
+				if err := crmRepo.UpdateMemberInfo(chatRoomID, senderWxID, map[string]any{"sex": sexVal}); err != nil {
+					log.Printf("[GroupContext] 回写性别失败: %v", err)
+				}
+			}
+		}
+
 		sb.WriteString("[当前对话用户信息]\n")
+		fmt.Fprintf(&sb, "微信 ID: %s\n", member.WechatID)
 		if member.Nickname != "" {
 			fmt.Fprintf(&sb, "昵称: %s\n", member.Nickname)
 		}
 		if member.Remark != "" {
 			fmt.Fprintf(&sb, "备注: %s\n", member.Remark)
+		}
+		if member.Sex != nil {
+			gender := "未知"
+			switch *member.Sex {
+			case 1:
+				gender = "男"
+			case 2:
+				gender = "女"
+			}
+			fmt.Fprintf(&sb, "性别: %s\n", gender)
 		}
 		if member.Avatar != "" {
 			fmt.Fprintf(&sb, "头像: %s\n", member.Avatar)

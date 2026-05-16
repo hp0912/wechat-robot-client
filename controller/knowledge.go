@@ -328,7 +328,6 @@ func (k *Knowledge) ReindexAllVectors(c *gin.Context) {
 
 		// 1. 删除并重建文本集合
 		textCollections := []string{
-			qdrantx.CollectionMessages,
 			qdrantx.CollectionMemories,
 			qdrantx.CollectionKnowledge,
 		}
