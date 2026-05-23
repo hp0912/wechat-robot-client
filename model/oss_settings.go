@@ -24,6 +24,8 @@ type OSSSettings struct {
 	AutoUploadImageMode     AutoUploadMode `gorm:"column:auto_upload_image_mode;type:enum('all','ai_only');default:'ai_only';not null;comment:自动上传图片模式" json:"auto_upload_image_mode"`
 	AutoUploadVideo         *bool          `gorm:"column:auto_upload_video;default:false;comment:启用自动上传视频" json:"auto_upload_video"`
 	AutoUploadVideoMode     AutoUploadMode `gorm:"column:auto_upload_video_mode;type:enum('all','ai_only');default:'ai_only';not null;comment:自动上传视频模式" json:"auto_upload_video_mode"`
+	AutoUploadVoice         *bool          `gorm:"column:auto_upload_voice;default:false;comment:启用自动上传语音" json:"auto_upload_voice"`
+	AutoUploadVoiceMode     AutoUploadMode `gorm:"column:auto_upload_voice_mode;type:enum('all','ai_only');default:'ai_only';not null;comment:自动上传语音模式" json:"auto_upload_voice_mode"`
 	AutoUploadFile          *bool          `gorm:"column:auto_upload_file;default:false;comment:启用自动上传文件" json:"auto_upload_file"`
 	AutoUploadFileMode      AutoUploadMode `gorm:"column:auto_upload_file_mode;type:enum('all','ai_only');default:'ai_only';not null;comment:自动上传文件模式" json:"auto_upload_file_mode"`
 	OSSProvider             OSSProvider    `gorm:"column:oss_provider;type:enum('aliyun','tencent_cloud','cloudflare','volcengine');default:'aliyun';not null;comment:对象存储服务商" json:"oss_provider"`

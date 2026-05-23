@@ -121,6 +121,16 @@ func (s *OSSSettingService) UploadVideoToOSS(settings *model.OSSSettings, messag
 	return s.uploadMediaToOSS(settings, message, data, contentType, extension, "videos")
 }
 
+func (s *OSSSettingService) UploadVoiceToOSS(settings *model.OSSSettings, message *model.Message) error {
+	attachDownloadService := NewAttachDownloadService(s.ctx)
+	data, contentType, extension, err := attachDownloadService.DownloadVoice(dto.AttachDownloadRequest{MessageID: message.ID})
+	if err != nil {
+		return fmt.Errorf("下载语音失败: %w", err)
+	}
+
+	return s.uploadMediaToOSS(settings, message, data, contentType, extension, "voices")
+}
+
 func (s *OSSSettingService) UploadVideoToOSSFromUrl(settings *model.OSSSettings, message *model.Message, videoUrl string) error {
 	data, contentType, extension, err := s.downloadFromUrl(videoUrl, maxVideoSize)
 	if err != nil {
