@@ -2040,6 +2040,12 @@ func (s *MessageService) buildQuoteAIMessage(msg *model.Message, isAssistant boo
 			return openai.ChatCompletionMessageParamUnion{}, false
 		}
 		return s.aiTextPartMessage(isAssistant, xmlMessage.AppMsg.Title+"\n\n 图片地址: "+referMsg.AttachmentUrl), true
+	case int(model.MsgTypeVoice):
+		referMsg, ok := s.getReferMessageByMsgID(xmlMessage.AppMsg.ReferMsg.SvrID)
+		if !ok {
+			return openai.ChatCompletionMessageParamUnion{}, false
+		}
+		return s.aiTextPartMessage(isAssistant, xmlMessage.AppMsg.Title+"\n\n 语音地址: "+referMsg.AttachmentUrl), true
 	case int(model.MsgTypeVideo):
 		referMsg, ok := s.getReferMessageByMsgID(xmlMessage.AppMsg.ReferMsg.SvrID)
 		if !ok {
