@@ -8,6 +8,12 @@
 
 请遵守相关法律法规，合法合规使用本项目。
 
+## 特别说明
+
+**最近 VX 风控升级了，在线站点仅供预览，不要扫码登录，扫了也大概率登录不了，请使用本地部署方案。**
+
+**本地部署该如何部署，请看下方的在线文档，在已经安装了 Docker Git 的情况下，十分钟部署成功，部署前务必仔细阅读在线文档。**
+
 ## 在线文档
 
 [https://wechat-doc.houhoukang.com/](https://wechat-doc.houhoukang.com/)
@@ -24,7 +30,7 @@
   <tbody>
     <tr>
       <td>
-        <img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20260517" alt="官方交流群" width="300" height="300">
+        <img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20260523" alt="官方交流群" width="300" height="300">
       </td>
       <td>
         <img src="https://img.houhoukang.com/weChat-robot-pay.jpg" alt="赞赏码" width="300" height="300">
