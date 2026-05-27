@@ -119,9 +119,8 @@ JSON 字段要求：
 
 func requestChatRoomSummaryReport(ctx context.Context, client *openai.Client, summaryModel string, messages []openai.ChatCompletionMessageParamUnion, withSchema bool) (*chatRoomSummaryReport, error) {
 	req := openai.ChatCompletionNewParams{
-		Model:               summaryModel,
-		Messages:            messages,
-		MaxCompletionTokens: openai.Int(chatRoomSummaryMaxCompletionTokens),
+		Model:    summaryModel,
+		Messages: messages,
 	}
 	if withSchema {
 		req.ResponseFormat = openai.ChatCompletionNewParamsResponseFormatUnion{
