@@ -20,6 +20,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,18 +42,47 @@ type VideoParseResponse struct {
 }
 
 type VideoParseData struct {
-	Author     string   `json:"author"`
-	Avatar     string   `json:"avatar"`
-	Title      string   `json:"title"`
-	Desc       string   `json:"desc"`
-	Digg       int32    `json:"digg"`
-	Comment    int32    `json:"comment"`
-	Play       int32    `json:"play"`
-	CreateTime int64    `json:"create_time"`
-	Cover      string   `json:"cover"`
-	URL        string   `json:"url"`
-	Images     []string `json:"images"`
-	MusicURL   string   `json:"music_url"`
+	Author       string   `json:"author"`
+	Avatar       string   `json:"avatar"`
+	Title        string   `json:"title"`
+	Desc         string   `json:"desc"`
+	Digg         int32    `json:"digg"`
+	Comment      int32    `json:"comment"`
+	Play         int32    `json:"play"`
+	CreateTime   int64    `json:"create_time"`
+	Cover        string   `json:"cover"`
+	URL          string   `json:"url"`
+	SendVideoURL string   `json:"send_video_url"`
+	Images       []string `json:"images"`
+	MusicURL     string   `json:"music_url"`
+}
+
+type ExternalVideoParseResponse struct {
+	Code      int                    `json:"code"`
+	Msg       string                 `json:"msg"`
+	Data      ExternalVideoParseData `json:"data"`
+	APISource string                 `json:"api_source"`
+}
+
+type ExternalVideoParseData struct {
+	CreateTime int64               `json:"create_time"`
+	Author     string              `json:"author"`
+	Avatar     string              `json:"avatar"`
+	Title      string              `json:"title"`
+	Digg       int32               `json:"digg"`
+	Comment    int32               `json:"comment"`
+	Cover      string              `json:"cover"`
+	URL        string              `json:"url"`
+	Images     []string            `json:"images"`
+	MusicURL   string              `json:"music_url"`
+	VideoList  []ExternalVideoItem `json:"video_list"`
+}
+
+type ExternalVideoItem struct {
+	QualityName string `json:"quality_name"`
+	FPS         int    `json:"fps"`
+	VideoSize   string `json:"video_size"`
+	VideoURL    string `json:"video_url"`
 }
 
 type DouyinRouterData struct {
@@ -177,11 +207,20 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 
 	respData, err := parseDouyinVideo(douyinURL)
 	if err != nil {
-		ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("解析失败: %v", err))
-		return
+		fallbackRespData, err2 := parseDouyinVideoByExternalAPI(douyinURL)
+		if err2 != nil {
+			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, formatDouyinFallbackError(err, err2))
+			return
+		}
+		respData = fallbackRespData
 	}
 
 	if respData.Data.URL != "" {
+		sendVideoURL := respData.Data.SendVideoURL
+		if sendVideoURL == "" {
+			sendVideoURL = respData.Data.URL
+		}
+
 		shareLink := robot.ShareLinkMessage{
 			Title:    fmt.Sprintf("抖音视频解析成功 - %s", respData.Data.Author),
 			Des:      respData.Data.Title,
@@ -193,7 +232,7 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 		}
 
 		_ = ctx.MessageService.ShareLink(ctx.Message.FromWxID, shareLink)
-		err = ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, respData.Data.URL)
+		err = ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, sendVideoURL)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送抖音视频失败: %v", err.Error()))
 		}
@@ -262,6 +301,111 @@ func parseDouyinVideo(rawURL string) (VideoParseResponse, error) {
 		return VideoParseResponse{}, err
 	}
 	return VideoParseResponse{Code: http.StatusOK, Data: data}, nil
+}
+
+func parseDouyinVideoByExternalAPI(douyinURL string) (VideoParseResponse, error) {
+	var respData ExternalVideoParseResponse
+	client := resty.New()
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(map[string]string{
+			"key": vars.ThirdPartyApiKey,
+			"url": douyinURL,
+		}).
+		SetResult(&respData).
+		Post("https://api.pearapi.ai/api/video/api.php")
+	if err != nil {
+		return VideoParseResponse{}, err
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return VideoParseResponse{}, fmt.Errorf("外部接口请求失败，状态码: %d %s", resp.StatusCode(), http.StatusText(resp.StatusCode()))
+	}
+	if respData.Code != http.StatusOK {
+		return VideoParseResponse{}, fmt.Errorf("外部接口解析失败，code: %d, msg: %s", respData.Code, respData.Msg)
+	}
+
+	convertedData, err := convertExternalVideoParseData(respData.Data)
+	if err != nil {
+		return VideoParseResponse{}, err
+	}
+	return VideoParseResponse{Code: respData.Code, Msg: respData.Msg, Data: convertedData}, nil
+}
+
+func convertExternalVideoParseData(data ExternalVideoParseData) (VideoParseData, error) {
+	title := cleanDouyinText(data.Title)
+	convertedData := VideoParseData{
+		Author:     cleanDouyinText(data.Author),
+		Avatar:     data.Avatar,
+		Title:      title,
+		Desc:       title,
+		Digg:       data.Digg,
+		Comment:    data.Comment,
+		CreateTime: data.CreateTime,
+		Cover:      data.Cover,
+		URL:        data.URL,
+		Images:     data.Images,
+		MusicURL:   data.MusicURL,
+	}
+
+	if len(data.VideoList) == 0 {
+		return convertedData, nil
+	}
+
+	videoURL, err := pickExternalVideoURL(data.VideoList)
+	if err != nil {
+		return VideoParseData{}, err
+	}
+	convertedData.SendVideoURL = videoURL
+	return convertedData, nil
+}
+
+func pickExternalVideoURL(videoList []ExternalVideoItem) (string, error) {
+	const maxVideoSizeBytes = 25 * 1024 * 1024
+	for _, video := range videoList {
+		if video.VideoURL == "" {
+			continue
+		}
+		videoSizeBytes, err := parseExternalVideoSize(video.VideoSize)
+		if err != nil {
+			continue
+		}
+		if videoSizeBytes < maxVideoSizeBytes {
+			return video.VideoURL, nil
+		}
+	}
+	return "", fmt.Errorf("外部接口返回的视频均大于等于25M，无法发送")
+}
+
+func parseExternalVideoSize(videoSize string) (float64, error) {
+	match := regexp.MustCompile(`(?i)^\s*([0-9]+(?:\.[0-9]+)?)\s*([kmgt]?i?b?|bytes?)?\s*$`).FindStringSubmatch(videoSize)
+	if len(match) < 2 {
+		return 0, fmt.Errorf("解析视频大小失败: %s", videoSize)
+	}
+	size, err := strconv.ParseFloat(match[1], 64)
+	if err != nil {
+		return 0, fmt.Errorf("解析视频大小失败: %w", err)
+	}
+
+	unit := "B"
+	if len(match) > 2 && match[2] != "" {
+		unit = strings.ToUpper(match[2])
+	}
+	switch strings.TrimSuffix(unit, "S") {
+	case "B", "BYTE":
+		return size, nil
+	case "KB", "K", "KIB":
+		return size * 1024, nil
+	case "MB", "M", "MIB":
+		return size * 1024 * 1024, nil
+	case "GB", "G", "GIB":
+		return size * 1024 * 1024 * 1024, nil
+	default:
+		return 0, fmt.Errorf("未知视频大小单位: %s", unit)
+	}
+}
+
+func formatDouyinFallbackError(parseErr, fallbackErr error) string {
+	return fmt.Sprintf("抖音解析失败: %v\n外部接口解析失败: %v", parseErr, fallbackErr)
 }
 
 func resolveDouyinRedirect(rawURL string) (string, error) {
