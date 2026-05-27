@@ -205,6 +205,7 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 	}
 	douyinURL := matches[0]
 
+	externalAPIParsed := false
 	respData, err := parseDouyinVideo(douyinURL)
 	if err != nil {
 		fallbackRespData, err2 := parseDouyinVideoByExternalAPI(douyinURL)
@@ -212,15 +213,12 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, formatDouyinFallbackError(err, err2))
 			return
 		}
+		externalAPIParsed = true
 		respData = fallbackRespData
 	}
 
 	if respData.Data.URL != "" {
-		sendVideoURL := respData.Data.SendVideoURL
-		if sendVideoURL == "" {
-			sendVideoURL = respData.Data.URL
-		}
-
+		// 发送抖音分享链接
 		shareLink := robot.ShareLinkMessage{
 			Title:    fmt.Sprintf("抖音视频解析成功 - %s", respData.Data.Author),
 			Des:      respData.Data.Title,
@@ -230,8 +228,21 @@ func (p *DouyinVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 		if respData.Data.Desc != "" {
 			shareLink.Des = respData.Data.Desc
 		}
-
 		_ = ctx.MessageService.ShareLink(ctx.Message.FromWxID, shareLink)
+
+		// 发送抖音视频
+		if !externalAPIParsed {
+			fallbackRespData, err2 := parseDouyinVideoByExternalAPI(douyinURL)
+			if err2 != nil {
+				log.Printf("调用外部接口获取抖音发送视频地址失败: %v\n", err2)
+			} else if fallbackRespData.Data.SendVideoURL != "" {
+				respData.Data.SendVideoURL = fallbackRespData.Data.SendVideoURL
+			}
+		}
+		sendVideoURL := respData.Data.SendVideoURL
+		if sendVideoURL == "" {
+			sendVideoURL = respData.Data.URL
+		}
 		err = ctx.MessageService.SendVideoMessageByRemoteURL(ctx.Message.FromWxID, sendVideoURL)
 		if err != nil {
 			ctx.MessageService.SendTextMessage(ctx.Message.FromWxID, fmt.Sprintf("发送抖音视频失败: %v", err.Error()))
