@@ -8,14 +8,13 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/openai/openai-go/v3"
 
-	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/pkg/robotctx"
 	"wechat-robot-client/vars"
 )
 
 type SendLocalImageTool struct{}
 
-func NewSendLocalImageTool(knowledgeService plugin.MessageServiceIface) OpenAITool {
+func NewSendLocalImageTool() OpenAITool {
 	return &SendLocalImageTool{}
 
 }
@@ -37,7 +36,7 @@ func (t *SendLocalImageTool) GetOpenAITool(robotCtx *robotctx.RobotContext) *ope
 			"properties": map[string]any{
 				"image_path": map[string]string{
 					"type":        "string",
-					"description": "本地图片的路径",
+					"description": "本地图片的绝对路径",
 				},
 			},
 			"required": []string{"image_path"},
@@ -72,7 +71,7 @@ func (t *SendLocalImageTool) ExecuteToolCall(ctx context.Context, robotCtx *robo
 			"image_path": args.ImagePath,
 		}).
 		SetResult(&result).
-		Post(fmt.Sprintf("http://127.0.0.1:%d/api/v1/robot/message/send/image/local", vars.WechatClientPort))
+		Post(fmt.Sprintf("http://127.0.0.1:%s/api/v1/robot/message/send/image/local", vars.WechatClientPort))
 	if err != nil {
 		return "", false, fmt.Errorf("发送请求失败: %w", err)
 	}
