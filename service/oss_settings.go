@@ -139,6 +139,10 @@ func (s *OSSSettingService) UploadVideoToOSSFromUrl(settings *model.OSSSettings,
 	return s.uploadMediaToOSS(settings, message, data, contentType, extension, "videos")
 }
 
+func (s *OSSSettingService) UploadDownloadedMediaToOSS(settings *model.OSSSettings, message *model.Message, data []byte, contentType, extension, mediaType string) error {
+	return s.uploadMediaToOSS(settings, message, data, contentType, extension, mediaType)
+}
+
 // getVideoSizeFromXml 从视频消息XML中解析视频大小
 func (s *OSSSettingService) getVideoSizeFromXml(xmlContent string) (int64, error) {
 	type videoMsg struct {

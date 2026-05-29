@@ -1,19 +1,26 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/service"
+	"wechat-robot-client/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AttachDownload struct {
 }
+
+const maxUploadMediaSize int64 = 50 * 1024 * 1024
 
 func NewAttachDownloadController() *AttachDownload {
 	return &AttachDownload{}
@@ -133,4 +140,70 @@ func (a *AttachDownload) DownloadVideo(c *gin.Context) {
 	if _, err = io.Copy(c.Writer, reader); err != nil {
 		log.Printf("stream copy error: %v", err)
 	}
+}
+
+func (a *AttachDownload) UploadMedia(c *gin.Context) {
+	resp := appx.NewResponse(c)
+
+	messageID, err := strconv.ParseInt(c.PostForm("message_id"), 10, 64)
+	if err != nil || messageID <= 0 {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+
+	mediaType := strings.TrimSpace(c.PostForm("media_type"))
+	if mediaType == "" {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+
+	file, fileHeader, err := c.Request.FormFile("media")
+	if err != nil {
+		resp.ToErrorResponse(errors.New("获取上传文件失败"))
+		return
+	}
+	defer file.Close()
+
+	if fileHeader.Size > maxUploadMediaSize {
+		resp.ToErrorResponse(errors.New("文件大小不能超过50MB"))
+		return
+	}
+
+	data, err := io.ReadAll(io.LimitReader(file, maxUploadMediaSize+1))
+	if err != nil {
+		resp.ToErrorResponse(fmt.Errorf("读取上传文件失败: %w", err))
+		return
+	}
+	if int64(len(data)) > maxUploadMediaSize {
+		resp.ToErrorResponse(errors.New("文件大小不能超过50MB"))
+		return
+	}
+
+	contentType := fileHeader.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = http.DetectContentType(data)
+	}
+
+	extension := strings.TrimSpace(c.PostForm("extension"))
+	if extension == "" {
+		extension = filepath.Ext(fileHeader.Filename)
+	}
+	if extension == "" {
+		extension = utils.DetectMediaFormat(data)
+	}
+	if !strings.HasPrefix(extension, ".") {
+		extension = "." + extension
+	}
+
+	url, err := service.NewAttachDownloadService(c).UploadDownloadedMedia(messageID, mediaType, data, contentType, extension)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+
+	resp.ToResponse(gin.H{
+		"message_id": messageID,
+		"media_type": mediaType,
+		"url":        url,
+	})
 }
