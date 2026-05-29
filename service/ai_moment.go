@@ -126,9 +126,6 @@ func (s *AIMomentService) Comment(content string, momentSettings model.MomentSet
 		Model:    momentSettings.CommentModel,
 		Messages: aiMessages,
 	}
-	if momentSettings.MaxCompletionTokens != nil && *momentSettings.MaxCompletionTokens > 0 {
-		req.MaxCompletionTokens = openai.Int(int64(*momentSettings.MaxCompletionTokens))
-	}
 
 	assistantMsg, err := streamChatCompletionMessage(context.Background(), &client, req)
 	if err != nil {
