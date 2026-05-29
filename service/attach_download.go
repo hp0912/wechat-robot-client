@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
@@ -76,4 +77,55 @@ func (a *AttachDownloadService) DownloadVideo(req dto.AttachDownloadRequest) (io
 		return nil, "", errors.New("消息类型错误")
 	}
 	return vars.RobotRuntime.DownloadVideo(a.ctx, *message)
+}
+
+func (a *AttachDownloadService) UploadDownloadedMedia(messageID int64, mediaType string, data []byte, contentType, extension string) (string, error) {
+	message, err := a.msgRepo.GetByID(messageID)
+	if err != nil {
+		return "", err
+	}
+	if message == nil {
+		return "", errors.New("消息不存在")
+	}
+
+	ossMediaType, err := resolveOSSMediaType(message, mediaType)
+	if err != nil {
+		return "", err
+	}
+
+	ossService := NewOSSSettingService(a.ctx)
+	settings, err := ossService.GetOSSSettingService()
+	if err != nil {
+		return "", err
+	}
+	if settings == nil || settings.OSSProvider == "" {
+		return "", errors.New("OSS服务商未配置")
+	}
+
+	if err := ossService.UploadDownloadedMediaToOSS(settings, message, data, contentType, extension, ossMediaType); err != nil {
+		return "", err
+	}
+	return message.AttachmentUrl, nil
+}
+
+func resolveOSSMediaType(message *model.Message, requested string) (string, error) {
+	switch requested {
+	case "image":
+		if message.Type != model.MsgTypeImage {
+			return "", errors.New("消息类型不是图片")
+		}
+		return "images", nil
+	case "video":
+		if message.Type != model.MsgTypeVideo {
+			return "", errors.New("消息类型不是视频")
+		}
+		return "videos", nil
+	case "voice":
+		if message.Type != model.MsgTypeVoice {
+			return "", errors.New("消息类型不是语音")
+		}
+		return "voices", nil
+	default:
+		return "", fmt.Errorf("不支持的媒体类型: %s", requested)
+	}
 }
