@@ -66,6 +66,9 @@
 
   - Mac 扫码登录自动过滑块: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-slider:latest
 
+- 插件
+  - koishi 适配器: https://github.com/2212018862/koishi-plugin-adapter-wechat-robot.git (进阶玩法，请自行按照插件说明食用)
+
 > 机器人服务端采用iPad协议，可以去马老板开的动物园淘一淘
 
 ## 项目概览
