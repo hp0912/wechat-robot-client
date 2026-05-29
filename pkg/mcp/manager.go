@@ -78,7 +78,7 @@ func (m *MCPManager) BuildSystemPrompt(ctx context.Context) (string, error) {
 		return "", nil
 	}
 
-	intro := `你运行在一个支持 MCP（Model Context Protocol）工具的聊天应用环境中。
+	intro := `你运行在一个支持工具调用(Function Calling/Tool Use)的聊天应用环境中。
 当你自身能力不足或需要访问外部数据时，应主动调用这些工具来完成任务。
 
 1. 何时使用工具

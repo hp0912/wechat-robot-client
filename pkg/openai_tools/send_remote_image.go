@@ -8,14 +8,13 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/openai/openai-go/v3"
 
-	"wechat-robot-client/interface/plugin"
 	"wechat-robot-client/pkg/robotctx"
 	"wechat-robot-client/vars"
 )
 
 type SendRemoteImageTool struct{}
 
-func NewSendRemoteImageTool(knowledgeService plugin.MessageServiceIface) OpenAITool {
+func NewSendRemoteImageTool() OpenAITool {
 	return &SendRemoteImageTool{}
 
 }
@@ -72,7 +71,7 @@ func (t *SendRemoteImageTool) ExecuteToolCall(ctx context.Context, robotCtx *rob
 			"image_urls": []string{args.ImageURL},
 		}).
 		SetResult(&result).
-		Post(fmt.Sprintf("http://127.0.0.1:%d/api/v1/robot/message/send/image/url", vars.WechatClientPort))
+		Post(fmt.Sprintf("http://127.0.0.1:%s/api/v1/robot/message/send/image/url", vars.WechatClientPort))
 	if err != nil {
 		return "", false, fmt.Errorf("发送请求失败: %w", err)
 	}
