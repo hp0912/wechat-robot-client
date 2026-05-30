@@ -31,7 +31,7 @@ import (
 	"wechat-robot-client/vars"
 )
 
-const maxVideoSize int64 = 25 * 1024 * 1024 // 25MB
+const maxFileSize int64 = 25 * 1024 * 1024 // 25MB
 
 type OSSSettingService struct {
 	ctx             context.Context
@@ -95,7 +95,7 @@ func (s *OSSSettingService) UploadVideoToOSS(settings *model.OSSSettings, messag
 	if err != nil {
 		return fmt.Errorf("解析视频消息XML失败: %w", err)
 	}
-	if videoSize > maxVideoSize {
+	if videoSize > maxFileSize {
 		return fmt.Errorf("视频大小 %dMB 超过限制 25MB", videoSize/(1024*1024))
 	}
 
@@ -107,11 +107,11 @@ func (s *OSSSettingService) UploadVideoToOSS(settings *model.OSSSettings, messag
 	}
 	defer reader.Close()
 
-	data, err := io.ReadAll(io.LimitReader(reader, maxVideoSize+1))
+	data, err := io.ReadAll(io.LimitReader(reader, maxFileSize+1))
 	if err != nil {
 		return fmt.Errorf("读取视频数据失败: %w", err)
 	}
-	if int64(len(data)) > maxVideoSize {
+	if int64(len(data)) > maxFileSize {
 		return fmt.Errorf("视频大小超过限制 25MB")
 	}
 
@@ -131,8 +131,31 @@ func (s *OSSSettingService) UploadVoiceToOSS(settings *model.OSSSettings, messag
 	return s.uploadMediaToOSS(settings, message, data, contentType, extension, "voices")
 }
 
+func (s *OSSSettingService) UploadFileToOSS(settings *model.OSSSettings, message *model.Message) error {
+	attachDownloadService := NewAttachDownloadService(s.ctx)
+	reader, filename, err := attachDownloadService.DownloadFile(message.ID)
+	if err != nil {
+		return fmt.Errorf("下载文件失败: %w", err)
+	}
+	defer reader.Close()
+
+	// 限制文件最大大小为 25MB，使用 io.LimitReader 防止超量读取
+	data, err := io.ReadAll(io.LimitReader(reader, maxFileSize+1))
+	if err != nil {
+		return fmt.Errorf("读取文件数据失败: %w", err)
+	}
+	if int64(len(data)) > maxFileSize {
+		return fmt.Errorf("文件大小超过限制 25MB")
+	}
+
+	extension := path.Ext(filename) // ".pdf", ".docx" 等
+	contentType := utils.MimeTypeByExtension(extension)
+
+	return s.uploadMediaToOSS(settings, message, data, contentType, extension, "files")
+}
+
 func (s *OSSSettingService) UploadVideoToOSSFromUrl(settings *model.OSSSettings, message *model.Message, videoUrl string) error {
-	data, contentType, extension, err := s.downloadFromUrl(videoUrl, maxVideoSize)
+	data, contentType, extension, err := s.downloadFromUrl(videoUrl, maxFileSize)
 	if err != nil {
 		return fmt.Errorf("下载视频失败: %w", err)
 	}
