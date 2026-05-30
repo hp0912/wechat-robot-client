@@ -119,3 +119,67 @@ func IsVideo(data []byte) bool {
 	videoFormats := []string{".mp4", ".mov", ".avi", ".webm", ".flv", ".wmv", ".mkv", ".3gp"}
 	return slices.Contains(videoFormats, format)
 }
+
+// MimeTypeByExtension 根据文件扩展名返回对应的 MIME 类型
+func MimeTypeByExtension(ext string) string {
+	switch ext {
+	case ".pdf":
+		return "application/pdf"
+	case ".doc":
+		return "application/msword"
+	case ".docx":
+		return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	case ".xls":
+		return "application/vnd.ms-excel"
+	case ".xlsx":
+		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	case ".ppt":
+		return "application/vnd.ms-powerpoint"
+	case ".pptx":
+		return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+	case ".zip":
+		return "application/zip"
+	case ".rar":
+		return "application/vnd.rar"
+	case ".7z":
+		return "application/x-7z-compressed"
+	case ".tar":
+		return "application/x-tar"
+	case ".gz":
+		return "application/gzip"
+	case ".txt":
+		return "text/plain"
+	case ".csv":
+		return "text/csv"
+	case ".html", ".htm":
+		return "text/html"
+	case ".json":
+		return "application/json"
+	case ".xml":
+		return "application/xml"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	case ".bmp":
+		return "image/bmp"
+	case ".svg":
+		return "image/svg+xml"
+	case ".mp4":
+		return "video/mp4"
+	case ".mp3":
+		return "audio/mpeg"
+	case ".wav":
+		return "audio/wav"
+	case ".ogg":
+		return "audio/ogg"
+	case ".aac":
+		return "audio/aac"
+	default:
+		return "application/octet-stream"
+	}
+}

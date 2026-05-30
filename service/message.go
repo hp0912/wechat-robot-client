@@ -1298,10 +1298,10 @@ func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL str
 			}
 		}
 
-		if contentLength > maxVideoSize {
+		if contentLength > maxFileSize {
 			resp.RawBody().Close()
 			tempFile.Close()
-			return fmt.Errorf("视频大小 %dMB 超过限制 %dMB，取消下载", contentLength/(1024*1024), maxVideoSize/(1024*1024))
+			return fmt.Errorf("视频大小 %dMB 超过限制 %dMB，取消下载", contentLength/(1024*1024), maxFileSize/(1024*1024))
 		}
 
 		// 写入第一个分片
@@ -1344,20 +1344,20 @@ func (s *MessageService) SendVideoMessageByRemoteURL(toWxID string, videoURL str
 		}
 	} else if resp.StatusCode() == 200 {
 		log.Println("服务器不支持 Range 请求，使用普通下载方式")
-		if contentLen := resp.RawResponse.ContentLength; contentLen > maxVideoSize {
+		if contentLen := resp.RawResponse.ContentLength; contentLen > maxFileSize {
 			resp.RawBody().Close()
 			tempFile.Close()
-			return fmt.Errorf("视频大小 %dMB 超过限制 %dMB，取消下载", contentLen/(1024*1024), maxVideoSize/(1024*1024))
+			return fmt.Errorf("视频大小 %dMB 超过限制 %dMB，取消下载", contentLen/(1024*1024), maxFileSize/(1024*1024))
 		}
-		n, err := io.Copy(tempFile, io.LimitReader(resp.RawBody(), maxVideoSize+1))
+		n, err := io.Copy(tempFile, io.LimitReader(resp.RawBody(), maxFileSize+1))
 		resp.RawBody().Close()
 		if err != nil {
 			tempFile.Close()
 			return fmt.Errorf("写入视频数据失败: %w", err)
 		}
-		if n > maxVideoSize {
+		if n > maxFileSize {
 			tempFile.Close()
-			return fmt.Errorf("视频大小超过限制 %dMB，取消下载", maxVideoSize/(1024*1024))
+			return fmt.Errorf("视频大小超过限制 %dMB，取消下载", maxFileSize/(1024*1024))
 		}
 	} else {
 		resp.RawBody().Close()
@@ -2078,6 +2078,12 @@ func (s *MessageService) buildQuoteAIMessage(msg *model.Message, isAssistant boo
 				return openai.ChatCompletionMessageParamUnion{}, false
 			}
 			return s.aiTextMessage(isAssistant, xmlMessage.AppMsg.Title), true
+		}
+		if referMsg.AppMsgType == model.AppMsgTypeAttach {
+			if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+			return s.aiTextMessage(isAssistant, "文件地址: "+referMsg.AttachmentUrl+"\n\n"+xmlMessage.AppMsg.Title), true
 		}
 	}
 
