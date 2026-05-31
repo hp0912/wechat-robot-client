@@ -2052,17 +2052,6 @@ func (s *MessageService) buildQuoteAIMessage(msg *model.Message, isAssistant boo
 			return openai.ChatCompletionMessageParamUnion{}, false
 		}
 		return s.aiTextMessage(isAssistant, "视频地址: "+referMsg.AttachmentUrl+"\n\n"+xmlMessage.AppMsg.Title), true
-	case int(model.AppMsgTypequote):
-		referMsg, ok := s.getReferMessageByID(xmlMessage.AppMsg.ReferMsg.SvrID)
-		if !ok {
-			return openai.ChatCompletionMessageParamUnion{}, false
-		}
-
-		var subXmlMessage robot.XmlMessage
-		if err := vars.RobotRuntime.XmlDecoder(referMsg.Content, &subXmlMessage); err != nil {
-			return openai.ChatCompletionMessageParamUnion{}, false
-		}
-		return s.aiTextPartMessage(isAssistant, subXmlMessage.AppMsg.Title, xmlMessage.AppMsg.Title), true
 	case int(model.MsgTypeEmoticon):
 		if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
 			return openai.ChatCompletionMessageParamUnion{}, false
@@ -2073,17 +2062,28 @@ func (s *MessageService) buildQuoteAIMessage(msg *model.Message, isAssistant boo
 		if !ok {
 			return openai.ChatCompletionMessageParamUnion{}, false
 		}
-		if referMsg.AppMsgType == model.AppMsgTypeEmoji {
+		switch referMsg.AppMsgType {
+		case model.AppMsgTypeEmoji:
 			if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
 				return openai.ChatCompletionMessageParamUnion{}, false
 			}
 			return s.aiTextMessage(isAssistant, xmlMessage.AppMsg.Title), true
-		}
-		if referMsg.AppMsgType == model.AppMsgTypeAttach {
+		case model.AppMsgTypeAttach:
 			if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
 				return openai.ChatCompletionMessageParamUnion{}, false
 			}
 			return s.aiTextMessage(isAssistant, "文件地址: "+referMsg.AttachmentUrl+"\n\n"+xmlMessage.AppMsg.Title), true
+		case model.AppMsgTypequote:
+			subRefMsg, err := s.msgRepo.GetByID(referMsg.ID)
+			if err != nil || subRefMsg == nil {
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+
+			var subXmlMessage robot.XmlMessage
+			if err := vars.RobotRuntime.XmlDecoder(subRefMsg.Content, &subXmlMessage); err != nil {
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+			return s.aiTextPartMessage(isAssistant, subXmlMessage.AppMsg.Title, xmlMessage.AppMsg.Title), true
 		}
 	}
 
