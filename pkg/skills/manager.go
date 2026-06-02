@@ -529,6 +529,8 @@ func (m *SkillsManager) executeScript(robotCtx robotctx.RobotContext, argsJSON s
 		cmdArgs = append(cmdArgs, "sh", absScript)
 	case ".js":
 		cmdArgs = append(cmdArgs, "node", absScript)
+	case ".ts":
+		cmdArgs = append(cmdArgs, "tsx", absScript)
 	default:
 		// 尝试直接执行
 		cmdArgs = append(cmdArgs, absScript)
@@ -551,8 +553,8 @@ func (m *SkillsManager) executeScript(robotCtx robotctx.RobotContext, argsJSON s
 	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 	cmd.Dir = skill.Path
 
-	// 注入环境变量
-	env := robotCtx.ToEnvVars()
+	env := m.scriptBaseEnv()
+	env = append(env, robotCtx.ToEnvVars()...)
 	for _, ev := range skill.EnvVars {
 		if ev.Key != "" {
 			env = append(env, ev.Key+"="+ev.Value)
@@ -575,6 +577,15 @@ func (m *SkillsManager) executeScript(robotCtx robotctx.RobotContext, argsJSON s
 
 	log.Printf("[Skills] Script completed: %s (%d bytes output)", absScript, len(output))
 	return result, nil
+}
+
+func (m *SkillsManager) scriptBaseEnv() []string {
+	path := os.Getenv("PATH")
+	if path == "" {
+		path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	}
+
+	return []string{"PATH=" + path}
 }
 
 // syncToDB 将所有内存中的 Skill 同步到数据库
