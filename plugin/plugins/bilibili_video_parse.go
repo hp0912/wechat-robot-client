@@ -105,7 +105,7 @@ func (p *BilibiliVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 		Title:    fmt.Sprintf("B站视频 - %s", respData.Data.Author),
 		Des:      respData.Data.Title,
 		Url:      respData.Data.URL,
-		ThumbUrl: robot.CDATAString(respData.Data.Cover),
+		ThumbUrl: robot.CDATAString("https://mmbiz.qpic.cn/sz_mmbiz_jpg/lB5IHibX4CX3ibibHThIgqecGpt0Xv98fkia1UcgIqiaEnZCDnibhY5qb7CZytpwQ6F9zSLo37ricYz8bfOEMuiclozTvGxQLfHsJia5LKNEk2Cpekp8/640?wx_fmt=jpeg&amp;from=appmsg"),
 	}
 	if respData.Data.Desc != "" {
 		shareLink.Des = respData.Data.Desc
