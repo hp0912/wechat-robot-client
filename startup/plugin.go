@@ -22,6 +22,8 @@ func RegisterMessagePlugin() {
 	vars.MessagePlugin.Register(plugins.NewPatPlugin())
 	// 抖音解析插件
 	vars.MessagePlugin.Register(plugins.NewDouyinVideoParsePlugin())
+	// B站视频解析插件
+	vars.MessagePlugin.Register(plugins.NewBilibiliVideoParsePlugin())
 	// 图片自动上传插件
 	vars.MessagePlugin.Register(plugins.NewImageAutoUploadPlugin())
 }
