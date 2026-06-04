@@ -17,6 +17,7 @@ import (
 	"github.com/openai/openai-go/v3"
 
 	"wechat-robot-client/pkg/robotctx"
+	"wechat-robot-client/pkg/utils"
 )
 
 // SkillRepository 数据库持久化接口（由 repository 层实现）
@@ -553,7 +554,7 @@ func (m *SkillsManager) executeScript(robotCtx robotctx.RobotContext, argsJSON s
 	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 	cmd.Dir = skill.Path
 
-	env := m.scriptBaseEnv()
+	env := utils.GetPublicEnvVars()
 	env = append(env, robotCtx.ToEnvVars()...)
 	for _, ev := range skill.EnvVars {
 		if ev.Key != "" {
@@ -577,15 +578,6 @@ func (m *SkillsManager) executeScript(robotCtx robotctx.RobotContext, argsJSON s
 
 	log.Printf("[Skills] Script completed: %s (%d bytes output)", absScript, len(output))
 	return result, nil
-}
-
-func (m *SkillsManager) scriptBaseEnv() []string {
-	path := os.Getenv("PATH")
-	if path == "" {
-		path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-	}
-
-	return []string{"PATH=" + path}
 }
 
 // syncToDB 将所有内存中的 Skill 同步到数据库
