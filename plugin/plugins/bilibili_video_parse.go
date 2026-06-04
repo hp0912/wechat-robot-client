@@ -90,7 +90,7 @@ func (p *BilibiliVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 	}
 	bilibiliURL := matches[0]
 
-	respData, err := parseBilibiliVideo(bilibiliURL)
+	respData, err := p.ParseBilibiliVideo(bilibiliURL)
 	if err != nil {
 		log.Printf("Bilibili视频解析失败: %v\n", err)
 		return
@@ -117,7 +117,7 @@ func (p *BilibiliVideoParsePlugin) Run(ctx *plugin.MessageContext) {
 	}
 }
 
-func parseBilibiliVideo(bilibiliURL string) (BilibiliAPIResponse, error) {
+func (p *BilibiliVideoParsePlugin) ParseBilibiliVideo(bilibiliURL string) (BilibiliAPIResponse, error) {
 	var respData BilibiliAPIResponse
 	client := resty.New()
 	resp, err := client.R().
