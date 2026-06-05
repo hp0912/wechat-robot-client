@@ -36,6 +36,7 @@ func NewOpenAIToolsManager(db *gorm.DB, knowledgeService ai.KnowledgeService) *O
 func (m *OpenAIToolsManager) Initialize() error {
 	m.tools["search_document"] = NewSearchKnowledgeTool(m.KnowledgeService)
 	m.tools["search_chat_room_memory"] = NewSearchChatRoomMemoryTool(m.db)
+	m.tools["search_memory"] = NewSearchMemoryTool()
 	return nil
 }
 
