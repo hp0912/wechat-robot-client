@@ -73,7 +73,7 @@ func (t *SearchChatRoomMemoryTool) BuildSystemPrompt(ctx context.Context, robotC
 	if t.db == nil || robotCtx == nil || !strings.HasSuffix(robotCtx.FromWxID, "@chatroom") {
 		return "", nil
 	}
-	return "\n\n## 当前微信群成员记忆查询工具\n当用户询问当前微信群里的某个成员是什么样的人、性格、偏好、画像、活跃话题，或询问两个群成员之间是什么关系、熟不熟、互动模式、玩笑搭档、冲突、暧昧/亲密程度等信息时，必须调用 `search_chat_room_memory` 工具。\n参数 `member_names` 使用用户原话中出现的群成员昵称/备注/微信号；一个人画像传 1 个名字，两人关系传 2 个名字。工具会优先按昵称/备注/微信号完全相等匹配，不存在再按包含关系匹配。\n如果工具返回候选不唯一或找不到成员，不要猜测具体是谁，应先说明无法确定并请用户补充更准确的昵称。回答用户时优先使用群昵称或备注，不要主动暴露微信ID。", nil
+	return "微信群成员画像/关系查询工具", nil
 }
 
 func (t *SearchChatRoomMemoryTool) ExecuteToolCall(ctx context.Context, robotCtx *robotctx.RobotContext, toolCall openai.ChatCompletionMessageToolCallUnion) (string, bool, error) {
