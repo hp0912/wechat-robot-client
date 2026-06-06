@@ -30,6 +30,12 @@ type SendAppMessageRequest struct {
 	XML  string `form:"xml" json:"xml" binding:"required"`
 }
 
+type SendEmojiMessageRequest struct {
+	SendMessageCommonRequest
+	Md5      string `form:"Md5" json:"Md5" binding:"required"`
+	TotalLen int32  `form:"TotalLen" json:"TotalLen" binding:"required"`
+}
+
 type SendMusicMessageRequest struct {
 	SendMessageCommonRequest
 	Song string `form:"song" json:"song" binding:"required"`
