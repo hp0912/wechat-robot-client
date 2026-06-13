@@ -1,4 +1,5 @@
 .env
+AGENTS.local.md
 template
 dev-wechat-ipad.yml
 wechat-robot-client
