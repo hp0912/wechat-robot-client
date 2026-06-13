@@ -1,8 +1,10 @@
 .env
+AGENTS.local.md
 template
 dev-wechat-ipad.yml
 wechat-robot-client
 pkg/good_morning/test_output
+docs
 __debug*
 .gocache/
 
