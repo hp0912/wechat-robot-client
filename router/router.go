@@ -28,6 +28,7 @@ var pprofProxyCtl *controller.PprofProxy
 var skillCtl *controller.SkillController
 var knowledgeCtl *controller.Knowledge
 var knowledgeCategoryCtl *controller.KnowledgeCategory
+var systemPromptCtl *controller.SystemPrompt
 
 func initController() {
 	chatHistoryCtl = controller.NewChatHistoryController()
@@ -51,6 +52,7 @@ func initController() {
 	skillCtl = controller.NewSkillController()
 	knowledgeCtl = controller.NewKnowledgeController()
 	knowledgeCategoryCtl = controller.NewKnowledgeCategoryController()
+	systemPromptCtl = controller.NewSystemPromptController()
 }
 
 func RegisterRouter(r *gin.Engine) error {
@@ -161,6 +163,13 @@ func RegisterRouter(r *gin.Engine) error {
 	api.PUT("/robot/skill/update", skillCtl.UpdateSkill)
 	api.DELETE("/robot/skill/uninstall", skillCtl.UninstallSkill)
 	api.POST("/robot/skill/env-vars", skillCtl.SetSkillEnvVars)
+
+	// 系统提示词管理接口
+	api.GET("/robot/system-prompts", systemPromptCtl.List)
+	api.GET("/robot/system-prompt", systemPromptCtl.Get)
+	api.POST("/robot/system-prompt", systemPromptCtl.Create)
+	api.PUT("/robot/system-prompt", systemPromptCtl.Update)
+	api.DELETE("/robot/system-prompt", systemPromptCtl.Delete)
 
 	// 知识库分类管理接口
 	api.GET("/robot/knowledge/categories", knowledgeCategoryCtl.List)

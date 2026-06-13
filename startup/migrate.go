@@ -38,6 +38,7 @@ func autoMigrateTasks() []migrateTask {
 				&model.OSSSettings{},
 				&model.MomentSettings{},
 				&model.Skill{},
+				&model.SystemPrompt{},
 			},
 		},
 	}
