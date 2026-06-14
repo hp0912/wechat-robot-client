@@ -20,6 +20,7 @@ import (
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 )
 
@@ -31,6 +32,39 @@ var (
 	syncChatRoomMemberTimers = make(map[string]*time.Timer)
 )
 
+type memberNameObservation struct {
+	Nickname *string
+	Remark   *string
+	Alias    *string
+}
+
+type memberNameAliasChange struct {
+	OldValue          string
+	ObservedValue     *string
+	OldAliasType      model.MemberAliasType
+	CurrentAliasType  model.MemberAliasType
+	CurrentConfidence int
+}
+
+type memberAliasRecord struct {
+	ChatRoomID string
+	MemberWxID string
+	Alias      string
+	AliasType  model.MemberAliasType
+	Confidence int
+	IsActive   bool
+	SeenAt     int64
+}
+
+type currentMemberAliasSnapshot struct {
+	ChatRoomID string
+	MemberWxID string
+	Nickname   string
+	Remark     string
+	Alias      string
+	SeenAt     int64
+}
+
 type ChatRoomService struct {
 	ctx                context.Context
 	msgRepo            *repository.Message
@@ -38,6 +72,7 @@ type ChatRoomService struct {
 	gsRepo             *repository.GlobalSettings
 	crsRepo            *repository.ChatRoomSettings
 	crmRepo            *repository.ChatRoomMember
+	memoryV4Repo       *repository.MemoryV4
 	sysmsgRepo         *repository.SystemMessage
 	systemSettingsRepo *repository.SystemSettings
 }
@@ -50,8 +85,120 @@ func NewChatRoomService(ctx context.Context) *ChatRoomService {
 		gsRepo:             repository.NewGlobalSettingsRepo(ctx, vars.DB),
 		crsRepo:            repository.NewChatRoomSettingsRepo(ctx, vars.DB),
 		crmRepo:            repository.NewChatRoomMemberRepo(ctx, vars.DB),
+		memoryV4Repo:       repository.NewMemoryV4Repo(ctx, vars.DB),
 		sysmsgRepo:         repository.NewSystemMessageRepo(ctx, vars.DB),
 		systemSettingsRepo: repository.NewSystemSettingsRepo(ctx, vars.DB),
+	}
+}
+
+func (s *ChatRoomService) recordMemberNameChanges(
+	chatRoomID string,
+	existing *model.ChatRoomMember,
+	observed memberNameObservation,
+	seenAt int64,
+) {
+	for _, record := range buildMemberNameAliasRecords(existing, observed) {
+		record.ChatRoomID = chatRoomID
+		record.MemberWxID = existing.WechatID
+		record.SeenAt = seenAt
+		s.recordMemberAlias(record)
+	}
+}
+
+func buildMemberNameAliasRecords(existing *model.ChatRoomMember, observed memberNameObservation) []memberAliasRecord {
+	if existing == nil {
+		return nil
+	}
+	records := make([]memberAliasRecord, 0, 6)
+	records = appendNameAliasRecords(records, memberNameAliasChange{
+		OldValue:          existing.Nickname,
+		ObservedValue:     observed.Nickname,
+		OldAliasType:      model.MemberAliasTypeOldNickname,
+		CurrentAliasType:  model.MemberAliasTypeCurrentNickname,
+		CurrentConfidence: 100,
+	})
+	records = appendNameAliasRecords(records, memberNameAliasChange{
+		OldValue:          existing.Remark,
+		ObservedValue:     observed.Remark,
+		OldAliasType:      model.MemberAliasTypeOldRemark,
+		CurrentAliasType:  model.MemberAliasTypeCurrentRemark,
+		CurrentConfidence: 100,
+	})
+	records = appendNameAliasRecords(records, memberNameAliasChange{
+		OldValue:          existing.Alias,
+		ObservedValue:     observed.Alias,
+		OldAliasType:      model.MemberAliasTypeOldWechatAlias,
+		CurrentAliasType:  model.MemberAliasTypeWechatAlias,
+		CurrentConfidence: 95,
+	})
+	return records
+}
+
+func appendNameAliasRecords(records []memberAliasRecord, change memberNameAliasChange) []memberAliasRecord {
+	if change.ObservedValue == nil {
+		return records
+	}
+	newValue := strings.TrimSpace(*change.ObservedValue)
+	oldValue := strings.TrimSpace(change.OldValue)
+	if oldValue != "" && oldValue != newValue {
+		records = append(records, memberAliasRecord{
+			Alias:      oldValue,
+			AliasType:  change.OldAliasType,
+			Confidence: 95,
+			IsActive:   false,
+		})
+	}
+	if newValue != "" {
+		records = append(records, memberAliasRecord{
+			Alias:      newValue,
+			AliasType:  change.CurrentAliasType,
+			Confidence: change.CurrentConfidence,
+			IsActive:   true,
+		})
+	}
+	return records
+}
+
+func (s *ChatRoomService) recordCurrentMemberAliases(snapshot currentMemberAliasSnapshot) {
+	records := []memberAliasRecord{
+		{Alias: snapshot.Nickname, AliasType: model.MemberAliasTypeCurrentNickname, Confidence: 100, IsActive: true},
+		{Alias: snapshot.Remark, AliasType: model.MemberAliasTypeCurrentRemark, Confidence: 100, IsActive: true},
+		{Alias: snapshot.Alias, AliasType: model.MemberAliasTypeWechatAlias, Confidence: 95, IsActive: true},
+	}
+	for _, record := range records {
+		record.ChatRoomID = snapshot.ChatRoomID
+		record.MemberWxID = snapshot.MemberWxID
+		record.SeenAt = snapshot.SeenAt
+		s.recordMemberAlias(record)
+	}
+}
+
+func (s *ChatRoomService) recordMemberAlias(record memberAliasRecord) {
+	alias := strings.TrimSpace(record.Alias)
+	memberWxID := strings.TrimSpace(record.MemberWxID)
+	chatRoomID := strings.TrimSpace(record.ChatRoomID)
+	if s.memoryV4Repo == nil || vars.RobotRuntime.RobotCode == "" || chatRoomID == "" || memberWxID == "" || alias == "" {
+		return
+	}
+	if record.SeenAt == 0 {
+		record.SeenAt = time.Now().Unix()
+	}
+	aliasModel := &model.MemberAlias{
+		RobotCode:   vars.RobotRuntime.RobotCode,
+		ChatRoomID:  chatRoomID,
+		MemberWxID:  memberWxID,
+		Alias:       alias,
+		AliasType:   record.AliasType,
+		Confidence:  clampInt(defaultInt(record.Confidence, 70), 1, 100),
+		Source:      "contact_sync",
+		IsActive:    record.IsActive,
+		FirstSeenAt: record.SeenAt,
+		LastSeenAt:  record.SeenAt,
+		CreatedAt:   record.SeenAt,
+		UpdatedAt:   record.SeenAt,
+	}
+	if err := s.memoryV4Repo.UpsertMemberAlias(aliasModel); err != nil {
+		log.Printf("[MemoryV4] 记录群成员别称失败 chat_room=%s member=%s alias=%q type=%s: %v", chatRoomID, memberWxID, alias, record.AliasType, err)
 	}
 }
 
@@ -107,6 +254,14 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 			if existMember != nil {
 				// 更新现有成员
 				isLeaved := false
+				newRemark := ""
+				if member.DisplayName != nil && *member.DisplayName != "" {
+					newRemark = *member.DisplayName
+				}
+				s.recordMemberNameChanges(chatRoomID, existMember, memberNameObservation{
+					Nickname: utils.StringPtr(member.NickName),
+					Remark:   utils.StringPtr(newRemark),
+				}, now)
 				updateMember := map[string]any{
 					"nickname":          member.NickName,
 					"avatar":            member.SmallHeadImgUrl,
@@ -114,8 +269,8 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					"is_leaved":         &isLeaved, // 确保标记为未离开
 					"leaved_at":         nil,       // 清除离开时间
 				}
-				if member.DisplayName != nil && *member.DisplayName != "" {
-					updateMember["remark"] = *member.DisplayName
+				if newRemark != "" {
+					updateMember["remark"] = newRemark
 				} else {
 					updateMember["remark"] = ""
 				}
@@ -150,6 +305,13 @@ func (s *ChatRoomService) SyncChatRoomMember(chatRoomID string) {
 					log.Printf("创建群[%s]成员[%s]失败: %v", chatRoomID, member.UserName, err)
 					continue
 				}
+				s.recordCurrentMemberAliases(currentMemberAliasSnapshot{
+					ChatRoomID: chatRoomID,
+					MemberWxID: member.UserName,
+					Nickname:   member.NickName,
+					Remark:     newMember.Remark,
+					SeenAt:     now,
+				})
 			}
 		}
 		// 查询数据库中该群的所有成员
@@ -444,10 +606,18 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 		if existMember != nil {
 			// 更新现有成员
 			isLeaved := false
+			newNickname := ""
+			if member.NickName.String != nil {
+				newNickname = *member.NickName.String
+			}
+			s.recordMemberNameChanges(chatRoomID, existMember, memberNameObservation{
+				Nickname: utils.StringPtr(newNickname),
+				Alias:    utils.StringPtr(member.Alias),
+			}, now)
 			updateMember := map[string]any{
 				"wechat_id": memberUserName,
 				"alias":     member.Alias,
-				"nickname":  *member.NickName.String,
+				"nickname":  newNickname,
 				"sex":       member.Sex,
 				"avatar":    member.SmallHeadImgUrl,
 				"is_leaved": &isLeaved, // 确保标记为未离开
@@ -466,7 +636,7 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 				ChatRoomID:      chatRoomID,
 				WechatID:        memberUserName,
 				Alias:           member.Alias,
-				Nickname:        *member.NickName.String,
+				Nickname:        utils.GetTrimmedString(member.NickName.String),
 				Sex:             &member.Sex,
 				Avatar:          member.SmallHeadImgUrl,
 				InviterWechatID: "",
@@ -479,6 +649,13 @@ func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID stri
 				log.Printf("创建群[%s]成员[%s]失败: %v", chatRoomID, memberUserName, err)
 				continue
 			}
+			s.recordCurrentMemberAliases(currentMemberAliasSnapshot{
+				ChatRoomID: chatRoomID,
+				MemberWxID: memberUserName,
+				Nickname:   newMember.Nickname,
+				Alias:      member.Alias,
+				SeenAt:     now,
+			})
 		}
 	}
 	return s.crmRepo.GetChatRoomMemberByWeChatIDs(chatRoomID, memberWeChatIDs)

@@ -22,6 +22,15 @@ type MemberAliasCandidate struct {
 	Member      *model.ChatRoomMember
 }
 
+type currentNameMatch struct {
+	Member          *model.ChatRoomMember
+	Name            string
+	Mode            string
+	NormalizedInput string
+	OriginalInput   string
+	Confidence      int
+}
+
 func NewMemberAliasResolver(members []*model.ChatRoomMember, aliases []*model.MemberAlias) *MemberAliasResolver {
 	return &MemberAliasResolver{
 		members: members,
@@ -42,10 +51,38 @@ func (r *MemberAliasResolver) Resolve(inputName string) []MemberAliasCandidate {
 		if member == nil || strings.TrimSpace(member.WechatID) == "" {
 			continue
 		}
-		r.addCurrentNameMatch(bestByMember, member, member.WechatID, "wechat_id", normalizedInput, inputName, 120)
-		r.addCurrentNameMatch(bestByMember, member, member.Remark, string(model.MemberAliasTypeCurrentRemark), normalizedInput, inputName, 110)
-		r.addCurrentNameMatch(bestByMember, member, member.Nickname, string(model.MemberAliasTypeCurrentNickname), normalizedInput, inputName, 105)
-		r.addCurrentNameMatch(bestByMember, member, member.Alias, string(model.MemberAliasTypeWechatAlias), normalizedInput, inputName, 100)
+		r.addCurrentNameMatch(bestByMember, currentNameMatch{
+			Member:          member,
+			Name:            member.WechatID,
+			Mode:            "wechat_id",
+			NormalizedInput: normalizedInput,
+			OriginalInput:   inputName,
+			Confidence:      120,
+		})
+		r.addCurrentNameMatch(bestByMember, currentNameMatch{
+			Member:          member,
+			Name:            member.Remark,
+			Mode:            string(model.MemberAliasTypeCurrentRemark),
+			NormalizedInput: normalizedInput,
+			OriginalInput:   inputName,
+			Confidence:      110,
+		})
+		r.addCurrentNameMatch(bestByMember, currentNameMatch{
+			Member:          member,
+			Name:            member.Nickname,
+			Mode:            string(model.MemberAliasTypeCurrentNickname),
+			NormalizedInput: normalizedInput,
+			OriginalInput:   inputName,
+			Confidence:      105,
+		})
+		r.addCurrentNameMatch(bestByMember, currentNameMatch{
+			Member:          member,
+			Name:            member.Alias,
+			Mode:            string(model.MemberAliasTypeWechatAlias),
+			NormalizedInput: normalizedInput,
+			OriginalInput:   inputName,
+			Confidence:      100,
+		})
 	}
 
 	for _, alias := range r.aliases {
@@ -101,19 +138,22 @@ func (r *MemberAliasResolver) memberByWxID() map[string]*model.ChatRoomMember {
 	return memberByWxID
 }
 
-func (r *MemberAliasResolver) addCurrentNameMatch(bestByMember map[string]MemberAliasCandidate, member *model.ChatRoomMember, name, mode, normalizedInput, originalInput string, confidence int) {
-	name = strings.TrimSpace(name)
-	if name == "" || normalizeAliasForMatch(name) != normalizedInput {
+func (r *MemberAliasResolver) addCurrentNameMatch(bestByMember map[string]MemberAliasCandidate, match currentNameMatch) {
+	if match.Member == nil {
+		return
+	}
+	name := strings.TrimSpace(match.Name)
+	if name == "" || normalizeAliasForMatch(name) != match.NormalizedInput {
 		return
 	}
 	r.keepBest(bestByMember, MemberAliasCandidate{
-		MemberWxID:  member.WechatID,
-		DisplayName: DisplayNameForMember(member),
-		MatchedName: originalInput,
-		MatchMode:   mode,
-		Confidence:  confidence,
-		LastSeenAt:  member.LastActiveAt,
-		Member:      member,
+		MemberWxID:  match.Member.WechatID,
+		DisplayName: DisplayNameForMember(match.Member),
+		MatchedName: match.OriginalInput,
+		MatchMode:   match.Mode,
+		Confidence:  match.Confidence,
+		LastSeenAt:  match.Member.LastActiveAt,
+		Member:      match.Member,
 	})
 }
 

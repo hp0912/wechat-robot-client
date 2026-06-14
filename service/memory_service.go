@@ -29,15 +29,16 @@ const (
 )
 
 type MemoryService struct {
-	db          *gorm.DB
-	vectorStore *VectorStoreService
-	memoryRepo  *repository.Memory
-	msgRepo     *repository.Message
-	contactRepo *repository.Contact
-	crmRepo     *repository.ChatRoomMember
-	gsRepo      *repository.GlobalSettings
-	crsRepo     *repository.ChatRoomSettings
-	mu          sync.Mutex
+	db           *gorm.DB
+	vectorStore  *VectorStoreService
+	memoryRepo   *repository.Memory
+	memoryV4Repo *repository.MemoryV4
+	msgRepo      *repository.Message
+	contactRepo  *repository.Contact
+	crmRepo      *repository.ChatRoomMember
+	gsRepo       *repository.GlobalSettings
+	crsRepo      *repository.ChatRoomSettings
+	mu           sync.Mutex
 }
 
 var _ ai.MemoryService = (*MemoryService)(nil)
@@ -80,22 +81,36 @@ type extractedMemberRelationship struct {
 }
 
 type memoryExtractionResult struct {
-	Memories            []extractedMemory             `json:"memories"`
-	MemberProfiles      []extractedMemberProfile      `json:"member_profiles"`
-	MemberRelationships []extractedMemberRelationship `json:"member_relationships"`
+	Memories               []extractedMemory                `json:"memories"`
+	MemberProfiles         []extractedMemberProfile         `json:"member_profiles"`
+	MemberRelationships    []extractedMemberRelationship    `json:"member_relationships"`
+	MemberAliases          []extractedMemberAlias           `json:"member_aliases"`
+	MemberFacts            []extractedMemberFact            `json:"member_facts"`
+	MemberEvents           []extractedMemberEvent           `json:"member_events"`
+	RelationshipAssertions []extractedRelationshipAssertion `json:"relationship_assertions"`
+	RelationshipEdges      []extractedRelationshipEdge      `json:"relationship_edges"`
+}
+
+type memoryExtractionRequest struct {
+	Settings    *model.GlobalSettings
+	Transcript  string
+	IsChatRoom  bool
+	ChatRoomID  string
+	ContactWxID string
 }
 
 func NewMemoryService(db *gorm.DB, vectorStore *VectorStoreService) *MemoryService {
 	ctx := context.Background()
 	return &MemoryService{
-		db:          db,
-		vectorStore: vectorStore,
-		memoryRepo:  repository.NewMemoryRepo(ctx, db),
-		msgRepo:     repository.NewMessageRepo(ctx, db),
-		contactRepo: repository.NewContactRepo(ctx, db),
-		crmRepo:     repository.NewChatRoomMemberRepo(ctx, db),
-		gsRepo:      repository.NewGlobalSettingsRepo(ctx, db),
-		crsRepo:     repository.NewChatRoomSettingsRepo(ctx, db),
+		db:           db,
+		vectorStore:  vectorStore,
+		memoryRepo:   repository.NewMemoryRepo(ctx, db),
+		memoryV4Repo: repository.NewMemoryV4Repo(ctx, db),
+		msgRepo:      repository.NewMessageRepo(ctx, db),
+		contactRepo:  repository.NewContactRepo(ctx, db),
+		crmRepo:      repository.NewChatRoomMemberRepo(ctx, db),
+		gsRepo:       repository.NewGlobalSettingsRepo(ctx, db),
+		crsRepo:      repository.NewChatRoomSettingsRepo(ctx, db),
 	}
 }
 
@@ -312,7 +327,13 @@ func (s *MemoryService) extractAndStore(ctx context.Context, messages []*model.M
 	if transcript == "" {
 		return nil
 	}
-	result, err := s.extractMemoriesWithAI(ctx, settings, transcript, isChatRoom, chatRoomID, contactWxID)
+	result, err := s.extractMemoriesWithAI(ctx, memoryExtractionRequest{
+		Settings:    settings,
+		Transcript:  transcript,
+		IsChatRoom:  isChatRoom,
+		ChatRoomID:  chatRoomID,
+		ContactWxID: contactWxID,
+	})
 	if err != nil {
 		return err
 	}
@@ -322,9 +343,12 @@ func (s *MemoryService) extractAndStore(ctx context.Context, messages []*model.M
 		}
 	}
 	if isChatRoom {
+		if err := s.saveV4Extraction(ctx, result, chatRoomID); err != nil {
+			log.Printf("[MemoryV4] 保存群成员记忆失败: %v", err)
+		}
 		for _, profile := range result.MemberProfiles {
 			if err := s.saveMemberProfile(profile, chatRoomID); err != nil {
-				log.Printf("[Memory] 保存群成员画像失败: %v", err)
+				log.Printf("[Memory] 保存群成员印象失败: %v", err)
 			}
 		}
 		for _, rel := range result.MemberRelationships {
@@ -429,12 +453,12 @@ func (n mentionNormalizer) Normalize(content string) (string, []string) {
 	return result, mentionedWxIDs
 }
 
-func (s *MemoryService) extractMemoriesWithAI(ctx context.Context, settings *model.GlobalSettings, transcript string, isChatRoom bool, chatRoomID, contactWxID string) (*memoryExtractionResult, error) {
+func (s *MemoryService) extractMemoriesWithAI(ctx context.Context, req memoryExtractionRequest) (*memoryExtractionResult, error) {
 	scene := "私聊"
-	scopeRule := fmt.Sprintf("只能产生 scope=friend 的记忆，contact_wxid 必须是 %s，chat_room_id 必须为空。", contactWxID)
-	if isChatRoom {
+	scopeRule := fmt.Sprintf("只能产生 scope=friend 的记忆，contact_wxid 必须是 %s，chat_room_id 必须为空。", req.ContactWxID)
+	if req.IsChatRoom {
 		scene = "群聊"
-		scopeRule = fmt.Sprintf("可以产生 scope=group_member、group、relation 的记忆；所有 chat_room_id 必须是 %s；群成员画像和关系必须使用 sender_wxid，不要使用昵称作为主键。", chatRoomID)
+		scopeRule = fmt.Sprintf("可以产生 scope=group_member、group、relation 的记忆；所有 chat_room_id 必须是 %s；群成员印象和关系必须使用 sender_wxid，不要使用昵称作为主键。", req.ChatRoomID)
 	}
 
 	systemPrompt := fmt.Sprintf(`你是微信聊天机器人的长期记忆抽取器。当前场景：%s。
@@ -442,18 +466,22 @@ func (s *MemoryService) extractMemoriesWithAI(ctx context.Context, settings *mod
 硬性规则：
 1. 存储身份必须使用微信 ID 字段，不要把昵称写入 contact_wxid/member_wxid/from_wxid/to_wxid。
 2. %s
-3. 只记录稳定偏好、身份背景、长期兴趣、重要事实、重要事件、群成员画像、群内人际关系；不要记录普通寒暄、一次性玩笑、无意义闲聊。
-4. 不确定的信息降低 confidence；没有价值时返回空数组。
+3. 只记录稳定偏好、身份背景、长期兴趣、重要事实、重要事件、群成员印象、群内人际关系；不要记录普通寒暄、一次性玩笑、无意义闲聊。
+4. 不确定的信息把 confidence 填低一些，confidence 表示可信度；没有价值时返回空数组。
 5. content/summary 可以是中文自然语言，但涉及具体人时优先用微信 ID 表达，系统展示时会再转换昵称。
 6. relation_type 用 friend、coworker、helper、familiar、conflict、joke_partner、mentor、other 之一。
 7. transcript 中的 mentioned_wxids 和 content 里的 @wxid 表示明确提及对象，可作为群成员互动和关系判断的重要证据。
-8. 必须使用有效的 JSON 格式数据进行回复。
+8. 群聊中如果发现别人用非正式称呼指代成员，例如“老牛”“张总”，放到 member_aliases，alias_type 使用 observed_call_name。
+9. 成员的职业、爱好、不喜欢的东西、长期偏好、性格、技能、习惯放到 member_facts，不要只写到 summary 里。
+10. “昨天/今天/刚才/上周做了什么、计划做什么、去了哪里”等带时间的动态放到 member_events，并尽量填写 mentioned_at/time_start/time_end 的 Unix 秒时间戳。
+11. 一次聊天里出现的两人互动、称呼、帮忙、冲突、玩笑等关系线索放到 relationship_assertions；多次线索能沉淀成稳定关系时，再写入 relationship_edges。无方向关系 direction=undirected，有方向关系 direction=directed。
+12. 必须使用有效的 JSON 格式数据进行回复，所有数组字段即使为空也返回 []。
 `, scene, scopeRule)
 
-	userPrompt := "聊天窗口如下：\n" + transcript
-	client := newOpenAIClient(settings.ChatAPIKey, settings.ChatBaseURL)
+	userPrompt := "聊天窗口如下：\n" + req.Transcript
+	client := newOpenAIClient(req.Settings.ChatAPIKey, req.Settings.ChatBaseURL)
 	msg, err := streamChatCompletionMessage(ctx, &client, openai.ChatCompletionNewParams{
-		Model: settings.ChatModel,
+		Model: req.Settings.ChatModel,
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(systemPrompt),
 			openai.UserMessage(userPrompt),
@@ -462,7 +490,7 @@ func (s *MemoryService) extractMemoriesWithAI(ctx context.Context, settings *mod
 			OfJSONSchema: &openai.ResponseFormatJSONSchemaParam{
 				JSONSchema: openai.ResponseFormatJSONSchemaJSONSchemaParam{
 					Name:        "wechat_memory_extraction",
-					Description: openai.String("微信聊天长期记忆、群成员画像和群成员关系抽取结果。"),
+					Description: openai.String("微信聊天长期记忆、群成员印象和群成员关系抽取结果。"),
 					Strict:      openai.Bool(false),
 					Schema:      memoryExtractionSchema(),
 				},
@@ -526,14 +554,96 @@ func memoryExtractionSchema() map[string]any {
 		},
 		"required": []string{"chat_room_id", "from_wxid", "to_wxid", "relation_type", "strength", "summary", "evidence_msg_ids"},
 	}
+	aliasItem := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"chat_room_id":  map[string]any{"type": "string"},
+			"member_wxid":   map[string]any{"type": "string"},
+			"alias":         map[string]any{"type": "string"},
+			"alias_type":    map[string]any{"type": "string", "enum": []string{"current_nickname", "current_remark", "wechat_alias", "old_nickname", "old_remark", "old_wechat_alias", "observed_call_name", "self_claimed"}},
+			"confidence":    map[string]any{"type": "integer", "minimum": 1, "maximum": 100},
+			"source_msg_id": map[string]any{"type": "integer"},
+			"observed_by":   map[string]any{"type": "string"},
+			"is_active":     map[string]any{"type": "boolean"},
+		},
+		"required": []string{"chat_room_id", "member_wxid", "alias", "alias_type", "confidence", "source_msg_id", "observed_by", "is_active"},
+	}
+	factItem := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"chat_room_id":     map[string]any{"type": "string"},
+			"subject_wxid":     map[string]any{"type": "string"},
+			"predicate":        map[string]any{"type": "string", "enum": []string{"occupation", "interest", "dislike", "preference", "personality", "skill", "background", "location", "habit", "other"}},
+			"object_text":      map[string]any{"type": "string"},
+			"object_json":      map[string]any{"type": "object"},
+			"polarity":         map[string]any{"type": "integer", "minimum": -1, "maximum": 1},
+			"confidence":       map[string]any{"type": "integer", "minimum": 1, "maximum": 100},
+			"evidence_msg_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}},
+			"observed_at":      map[string]any{"type": "integer"},
+			"valid_from":       map[string]any{"type": "integer"},
+			"valid_until":      map[string]any{"type": "integer"},
+			"status":           map[string]any{"type": "string", "enum": []string{"active", "contradicted", "expired"}},
+		},
+		"required": []string{"chat_room_id", "subject_wxid", "predicate", "object_text", "object_json", "polarity", "confidence", "evidence_msg_ids", "observed_at", "valid_from", "valid_until", "status"},
+	}
+	eventItem := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"chat_room_id":     map[string]any{"type": "string"},
+			"actor_wxids":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+			"target_wxids":     map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+			"event_type":       map[string]any{"type": "string", "enum": []string{"activity", "plan", "completed", "location", "work", "social", "other"}},
+			"summary":          map[string]any{"type": "string"},
+			"time_start":       map[string]any{"type": "integer"},
+			"time_end":         map[string]any{"type": "integer"},
+			"mentioned_at":     map[string]any{"type": "integer"},
+			"confidence":       map[string]any{"type": "integer", "minimum": 1, "maximum": 100},
+			"evidence_msg_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}},
+		},
+		"required": []string{"chat_room_id", "actor_wxids", "target_wxids", "event_type", "summary", "time_start", "time_end", "mentioned_at", "confidence", "evidence_msg_ids"},
+	}
+	assertionItem := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"chat_room_id":     map[string]any{"type": "string"},
+			"from_wxid":        map[string]any{"type": "string"},
+			"to_wxid":          map[string]any{"type": "string"},
+			"relation_type":    map[string]any{"type": "string", "enum": []string{"friend", "coworker", "helper", "familiar", "conflict", "joke_partner", "mentor", "other"}},
+			"direction":        map[string]any{"type": "string", "enum": []string{"undirected", "directed"}},
+			"summary":          map[string]any{"type": "string"},
+			"confidence":       map[string]any{"type": "integer", "minimum": 1, "maximum": 100},
+			"evidence_msg_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}},
+			"observed_at":      map[string]any{"type": "integer"},
+		},
+		"required": []string{"chat_room_id", "from_wxid", "to_wxid", "relation_type", "direction", "summary", "confidence", "evidence_msg_ids", "observed_at"},
+	}
+	edgeItem := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"chat_room_id":        map[string]any{"type": "string"},
+			"from_wxid":           map[string]any{"type": "string"},
+			"to_wxid":             map[string]any{"type": "string"},
+			"relation_type":       map[string]any{"type": "string", "enum": []string{"friend", "coworker", "helper", "familiar", "conflict", "joke_partner", "mentor", "other"}},
+			"direction":           map[string]any{"type": "string", "enum": []string{"undirected", "directed"}},
+			"strength":            map[string]any{"type": "integer", "minimum": 1, "maximum": 100},
+			"summary":             map[string]any{"type": "string"},
+			"evidence_assert_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}},
+		},
+		"required": []string{"chat_room_id", "from_wxid", "to_wxid", "relation_type", "direction", "strength", "summary", "evidence_assert_ids"},
+	}
 	return map[string]any{
 		"type": "object",
 		"properties": map[string]any{
-			"memories":             map[string]any{"type": "array", "items": memoryItem},
-			"member_profiles":      map[string]any{"type": "array", "items": profileItem},
-			"member_relationships": map[string]any{"type": "array", "items": relationItem},
+			"memories":                map[string]any{"type": "array", "items": memoryItem},
+			"member_profiles":         map[string]any{"type": "array", "items": profileItem},
+			"member_relationships":    map[string]any{"type": "array", "items": relationItem},
+			"member_aliases":          map[string]any{"type": "array", "items": aliasItem},
+			"member_facts":            map[string]any{"type": "array", "items": factItem},
+			"member_events":           map[string]any{"type": "array", "items": eventItem},
+			"relationship_assertions": map[string]any{"type": "array", "items": assertionItem},
+			"relationship_edges":      map[string]any{"type": "array", "items": edgeItem},
 		},
-		"required": []string{"memories", "member_profiles", "member_relationships"},
+		"required": []string{"memories", "member_profiles", "member_relationships", "member_aliases", "member_facts", "member_events", "relationship_assertions", "relationship_edges"},
 	}
 }
 
@@ -578,7 +688,15 @@ func (s *MemoryService) saveExtractedMemory(ctx context.Context, item extractedM
 		return nil, nil
 	}
 	now := time.Now().Unix()
-	hash := memoryHash(vars.RobotRuntime.RobotCode, item.Scope, item.ContactWxID, item.ChatRoomID, item.Category, item.Content, item.Participants)
+	hash := memoryHash(memoryHashInput{
+		RobotCode:    vars.RobotRuntime.RobotCode,
+		Scope:        item.Scope,
+		ContactWxID:  item.ContactWxID,
+		ChatRoomID:   item.ChatRoomID,
+		Category:     item.Category,
+		Content:      item.Content,
+		Participants: item.Participants,
+	})
 	existing, err := s.memoryRepo.GetByHash(vars.RobotRuntime.RobotCode, hash)
 	if err != nil {
 		return nil, err
@@ -795,7 +913,7 @@ func (s *MemoryService) renderPromptContext(fromWxID, senderWxID string, isChatR
 		profile, err := s.memoryRepo.GetMemberProfile(vars.RobotRuntime.RobotCode, fromWxID, senderWxID)
 		if err == nil && profile != nil {
 			name := nameResolver.resolveName(fromWxID, senderWxID)
-			fmt.Fprintf(&sb, "[当前群成员画像]\n关于 %s：%s\n", name, nameResolver.replaceKnownWxIDs(fromWxID, profile.Summary, []string{senderWxID}))
+			fmt.Fprintf(&sb, "[当前群成员印象]\n关于 %s：%s\n", name, nameResolver.replaceKnownWxIDs(fromWxID, profile.Summary, []string{senderWxID}))
 			if profile.Personality != "" {
 				fmt.Fprintf(&sb, "性格特点：%s\n", nameResolver.replaceKnownWxIDs(fromWxID, profile.Personality, []string{senderWxID}))
 			}
@@ -920,8 +1038,25 @@ func (s *MemoryService) replaceKnownWxIDs(chatRoomID, content string, wxIDs []st
 	return result
 }
 
-func memoryHash(robotCode, scope, contactWxID, chatRoomID, category, content string, participants []string) string {
-	parts := append([]string{robotCode, scope, contactWxID, chatRoomID, category, strings.TrimSpace(content)}, normalizeStrings(participants)...)
+type memoryHashInput struct {
+	RobotCode    string
+	Scope        string
+	ContactWxID  string
+	ChatRoomID   string
+	Category     string
+	Content      string
+	Participants []string
+}
+
+func memoryHash(input memoryHashInput) string {
+	parts := append([]string{
+		input.RobotCode,
+		input.Scope,
+		input.ContactWxID,
+		input.ChatRoomID,
+		input.Category,
+		strings.TrimSpace(input.Content),
+	}, normalizeStrings(input.Participants)...)
 	sum := sha256.Sum256([]byte(strings.Join(parts, "|")))
 	return hex.EncodeToString(sum[:])
 }
