@@ -79,6 +79,8 @@ const (
 	ToolsDownloadFile          = "/Tools/DownloadFile"
 	ToolsUploadAppAttachStream = "/Tools/UploadAppAttachStream"
 
+	OfficialAccountsGetAppMsgExt = "/OfficialAccounts/GetAppMsgExt"
+
 	WxappQrcodeAuthLogin = "/Wxapp/QrcodeAuthLogin"
 )
 

@@ -2088,7 +2088,7 @@ func (s *MessageService) buildQuoteAIMessage(msg *model.Message, isAssistant boo
 				"文章标题: %s\n\n文章摘要: %s\n\n文章地址: %s\n\n%s",
 				refXmlMessage.AppMsg.Title,
 				refXmlMessage.AppMsg.Des,
-				refXmlMessage.AppMsg.URL,
+				strings.ReplaceAll(refXmlMessage.AppMsg.URL, "&amp;", "&"),
 				xmlMessage.AppMsg.Title,
 			)), true
 		case model.AppMsgTypequote:

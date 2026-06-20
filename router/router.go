@@ -29,6 +29,8 @@ var skillCtl *controller.SkillController
 var knowledgeCtl *controller.Knowledge
 var knowledgeCategoryCtl *controller.KnowledgeCategory
 var systemPromptCtl *controller.SystemPrompt
+var officialAccountCtx *controller.OfficialAccount
+var wxAppCtl *controller.WXApp
 
 func initController() {
 	chatHistoryCtl = controller.NewChatHistoryController()
@@ -53,6 +55,8 @@ func initController() {
 	knowledgeCtl = controller.NewKnowledgeController()
 	knowledgeCategoryCtl = controller.NewKnowledgeCategoryController()
 	systemPromptCtl = controller.NewSystemPromptController()
+	officialAccountCtx = controller.NewOfficialAccountController()
+	wxAppCtl = controller.NewWXAppController()
 }
 
 func RegisterRouter(r *gin.Engine) error {
@@ -234,7 +238,10 @@ func RegisterRouter(r *gin.Engine) error {
 	api.POST("/wechat-client/:wechatID/logout", wechatServerCallbackCtl.LogoutCallback)
 
 	// 微信小程序相关接口
-	api.POST("/robot/wxapp/qrcode-auth-login", controller.NewWXAppController().WxappQrcodeAuthLogin)
+	api.POST("/robot/wxapp/qrcode-auth-login", wxAppCtl.WxappQrcodeAuthLogin)
+
+	// 公众号相关接口
+	api.POST("/robot/official-account/get-app-msg-ext", officialAccountCtx.GetAppMsgExt)
 
 	// Pprof 代理接口 - 代理项目B的pprof监控
 	pprofGroup := api.Group("/robot/pprof")

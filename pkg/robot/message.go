@@ -445,6 +445,11 @@ type SendAppResponse struct {
 	Content      string `json:"content"`
 }
 
+type GetAppMsgExtRequest struct {
+	Wxid string `json:"Wxid"`
+	Url  string `json:"Url"`
+}
+
 type SongInfo struct {
 	AppMessageCommon
 	AppID    string `json:"AppID"`

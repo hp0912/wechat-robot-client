@@ -476,6 +476,13 @@ func (r *Robot) SendAppMessage(toWxID string, appMsgType int, appMsgXml string) 
 	return
 }
 
+func (r *Robot) GetAppMsgExt(url string) (string, error) {
+	return r.Client.GetAppMsgExt(GetAppMsgExtRequest{
+		Wxid: r.WxID,
+		Url:  url,
+	})
+}
+
 // 发送图片信息
 func (r *Robot) MsgUploadImg(toWxID string, image []byte) (MsgUploadImgResponse, error) {
 	base64Str := base64.StdEncoding.EncodeToString(image)
