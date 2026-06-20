@@ -1,6 +1,6 @@
 services:
   wechat-admin-redis:
-    image: "${REGISTRY:-docker.io}/redis:latest"
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/redis:latest
     container_name: wechat-admin-redis
     restart: always
     networks:
@@ -21,7 +21,7 @@ services:
       start_period: 10s
 
   wechat-admin-mysql:
-    image: "${REGISTRY:-docker.io}/mysql:8.2.0"
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/mysql:8.2.0
     restart: always
     container_name: wechat-admin-mysql
     networks:
@@ -47,7 +47,7 @@ services:
       - mysql_user_password
 
   wechat-admin-qdrant:
-    image: qdrant/qdrant:latest
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/qdrant/qdrant:latest
     restart: always
     container_name: wechat-admin-qdrant
     networks:
