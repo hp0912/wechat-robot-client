@@ -39,6 +39,7 @@ func autoMigrateTasks() []migrateTask {
 				&model.MomentSettings{},
 				&model.Skill{},
 				&model.SystemPrompt{},
+				&model.Contact{},
 			},
 		},
 	}
@@ -91,6 +92,11 @@ func enumMigrations() []enumMigration {
 			table:  "system_settings",
 			column: "notification_type",
 			sql:    "ALTER TABLE system_settings MODIFY COLUMN notification_type ENUM('push_plus','email','wecom') NOT NULL DEFAULT 'push_plus' COMMENT '通知方式：push_plus-推送加，email-邮件，wecom-企业微信应用'",
+		},
+		{
+			table:  "contacts",
+			column: "type",
+			sql:    "ALTER TABLE contacts MODIFY COLUMN type ENUM('friend','chat_room','official_account') NOT NULL COMMENT '联系人类型：friend-好友，chat_room-群组，official_account-公众号'",
 		},
 	}
 }

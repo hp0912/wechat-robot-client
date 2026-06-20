@@ -14,6 +14,7 @@ import (
 	"wechat-robot-client/pkg/appx"
 	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
+	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
 )
 
@@ -271,9 +272,12 @@ func (s *ContactService) DebounceSyncContact(contactID string) {
 }
 
 func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
-	now := time.Now().Unix()
 	// 将ids拆分成二十个一个的数组之后再获取详情
 	var contacts = make([]robot.Contact, 0)
+	var contactStates = make([]int, 0)
+	// 重新收集一遍联系人id，获取详情的时候可能报错，导致和参数的 contactIDs 对不上
+	var syncContactIDs = make([]string, 0)
+
 	chunker := slices.Chunk(contactIDs, 20)
 	processChunk := func(chunk []string) bool {
 		// 获取昵称等详细信息
@@ -284,14 +288,16 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 			return true
 		}
 		contacts = append(contacts, r.ContactList...)
+		contactStates = append(contactStates, r.Ret...)
+		syncContactIDs = append(syncContactIDs, chunk...)
 		return true
 	}
+
 	chunker(processChunk)
-	for _, contact := range contacts {
-		if contact.UserName.String == nil {
-			continue
-		}
-		if strings.TrimSpace(*contact.UserName.String) == "" {
+
+	for cIndex, contact := range contacts {
+		if contactStates[cIndex] != 0 || contact.UserName.String == nil || strings.TrimSpace(*contact.UserName.String) == "" {
+			s.UpdateContactStatus(syncContactIDs[cIndex], contactStates[cIndex])
 			continue
 		}
 		// 判断数据库是否存在当前数据，不存在就新建，存在就更新
@@ -302,76 +308,111 @@ func (s *ContactService) SyncContactByContactIDs(contactIDs []string) error {
 		}
 		if existContact != nil {
 			// 存在，修改
-			contactPerson := model.Contact{
-				ID:            existContact.ID,
-				WechatID:      *contact.UserName.String,
-				Alias:         contact.Alias,
-				Nickname:      contact.NickName.String,
-				Avatar:        contact.BigHeadImgUrl,
-				Pyinitial:     contact.Pyinitial.String,
-				QuanPin:       contact.QuanPin.String,
-				Sex:           contact.Sex,
-				Country:       contact.Country,
-				Province:      contact.Province,
-				City:          contact.City,
-				Signature:     contact.Signature,
-				SnsBackground: contact.SnsUserInfo.SnsBgimgId,
-			}
-			if contact.Remark.String != nil && *contact.Remark.String != "" {
-				contactPerson.Remark = *contact.Remark.String
-			}
-			contactPerson.Type = s.GetContactType(contactPerson)
-			if contact.BigHeadImgUrl == "" {
-				contactPerson.Avatar = contact.SmallHeadImgUrl
-			}
-			if contactPerson.Type == model.ContactTypeChatRoom {
-				if contact.ChatRoomOwner != nil && *contact.ChatRoomOwner != "" {
-					contactPerson.ChatRoomOwner = *contact.ChatRoomOwner
-				}
-			}
-			err = s.ctRepo.Update(&contactPerson)
-			if err != nil {
-				log.Printf("更新联系人失败: %v", err)
-				continue
-			}
+			_ = s.UpdateContact(existContact, contact)
 		} else {
-			contactPerson := model.Contact{
-				WechatID:      *contact.UserName.String,
-				Alias:         contact.Alias,
-				Nickname:      contact.NickName.String,
-				Avatar:        contact.BigHeadImgUrl,
-				Pyinitial:     contact.Pyinitial.String,
-				QuanPin:       contact.QuanPin.String,
-				Sex:           contact.Sex,
-				Country:       contact.Country,
-				Province:      contact.Province,
-				City:          contact.City,
-				Signature:     contact.Signature,
-				SnsBackground: contact.SnsUserInfo.SnsBgimgId,
-				CreatedAt:     now,
-				LastActiveAt:  now,
-				UpdatedAt:     now,
-			}
-			if contact.BigHeadImgUrl == "" {
-				contactPerson.Avatar = contact.SmallHeadImgUrl
-			}
-			if contact.Remark.String != nil && *contact.Remark.String != "" {
-				contactPerson.Remark = *contact.Remark.String
-			}
-			contactPerson.Type = s.GetContactType(contactPerson)
-			if contactPerson.Type == model.ContactTypeChatRoom {
-				if contact.ChatRoomOwner != nil && *contact.ChatRoomOwner != "" {
-					contactPerson.ChatRoomOwner = *contact.ChatRoomOwner
-				}
-			}
-			err = s.ctRepo.Create(&contactPerson)
-			if err != nil {
-				log.Printf("创建联系人失败: %v", err)
-				continue
-			}
+			// 不存在，创建
+			_ = s.CreateContact(contact)
 		}
 	}
 	return nil
+}
+
+func (s *ContactService) UpdateContactStatus(contactID string, contactStatus int) (err error) {
+	if contactID == "" {
+		return
+	}
+
+	var contact *model.Contact
+	contact, err = s.ctRepo.GetContact(contactID)
+	if err != nil {
+		return
+	}
+	if contact != nil {
+		err = s.ctRepo.Update(&model.Contact{
+			ID:     contact.ID,
+			Status: utils.IntPtr(contactStatus),
+		})
+	}
+
+	return
+}
+
+func (s *ContactService) UpdateContact(originalContact *model.Contact, contact robot.Contact) (err error) {
+	contactPerson := model.Contact{
+		ID:            originalContact.ID,
+		WechatID:      *contact.UserName.String,
+		Alias:         contact.Alias,
+		Nickname:      contact.NickName.String,
+		Status:        utils.IntPtr(0),
+		Avatar:        contact.BigHeadImgUrl,
+		Pyinitial:     contact.Pyinitial.String,
+		QuanPin:       contact.QuanPin.String,
+		Sex:           contact.Sex,
+		Country:       contact.Country,
+		Province:      contact.Province,
+		City:          contact.City,
+		Signature:     contact.Signature,
+		SnsBackground: contact.SnsUserInfo.SnsBgimgId,
+	}
+	if contact.Remark.String != nil && *contact.Remark.String != "" {
+		contactPerson.Remark = *contact.Remark.String
+	} else {
+		contactPerson.Remark = ""
+	}
+	contactPerson.Type = s.GetContactType(contactPerson)
+	if contact.BigHeadImgUrl == "" {
+		contactPerson.Avatar = contact.SmallHeadImgUrl
+	}
+	if contactPerson.Type == model.ContactTypeChatRoom {
+		if contact.ChatRoomOwner != nil && *contact.ChatRoomOwner != "" {
+			contactPerson.ChatRoomOwner = *contact.ChatRoomOwner
+		}
+	}
+	err = s.ctRepo.Update(&contactPerson)
+	if err != nil {
+		log.Printf("更新联系人失败: %v", err)
+	}
+	return
+}
+
+func (s *ContactService) CreateContact(contact robot.Contact) (err error) {
+	now := time.Now().Unix()
+
+	contactPerson := model.Contact{
+		WechatID:      *contact.UserName.String,
+		Alias:         contact.Alias,
+		Nickname:      contact.NickName.String,
+		Status:        utils.IntPtr(0),
+		Avatar:        contact.BigHeadImgUrl,
+		Pyinitial:     contact.Pyinitial.String,
+		QuanPin:       contact.QuanPin.String,
+		Sex:           contact.Sex,
+		Country:       contact.Country,
+		Province:      contact.Province,
+		City:          contact.City,
+		Signature:     contact.Signature,
+		SnsBackground: contact.SnsUserInfo.SnsBgimgId,
+		CreatedAt:     now,
+		LastActiveAt:  now,
+		UpdatedAt:     now,
+	}
+	if contact.BigHeadImgUrl == "" {
+		contactPerson.Avatar = contact.SmallHeadImgUrl
+	}
+	if contact.Remark.String != nil && *contact.Remark.String != "" {
+		contactPerson.Remark = *contact.Remark.String
+	}
+	contactPerson.Type = s.GetContactType(contactPerson)
+	if contactPerson.Type == model.ContactTypeChatRoom {
+		if contact.ChatRoomOwner != nil && *contact.ChatRoomOwner != "" {
+			contactPerson.ChatRoomOwner = *contact.ChatRoomOwner
+		}
+	}
+	err = s.ctRepo.Create(&contactPerson)
+	if err != nil {
+		log.Printf("创建联系人失败: %v", err)
+	}
+	return
 }
 
 func (s *ContactService) GetContacts(req dto.ContactListRequest, pager appx.Pager) ([]*model.Contact, int64, error) {
