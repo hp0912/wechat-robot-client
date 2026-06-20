@@ -868,6 +868,22 @@ func (c *Client) ToolsSendFile(req SendFileMessageRequest, file io.Reader, fileH
 	return
 }
 
+// GetAppMsgExt 阅读公众号文章
+func (c *Client) GetAppMsgExt(req GetAppMsgExtRequest) (mp string, err error) {
+	if err = c.limiter.Wait(context.Background()); err != nil {
+		return
+	}
+	var result ClientResponse[string]
+	_, err = c.client.R().
+		SetResult(&result).
+		SetBody(req).Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), OfficialAccountsGetAppMsgExt))
+	if err = result.CheckError(err); err != nil {
+		return
+	}
+	mp = result.Data
+	return
+}
+
 // SendApp 发送App消息
 func (c *Client) SendApp(req SendAppRequest) (appMessage SendAppResponse, err error) {
 	if err = c.limiter.Wait(context.Background()); err != nil {
