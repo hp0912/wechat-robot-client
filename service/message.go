@@ -2073,6 +2073,24 @@ func (s *MessageService) buildQuoteAIMessage(msg *model.Message, isAssistant boo
 				return openai.ChatCompletionMessageParamUnion{}, false
 			}
 			return s.aiTextMessage(isAssistant, "文件地址: "+referMsg.AttachmentUrl+"\n\n"+xmlMessage.AppMsg.Title), true
+		case model.AppMsgTypeUrl:
+			if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+			var refXmlMessage robot.XmlMessage
+			if err := vars.RobotRuntime.XmlDecoder(referMsg.Content, &refXmlMessage); err != nil {
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+			if refXmlMessage.AppMsg.URL == "" {
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+			return s.aiTextMessage(isAssistant, fmt.Sprintf(
+				"文章标题: %s\n\n文章摘要: %s\n\n文章地址: %s\n\n%s",
+				refXmlMessage.AppMsg.Title,
+				refXmlMessage.AppMsg.Des,
+				refXmlMessage.AppMsg.URL,
+				xmlMessage.AppMsg.Title,
+			)), true
 		case model.AppMsgTypequote:
 			subRefMsg, err := s.msgRepo.GetByID(referMsg.ID)
 			if err != nil || subRefMsg == nil {
