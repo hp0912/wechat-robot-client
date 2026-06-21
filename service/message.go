@@ -850,8 +850,8 @@ func (s *MessageService) ToolsCompleted(toWxID, replyWxID string) error {
 	return s.msgRepo.Create(&m)
 }
 
-// MsgSendGroupMassMsgText 文本消息群发接口
-func (s *MessageService) MsgSendGroupMassMsgText(toWxID []string, content string) error {
+// SendGroupMassMsgText 文本消息群发接口
+func (s *MessageService) SendGroupMassMsgText(toWxID []string, content string) error {
 	_, err := vars.RobotRuntime.MsgSendGroupMassMsgText(robot.MsgSendGroupMassMsgTextRequest{
 		ToWxid:  toWxID,
 		Content: content,
