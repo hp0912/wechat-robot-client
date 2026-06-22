@@ -47,7 +47,7 @@ services:
       - mysql_user_password
 
   wechat-admin-qdrant:
-    image: registry.cn-shenzhen.aliyuncs.com/houhou/qdrant/qdrant:latest
+    image: registry.cn-shenzhen.aliyuncs.com/houhou/qdrant:latest
     restart: always
     container_name: wechat-admin-qdrant
     networks:
