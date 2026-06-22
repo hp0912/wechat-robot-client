@@ -76,6 +76,22 @@ func (m *Message) SendLongTextMessage(c *gin.Context) {
 	resp.ToResponse(nil)
 }
 
+// SendGroupMassMsgText 文本消息群发接口
+func (m *Message) SendGroupMassMsgText(c *gin.Context) {
+	var req dto.SendGroupMassMsgTextRequest
+	resp := appx.NewResponse(c)
+	if ok, err := appx.BindAndValid(c, &req); !ok || err != nil {
+		resp.ToErrorResponse(errors.New("参数错误"))
+		return
+	}
+	err := service.NewMessageService(c).SendGroupMassMsgText(req.ToWxIDs, req.Content)
+	if err != nil {
+		resp.ToErrorResponse(err)
+		return
+	}
+	resp.ToResponse(nil)
+}
+
 func (m *Message) SendImageMessage(c *gin.Context) {
 	resp := appx.NewResponse(c)
 	// 获取表单文件
