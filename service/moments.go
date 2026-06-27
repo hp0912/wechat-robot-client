@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"image"
 	_ "image/gif"
@@ -62,6 +63,44 @@ func (s *MomentsService) SyncMomentStart() {
 			s.SyncMoments()
 		}
 	}
+}
+
+func (s *MomentsService) UnderstandImage(media []robot.Media, aiMomentService *AIMomentService, momentSettings *model.MomentSettings) (string, error) {
+	var images []string
+	for _, media := range media {
+		if media.URL.Value != "" {
+			images = append(images, media.URL.Value)
+		}
+	}
+	if len(images) == 0 {
+		return "", errors.New("提取图片数量为 0")
+	}
+	imageDesc, err := aiMomentService.UnderstandImage(images, *momentSettings)
+	if err != nil {
+		return "", err
+	}
+	if imageDesc.Content == "" {
+		return "", errors.New("解读图片内容为空")
+	}
+	return imageDesc.Content, nil
+}
+
+func (s *MomentsService) UnderstandVideo(media []robot.Media, aiMomentService *AIMomentService, momentSettings *model.MomentSettings) (string, error) {
+	var videoUrl string
+	if len(media) > 0 && media[0].Type == 6 {
+		videoUrl = media[0].URL.Value
+	}
+	if videoUrl == "" {
+		return "", errors.New("视频链接提取失败")
+	}
+	videoDesc, err := aiMomentService.UnderstandVideo(videoUrl, *momentSettings)
+	if err != nil {
+		return "", err
+	}
+	if videoDesc.Content == "" {
+		return "", errors.New("解读视频内容为空")
+	}
+	return videoDesc.Content, nil
 }
 
 func (s *MomentsService) SyncMoments() {
@@ -172,26 +211,68 @@ func (s *MomentsService) SyncMoments() {
 				continue
 			}
 		}
-		if timelineObject.ContentDesc == "" && len(timelineObject.ContentObject.MediaList.Media) < 3 {
-			log.Println("朋友圈文字内容为空，且图片少于三张，跳过处理")
-			continue
-		}
 		if timelineObject.ContentDesc == "" {
-			if momentSettings.AutoLike != nil && *momentSettings.AutoLike {
-				_, err := vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
-					Id:   strconv.FormatUint(timelineObject.ID, 10),
-					Type: 1,
-				})
+			// 图文
+			if timelineObject.ContentObject.ContentStyle == 1 {
+				imageDesc, err := s.UnderstandImage(timelineObject.ContentObject.MediaList.Media, aiMomentService, momentSettings)
 				if err != nil {
-					log.Println("自动点赞朋友圈失败: ", err)
+					log.Println("朋友圈文本为空，解读图片内容失败: " + err.Error())
 					continue
 				}
-				log.Println("只有图片没有文字，只点赞不评论")
-				continue
+				timelineObject.ContentDesc = imageDesc
+			}
+			// 视频
+			if timelineObject.ContentObject.ContentStyle == 15 {
+				videoDesc, err := s.UnderstandVideo(timelineObject.ContentObject.MediaList.Media, aiMomentService, momentSettings)
+				if err != nil {
+					log.Println("朋友圈文本为空，解读视频内容失败: " + err.Error())
+					continue
+				}
+				timelineObject.ContentDesc = videoDesc
+			}
+		} else {
+			// 图文
+			if timelineObject.ContentObject.ContentStyle == 1 {
+				imageDesc, err := s.UnderstandImage(timelineObject.ContentObject.MediaList.Media, aiMomentService, momentSettings)
+				if err != nil {
+					log.Println("朋友圈文本非空，解读图片内容失败: " + err.Error())
+				}
+				if imageDesc != "" {
+					timelineObject.ContentDesc += "\n\n图片内容: \n\n" + imageDesc
+				}
+			}
+			// 视频
+			if timelineObject.ContentObject.ContentStyle == 15 {
+				videoDesc, err := s.UnderstandVideo(timelineObject.ContentObject.MediaList.Media, aiMomentService, momentSettings)
+				if err != nil {
+					log.Println("朋友圈文本非空，解读视频内容失败: " + err.Error())
+				}
+				if videoDesc != "" {
+					timelineObject.ContentDesc += "\n\n视频内容: \n\n" + videoDesc
+				}
+			}
+		}
+		// 判断朋友圈是否适合点赞/评论
+		momentMood := aiMomentService.GetMomentMood(timelineObject.ContentDesc, *momentSettings)
+		if momentMood == nil {
+			log.Println("获取朋友圈心情失败")
+			continue
+		}
+		if momentMood.Comment == "no" {
+			log.Printf("%s: 朋友圈不适合评论，跳过", timelineObject.ContentDesc)
+			continue
+		}
+		// 自动点赞
+		if momentSettings.AutoLike != nil && *momentSettings.AutoLike {
+			_, err := vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
+				Id:   strconv.FormatUint(timelineObject.ID, 10),
+				Type: 1,
+			})
+			if err != nil {
+				log.Println("自动点赞朋友圈失败: ", err)
 			}
 		}
 		// 自动评论
-		var momentMood *MomentMood
 		if momentSettings.AutoComment != nil && *momentSettings.AutoComment {
 			// 判断下这个好友今天的朋友圈是否已经评论过了，每人每天只能被评论一次
 			commented, err := s.momentCommentRepo.IsTodayHasCommented(timelineObject.Username)
@@ -200,31 +281,10 @@ func (s *MomentsService) SyncMoments() {
 				continue
 			}
 			if commented {
-				// 已经评论过了，只自动点赞
-				if momentSettings.AutoLike != nil && *momentSettings.AutoLike {
-					_, err := vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
-						Id:   strconv.FormatUint(timelineObject.ID, 10),
-						Type: 1,
-					})
-					if err != nil {
-						log.Println("自动点赞朋友圈失败: ", err)
-						continue
-					}
-					log.Println("今天已经评论过了，只点赞")
-				} else {
-					log.Println("今天已经评论过了，跳过")
-				}
+				log.Println("今天已经评论过了，跳过")
 				continue
 			}
-			momentMood = aiMomentService.GetMomentMood(timelineObject.ContentDesc, *momentSettings)
-			if momentMood == nil {
-				log.Println("获取朋友圈心情失败")
-				continue
-			}
-			if momentMood.Comment == "no" {
-				log.Printf("%s: 朋友圈不适合评论，跳过", timelineObject.ContentDesc)
-				continue
-			}
+
 			commentContent, err := aiMomentService.Comment(timelineObject.ContentDesc, *momentSettings)
 			if err != nil {
 				log.Println("获取朋友圈评论内容失败: ", err)
@@ -255,28 +315,6 @@ func (s *MomentsService) SyncMoments() {
 			if err != nil {
 				log.Println("自动评论朋友圈失败: ", err)
 				_ = s.momentCommentRepo.Delete(&newComment)
-				continue
-			}
-		}
-		// 自动点赞
-		if momentSettings.AutoLike != nil && *momentSettings.AutoLike {
-			if momentMood == nil {
-				momentMood = aiMomentService.GetMomentMood(timelineObject.ContentDesc, *momentSettings)
-				if momentMood == nil {
-					log.Println("获取朋友圈心情失败")
-					continue
-				}
-			}
-			if momentMood.Like == "no" {
-				log.Printf("%s: 朋友圈不适合点赞，跳过", timelineObject.ContentDesc)
-				continue
-			}
-			_, err := vars.RobotRuntime.FriendCircleComment(robot.FriendCircleCommentRequest{
-				Id:   strconv.FormatUint(timelineObject.ID, 10),
-				Type: 1,
-			})
-			if err != nil {
-				log.Println("自动点赞朋友圈失败: ", err)
 				continue
 			}
 		}

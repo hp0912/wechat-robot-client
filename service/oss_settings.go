@@ -119,7 +119,7 @@ func (s *OSSSettingService) UploadEmojiToOSS(settings *model.OSSSettings, messag
 		}
 		decodedBytes, err := base64.StdEncoding.DecodeString(emoji)
 		if err != nil {
-			return errors.New(fmt.Sprintf("base64解码失败: %v", err))
+			return fmt.Errorf("base64解码失败: %v", err)
 		}
 		decodedStr := string(decodedBytes)
 		re := regexp.MustCompile(`https?://.*?\*`)
@@ -132,7 +132,7 @@ func (s *OSSSettingService) UploadEmojiToOSS(settings *model.OSSSettings, messag
 		if err != nil {
 			return fmt.Errorf("下载表情包失败: %w", err)
 		}
-		return s.uploadMediaToOSS(settings, message, data, contentType, extension, "images")
+		return s.uploadMediaToOSS(settings, message, data, contentType, extension, "emoji")
 	}
 	return errors.New("未知的表情包消息类型")
 }
