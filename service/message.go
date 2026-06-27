@@ -2067,7 +2067,11 @@ func (s *MessageService) buildQuoteAIMessage(msg *model.Message, isAssistant boo
 			if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
 				return openai.ChatCompletionMessageParamUnion{}, false
 			}
-			return s.aiTextMessage(isAssistant, xmlMessage.AppMsg.Title), true
+			referMsg, ok := s.getReferMessageByMsgID(xmlMessage.AppMsg.ReferMsg.SvrID)
+			if !ok {
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+			return s.aiTextPartMessage(isAssistant, xmlMessage.AppMsg.Title+"\n\n 图片地址: "+referMsg.AttachmentUrl), true
 		case model.AppMsgTypeAttach:
 			if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
 				return openai.ChatCompletionMessageParamUnion{}, false

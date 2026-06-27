@@ -104,6 +104,19 @@ func (p *AIChatPlugin) PreAction(ctx *plugin.MessageContext) bool {
 				return false
 			}
 		}
+		if ctx.ReferMessage.Type == model.MsgTypeEmoticon {
+			emojiUpload := NewAIEmojiUploadPlugin()
+			match := emojiUpload.Match(ctx)
+			if !match {
+				return false
+			}
+			emojiUpload.Run(ctx)
+			err := ctx.MessageService.SetMessageIsInContext(ctx.ReferMessage)
+			if err != nil {
+				log.Printf("更新消息上下文失败: %v", err)
+				return false
+			}
+		}
 		if ctx.ReferMessage.Type == model.MsgTypeVoice {
 			voiceUpload := NewAIVoiceUploadPlugin()
 			match := voiceUpload.Match(ctx)
