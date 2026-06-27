@@ -50,7 +50,7 @@ func (cron *GoodMorningCron) Cron() error {
 	// 每日一言
 	dailyWords := "早上好，今天接口挂了，没有早安语。"
 	resp, err := resty.New().R().
-		Post("https://api.pearktrue.cn/api/hitokoto/")
+		Post("https://api.pearapi.ai/api/hitokoto/")
 	if err != nil || resp.StatusCode() != http.StatusOK {
 		log.Printf("获取随机一言失败: %v", err)
 	} else {
