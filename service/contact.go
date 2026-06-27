@@ -29,6 +29,7 @@ var (
 type ContactService struct {
 	ctx                context.Context
 	ctRepo             *repository.Contact
+	fsRepo             *repository.FriendSettings
 	crmRepo            *repository.ChatRoomMember
 	sysmsgRepo         *repository.SystemMessage
 	systemSettingsRepo *repository.SystemSettings
@@ -38,6 +39,7 @@ func NewContactService(ctx context.Context) *ContactService {
 	return &ContactService{
 		ctx:                ctx,
 		ctRepo:             repository.NewContactRepo(ctx, vars.DB),
+		fsRepo:             repository.NewFriendSettingsRepo(ctx, vars.DB),
 		crmRepo:            repository.NewChatRoomMemberRepo(ctx, vars.DB),
 		sysmsgRepo:         repository.NewSystemMessageRepo(ctx, vars.DB),
 		systemSettingsRepo: repository.NewSystemSettingsRepo(ctx, vars.DB),
@@ -420,7 +422,11 @@ func (s *ContactService) GetContacts(req dto.ContactListRequest, pager appx.Page
 }
 
 func (s *ContactService) DeleteContactByContactID(contactID string) error {
-	return s.ctRepo.DeleteByContactID(contactID)
+	err := s.ctRepo.DeleteByContactID(contactID)
+	if err != nil {
+		return err
+	}
+	return s.fsRepo.DeleteByWeChatID(contactID)
 }
 
 func (s *ContactService) InsertOrUpdateContactActiveTime(contactID string) {

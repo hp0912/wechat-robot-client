@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -26,6 +28,7 @@ import (
 
 	"wechat-robot-client/dto"
 	"wechat-robot-client/model"
+	"wechat-robot-client/pkg/robot"
 	"wechat-robot-client/repository"
 	"wechat-robot-client/utils"
 	"wechat-robot-client/vars"
@@ -87,6 +90,51 @@ func (s *OSSSettingService) UploadImageToOSS(settings *model.OSSSettings, messag
 		return fmt.Errorf("下载图片失败: %w", err)
 	}
 	return s.uploadMediaToOSS(settings, message, data, contentType, extension, "images")
+}
+
+func (s *OSSSettingService) UploadEmojiToOSS(settings *model.OSSSettings, message *model.Message) error {
+	if message.Type == model.MsgTypeEmoticon {
+		emojiXml := &robot.XMLEmojiMessage{}
+		decoder := xml.NewDecoder(strings.NewReader(message.Content))
+		err := decoder.Decode(emojiXml)
+		if err != nil {
+			return errors.New("解析表情消息XML失败")
+		}
+		data, contentType, extension, err := s.downloadFromUrl(emojiXml.Emoji.CDNUrl, 0)
+		if err != nil {
+			return fmt.Errorf("下载表情包失败: %w", err)
+		}
+		return s.uploadMediaToOSS(settings, message, data, contentType, extension, "emoji")
+	}
+	if message.Type == model.MsgTypeApp {
+		emojiXml := &robot.XmlMessage{}
+		decoder := xml.NewDecoder(strings.NewReader(message.Content))
+		err := decoder.Decode(emojiXml)
+		if err != nil {
+			return errors.New("解析表情消息XML失败")
+		}
+		emoji := emojiXml.AppMsg.AppAttach.EmojiInfo
+		if emoji == "" {
+			return errors.New("指定的应用消息不是表情消息，你是不是忘了指定需要提取的表情包啊？")
+		}
+		decodedBytes, err := base64.StdEncoding.DecodeString(emoji)
+		if err != nil {
+			return fmt.Errorf("base64解码失败: %v", err)
+		}
+		decodedStr := string(decodedBytes)
+		re := regexp.MustCompile(`https?://.*?\*`)
+		match := re.FindString(decodedStr)
+		if match == "" {
+			return errors.New("未能从解码后的字符串中提取URL")
+		}
+		emojiUrl := strings.TrimSuffix(match, "*")
+		data, contentType, extension, err := s.downloadFromUrl(emojiUrl, 0)
+		if err != nil {
+			return fmt.Errorf("下载表情包失败: %w", err)
+		}
+		return s.uploadMediaToOSS(settings, message, data, contentType, extension, "emoji")
+	}
+	return errors.New("未知的表情包消息类型")
 }
 
 func (s *OSSSettingService) UploadVideoToOSS(settings *model.OSSSettings, message *model.Message) error {

@@ -31,6 +31,10 @@ func (respo *FriendSettings) GetFriendSettings(contactID string) (*model.FriendS
 	return &friendSettings, nil
 }
 
+func (respo *FriendSettings) DeleteByWeChatID(weChatID string) error {
+	return respo.DB.WithContext(respo.Ctx).Where("wechat_id = ?", weChatID).Delete(&model.FriendSettings{}).Error
+}
+
 func (respo *FriendSettings) Create(data *model.FriendSettings) error {
 	return respo.DB.WithContext(respo.Ctx).Create(data).Error
 }

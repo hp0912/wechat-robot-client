@@ -2056,7 +2056,11 @@ func (s *MessageService) buildQuoteAIMessage(msg *model.Message, isAssistant boo
 		if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
 			return openai.ChatCompletionMessageParamUnion{}, false
 		}
-		return s.aiTextMessage(isAssistant, xmlMessage.AppMsg.Title), true
+		referMsg, ok := s.getReferMessageByMsgID(xmlMessage.AppMsg.ReferMsg.SvrID)
+		if !ok {
+			return openai.ChatCompletionMessageParamUnion{}, false
+		}
+		return s.aiTextPartMessage(isAssistant, xmlMessage.AppMsg.Title+"\n\n 图片地址: "+referMsg.AttachmentUrl), true
 	case int(model.MsgTypeApp):
 		referMsg, ok := s.getReferMessageByMsgID(xmlMessage.AppMsg.ReferMsg.SvrID)
 		if !ok {
@@ -2067,7 +2071,40 @@ func (s *MessageService) buildQuoteAIMessage(msg *model.Message, isAssistant boo
 			if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
 				return openai.ChatCompletionMessageParamUnion{}, false
 			}
-			return s.aiTextMessage(isAssistant, xmlMessage.AppMsg.Title), true
+			return s.aiTextPartMessage(isAssistant, xmlMessage.AppMsg.Title+"\n\n 图片地址: "+referMsg.AttachmentUrl), true
+		case model.AppMsgTypeChatHistory:
+			if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+			var historyMessage robot.ChatHistoryMessage
+			var messageRecords []robot.ChatHistoryMessageRecord
+			if err := vars.RobotRuntime.XmlDecoder(referMsg.Content, &historyMessage); err != nil {
+				log.Println("引用消息解析失败")
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+			recordInfo, err := historyMessage.AppMsg.RecordItem.ParseRecordInfo()
+			if err != nil {
+				log.Println("聊天记录解析失败")
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+			if recordInfo == nil || len(recordInfo.DataList.Items) == 0 {
+				log.Println("聊天记录内容为空")
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+
+			messageRecords = robot.ExtractChatHistoryMessageRecords(recordInfo)
+			if len(messageRecords) == 0 {
+				log.Println("聊天记录内容为空")
+				return openai.ChatCompletionMessageParamUnion{}, false
+			}
+
+			var sb strings.Builder
+			for _, messageRecord := range messageRecords {
+				sb.WriteString(messageRecord.Content)
+				sb.WriteString("\n\n")
+			}
+
+			return s.aiTextPartMessage(isAssistant, sb.String()+xmlMessage.AppMsg.Title), true
 		case model.AppMsgTypeAttach:
 			if strings.TrimSpace(xmlMessage.AppMsg.Title) == "" {
 				return openai.ChatCompletionMessageParamUnion{}, false

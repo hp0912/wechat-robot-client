@@ -406,7 +406,11 @@ func (s *ChatRoomService) GroupQuit(chatRoomID string) error {
 	if err != nil {
 		return err
 	}
-	return s.ctRepo.DeleteByContactID(chatRoomID)
+	err = s.ctRepo.DeleteByContactID(chatRoomID)
+	if err != nil {
+		return err
+	}
+	return s.crsRepo.DeleteByChatRoomID(chatRoomID)
 }
 
 func (s *ChatRoomService) UpdateChatRoomMembersOnNewMemberJoinIn(chatRoomID string, memberWeChatIDs []string) ([]*model.ChatRoomMember, error) {

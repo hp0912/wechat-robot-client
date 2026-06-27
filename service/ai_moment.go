@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/openai/openai-go/v3"
-	"github.com/openai/openai-go/v3/option"
 
 	"wechat-robot-client/model"
-	"wechat-robot-client/utils"
 )
 
 type AIMomentService struct {
@@ -27,26 +26,69 @@ func NewAIMomentService(ctx context.Context) *AIMomentService {
 	}
 }
 
-func newOpenAIClient(apiKey, baseURL string) openai.Client {
-	return openai.NewClient(
-		option.WithAPIKey(apiKey),
-		option.WithBaseURL(utils.NormalizeAIBaseURL(baseURL)),
-	)
-}
-
-func streamChatCompletionMessage(ctx context.Context, client *openai.Client, req openai.ChatCompletionNewParams) (openai.ChatCompletionMessage, error) {
-	stream := client.Chat.Completions.NewStreaming(ctx, req)
-	acc := openai.ChatCompletionAccumulator{}
-	for stream.Next() {
-		acc.AddChunk(stream.Current())
+func (s *AIMomentService) UnderstandImage(imageURLs []string, momentSettings model.MomentSettings) (openai.ChatCompletionMessage, error) {
+	if len(imageURLs) == 0 {
+		return openai.ChatCompletionMessage{}, fmt.Errorf("缺少图片地址")
 	}
-	if err := stream.Err(); err != nil {
+
+	systemMessage := openai.SystemMessage("你是朋友圈多媒体内容理解助手，请客观描述图片中的主要内容、场景、地点、人物、动作和情绪，不要编造不可见的信息，除非所有图片都获取失败，否则你只描述你看到的，获取失败的图片则忽略。")
+	parts := []openai.ChatCompletionContentPartUnionParam{
+		openai.TextContentPart("请理解这些微信朋友圈图片内容，输出一段简洁、客观的中文描述。"),
+	}
+	for _, imageURL := range imageURLs {
+		parts = append(parts, openai.ImageContentPart(openai.ChatCompletionContentPartImageImageURLParam{
+			URL:    strings.TrimSpace(imageURL),
+			Detail: "auto",
+		}))
+	}
+
+	req := openai.ChatCompletionNewParams{
+		Model: momentSettings.ImageUnderstandingModel,
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			systemMessage,
+			openai.UserMessage(parts),
+		},
+	}
+	client := newOpenAIClient(momentSettings.AIAPIKey, momentSettings.AIBaseURL)
+	ctx := s.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	assistantMsg, err := streamChatCompletionMessage(ctx, &client, req)
+	if err != nil {
 		return openai.ChatCompletionMessage{}, err
 	}
-	if len(acc.Choices) == 0 {
-		return openai.ChatCompletionMessage{}, fmt.Errorf("empty response")
+	if assistantMsg.Content == "" {
+		return openai.ChatCompletionMessage{}, fmt.Errorf("AI返回了空内容，请联系管理员")
 	}
-	return acc.Choices[0].Message, nil
+	return assistantMsg, nil
+}
+
+func (s *AIMomentService) UnderstandVideo(videoURL string, momentSettings model.MomentSettings) (openai.ChatCompletionMessage, error) {
+	if videoURL == "" {
+		return openai.ChatCompletionMessage{}, fmt.Errorf("视频链接不能为空")
+	}
+
+	req := openai.ChatCompletionNewParams{
+		Model: momentSettings.VideoUnderstandingModel,
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage("你是朋友圈多媒体内容理解助手，请客观描述视频中的主要内容、场景、人物、动作和情绪，不要编造不可见的信息。"),
+			openai.UserMessage(fmt.Sprintf("请理解这个朋友圈视频内容，输出一段简洁、客观的中文描述。\n视频链接：%s", videoURL)),
+		},
+	}
+	client := newOpenAIClient(momentSettings.AIAPIKey, momentSettings.AIBaseURL)
+	ctx := s.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	assistantMsg, err := streamChatCompletionMessage(ctx, &client, req)
+	if err != nil {
+		return openai.ChatCompletionMessage{}, err
+	}
+	if assistantMsg.Content == "" {
+		return openai.ChatCompletionMessage{}, fmt.Errorf("AI返回了空内容，请联系管理员")
+	}
+	return assistantMsg, nil
 }
 
 func (s *AIMomentService) GetMomentMood(content string, momentSettings model.MomentSettings) *MomentMood {

@@ -108,6 +108,7 @@ type AppAttach struct {
 	FileKey         string `xml:"filekey"`
 	OverwriteMsgID  string `xml:"overwrite_newmsgid"`
 	FileUploadToken string `xml:"fileuploadtoken"`
+	EmojiInfo       string `xml:"emojiinfo,omitempty"`
 }
 
 type FileSecretXml struct {

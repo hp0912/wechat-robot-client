@@ -67,6 +67,10 @@ func (respo *ChatRoomSettings) GetAllEnableAISummary() ([]*model.ChatRoomSetting
 	return chatRoomSettings, nil
 }
 
+func (respo *ChatRoomSettings) DeleteByChatRoomID(chatRoomID string) error {
+	return respo.DB.WithContext(respo.Ctx).Where("chat_room_id = ?", chatRoomID).Delete(&model.ChatRoomSettings{}).Error
+}
+
 func (respo *ChatRoomSettings) Create(data *model.ChatRoomSettings) error {
 	return respo.DB.WithContext(respo.Ctx).Create(data).Error
 }
