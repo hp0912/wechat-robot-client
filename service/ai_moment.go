@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/openai/openai-go/v3"
-	"github.com/openai/openai-go/v3/packages/param"
 
 	"wechat-robot-client/model"
 )
@@ -70,22 +69,11 @@ func (s *AIMomentService) UnderstandVideo(videoURL string, momentSettings model.
 		return openai.ChatCompletionMessage{}, fmt.Errorf("视频链接不能为空")
 	}
 
-	systemMessage := openai.SystemMessage("你是朋友圈多媒体内容理解助手，请客观描述视频中的主要内容、场景、人物、动作和情绪，不要编造不可见的信息。")
-	videoPart := param.Override[openai.ChatCompletionContentPartUnionParam](map[string]any{
-		"type": "video_url",
-		"video_url": map[string]any{
-			"url": strings.TrimSpace(videoURL),
-		},
-	})
-
 	req := openai.ChatCompletionNewParams{
 		Model: momentSettings.VideoUnderstandingModel,
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			systemMessage,
-			openai.UserMessage([]openai.ChatCompletionContentPartUnionParam{
-				openai.TextContentPart("请理解这个朋友圈视频内容，输出一段简洁、客观的中文描述。"),
-				videoPart,
-			}),
+			openai.SystemMessage("你是朋友圈多媒体内容理解助手，请客观描述视频中的主要内容、场景、人物、动作和情绪，不要编造不可见的信息。"),
+			openai.UserMessage(fmt.Sprintf("请理解这个朋友圈视频内容，输出一段简洁、客观的中文描述。\n视频链接：%s", videoURL)),
 		},
 	}
 	client := newOpenAIClient(momentSettings.AIAPIKey, momentSettings.AIBaseURL)
