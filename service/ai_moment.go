@@ -30,6 +30,9 @@ func (s *AIMomentService) UnderstandImage(imageURLs []string, momentSettings mod
 	if len(imageURLs) == 0 {
 		return openai.ChatCompletionMessage{}, fmt.Errorf("缺少图片地址")
 	}
+	if momentSettings.ImageUnderstandingModel == "" {
+		return openai.ChatCompletionMessage{}, fmt.Errorf("图片理解模型不能为空")
+	}
 
 	systemMessage := openai.SystemMessage("你是朋友圈多媒体内容理解助手，请客观描述图片中的主要内容、场景、地点、人物、动作和情绪，不要编造不可见的信息，除非所有图片都获取失败，否则你只描述你看到的，获取失败的图片则忽略。")
 	parts := []openai.ChatCompletionContentPartUnionParam{
@@ -67,6 +70,9 @@ func (s *AIMomentService) UnderstandImage(imageURLs []string, momentSettings mod
 func (s *AIMomentService) UnderstandVideo(videoURL string, momentSettings model.MomentSettings) (openai.ChatCompletionMessage, error) {
 	if videoURL == "" {
 		return openai.ChatCompletionMessage{}, fmt.Errorf("视频链接不能为空")
+	}
+	if momentSettings.VideoUnderstandingModel == "" {
+		return openai.ChatCompletionMessage{}, fmt.Errorf("视频理解模型不能为空")
 	}
 
 	req := openai.ChatCompletionNewParams{
