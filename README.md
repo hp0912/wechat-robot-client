@@ -24,17 +24,13 @@
   <thead>
     <tr>
       <th>官方交流群</th>
-      <th>官方交流群2</th>
       <th>微信赞赏码</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td>
-        <img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20260705" alt="官方交流群" width="300" height="300">
-      </td>
-      <td>
-        <img src="https://img.houhoukang.com/char-room-qrcode-2.jpg?v=20260705" alt="官方交流群" width="300" height="300">
+        <img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20260713" alt="官方交流群" width="300" height="300">
       </td>
       <td>
         <img src="https://img.houhoukang.com/weChat-robot-pay.jpg" alt="赞赏码" width="300" height="300">
