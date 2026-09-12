@@ -68,7 +68,7 @@
   <tbody>
     <tr>
       <td>
-        <img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20260905" alt="官方交流群" width="300" height="300">
+        <img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20260912" alt="官方交流群" width="300" height="300">
       </td>
       <td>
         <img src="https://img.houhoukang.com/weChat-robot-pay.jpg" alt="赞赏码" width="300" height="300">
