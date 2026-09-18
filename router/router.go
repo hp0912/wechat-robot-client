@@ -75,7 +75,7 @@ func RegisterRouter(r *gin.Engine) error {
 	}
 
 	api := r.Group("/api/v1")
-	api.POST("/probe", probeCtl.Probe)
+	api.POST("/robot/probe", probeCtl.Probe)
 
 	// 登录相关接口
 	api.GET("/robot/is-running", loginCtl.IsRunning)
