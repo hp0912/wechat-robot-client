@@ -2,9 +2,13 @@
 .vscode
 .github
 .deploy
+docs
+template
 wechat-robot-client
 *.log
 *.md
 dev-wechat-ipad-example.yml
 ipad.swagger.yml
 .DS_Store
+__debugger_docker
+.env
