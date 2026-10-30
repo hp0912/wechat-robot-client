@@ -61,51 +61,6 @@ services:
       - QDRANT__SERVICE__GRPC_PORT=6334
       - QDRANT__SERVICE__API_KEY=x1234567890 # 自行修改，向量库的 API 密钥
 
-  wechat-server:
-    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-server:latest
-    container_name: wechat-server
-    restart: always
-    ports:
-      - "8090:3000"
-    networks:
-      - wechat-robot
-    volumes:
-      - ./wechat-server/data:/data
-    environment:
-      TZ: Asia/Shanghai
-
-  wechat-slider:
-    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-slider:latest
-    container_name: wechat-slider
-    restart: always
-    environment:
-      - GIN_MODE=release
-      - TZ=Asia/Shanghai
-      - UUID_SERVER_URL=http://wechat-uuid:9000
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X GET -H 'Content-Type: application/json' http://127.0.0.1:9000/api/v1/probe | grep -q '\"success\"[[:space:]]*:[[:space:]]*true'"]
-      interval: 10s
-      timeout: 2s
-      retries: 12
-    networks:
-      - wechat-robot
-
-  wechat-uuid:
-    image: registry.cn-shenzhen.aliyuncs.com/houhou/wechat-uuid:latest
-    container_name: wechat-uuid
-    restart: always
-    environment:
-      - TZ=Asia/Shanghai
-      - GIN_MODE=release
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST -H 'Content-Type: application/json' -d '{\"data\":\"0\"}' http://127.0.0.1:9000/api/v1/uuid | grep -q '\"code\"[[:space:]]*:[[:space:]]*200'"]
-      interval: 10s
-      timeout: 2s
-      retries: 12
-      start_period: 15s
-    networks:
-      - wechat-robot
-
   word-cloud-server:
     image: registry.cn-shenzhen.aliyuncs.com/houhou/word-cloud-server:latest
     container_name: word-cloud-server
@@ -150,22 +105,6 @@ services:
       - MUSIC_U=xxxxxxxx # 自行修改，网易云账号的 MUSIC_U cookie 值，部署完成后，访问 http://localhost:3000/qrlogin.html 登录后，从浏览器控制台获取
     ports:
       - "3000:3000"
-    networks:
-      - wechat-robot
-     
-  xiaohongshu-mcp:
-    image: registry.cn-shenzhen.aliyuncs.com/houhou/xiaohongshu-mcp:latest
-    container_name: xiaohongshu-mcp
-    restart: unless-stopped
-    tty: true
-    volumes:
-      - ./xiaohongshu-mcp/data:/app/data
-      - ./xiaohongshu-mcp/images:/app/images
-    environment:
-      - ROD_BROWSER_BIN=/usr/bin/google-chrome
-      - COOKIES_PATH=/app/data/cookies.json
-    ports:
-      - "9200:9000"
     networks:
       - wechat-robot
       
