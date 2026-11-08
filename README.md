@@ -60,6 +60,14 @@
 
 - 支持发送引用消息
 
+- 原生支持部署在苹果芯片电脑上
+
+- 内置抖音解析服务
+
+- 大幅提升发送视频的速度，同时解决了发送视频不能超过 25 MiB 的问题
+
+- 解决了 8074 退群没有消息回调的问题
+
 ## 官方交流群
 
 <table>
@@ -72,7 +80,7 @@
   <tbody>
     <tr>
       <td>
-        <img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20261031" alt="官方交流群" width="300" height="300">
+        <img src="https://img.houhoukang.com/char-room-qrcode.jpg?v=20261108" alt="官方交流群" width="300" height="300">
       </td>
       <td>
         <img src="https://img.houhoukang.com/weChat-robot-pay.jpg" alt="赞赏码" width="300" height="300">
