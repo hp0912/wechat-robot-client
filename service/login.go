@@ -82,20 +82,17 @@ func (s *LoginService) Offline() error {
 	return s.robotAdminRepo.Update(&robot)
 }
 
-func (s *LoginService) IsRunning() (result bool) {
-	result = vars.RobotRuntime.IsRunning()
-	if !result && vars.RobotRuntime.Status != model.RobotStatusOffline {
-		s.Offline()
-	}
-	return
+func (s *LoginService) IsRunning() bool {
+	return vars.RobotRuntime.IsRunning()
 }
 
-func (s *LoginService) IsLoggedIn() (result bool) {
-	result = vars.RobotRuntime.IsLoggedIn()
-	if !result && vars.RobotRuntime.Status != model.RobotStatusOffline {
-		s.Offline()
+func (s *LoginService) IsLoggedIn() bool {
+	loggedIn, err := vars.RobotRuntime.CheckLoggedIn()
+	if err != nil {
+		log.Printf("查询登录状态失败，保留当前登录状态: %v", err)
+		return vars.RobotRuntime.Status == model.RobotStatusOnline
 	}
-	return
+	return loggedIn
 }
 
 func (s *LoginService) GetCachedInfo() (robot.LoginData, error) {

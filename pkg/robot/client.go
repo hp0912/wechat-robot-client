@@ -18,6 +18,8 @@ import (
 	"golang.org/x/time/rate"
 )
 
+var ErrNotLoggedIn = errors.New("已退出登录")
+
 type ClientResponse[T any] struct {
 	Success bool   `json:"Success"`
 	Code    int    `json:"Code"`
@@ -35,14 +37,15 @@ func (c ClientResponse[T]) CheckError(err error) error {
 	if err != nil {
 		return err
 	}
+	if c.Code == -7 {
+		return ErrNotLoggedIn
+	}
 	if c.Success {
 		return nil
 	}
 	switch c.Code {
 	case 0:
 		return nil
-	case -7:
-		return errors.New("已退出登录")
 	case -1, -2, -3, -4, -5, -6, -8, -9, -10, -11, -12, -13:
 		return errors.New(c.Message)
 	}
@@ -82,16 +85,31 @@ func (c *Client) IsRunning() bool {
 }
 
 func (c *Client) GetProfile(wxid string) (resp GetProfileResponse, err error) {
-	if err = c.limiter.Wait(context.Background()); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err = c.limiter.Wait(ctx); err != nil {
 		return
 	}
 	var result ClientResponse[GetProfileResponse]
-	_, err = c.client.R().
+	httpResponse, err := c.client.R().
+		SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetQueryParam("wxid", wxid).
 		SetResult(&result).
 		Post(fmt.Sprintf("%s%s", c.Domain.BasePath(), UserGetContactProfile))
-	if err = result.CheckError(err); err != nil {
+	if err != nil {
+		return resp, err
+	}
+	if httpResponse.StatusCode() != http.StatusOK {
+		return resp, fmt.Errorf("获取用户信息失败，HTTP 状态码：%d", httpResponse.StatusCode())
+	}
+	if err = result.CheckError(nil); err != nil {
+		return
+	}
+	if !result.IsSuccess() {
+		return resp, fmt.Errorf("获取用户信息失败，错误码：%d，信息：%s", result.Code, result.Message)
+	}
+	if err = c.BaseResponseErrCheck(result.Data.BaseResponse); err != nil {
 		return
 	}
 	resp = result.Data

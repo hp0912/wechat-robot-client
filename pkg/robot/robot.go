@@ -75,11 +75,28 @@ func (r *Robot) IsRunning() bool {
 }
 
 func (r *Robot) IsLoggedIn() bool {
-	if r.WxID == "" {
-		return false
+	loggedIn, err := r.CheckLoggedIn()
+	return loggedIn && err == nil
+}
+
+func (runtime *Robot) CheckLoggedIn() (bool, error) {
+	if runtime.WxID == "" {
+		return false, nil
 	}
-	_, err := r.Client.GetProfile(r.WxID)
-	return err == nil
+	profile, err := runtime.Client.GetProfile(runtime.WxID)
+	if errors.Is(err, ErrNotLoggedIn) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if profile.UserInfo == nil || profile.UserInfo.UserName == nil || profile.UserInfo.UserName.String == nil {
+		return false, errors.New("查询登录状态失败：用户信息不完整")
+	}
+	if *profile.UserInfo.UserName.String != runtime.WxID {
+		return false, errors.New("查询登录状态失败：微信账号不匹配")
+	}
+	return true, nil
 }
 
 func (r *Robot) GetQrCode(loginType string, isPretender bool) (loginData LoginResponse, err error) {

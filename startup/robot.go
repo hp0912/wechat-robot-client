@@ -77,7 +77,12 @@ func InitWechatRobot() error {
 		case <-retryTicker.C:
 			if vars.RobotRuntime.IsRunning() {
 				log.Println("微信机器人服务端已启动")
-				if vars.RobotRuntime.IsLoggedIn() {
+				loggedIn, err := vars.RobotRuntime.CheckLoggedIn()
+				if err != nil {
+					log.Println("查询微信机器人登录状态失败，等待重试:", err)
+					continue
+				}
+				if loggedIn {
 					log.Println("微信机器人已登录")
 					vars.RobotRuntime.LoginTime = time.Now().Unix()
 					err := service.NewLoginService(context.Background()).Online()
